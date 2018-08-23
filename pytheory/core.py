@@ -177,7 +177,9 @@ class System:
         if major and minor:
             raise ValueError("Scale cannot be both major and minor. Choose one.")
 
-        def gen(tones, semitones, major, minor, harmonic, melodic):
+        def gen(tones, semitones, major, minor, harmonic, melodic, hemitonic):
+            if major or minor:
+                hemitonic = True
             # Assume chromatic scale, if neither major nor minor.
             if not (major or minor) and not hemitonic:
                 for i in range(tones):
@@ -185,49 +187,22 @@ class System:
             else:
                 if hemitonic:
                     if major:
-                        halfsteps = (
-                            floor((semitones * 2 / tones)),
-                            floor((semitones * 7 / tones)),
-                        )
-                        augmented_seconds = ()
+                        pattern = (2, 2, 1, 2, 2, 2, 1)
                     elif minor:
-                        halfsteps = (
-                            floor((semitones / tones)),
-                            floor((semitones * 3 / tones)),
-                        )
-                        augmented_seconds = []
-                    if harmonic:
-                        augmented_seconds = (floor((semitones * 5 / tones)),)
-                    whole_step = 2
-                    half_step = 1
-                    augmented_second = 3
+                        pattern = (2, 1, 2, 2, 1, 2, 2)
+                        if harmonic:
+                            pattern = (2, 1, 2, 2, 1, 3, 1)
                 else:
-                    first_halfstep_index = None
-                    whole_step = 1
-                    half_step = 0
-                    augmented_second = 3
-
-                print(augmented_seconds)
+                    pattern = None
 
                 step_count = 0
-                for i in range(semitones or tones):
-                    if not (i % whole_step):
-                        if i in augmented_seconds:
-                            step_count += augmented_second
-                            yield augmented_second
-                        if (step_count + whole_step) <= (semitones or tones):
-                            step_count += whole_step
-                            yield whole_step
-                        else:
-                            if half_step:
-                                step_count += half_step
-                                if step_count <= (semitones or tones):
-                                    yield half_step
-                    else:
-                        if i in halfsteps:
-                            step_count += half_step
-                            if half_step:
-                                yield half_step
+
+                if pattern:
+                    for step in pattern:
+                        yield step
+                else:
+                    for i in range(tones):
+                        yield 1
 
         scale = [
             g
@@ -238,6 +213,7 @@ class System:
                 minor=minor,
                 harmonic=harmonic,
                 melodic=melodic,
+                hemitonic=hemitonic,
             )
         ]
 
