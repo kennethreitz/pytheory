@@ -1,3 +1,4 @@
+from math import ceil, floor
 import pytuning
 import numeral
 
@@ -26,7 +27,7 @@ DEGREES = {
         ("subdominant", ("lydian", "dorian")),
         ("dominant", ("mixolydian", "phrygian")),
         ("submediant", ("aeolian", "lydian")),
-        ("leading tone", ("loocrian", "mixolydian")),
+        ("leading tone", ("locrian", "mixolydian")),
         ("octave", ("ionian", "aeolian")),
     ]
 }
@@ -37,7 +38,7 @@ SCALES = {
         # scale type: number of tones.
         "chromatic": (12, {}),
         "octatonic": (8, {}),
-        "heptatonic": (
+        "heptatonic": [
             7,
             {
                 "major": {"major": True, "hemitonic": True},
@@ -45,7 +46,7 @@ SCALES = {
                 "harmonic minor": {"minor": True, "harmonic": True, "hemitonic": True},
                 "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
             },
-        ),
+        ],
         # TODO: understand this
         "hexatonic": (
             6,
@@ -62,6 +63,12 @@ SCALES = {
         "monotonic": (1, {}),
     }
 }
+
+for i, (degree_name, modes) in enumerate(DEGREES["western"]):
+    for mode in modes:
+        SCALES[12]["heptatonic"][1].update(
+            {mode: {"major": True, "hemitonic": True, "offset": i}}
+        )
 
 
 class Pitch:
@@ -121,6 +128,8 @@ class System:
 
             tones = scale_properties[0]
             new_scales = scale_properties[1]
+
+            # exit()
             if not new_scales:
                 new_scales = {scale_type: {}}
 
@@ -159,6 +168,7 @@ class System:
         hemitonic=False,
         harmonic=False,
         melodic=False,
+        offset=None,
     ):
         """Generates the primary scale for a given number of semitones/tones."""
         # TODO: Support minor, support harmonic, support melodic.
@@ -173,43 +183,68 @@ class System:
                 for i in range(tones):
                     yield 1
             else:
-                if semitones:
-                    first_halfstep_index = round((semitones / 2) - 1)
+                if hemitonic:
+                    if major:
+                        halfsteps = (
+                            floor((semitones * 2 / tones)),
+                            floor((semitones * 7 / tones)),
+                        )
+                        augmented_seconds = ()
+                    elif minor:
+                        halfsteps = (
+                            floor((semitones / tones)),
+                            floor((semitones * 3 / tones)),
+                        )
+                        augmented_seconds = []
+                    if harmonic:
+                        augmented_seconds = (floor((semitones * 5 / tones)),)
                     whole_step = 2
                     half_step = 1
+                    augmented_second = 3
                 else:
                     first_halfstep_index = None
                     whole_step = 1
                     half_step = 0
+                    augmented_second = 3
+
+                print(augmented_seconds)
 
                 step_count = 0
                 for i in range(semitones or tones):
                     if not (i % whole_step):
-                        step_count += whole_step
-                        if step_count < (semitones or tones):
+                        if i in augmented_seconds:
+                            step_count += augmented_second
+                            yield augmented_second
+                        if (step_count + whole_step) <= (semitones or tones):
+                            step_count += whole_step
                             yield whole_step
                         else:
                             if half_step:
-                                yield half_step
+                                step_count += half_step
+                                if step_count <= (semitones or tones):
+                                    yield half_step
                     else:
-                        if i == first_halfstep_index:
+                        if i in halfsteps:
                             step_count += half_step
                             if half_step:
                                 yield half_step
 
-        return tuple(
-            [
-                g
-                for g in gen(
-                    tones=tones,
-                    semitones=semitones,
-                    major=major,
-                    minor=minor,
-                    harmonic=harmonic,
-                    melodic=melodic,
-                )
-            ]
-        )
+        scale = [
+            g
+            for g in gen(
+                tones=tones,
+                semitones=semitones,
+                major=major,
+                minor=minor,
+                harmonic=harmonic,
+                melodic=melodic,
+            )
+        ]
+
+        if offset:
+            scale = scale[offset - 1 :] + scale[: offset - 1]
+
+        return scale
 
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
