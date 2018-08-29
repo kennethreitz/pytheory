@@ -77,9 +77,20 @@ class Pitch:
 
 
 class Tone:
-    def __init__(self, *, name, octave=None):
+    __slots__ = ("name", "octave", "system")
+
+    def __init__(self, *, name, octave=None, system=None):
         self.name = name
         self.octave = octave
+        self.system = system
+
+        if self.system:
+            try:
+                assert self.name in self.system.tones
+            except AssertionError:
+                raise ValueError(
+                    f"Tone {self.name!r} was not found in system: {self.system.tones!r}"
+                )
 
     def __repr__(self):
         if self.octave:
@@ -87,28 +98,88 @@ class Tone:
         else:
             return f"<Tone {self.name}>"
 
+    def __eq__(self, other):
+
+        # Comparing string literals.
+        if self.name == other:
+            return True
+
+        # Comparing against other Tones.
+        try:
+            if (self.name == other.name) and (self.octave == other.octave):
+                return True
+        except AttributeError:
+            pass
+
     @classmethod
-    def from_string(klass, s):
+    def from_string(klass, s, system=None):
         tone = "".join([c for c in filter(str.isalpha, s)])
         try:
             octave = int("".join([c for c in filter(str.isdigit, s)]))
         except ValueError:
             octave = None
 
-        return klass(name=tone, octave=octave)
+        return klass(name=tone, octave=octave, system=system)
+
+    @classmethod
+    def from_index(klass, i, *, octave, system):
+        tone = system.tones[i].name
+        return klass(name=tone, octave=octave, system=system)
+
+    @property
+    def _index(self):
+        try:
+            return self.system.tones.index(self.name)
+        except AttributeError:
+            raise ValueError("Tone index cannot be referenced without a system!")
+
+    def _math(self, interval):
+        """Returns (new index, new octave)."""
+
+        try:
+            mod = len(self.system.tones)
+        except AttributeError:
+            raise ValueError(
+                "Tone math can only be computed with an associated system!"
+            )
+        result = self._index + interval
+        index = result % mod
+        octave = result // mod + self.octave
+        return (index, octave)
+
+    def add(self, interval):
+        index, octave = self._math(interval)
+        return self.from_index(index, octave=octave, system=self.system)
+
+    def subtract(self, interval):
+        return self.add((-1 * interval))
 
 
-class Scale:
-    def __init__(self, *, system, tonic, semitones=12):
+class TonedScale:
+    def __init__(self, *, system, tonic):
         if not isinstance(tonic, Tone):
             tonic = Tone.from_string(tonic)
 
         self.tonic = tonic
+        self.system = system
+
+    def __repr__(self):
+        return f"<TonedScale system={self.system!r} tonic={self.tonic}>"
+
+    @property
+    def scales(self):
+
+        return self.system.scales
 
 
 class System:
     def __init__(self, *, tones, degrees, scales=None):
         self.tones = [Tone.from_string(tone) for tone in tones]
+
+        # Add current system to tones (a bit of a hack).
+        for tone in self.tones:
+            tone.system = self
+
         self.degrees = degrees
         self._scales = scales
 
@@ -129,7 +200,6 @@ class System:
             tones = scale_properties[0]
             new_scales = scale_properties[1]
 
-            # exit()
             if not new_scales:
                 new_scales = {scale_type: {}}
 
@@ -220,7 +290,7 @@ class System:
         if offset:
             scale = scale[offset - 1 :] + scale[: offset - 1]
 
-        return scale
+        return {"intervals": scale, "hemitonic": hemitonic, "meta": {}}
 
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
@@ -231,4 +301,3 @@ SYSTEMS = {"western": System(tones=TONES["western"], degrees=DEGREES["western"])
 
 # print(numeral.int2roman(2018))
 western = SYSTEMS["western"]
-print(western.scales)
