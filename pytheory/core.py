@@ -1,6 +1,13 @@
 from math import ceil, floor
-import pytuning
+from pytuning import scales
 import numeral
+
+REFERENCE_A = 440
+TEMPRAMENTS = {
+    "equal": scales.create_edo_scale,
+    "pythagorean": scales.create_pythagorean_scale,
+    "meantone": scales.create_quarter_comma_meantone_scale,
+}
 
 TONES = {
     "western": [
@@ -37,30 +44,30 @@ SCALES = {
     12: {
         # scale type: number of tones.
         "chromatic": (12, {}),
-        "octatonic": (8, {}),
+        # "octatonic": (8, {}),
         "heptatonic": [
             7,
             {
                 "major": {"major": True, "hemitonic": True},
                 "minor": {"minor": True, "hemitonic": True},
                 "harmonic minor": {"minor": True, "harmonic": True, "hemitonic": True},
-                "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
+                # "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
             },
         ],
         # TODO: understand this
-        "hexatonic": (
-            6,
-            {
-                # name, arguments to scale generator.
-                "wholetone": {},
-                "augmented": {},
-                "prometheus": {},
-                "blues": {},
-            },
-        ),
-        "pentatonic": (5, {}),
-        "tetratonic": (4, {}),
-        "monotonic": (1, {}),
+        # "hexatonic": (
+        #     6,
+        #     {
+        #         # name, arguments to scale generator.
+        #         "wholetone": {},
+        #         "augmented": {},
+        #         "prometheus": {},
+        #         "blues": {},
+        #     },
+        # ),
+        # "pentatonic": (5, {}),
+        # "tetratonic": (4, {}),
+        # "monotonic": (1, {"monotonic": {"hemitonic": False}}),
     }
 }
 
@@ -77,7 +84,7 @@ class Pitch:
 
 
 class Tone:
-    __slots__ = ("name", "octave", "system")
+    # __slots__ = ("name", "octave", "system")
 
     def __init__(self, *, name, octave=None, system=None):
         self.name = name
@@ -154,22 +161,24 @@ class Tone:
     def subtract(self, interval):
         return self.add((-1 * interval))
 
-
-class TonedScale:
-    def __init__(self, *, system, tonic):
-        if not isinstance(tonic, Tone):
-            tonic = Tone.from_string(tonic)
-
-        self.tonic = tonic
-        self.system = system
-
-    def __repr__(self):
-        return f"<TonedScale system={self.system!r} tonic={self.tonic}>"
-
-    @property
-    def scales(self):
-
-        return self.system.scales
+    def pitch(
+        self,
+        *,
+        reference_pitch=REFERENCE_A,
+        temprament="equal",
+        symbolic=False,
+        precision=None,
+    ):
+        try:
+            tones = len(self.system.tones)
+        except AttributeError:
+            raise ValueError("Pitches can only be computed with an associated system!")
+        pitch_scale = TEMPRAMENTS[temprament](tones)
+        pitch = pitch_scale[self._index]
+        if symbolic:
+            return reference_pitch * pitch
+        else:
+            return reference_pitch * pitch.evalf(precision)
 
 
 class System:
@@ -205,12 +214,8 @@ class System:
 
             for scale in new_scales.items():
                 scale_name = scale[0]
-                scales[scale_type][scale_name] = (
-                    (
-                        self.generate_scale(
-                            tones=tones, semitones=self.semitones, **scale[1]
-                        )
-                    ),
+                scales[scale_type][scale_name] = self.generate_scale(
+                    tones=tones, semitones=self.semitones, **scale[1]
                 )
         return scales
 
@@ -272,6 +277,7 @@ class System:
                         yield step
                 else:
                     for i in range(tones):
+                        # TODO: figure out how to make this work with monotonic.
                         yield 1
 
         scale = [
@@ -299,5 +305,38 @@ class System:
 SYSTEMS = {"western": System(tones=TONES["western"], degrees=DEGREES["western"])}
 
 
+class TonedScale:
+    def __init__(self, *, system=SYSTEMS["western"], tonic):
+        self.system = system
+
+        if not isinstance(tonic, Tone):
+            tonic = Tone.from_string(tonic, system=self.system)
+
+        self.tonic = tonic
+
+    def __repr__(self):
+        return f"<TonedScale system={self.system!r} tonic={self.tonic}>"
+
+    @property
+    def scales(self):
+        scales = {}
+
+        for scale_type in self.system.scales:
+            for scale in self.system.scales[scale_type]:
+
+                working_scale = []
+                reference_scale = self.system.scales[scale_type][scale]["intervals"]
+
+                current_tone = self.tonic
+                working_scale.append(current_tone)
+
+                for interval in reference_scale:
+                    current_tone = current_tone.add(interval)
+                    working_scale.append(current_tone)
+
+                scales[scale] = tuple(working_scale)
+
+        return scales
+
+
 # print(numeral.int2roman(2018))
-western = SYSTEMS["western"]

@@ -1,11 +1,10 @@
 from pprint import pprint
 import pytheory
-from pytheory import TonedScale, Tone, western
+from pytheory import TonedScale, Tone
 
-c = Tone.from_string("C4", system=western)
 # print(c)
 # print(c.subtract(1))
 # print(c.add(1))
-c = TonedScale(system=pytheory.western, tonic="C4")
-pprint(c.scales)
+c = TonedScale(tonic="C4").scales["major"]
+print(c[1].pitch())
 # print(pytheory.western.scales)
