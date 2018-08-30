@@ -3,7 +3,7 @@ from pytuning import scales
 import numeral
 
 REFERENCE_A = 440
-TEMPRAMENTS = {
+TEMPERAMENTS = {
     "equal": scales.create_edo_scale,
     "pythagorean": scales.create_pythagorean_scale,
     "meantone": scales.create_quarter_comma_meantone_scale,
@@ -165,7 +165,7 @@ class Tone:
         self,
         *,
         reference_pitch=REFERENCE_A,
-        temprament="equal",
+        temperament="equal",
         symbolic=False,
         precision=None,
     ):
@@ -173,7 +173,7 @@ class Tone:
             tones = len(self.system.tones)
         except AttributeError:
             raise ValueError("Pitches can only be computed with an associated system!")
-        pitch_scale = TEMPRAMENTS[temprament](tones)
+        pitch_scale = TEMPERAMENTS[temperament](tones)
         pitch = pitch_scale[self._index]
         if symbolic:
             return reference_pitch * pitch
