@@ -18,7 +18,7 @@ This (work in progress) library attempt to make exploring music theory approacha
 >>> c_major[0].pitch(symbolic=True)
 440*2**(1/4)
 
->>> c_major[0].pitch(temprament='pythagorean', symbolic=True)
+>>> c_major[0].pitch(temperament='pythagorean', symbolic=True)
 14080/27
 ```
 
