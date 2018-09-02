@@ -2,6 +2,8 @@
 
 This (work in progress) library attempt to make exploring music theory approachable to humans.
 
+![logo](https://github.com/kennethreitz/pytheory/raw/master/ext/pytheory-small.png)
+
 ## Usage Example
 
 ``` {.pycon}
