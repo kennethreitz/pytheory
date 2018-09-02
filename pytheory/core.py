@@ -99,11 +99,15 @@ class Tone:
                     f"Tone {self.name!r} was not found in system: {self.system.tones!r}"
                 )
 
-    def __repr__(self):
+    @property
+    def full_name(self):
         if self.octave:
-            return f"<Tone {self.name}{self.octave}>"
+            return f"{self.name}{self.octave}"
         else:
-            return f"<Tone {self.name}>"
+            return self.name
+
+    def __repr__(self):
+        return f"<Tone {self.full_name}>"
 
     def __eq__(self, other):
 
@@ -296,6 +300,7 @@ class System:
         if offset:
             scale = scale[offset - 1 :] + scale[: offset - 1]
 
+        # descending goes in meta?
         return {"intervals": scale, "hemitonic": hemitonic, "meta": {}}
 
     def __repr__(self):
