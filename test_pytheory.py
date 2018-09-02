@@ -21,3 +21,12 @@ def test_tone_addition():
         Tone.from_string("C4", system=pytheory.SYSTEMS["western"]).add(12).full_name
         == "C5"
     )
+
+
+def test_tone_subtraction():
+    assert (
+        Tone.from_string("C5", system=pytheory.SYSTEMS["western"])
+        .subtract(12)
+        .full_name
+        == "C4"
+    )
