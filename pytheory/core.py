@@ -3,7 +3,7 @@ from pytuning import scales
 import numeral
 
 REFERENCE_A = 440
-TEMEPRAMENTS = {
+TEMPERAMENTS = {
     "equal": scales.create_edo_scale,
     "pythagorean": scales.create_pythagorean_scale,
     "meantone": scales.create_quarter_comma_meantone_scale,
@@ -165,7 +165,7 @@ class Tone:
         self,
         *,
         reference_pitch=REFERENCE_A,
-        temeprament="equal",
+        temperament="equal",
         symbolic=False,
         precision=None,
     ):
