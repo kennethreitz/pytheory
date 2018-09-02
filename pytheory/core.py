@@ -317,8 +317,15 @@ class TonedScale:
     def __repr__(self):
         return f"<TonedScale system={self.system!r} tonic={self.tonic}>"
 
+    def __getitem__(self, scale):
+        return self._scales[scale]
+
     @property
     def scales(self):
+        return tuple(self._scales().keys())
+
+    @property
+    def _scales(self):
         scales = {}
 
         for scale_type in self.system.scales:

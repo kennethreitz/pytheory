@@ -9,7 +9,7 @@ This (work in progress) library attempt to make exploring music theory approacha
 ``` {.pycon}
 >>> from pytheory import TonedScale
 
->>> c_major = TonedScale(tonic='C4').scales['major']
+>>> c_major = TonedScale(tonic='C4')['major']
 
 >>> c_major
 (<Tone C4>, <Tone D4>, <Tone E4>, <Tone F4>, <Tone G4>, <Tone A5>, <Tone B5>, <Tone C5>)
