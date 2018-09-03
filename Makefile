@@ -1,2 +1,2 @@
-tests:
+test:
 	pytest
