@@ -1,3 +1,4 @@
 .vscode/settings.json
 .DS_Store
 .pytest_cache
+t.py
