@@ -9,18 +9,18 @@ This (work in progress) library attempt to make exploring music theory approacha
 ``` {.pycon}
 >>> from pytheory import TonedScale
 
->>> c_major = TonedScale(tonic='C4')['major']
+>>> c_minor = TonedScale(tonic='C4')['minor']
 
->>> c_major
-(<Tone C4>, <Tone D4>, <Tone E4>, <Tone F4>, <Tone G4>, <Tone A5>, <Tone B5>, <Tone C5>)
+>>> c_minor
+<Scale I=C4 II=D4 III=Eb4 IV=F4 V=G4 VI=Ab4 VII=Bb5 VIII=C5>
 
->>> c_major[0].pitch()
+>>> c_minor[0].pitch()
 523.251130601197
 
->>> c_major[0].pitch(symbolic=True)
+>>> c_minor["I"].pitch(symbolic=True)
 440*2**(1/4)
 
->>> c_major[0].pitch(temperament='pythagorean', symbolic=True)
+>>> c_minor["tonic"].pitch(temperament='pythagorean', symbolic=True)
 14080/27
 ```
 

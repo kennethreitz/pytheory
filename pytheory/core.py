@@ -1,81 +1,7 @@
 from math import ceil, floor
-from pytuning import scales
 import numeral
 
-REFERENCE_A = 440
-TEMPERAMENTS = {
-    "equal": scales.create_edo_scale,
-    "pythagorean": scales.create_pythagorean_scale,
-    "meantone": scales.create_quarter_comma_meantone_scale,
-}
-
-TONES = {
-    "western": [
-        ("A",),
-        ("A#", "Bb"),
-        ("B",),
-        ("C",),
-        ("C#", "Db"),
-        ("D",),
-        ("D#", "Eb"),
-        ("E",),
-        ("F",),
-        ("F#", "Gb"),
-        ("G",),
-        ("G#", "Ab"),
-    ]
-}
-
-DEGREES = {
-    "western": [
-        ("tonic", ("ionian", "aeolian")),
-        ("supertonic", ("dorian", "locrian")),
-        ("mediant", ("phrygian", "ionian")),
-        ("subdominant", ("lydian", "dorian")),
-        ("dominant", ("mixolydian", "phrygian")),
-        ("submediant", ("aeolian", "lydian")),
-        ("leading tone", ("locrian", "mixolydian")),
-        ("octave", ("ionian", "aeolian")),
-    ]
-}
-
-SCALES = {
-    # Number of semitones.
-    12: {
-        # scale type: number of tones.
-        "chromatic": (12, {}),
-        # "octatonic": (8, {}),
-        "heptatonic": [
-            7,
-            {
-                "major": {"major": True, "hemitonic": True},
-                "minor": {"minor": True, "hemitonic": True},
-                "harmonic minor": {"minor": True, "harmonic": True, "hemitonic": True},
-                # "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
-            },
-        ],
-        # TODO: understand this
-        # "hexatonic": (
-        #     6,
-        #     {
-        #         # name, arguments to scale generator.
-        #         "wholetone": {},
-        #         "augmented": {},
-        #         "prometheus": {},
-        #         "blues": {},
-        #     },
-        # ),
-        # "pentatonic": (5, {}),
-        # "tetratonic": (4, {}),
-        # "monotonic": (1, {"monotonic": {"hemitonic": False}}),
-    }
-}
-
-for i, (degree_name, modes) in enumerate(DEGREES["western"]):
-    for mode in modes:
-        SCALES[12]["heptatonic"][1].update(
-            {mode: {"major": True, "hemitonic": True, "offset": i}}
-        )
+from ._statics import REFERENCE_A, TEMPERAMENTS, TONES, DEGREES, SCALES
 
 
 class Pitch:
@@ -232,10 +158,6 @@ class System:
 
         return [g for g in gen()]
 
-    # @property
-    # def primary_scale(self):
-    # return generate_primary_scale(tones=)
-
     @staticmethod
     def generate_scale(
         *,
@@ -243,8 +165,7 @@ class System:
         semitones=12,
         major=False,
         minor=False,
-        # Contains semitones.
-        hemitonic=False,
+        hemitonic=False,  # Contains semitones.
         harmonic=False,
         melodic=False,
         offset=None,
@@ -310,6 +231,40 @@ class System:
 SYSTEMS = {"western": System(tones=TONES["western"], degrees=DEGREES["western"])}
 
 
+class Scale:
+    def __init__(self, *, tones, degrees=None, system=None):
+        self.tones = tones
+        self.degrees = degrees
+        self.system = system
+
+        if self.degrees:
+            if not len(self.tones) == len(self.degrees):
+                raise ValueError("The number of tones and degrees must be equal!")
+
+    def __repr__(self):
+        r = []
+        for (i, tone) in enumerate(self.tones):
+            degree = numeral.int2roman(i + 1, only_ascii=True)
+            r += [f"{degree}={tone.full_name}"]
+
+        r = " ".join(r)
+        return f"<Scale {r}>"
+
+    def __getitem__(self, item):
+        # Degree–style reference (e.g. "IV").
+        if isinstance(item, str):
+            degrees = []
+            for (i, tone) in enumerate(self.tones):
+                degrees.append(numeral.int2roman(i + 1, only_ascii=True))
+
+            if item in degrees:
+                item = degrees.index(item)
+
+        # List/Tuple–style reference.
+        if isinstance(item, int) or isinstance(item, slice):
+            return self.tones[item]
+
+
 class TonedScale:
     def __init__(self, *, system=SYSTEMS["western"], tonic):
         self.system = system
@@ -346,9 +301,15 @@ class TonedScale:
                     current_tone = current_tone.add(interval)
                     working_scale.append(current_tone)
 
-                scales[scale] = tuple(working_scale)
+                scales[scale] = Scale(tones=tuple(working_scale))
 
         return scales
 
 
-# print(numeral.int2roman(2018))
+class Chord:
+    def __init__(self, *, tones):
+        self.tones = tones
+
+    # @property
+    # def harmony(self):
+    #     pass
