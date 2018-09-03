@@ -1,4 +1,4 @@
-from ._statics import REFERENCE_A
+from ._statics import REFERENCE_A, TEMPERAMENTS
 
 class Tone:
     # __slots__ = ("name", "octave", "system")
