@@ -1,13 +1,7 @@
 from math import ceil, floor
 import numeral
 
-from ._statics import REFERENCE_A, TEMPERAMENTS, TONES, DEGREES, SCALES
-
-
-class Pitch:
-    def __init__(self, *, frequency):
-        self.frequency = frequency
-
+from ._statics import REFERENCE_A, TEMPERAMENTS, TONES, DEGREES, SCALES, SYSTEMS
 
 class Tone:
     # __slots__ = ("name", "octave", "system")

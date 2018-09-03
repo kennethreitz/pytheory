@@ -49,7 +49,7 @@ SCALES = {
                 "major": {"major": True, "hemitonic": True},
                 "minor": {"minor": True, "hemitonic": True},
                 "harmonic minor": {"minor": True, "harmonic": True, "hemitonic": True},
-                "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
+                # "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
             },
         ],
         # TODO: understand this
@@ -68,6 +68,8 @@ SCALES = {
         # "monotonic": (1, {"monotonic": {"hemitonic": False}}),
     }
 }
+
+SYSTEMS = NotImplemented
 
 for i, (degree_name, modes) in enumerate(DEGREES["western"]):
     for mode in modes:
