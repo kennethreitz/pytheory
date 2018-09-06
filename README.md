@@ -4,9 +4,9 @@ This (work in progress) library attempt to make exploring music theory approacha
 
 ![logo](https://github.com/kennethreitz/pytheory/raw/master/ext/pytheory-small.png)
 
-## Usage Example
+## True Scale -> Pitch Evaluation
 
-``` {.pycon}
+```pycon
 >>> from pytheory import TonedScale
 
 >>> c_minor = TonedScale(tonic='C4')['minor']
@@ -22,6 +22,29 @@ This (work in progress) library attempt to make exploring music theory approacha
 
 >>> c_minor["tonic"].pitch(temperament='pythagorean', symbolic=True)
 14080/27
+```
+
+
+## Chord Fingerings for Custom Tunings
+
+```pycon
+>>> from pytheory import Tone, Fretboard, CHARTS
+
+>>> tones = (
+...     Tone.from_string("F2"),
+...     Tone.from_string("C3"),
+...     Tone.from_string("G3"),
+...     Tone.from_string("D4"),
+...     Tone.from_string("A5"),
+...     Tone.from_string("E5")
+... )
+
+>>> fretboard = Fretboard(tones=tones)
+>>>
+>>> c_chord = CHARTS['western']["C"]
+
+>>> print(c_chord.fingering(fretboard=fretboard))
+(0, 0, 0, 3, 3, 3)
 ```
 
 ✨🍰✨
