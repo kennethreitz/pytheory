@@ -4,6 +4,7 @@ from .systems import SYSTEMS
 from .tones import Tone
 
 QUALITIES = ('', 'maj', 'm', '5', '7', '9', 'dim', 'm6', 'm7', 'maj7')
+MAX_FRET = 7
 
 CHARTS = {}
 CHARTS['western'] = []
@@ -72,7 +73,7 @@ class NamedChord:
     def _possible_fingerings(self, *, fretboard):
         def find_fingerings(tone):
             fingerings = []
-            for j in range(7):
+            for j in range(MAX_FRET):
                 fingered_tone = tone.add(j)
                 for acceptable_tone in self.acceptable_tones:
                     if fingered_tone.name == acceptable_tone:
@@ -83,6 +84,19 @@ class NamedChord:
         fingering = []
         for i, tone in enumerate(fretboard.tones):
             fingering.append(find_fingerings(tone))
+
+        for i, finger in enumerate(fingering):
+            if finger == ():
+                fingering[i] = (-1,)
+
+        return tuple(fingering)
+
+    @staticmethod
+    def fix_fingering(fingering):
+        fingering = list(fingering)
+        for i, finger in enumerate(fingering):
+            if finger == -1:
+                fingering[i] = None
         return tuple(fingering)
 
     def fingerings(self, *, fretboard):
@@ -117,9 +131,9 @@ class NamedChord:
 
         best_fingerings = tuple([g for g in gen()])
         if not multiple:
-            return best_fingerings[0]
+            return self.fix_fingering(best_fingerings[0])
         else:
-            return best_fingerings
+            return tuple([self.fix_fingering(f) for f in best_fingerings])
 
 
 
@@ -136,3 +150,9 @@ for tone_titles in SYSTEMS['western'].tone_names:
         western_chart.update({f"{tone_name}{quality}": named_chord})
 
 CHARTS['western'] = western_chart
+
+def charts_for_fretboard(*, chart=CHARTS['western'], fretboard):
+    super_chart = {}
+    for chord in chart:
+        super_chart[chord] = chart[chord].fingering(fretboard=fretboard)
+    return super_chart

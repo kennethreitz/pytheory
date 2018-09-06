@@ -47,4 +47,6 @@ This (work in progress) library attempt to make exploring music theory approacha
 (0, 0, 0, 3, 3, 3)
 ```
 
+It can also [generate charts for all known chords](https://gist.github.com/kennethreitz/b363660145064fc330c206294cff92fc) for any instrument (accuracy to be determined!).
+
 ✨🍰✨
