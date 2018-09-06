@@ -3,18 +3,30 @@ from ._statics import REFERENCE_A, TEMPERAMENTS
 class Tone:
     # __slots__ = ("name", "octave", "system")
 
-    def __init__(self, *, name, octave=None, system=None):
+    def __init__(self, *, name, octave=None, system='western'):
         self.name = name
         self.octave = octave
-        self.system = system
 
-        if self.system:
-            try:
-                assert self.name in self.system.tones
-            except AssertionError:
-                raise ValueError(
-                    f"Tone {self.name!r} was not found in system: {self.system.tones!r}"
-                )
+        if isinstance(system, str):
+            self.system_name = system
+            self._system = None
+        else:
+            self.system_name = None
+            self._system = system
+
+    @property
+    def exists(self):
+        return self.name in self.system.tones
+
+    @property
+    def system(self):
+        from .systems import SYSTEMS
+
+        if self._system:
+            return self._system
+
+        if self.system_name:
+            return SYSTEMS[self.system_name]
 
     @property
     def full_name(self):
@@ -47,7 +59,10 @@ class Tone:
         except ValueError:
             octave = None
 
-        return klass(name=tone, octave=octave, system=system)
+        if system:
+            return klass(name=tone, octave=octave, system=system)
+        else:
+            return klass(name=tone, octave=octave)
 
     @classmethod
     def from_index(klass, i, *, octave, system):

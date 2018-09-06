@@ -1,15 +1,10 @@
 from ._statics import TEMPERAMENTS, TONES, DEGREES, SCALES, SYSTEMS
-from .tones import Tone
 from . import bootstrap
 
 
 class System:
-    def __init__(self, *, tones, degrees, scales=None):
-        self.tones = tones
-
-        # Add current system to tones (a bit of a hack).
-        for tone in self.tones:
-            tone.system = self
+    def __init__(self, *, tone_names, degrees, scales=None):
+        self.tone_names = tone_names
 
         self.degrees = degrees
         self._scales = scales
@@ -19,7 +14,13 @@ class System:
 
     @property
     def semitones(self):
-        return len(self.tones)
+        return len(self.tone_names)
+
+    @property
+    def tones(self):
+        from . import Tone
+        return tuple([Tone.from_string(tone) for tone in self.tone_names])
+
 
     @property
     def scales(self):
@@ -119,4 +120,4 @@ class System:
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
 
-SYSTEMS = bootstrap.SYSTEMS(SYSTEMS=SYSTEMS, DEGREES=DEGREES, TONES=TONES, Tone=Tone, System=System)
+SYSTEMS = {"western": System(tone_names=TONES["western"], degrees=DEGREES["western"])}
