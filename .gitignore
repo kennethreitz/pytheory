@@ -2,3 +2,4 @@
 .DS_Store
 .pytest_cache
 t.py
+pytheory/.vscode/settings.json

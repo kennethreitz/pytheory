@@ -1,9 +1,11 @@
 from ._statics import TEMPERAMENTS, TONES, DEGREES, SCALES, SYSTEMS
 from .tones import Tone
+from . import bootstrap
+
 
 class System:
     def __init__(self, *, tones, degrees, scales=None):
-        self.tones = [Tone.from_string(tone) for tone in tones]
+        self.tones = tones
 
         # Add current system to tones (a bit of a hack).
         for tone in self.tones:
@@ -117,5 +119,4 @@ class System:
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
 
-
-SYSTEMS = {"western": System(tones=TONES["western"], degrees=DEGREES["western"])}
+SYSTEMS = bootstrap.SYSTEMS(SYSTEMS=SYSTEMS, DEGREES=DEGREES, TONES=TONES, Tone=Tone, System=System)
