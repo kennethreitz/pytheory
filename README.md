@@ -24,6 +24,11 @@ This (work in progress) library attempt to make exploring music theory approacha
 14080/27
 ```
 
+## Audibly play a note (or chord)
+
+    >>> from pytheory import play
+    play(c_minor[0], t=1_000)
+
 
 ## Chord Fingerings for Custom Tunings
 
