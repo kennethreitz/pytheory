@@ -5,14 +5,28 @@ from .tones import Tone
 
 
 class Scale:
-    def __init__(self, *, tones, degrees=None, system=None):
+    def __init__(self, *, tones, degrees=None, system='western'):
         self.tones = tones
         self.degrees = degrees
-        self.system = system
+
+        if isinstance(system, str):
+            self.system_name = system
+            self._system = None
+        else:
+            self.system_name = None
+            self._system = system
 
         if self.degrees:
             if not len(self.tones) == len(self.degrees):
                 raise ValueError("The number of tones and degrees must be equal!")
+
+    @property
+    def system(self):
+        if self._system:
+            return self._system
+
+        if self.system_name:
+            return SYSTEMS[self.system_name]
 
     def __repr__(self):
         r = []
@@ -23,8 +37,14 @@ class Scale:
         r = " ".join(r)
         return f"<Scale {r}>"
 
-    def __getitem__(self, item):
-        # Degree–style reference (e.g. "IV").
+    def degree(self, item, major=None, minor=False):
+        # TODO: cleanup degrees.
+
+        # Ensure that both major and minor aren't passed.
+        if all((major, minor)):
+            raise ValueError("You can only specify one of the following: major, minor.")
+
+        # Roman–style degree reference (e.g. "IV").
         if isinstance(item, str):
             degrees = []
             for (i, tone) in enumerate(self.tones):
@@ -33,9 +53,33 @@ class Scale:
             if item in degrees:
                 item = degrees.index(item)
 
+            # If we're still a string, attempt to grab degree name.
+            if isinstance(item, str):
+                # Default to major mode, because that's how people do it, I think.
+                if not minor and major is None:
+                    major = True
+
+                for i, _degree in enumerate(self.system.degrees):
+                    # "tonic / octave"
+                    comp = _degree[0]
+
+                    if major:
+                        comp = _degree[1][0]
+                    elif minor:
+                        comp = _degree[1][1]
+
+                    if item == comp:
+                        item = i
+
         # List/Tuple–style reference.
         if isinstance(item, int) or isinstance(item, slice):
             return self.tones[item]
+
+    def __getitem__(self, item):
+        result = self.degree(item)
+        if result is None:
+            raise KeyError(item)
+        return result
 
 
 class TonedScale:
@@ -51,7 +95,16 @@ class TonedScale:
         return f"<TonedScale system={self.system!r} tonic={self.tonic}>"
 
     def __getitem__(self, scale):
-        return self._scales[scale]
+        result = self.get(scale)
+        if result is None:
+            raise KeyError(scale)
+        return result
+
+    def get(self, scale):
+        try:
+            return self._scales[scale]
+        except KeyError:
+            pass
 
     @property
     def scales(self):
