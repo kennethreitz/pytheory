@@ -1,5 +1,4 @@
 from ._statics import TEMPERAMENTS, TONES, DEGREES, SCALES, SYSTEMS
-from . import bootstrap
 
 
 class System:

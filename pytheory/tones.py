@@ -79,6 +79,8 @@ class Tone:
     def _math(self, interval):
         """Returns (new index, new octave)."""
 
+        octave = self.octave or 0
+
         try:
             mod = len(self.system.tones)
         except AttributeError:
@@ -87,7 +89,7 @@ class Tone:
             )
         result = self._index + interval
         index = result % mod
-        octave = result // mod + self.octave
+        octave = result // mod + octave
         return (index, octave)
 
     def add(self, interval):
