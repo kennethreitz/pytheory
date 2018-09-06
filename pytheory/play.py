@@ -11,9 +11,6 @@ from .tones import Tone
 SAMPLE_RATE = 44_100
 SAMPLE_PEAK = 4_096
 
-pygame.mixer.pre_init(SAMPLE_RATE, -16, 1)
-pygame.mixer.init()
-
 def sine_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Compute N samples of a sine wave with given frequency and peak amplitude.
        Defaults to one second.
@@ -50,6 +47,9 @@ class Synth(Enum):
     SAW = sawtooth_wave
 
 def play(tone_or_chord, temperament='equal', synth=Synth.SINE, t=1_000):
+
+    pygame.mixer.pre_init(SAMPLE_RATE, -16, 1)
+    pygame.mixer.init()
 
     if isinstance(tone_or_chord, Tone):
         chord = [synth(tone_or_chord.pitch(temperament=temperament, symbolic=True))]
