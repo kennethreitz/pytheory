@@ -3,19 +3,19 @@ import itertools
 from .systems import SYSTEMS
 from .tones import Tone
 
-MODS = ('', 'maj', 'm', '5', '7', '9', 'dim', 'm6', 'm7', 'maj7')
+QUALITIES = ('', 'maj', 'm', '5', '7', '9', 'dim', 'm6', 'm7', 'maj7')
 
 CHARTS = {}
 CHARTS['western'] = []
 
 class NamedChord:
-    def __init__(self, *, tone_name, mod):
+    def __init__(self, *, tone_name, quality):
         self.tone_name = tone_name
-        self.mod = mod
+        self.quality = quality
 
     @property
     def name(self):
-        return f"{self.tone_name}{self.mod}"
+        return f"{self.tone_name}{self.quality}"
 
     @property
     def tone(self):
@@ -30,33 +30,33 @@ class NamedChord:
 
 
         # Major third.
-        if self.mod == 'maj':
+        if self.quality == 'maj':
             acceptable += [self.tone.add(3)]
 
         # Minor third.
-        elif self.mod == 'm':
+        elif self.quality == 'm':
             acceptable += [self.tone.add(4)]
 
         # Perfect fifth.
-        elif self.mod == '5':
+        elif self.quality == '5':
             acceptable += [self.tone.add(5)]
 
-        elif self.mod == '7':
+        elif self.quality == '7':
             acceptable += [self.tone.add(7)]
 
-        elif self.mod == '9':
+        elif self.quality == '9':
             acceptable += [self.tone.add(9)]
 
-        elif self.mod == 'dim':
+        elif self.quality == 'dim':
             acceptable += [self.tone.add(4), self.tone.add(8)]
 
-        elif self.mod == 'm6':
+        elif self.quality == 'm6':
             acceptable += [self.tone.add(4), self.tone.add(6)]
 
-        elif self.mod == 'm7':
+        elif self.quality == 'm7':
             acceptable += [self.tone.add(4), self.tone.add(7)]
 
-        elif self.mod == 'maj7':
+        elif self.quality == 'maj7':
             acceptable += [self.tone.add(3), self.tone.add(7)]
 
         else:
@@ -131,8 +131,8 @@ for tone_titles in SYSTEMS['western'].tone_names:
     else:
         tone_name = tone_titles[0]
 
-    for mod in MODS:
-        named_chord = NamedChord(tone_name=tone_name, mod=mod)
-        western_chart.update({f"{tone_name}{mod}": named_chord})
+    for quality in QUALITIES:
+        named_chord = NamedChord(tone_name=tone_name, quality=quality)
+        western_chart.update({f"{tone_name}{quality}": named_chord})
 
 CHARTS['western'] = western_chart
