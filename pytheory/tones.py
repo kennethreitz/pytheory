@@ -3,7 +3,10 @@ from ._statics import REFERENCE_A, TEMPERAMENTS
 class Tone:
     # __slots__ = ("name", "octave", "system")
 
-    def __init__(self, *, name, octave=None, system='western'):
+    def __init__(self, *, name, alt_names=None, octave=None, system='western'):
+        if alt_names is None:
+            alt_names = []
+
         self.name = name
         self.octave = octave
 
@@ -26,7 +29,8 @@ class Tone:
             return self._system
 
         if self.system_name:
-            return SYSTEMS[self.system_name]
+            self._system = SYSTEMS[self.system_name]
+            return self.system
 
     @property
     def full_name(self):
@@ -34,6 +38,9 @@ class Tone:
             return f"{self.name}{self.octave}"
         else:
             return self.name
+
+    def names(self):
+        return [self.name] + self.alt_names
 
     def __repr__(self):
         return f"<Tone {self.full_name}>"
@@ -46,23 +53,33 @@ class Tone:
 
         # Comparing against other Tones.
         try:
-            if (self.name == other.name) and (self.octave == other.octave):
+            if (self.name in other.names) and (self.octave == other.octave):
                 return True
         except AttributeError:
             pass
 
     @classmethod
     def from_string(klass, s, system=None):
-        tone = "".join([c for c in filter(str.isalpha, s)])
         try:
             octave = int("".join([c for c in filter(str.isdigit, s)]))
         except ValueError:
             octave = None
 
+        tone = s.replace(str(octave), '') if octave else s
+
         if system:
             return klass(name=tone, octave=octave, system=system)
         else:
             return klass(name=tone, octave=octave)
+
+    @classmethod
+    def from_tuple(klass, t):
+        if len(t) == 1:
+            return klass.from_string(s=t[0])
+        else:
+            tone = klass.from_string(s=t[0])
+            tone.alt_names = t[1:]
+            return tone
 
     @classmethod
     def from_index(klass, i, *, octave, system):

@@ -18,7 +18,7 @@ class System:
     @property
     def tones(self):
         from . import Tone
-        return tuple([Tone.from_string(tone) for tone in self.tone_names])
+        return tuple([Tone.from_tuple(tone) for tone in self.tone_names])
 
 
     @property
