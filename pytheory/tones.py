@@ -34,7 +34,7 @@ class Tone:
 
     @property
     def full_name(self):
-        if self.octave:
+        if self.octave is not None:
             return f"{self.name}{self.octave}"
         else:
             return self.name
@@ -65,7 +65,7 @@ class Tone:
         except ValueError:
             octave = None
 
-        tone = s.replace(str(octave), '') if octave else s
+        tone = s.replace(str(octave), '') if octave is not None else s
 
         if system:
             return klass(name=tone, octave=octave, system=system)
