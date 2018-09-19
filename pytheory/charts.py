@@ -3,7 +3,48 @@ import itertools
 from .systems import SYSTEMS
 from .tones import Tone
 
-QUALITIES = ('', 'maj', 'm', '5', '7', '9', 'dim', 'm6', 'm7', 'maj7')
+CHORD_SYNONYMS = {
+    'maj' : ['', 'M'],
+    'm'   : ['min'],
+    'aug' : ['+'],
+    'dim' : ['0'],
+    'maj6': ['6', 'M6'],
+    'min6': ['m6'],
+    'maj7': ['M7'],
+    'min7': ['m7']
+    'aug7': ['+7'],
+    'dim7': ['07'],
+    'mM7' : ['min/maj7', 'min(maj7)'],
+}
+
+CHORD_DEFINITIONS = {
+    'maj' : (0, 4, 7),
+    'm'   : (0, 3, 7),
+    'aug' : (0, 4, 8),
+    'dim' : (0, 3, 6),
+    'maj6': (0, 4, 7, 9),
+    'min6': (0, 3, 7, 9),
+    '7'   : (0, 4, 7, 10),
+    'maj7': (0, 4, 7, 11),
+    'min7': (0, 3, 7, 10),
+    'aug7': (0, 4, 8, 10),
+    'dim7': (0, 3, 6, 9),
+    'm7b5': (0, 3, 6, 10),
+    'mM7' : (0, 3, 7, 11),
+    'maj9': (0, 4, 7, 11, 14),
+    '9'   : (0, 4, 7, 10, 14),
+    'mM9' : (0, 3, 7, 11, 14),
+    'min9': (0, 3, 7, 10, 14),
+    '+M9' : (0, 4, 8, 11, 14),
+    'aug9': (0, 4, 8, 10, 14),    
+    '5'   : (0, 7),
+}
+for quality, synonym_list in CHORD_SYNONYMS.items():
+    for synonym in synonym_list:
+        CHORD_DEFINITIONS[synonym] = CHORD_DEFINITIONS[quality]
+
+QUALITIES = CHORD_DEFINITIONS.keys()
+
 MAX_FRET = 7
 
 CHARTS = {}
@@ -27,44 +68,7 @@ class NamedChord:
 
     @property
     def acceptable_tones(self):
-        acceptable = [self.tone]
-
-
-        # Major third.
-        if self.quality == 'maj':
-            acceptable += [self.tone.add(3)]
-
-        # Minor third.
-        elif self.quality == 'm':
-            acceptable += [self.tone.add(4)]
-
-        # Perfect fifth.
-        elif self.quality == '5':
-            acceptable += [self.tone.add(5)]
-
-        elif self.quality == '7':
-            acceptable += [self.tone.add(7)]
-
-        elif self.quality == '9':
-            acceptable += [self.tone.add(9)]
-
-        elif self.quality == 'dim':
-            acceptable += [self.tone.add(4), self.tone.add(8)]
-
-        elif self.quality == 'm6':
-            acceptable += [self.tone.add(4), self.tone.add(6)]
-
-        elif self.quality == 'm7':
-            acceptable += [self.tone.add(4), self.tone.add(7)]
-
-        elif self.quality == 'maj7':
-            acceptable += [self.tone.add(3), self.tone.add(7)]
-
-        else:
-            acceptable += [self.tone.add(5)]
-            acceptable += [self.tone.subtract(5)]
-
-        return tuple(acceptable)
+        return tuple([self.tone.add(i) for i in CHORD_DEFINITIONS[self.quality]])
 
     @property
     def acceptable_tone_names(self):
