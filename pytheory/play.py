@@ -1,4 +1,5 @@
 from enum import Enum
+from ._statics import REFERENCE_A
 import numpy
 import scipy.signal
 
@@ -27,7 +28,7 @@ def sawtooth_wave(hz, peak=SAMPLE_PEAK, rising_ramp_width=1, n_samples=SAMPLE_RA
        rising_ramp_width is the percentage of the ramp spend rising:
        .5 is a triangle wave with equal rising and falling times.
     """
-    t = numpy.linspace(0, 1, 500 * 440/hz, endpoint=False)
+    t = numpy.linspace(0, 1, 500 * REFERENCE_A/hz, endpoint=False)
     wave = scipy.signal.sawtooth(2 * numpy.pi * 5 * t, width=rising_ramp_width)
     wave = numpy.resize(wave, (n_samples,))
     # Sawtooth waves sound very quiet, so multiply peak by 4.
@@ -45,6 +46,7 @@ def _play_for(sample_wave, ms):
 class Synth(Enum):
     SINE = sine_wave
     SAW = sawtooth_wave
+
 
 def play(tone_or_chord, temperament='equal', synth=Synth.SINE, t=1_000):
 
