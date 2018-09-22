@@ -68,7 +68,7 @@ class NamedChord:
 
     @property
     def acceptable_tone_names(self):
-        return tuple([tone.name for tone in self.acceptable_tones])
+        return tuple((tone.name for tone in self.acceptable_tones))
 
     def _possible_fingerings(self, *, fretboard):
         def find_fingerings(tone):
@@ -129,11 +129,11 @@ class NamedChord:
                 if fingering_score(possible_fingering) == max_score:
                     yield possible_fingering
 
-        best_fingerings = tuple([g for g in gen()])
+        best_fingerings = tuple(g for g in gen())
         if not multiple:
             return self.fix_fingering(best_fingerings[0])
         else:
-            return tuple([self.fix_fingering(f) for f in best_fingerings])
+            return tuple((self.fix_fingering(f) for f in best_fingerings))
 
 
 
