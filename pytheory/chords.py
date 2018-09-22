@@ -3,7 +3,7 @@ class Chord:
         self.tones = tones
 
     def __repr__(self):
-        l = tuple([tone.full_name for tone in self.tones])
+        l = tuple((tone.full_name for tone in self.tones))
         return f"<Chord tones={l!r}>"
 
     # @property
@@ -20,7 +20,7 @@ class Fretboard:
         self.tones = tones
 
     def __repr__(self):
-        l = tuple([tone.full_name for tone in self.tones])
+        l = tuple((tone.full_name for tone in self.tones))
         return f"<Fretboard tones={l!r}>"
 
     def fingering(self, *positions):
