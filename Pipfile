@@ -12,6 +12,3 @@ scipy = "*"
 [dev-packages]
 pytest = "*"
 rope = "*"
-
-[requires]
-python_version = "3.7"
