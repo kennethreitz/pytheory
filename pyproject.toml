@@ -11,3 +11,6 @@ dependencies = [
     "pygame",
     "scipy",
 ]
+
+[tool.setuptools]
+packages = ["pytheory"]
