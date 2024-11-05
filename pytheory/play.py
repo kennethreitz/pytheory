@@ -33,10 +33,23 @@ def sawtooth_wave(hz, peak=SAMPLE_PEAK, rising_ramp_width=1, n_samples=SAMPLE_RA
     return peak * 6 * wave.astype(numpy.int16)
 
 
+def triangle_wave(hz, peak=SAMPLE_PEAK, rising_ramp_width=0.5, n_samples=SAMPLE_RATE):
+    """Compute N samples of a triangle wave with given frequency and peak amplitude.
+    Defaults to one second.
+    rising_ramp_width is the percentage of the ramp spend rising:
+    .5 is a triangle wave with equal rising and falling times.
+    """
+    hz_value = float(hz)
+    num_samples = int(500 * 440 / hz_value)
+    t = numpy.linspace(0, 1, num_samples, endpoint=False)
+    wave = scipy.signal.sawtooth(2 * numpy.pi * 5 * t, width=rising_ramp_width)
+    wave = numpy.resize(wave, (n_samples,))
+    # Use same amplitude as sawtooth_wave for testing
+    return peak * 6 * wave.astype(numpy.int16)
+
+
 def _play_for(sample_wave, ms):
     """Play the given NumPy array, as a sound, for ms milliseconds."""
-    # Convert milliseconds to seconds
-    seconds = ms / 1000
 
     # sounddevice expects float32 samples between -1 and 1
     normalized_wave = sample_wave.astype(numpy.float32) / SAMPLE_PEAK
@@ -49,6 +62,7 @@ def _play_for(sample_wave, ms):
 class Synth(Enum):
     SINE = sine_wave
     SAW = sawtooth_wave
+    TRIANGLE = triangle_wave
 
 
 def play(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000):
