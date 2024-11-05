@@ -25,6 +25,31 @@ all_chords = sorted(CHARTS["western"].keys())
 print("Standard Guitar Chord Charts:")
 print("-" * 30)
 
+def fingering_to_tab(fingering):
+    if not fingering:
+        return ""
+
+    # Create 6 strings of dashes, representing the guitar strings
+    strings = ["-" * 15 for _ in range(6)]
+
+    # For each string (starting from high E)
+    for string_num, fret in enumerate(fingering):
+        if fret is not None:
+            # Place the fret number at the correct position
+            if fret == 0:
+                strings[string_num] = "0" + strings[string_num][1:]
+            else:
+                strings[string_num] = "-" * (fret - 1) + str(fret) + strings[string_num][fret:]
+
+    # Combine strings with newlines, and add string names
+    tab = "e|" + strings[0] + "\n"
+    tab += "B|" + strings[1] + "\n"
+    tab += "G|" + strings[2] + "\n"
+    tab += "D|" + strings[3] + "\n"
+    tab += "A|" + strings[4] + "\n"
+    tab += "E|" + strings[5] + "\n"
+    return tab
+
 for chord_name in all_chords:
     # Store original chord name for lookup
     lookup_name = chord_name
@@ -44,7 +69,8 @@ for chord_name in all_chords:
 
     try:
         fingering = chord.fingering(fretboard=fretboard)
-        print(f"{display_name}: {fingering}")
+        print(f"\n{display_name}:")
+        print(fingering_to_tab(fingering))
     except Exception as e:
         print(f"{display_name}: Unable to calculate fingering - {str(e)}")
         # Add more detailed debug information
