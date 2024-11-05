@@ -25,6 +25,7 @@ all_chords = sorted(CHARTS["western"].keys())
 print("Standard Guitar Chord Charts:")
 print("-" * 30)
 
+
 def fingering_to_tab(fingering):
     if not fingering:
         return ""
@@ -39,7 +40,9 @@ def fingering_to_tab(fingering):
             if fret == 0:
                 strings[string_num] = "0" + strings[string_num][1:]
             else:
-                strings[string_num] = "-" * (fret - 1) + str(fret) + strings[string_num][fret:]
+                strings[string_num] = (
+                    "-" * (fret - 1) + str(fret) + strings[string_num][fret:]
+                )
 
     # Combine strings with newlines, and add string names
     tab = "e|" + strings[0] + "\n"
@@ -49,6 +52,7 @@ def fingering_to_tab(fingering):
     tab += "A|" + strings[4] + "\n"
     tab += "E|" + strings[5] + "\n"
     return tab
+
 
 for chord_name in all_chords:
     # Store original chord name for lookup
