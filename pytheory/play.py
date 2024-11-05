@@ -66,6 +66,8 @@ class Synth(Enum):
 
 
 def play(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000):
+    """Play a tone or chord."""
+
     if isinstance(tone_or_chord, Tone):
         chord = [synth(tone_or_chord.pitch(temperament=temperament, symbolic=True))]
     else:
