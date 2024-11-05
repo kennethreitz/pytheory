@@ -3,16 +3,18 @@ import itertools
 from .systems import SYSTEMS
 from .tones import Tone
 
-QUALITIES = ('', 'maj', 'm', '5', '7', '9', 'dim', 'm6', 'm7', 'm9', 'maj7', 'maj9')
+QUALITIES = ("", "maj", "m", "5", "7", "9", "dim", "m6", "m7", "m9", "maj7", "maj9")
 MAX_FRET = 7
 
 CHARTS = {}
-CHARTS['western'] = []
+CHARTS["western"] = []
+
 
 class NamedChord:
     def __init__(self, *, tone_name, quality):
         self.tone_name = tone_name
         self.quality = quality
+        self._tone = None
 
     @property
     def name(self):
@@ -20,7 +22,11 @@ class NamedChord:
 
     @property
     def tone(self):
-        return Tone(name=self.tone_name)
+        if self._tone is None:
+            flat_to_sharp = {"Ab": "G#", "Bb": "A#", "Db": "C#", "Eb": "D#", "Gb": "F#"}
+            tone_name = flat_to_sharp.get(self.tone_name, self.tone_name)
+            self._tone = Tone(name=tone_name)
+        return self._tone
 
     def __repr__(self):
         return f"<NamedChord name={self.name!r}>"
@@ -29,41 +35,40 @@ class NamedChord:
     def acceptable_tones(self):
         acceptable = [self.tone]
 
-
         # Major third.
-        if self.quality == 'maj':
+        if self.quality == "maj":
             acceptable += [self.tone.add(3)]
 
         # Minor third.
-        elif self.quality == 'm':
+        elif self.quality == "m":
             acceptable += [self.tone.add(4)]
 
         # Perfect fifth.
-        elif self.quality == '5':
+        elif self.quality == "5":
             acceptable += [self.tone.add(5)]
 
-        elif self.quality == '7':
+        elif self.quality == "7":
             acceptable += [self.tone.add(7)]
 
-        elif self.quality == '9':
+        elif self.quality == "9":
             acceptable += [self.tone.add(9)]
 
-        elif self.quality == 'dim':
+        elif self.quality == "dim":
             acceptable += [self.tone.add(4), self.tone.add(8)]
 
-        elif self.quality == 'm6':
+        elif self.quality == "m6":
             acceptable += [self.tone.add(4), self.tone.add(6)]
 
-        elif self.quality == 'm7':
+        elif self.quality == "m7":
             acceptable += [self.tone.add(4), self.tone.add(7)]
-            
-        elif self.quality == 'm9':
+
+        elif self.quality == "m9":
             acceptable += [self.tone.add(4), self.tone.add(9)]
 
-        elif self.quality == 'maj7':
+        elif self.quality == "maj7":
             acceptable += [self.tone.add(3), self.tone.add(7)]
-            
-        elif self.quality == 'maj9':
+
+        elif self.quality == "maj9":
             acceptable += [self.tone.add(3), self.tone.add(9)]
 
         else:
@@ -142,9 +147,8 @@ class NamedChord:
             return tuple([self.fix_fingering(f) for f in best_fingerings])
 
 
-
 western_chart = {}
-for tone_titles in SYSTEMS['western'].tone_names:
+for tone_titles in SYSTEMS["western"].tone_names:
     # Take the second tone name, if it's available.
     if len(tone_titles) == 2:
         tone_name = tone_titles[1]
@@ -155,9 +159,10 @@ for tone_titles in SYSTEMS['western'].tone_names:
         named_chord = NamedChord(tone_name=tone_name, quality=quality)
         western_chart.update({f"{tone_name}{quality}": named_chord})
 
-CHARTS['western'] = western_chart
+CHARTS["western"] = western_chart
 
-def charts_for_fretboard(*, chart=CHARTS['western'], fretboard):
+
+def charts_for_fretboard(*, chart=CHARTS["western"], fretboard):
     super_chart = {}
     for chord in chart:
         super_chart[chord] = chart[chord].fingering(fretboard=fretboard)
