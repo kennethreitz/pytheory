@@ -66,6 +66,18 @@ class Chord:
         # Return the smallest non-zero beat frequency
         return min(beat_frequencies) if beat_frequencies else 0
 
+    def fingering(self, *positions):
+        if not len(positions) == len(self.tones):
+            raise ValueError(
+                "The number of positions must match the number of tones (strings)."
+            )
+
+        tones = []
+        for i, tone in enumerate(self.tones):
+            tones.append(tone.add(positions[i]))
+
+        return Chord(tones=tones)
+
 
 class NamedChord:
     def __init__(self, *, name, system):
