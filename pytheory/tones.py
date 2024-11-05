@@ -1,14 +1,23 @@
 from ._statics import REFERENCE_A, TEMPERAMENTS
 
-class Tone:
-    # __slots__ = ("name", "octave", "system")
 
-    def __init__(self, *, name, alt_names=None, octave=None, system='western'):
+class Tone:
+
+    def __init__(self, name, *, alt_names=None, octave=None, system="western"):
         if alt_names is None:
             alt_names = []
 
+        if isinstance(name, str):
+            try:
+                octave = int("".join([c for c in filter(str.isdigit, name)]))
+            except ValueError:
+                octave = None
+
+            name = name.replace(str(octave), "") if octave else name
+
         self.name = name
         self.octave = octave
+        self.alt_names = alt_names
 
         if isinstance(system, str):
             self.system_name = system
@@ -65,7 +74,7 @@ class Tone:
         except ValueError:
             octave = None
 
-        tone = s.replace(str(octave), '') if octave else s
+        tone = s.replace(str(octave), "") if octave else s
 
         if system:
             return klass(name=tone, octave=octave, system=system)
