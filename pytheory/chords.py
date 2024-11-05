@@ -43,6 +43,29 @@ class Chord:
 
         return intervals
 
+    @property
+    def beat_pulse(self):
+        """Calculate the beat pulse (frequency of amplitude modulation) between tones.
+
+        Returns:
+            float: The beat frequency in Hz between the closest pair of tones.
+                  Returns 0 if there are fewer than 2 tones.
+        """
+        if len(self.tones) < 2:
+            return 0
+
+        # Calculate beat frequencies between all pairs of tones
+        beat_frequencies = []
+        for i in range(len(self.tones)):
+            for j in range(i + 1, len(self.tones)):
+                freq1 = self.tones[i].pitch()
+                freq2 = self.tones[j].pitch()
+                beat_freq = abs(freq1 - freq2)
+                beat_frequencies.append(beat_freq)
+
+        # Return the smallest non-zero beat frequency
+        return min(beat_frequencies) if beat_frequencies else 0
+
 
 class NamedChord:
     def __init__(self, *, name, system):
