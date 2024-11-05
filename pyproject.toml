@@ -8,7 +8,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pytuning",
     "numeral",
-    "pygame",
+    "sounddevice",
     "scipy",
 ]
 
