@@ -222,6 +222,8 @@ class Key:
     def __init__(self, tonic, mode="major", system=None):
         if system is None:
             system = SYSTEMS["western"]
+        elif isinstance(system, str):
+            system = SYSTEMS[system]
         self.tonic_name = tonic
         self.mode = mode
         self._system = system
@@ -344,6 +346,8 @@ class Key:
 
 class TonedScale:
     def __init__(self, *, system=SYSTEMS["western"], tonic):
+        if isinstance(system, str):
+            system = SYSTEMS[system]
         self.system = system
 
         if not isinstance(tonic, Tone):

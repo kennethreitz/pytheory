@@ -88,18 +88,17 @@ $ pip install pytheory
 
 ```pycon
 >>> from pytheory import TonedScale
->>> from pytheory.systems import SYSTEMS
 
->>> TonedScale(tonic="Sa4", system=SYSTEMS["indian"])["bhairav"].note_names
+>>> TonedScale(tonic="Sa4", system="indian")["bhairav"].note_names
 ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
 
->>> TonedScale(tonic="Do4", system=SYSTEMS["arabic"])["hijaz"].note_names
+>>> TonedScale(tonic="Do4", system="arabic")["hijaz"].note_names
 ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
 
->>> TonedScale(tonic="C4", system=SYSTEMS["japanese"])["hirajoshi"].note_names
+>>> TonedScale(tonic="C4", system="japanese")["hirajoshi"].note_names
 ['C', 'D', 'D#', 'G', 'G#', 'C']
 
->>> TonedScale(tonic="C4", system=SYSTEMS["blues"])["blues"].note_names
+>>> TonedScale(tonic="C4", system="blues")["blues"].note_names
 ['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
 ```
 

@@ -34,9 +34,8 @@ are derived.
 .. code-block:: python
 
    from pytheory import TonedScale
-   from pytheory.systems import SYSTEMS
 
-   sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+   sa = TonedScale(tonic="Sa4", system="indian")
 
    sa["bilawal"].note_names   # = major scale
    # ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni', 'Sa']
@@ -71,9 +70,8 @@ and organizes scales into **maqamat** (plural of `maqam <https://en.wikipedia.or
 .. code-block:: python
 
    from pytheory import TonedScale
-   from pytheory.systems import SYSTEMS
 
-   do = TonedScale(tonic="Do4", system=SYSTEMS["arabic"])
+   do = TonedScale(tonic="Do4", system="arabic")
 
    do["ajam"].note_names     # = major scale
    # ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si', 'Do']
@@ -96,9 +94,8 @@ and heptatonic scales from Japanese music.
 .. code-block:: python
 
    from pytheory import TonedScale
-   from pytheory.systems import SYSTEMS
 
-   c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+   c = TonedScale(tonic="C4", system="japanese")
 
    c["hirajoshi"].note_names  # most iconic Japanese scale
    # ['C', 'D', 'D#', 'G', 'G#', 'C']
@@ -131,9 +128,8 @@ of the blues.
 .. code-block:: python
 
    from pytheory import TonedScale
-   from pytheory.systems import SYSTEMS
 
-   c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
+   c = TonedScale(tonic="C4", system="blues")
 
    c["major pentatonic"].note_names  # the "happy" pentatonic
    # ['C', 'D', 'E', 'G', 'A', 'C']
@@ -170,9 +166,8 @@ intervals, typically performed using 5-note subsets called *pathet*.
 .. code-block:: python
 
    from pytheory import TonedScale
-   from pytheory.systems import SYSTEMS
 
-   ji = TonedScale(tonic="ji4", system=SYSTEMS["gamelan"])
+   ji = TonedScale(tonic="ji4", system="gamelan")
 
    ji["slendro"].note_names      # the 5-tone equidistant scale
    # ['ji', 'ro', 'pat', 'mo', 'pi', 'ji']
@@ -203,12 +198,11 @@ produce the same pitches:
 .. code-block:: python
 
    from pytheory import TonedScale, Tone
-   from pytheory.systems import SYSTEMS
 
    # These are all the same scale with different names
    western = TonedScale(tonic="C4")["major"]
-   indian  = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])["bilawal"]
-   arabic  = TonedScale(tonic="Do4", system=SYSTEMS["arabic"])["ajam"]
+   indian  = TonedScale(tonic="Sa4", system="indian")["bilawal"]
+   arabic  = TonedScale(tonic="Do4", system="arabic")["ajam"]
 
    # Same pitches
    c4 = Tone.from_string("C4", system="western")
