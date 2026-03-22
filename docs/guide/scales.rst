@@ -123,17 +123,17 @@ Scale Degrees
 
 Each note in a scale has a **degree name** that describes its function:
 
-===========  ======  =======================================
-Degree       Number  Function
-===========  ======  =======================================
-Tonic        I       Home base — the key center
-Supertonic   II      One step above tonic
-Mediant      III     Halfway between tonic and dominant
-Subdominant  IV      A fifth below tonic (or fourth above)
-Dominant     V       The strongest pull back to tonic
-Submediant   VI      Root of the relative minor (or major)
-Leading Tone VII     One semitone below tonic — pulls upward
-===========  ======  =======================================
+============  ======  =======================================
+Degree        Number  Function
+============  ======  =======================================
+Tonic         I       Home base — the key center
+Supertonic    II      One step above tonic
+Mediant       III     Halfway between tonic and dominant
+Subdominant   IV      A fifth below tonic (or fourth above)
+Dominant      V       The strongest pull back to tonic
+Submediant    VI      Root of the relative minor (or major)
+Leading Tone  VII     One semitone below tonic — pulls upward
+============  ======  =======================================
 
 Access degrees by index, Roman numeral, or name:
 

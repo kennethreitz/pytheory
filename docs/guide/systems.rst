@@ -117,7 +117,7 @@ and heptatonic scales from Japanese music.
 **Heptatonic scales:** ritsu, ryo
 
 Blues and Pentatonic
--------------------
+--------------------
 
 The blues system provides the scales foundational to blues, rock, jazz,
 and folk music worldwide. `Pentatonic scales <https://en.wikipedia.org/wiki/Pentatonic_scale>`_ (5 notes) are the oldest
