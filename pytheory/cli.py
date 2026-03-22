@@ -8,13 +8,19 @@ import sys
 def cmd_tone(args):
     from .tones import Tone
     tone = Tone.from_string(args.note, system="western")
-    print(f"  Note:      {tone.full_name}")
-    print(f"  Frequency: {tone.frequency:.2f} Hz")
+    freq = tone.pitch(temperament=args.temperament)
+    print(f"  Note:        {tone.full_name}")
+    print(f"  Frequency:   {freq:.2f} Hz ({args.temperament} temperament)")
+    if args.temperament != "equal":
+        import math
+        equal_freq = tone.pitch(temperament="equal")
+        diff_cents = 1200 * math.log2(freq / equal_freq) if freq > 0 else 0
+        print(f"  Equal temp:  {equal_freq:.2f} Hz (diff: {diff_cents:+.1f} cents)")
     if tone.midi is not None:
-        print(f"  MIDI:      {tone.midi}")
+        print(f"  MIDI:        {tone.midi}")
     if tone.enharmonic:
-        print(f"  Enharmonic: {tone.enharmonic}")
-    print(f"  Overtones: {', '.join(f'{h:.1f}' for h in tone.overtones(6))}")
+        print(f"  Enharmonic:  {tone.enharmonic}")
+    print(f"  Overtones:   {', '.join(f'{h:.1f}' for h in tone.overtones(6))}")
 
 
 def cmd_scale(args):
@@ -105,6 +111,9 @@ def main():
     # tone
     p = sub.add_parser("tone", help="Look up a tone (e.g. pytheory tone C4)")
     p.add_argument("note", help="Note name with octave (e.g. C4, A#3)")
+    p.add_argument("--temperament", "-t", default="equal",
+                   choices=["equal", "pythagorean", "meantone"],
+                   help="Tuning temperament (default: equal)")
 
     # scale
     p = sub.add_parser("scale", help="Show a scale (e.g. pytheory scale C major)")
