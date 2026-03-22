@@ -189,6 +189,45 @@ class Tone:
     def subtract(self, interval):
         return self.add((-1 * interval))
 
+    def circle_of_fifths(self):
+        """The 12 tones of the circle of fifths starting from this tone.
+
+        Each step ascends by a perfect fifth (7 semitones). After 12
+        steps you return to the starting tone. The circle of fifths
+        is the backbone of Western harmony — it determines key
+        signatures, chord relationships, and modulation paths.
+
+        Clockwise = add sharps: C → G → D → A → E → B → F# → ...
+        Counter-clockwise = add flats (see ``circle_of_fourths``).
+
+        Returns:
+            A list of 12 Tones.
+        """
+        tones = []
+        t = self
+        for _ in range(12):
+            tones.append(t)
+            t = t.add(7)
+        return tones
+
+    def circle_of_fourths(self):
+        """The 12 tones of the circle of fourths starting from this tone.
+
+        Each step ascends by a perfect fourth (5 semitones) — the
+        reverse direction of the circle of fifths.
+
+        Clockwise = add flats: C → F → Bb → Eb → Ab → ...
+
+        Returns:
+            A list of 12 Tones.
+        """
+        tones = []
+        t = self
+        for _ in range(12):
+            tones.append(t)
+            t = t.add(5)
+        return tones
+
     @property
     def frequency(self):
         """The frequency of this tone in Hz (equal temperament, A4=440)."""
