@@ -100,14 +100,23 @@ def cmd_play(args):
     synth = synth_map[args.synth]
     duration = args.duration
 
-    # Parse notes — if single note, play as tone; otherwise as chord.
-    tones = [Tone.from_string(n if any(c.isdigit() for c in n) else f"{n}4",
-                              system="western") for n in args.notes]
-
-    if len(tones) == 1:
-        target = tones[0]
-        label = target.full_name
+    # Try chord name first (e.g. "Am", "Cmaj7"), then fall back to individual notes.
+    if len(args.notes) == 1:
+        note = args.notes[0]
+        # Try as chord name first (Am, G7, Cmaj7, etc.)
+        try:
+            target = Chord.from_name(note)
+            name = target.identify() or note
+            label = f"{name} ({' '.join(t.full_name for t in target.tones)})"
+        except (ValueError, KeyError):
+            # Fall back to single tone
+            target = Tone.from_string(
+                note if any(c.isdigit() for c in note) else f"{note}4",
+                system="western")
+            label = target.full_name
     else:
+        tones = [Tone.from_string(n if any(c.isdigit() for c in n) else f"{n}4",
+                                  system="western") for n in args.notes]
         target = Chord(tones=tones)
         name = target.identify() or "Custom"
         label = f"{name} ({' '.join(t.full_name for t in tones)})"
