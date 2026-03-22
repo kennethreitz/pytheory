@@ -588,6 +588,16 @@ class Fretboard:
     def __len__(self):
         return len(self.tones)
 
+    INSTRUMENTS = [
+        "guitar", "twelve_string", "bass", "ukulele",
+        "mandolin", "mandola", "octave_mandolin", "mandocello",
+        "violin", "viola", "cello", "double_bass",
+        "banjo", "harp", "pedal_steel", "keyboard",
+        "bouzouki", "oud", "sitar", "shamisen", "erhu",
+        "charango", "pipa", "balalaika", "lute",
+    ]
+    """List of all available instrument preset names."""
+
     TUNINGS = {
         "standard": ("E4", "B3", "G3", "D3", "A2", "E2"),
         "drop d": ("E4", "B3", "G3", "D3", "A2", "D2"),

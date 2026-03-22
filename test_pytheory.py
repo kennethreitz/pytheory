@@ -3097,3 +3097,62 @@ def test_progressions_with_key():
 def test_key_str():
     assert str(Key("C", "major")) == "C major"
     assert str(Key("A", "minor")) == "A minor"
+
+
+# ── Key.detect ─────────────────────────────────────────────────────────────
+
+def test_key_detect_c_major():
+    k = Key.detect("C", "D", "E", "F", "G", "A", "B")
+    assert k.tonic_name == "C"
+    assert k.mode == "major"
+
+
+def test_key_detect_a_major():
+    k = Key.detect("A", "B", "C#", "D", "E", "F#", "G#")
+    assert k.tonic_name == "A"
+    assert k.mode == "major"
+
+
+def test_key_detect_prefers_major():
+    """When major and minor match equally, prefer major."""
+    k = Key.detect("C", "E", "G")
+    assert k.mode == "major"
+
+
+def test_key_detect_partial():
+    """Should work with a subset of scale notes."""
+    k = Key.detect("C", "E", "G")
+    assert k.tonic_name == "C"
+
+
+def test_key_detect_empty():
+    assert Key.detect() is None
+
+
+# ── Tone properties ────────────────────────────────────────────────────────
+
+def test_tone_is_natural():
+    assert Tone.from_string("C4").is_natural is True
+    assert Tone.from_string("B4").is_natural is True
+
+
+def test_tone_is_sharp():
+    assert Tone.from_string("C#4").is_sharp is True
+    assert Tone.from_string("C4").is_sharp is False
+
+
+def test_tone_is_flat():
+    t = Tone(name="Bb", octave=4)
+    assert t.is_flat is True
+    assert Tone.from_string("C4").is_flat is False
+    # B natural should NOT be detected as flat
+    assert Tone.from_string("B4").is_flat is False
+
+
+# ── Fretboard.INSTRUMENTS ──────────────────────────────────────────────────
+
+def test_instruments_list():
+    assert len(Fretboard.INSTRUMENTS) == 25
+    assert "guitar" in Fretboard.INSTRUMENTS
+    assert "sitar" in Fretboard.INSTRUMENTS
+    assert "keyboard" in Fretboard.INSTRUMENTS

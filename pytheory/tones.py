@@ -72,6 +72,21 @@ class Tone:
         return [self.name] + self.alt_names
 
     @property
+    def is_natural(self):
+        """True if this is a natural note (no sharp or flat)."""
+        return not self.is_sharp and not self.is_flat
+
+    @property
+    def is_sharp(self):
+        """True if this tone has a sharp (#)."""
+        return "#" in self.name
+
+    @property
+    def is_flat(self):
+        """True if this tone has a flat (b after the first character)."""
+        return "b" in self.name[1:]
+
+    @property
     def enharmonic(self):
         """The enharmonic equivalent of this tone, or None if there isn't one.
 

@@ -224,8 +224,52 @@ class Key:
             system = SYSTEMS["western"]
         self.tonic_name = tonic
         self.mode = mode
+        self._system = system
         self._toned_scale = TonedScale(tonic=f"{tonic}4", system=system)
         self._scale = self._toned_scale[mode]
+
+    @classmethod
+    def detect(cls, *note_names):
+        """Detect the most likely key from a set of note names.
+
+        Tries every possible major and minor key and returns the one
+        whose scale contains the most of the given notes.
+
+        Example::
+
+            >>> Key.detect("C", "D", "E", "F", "G", "A", "B")
+            <Key C major>
+            >>> Key.detect("A", "B", "C", "D", "E", "F", "G")
+            <Key C major>
+            >>> Key.detect("A", "C", "E")
+            <Key C major>
+
+        Returns:
+            The best-matching Key, or None if no notes given.
+        """
+        if not note_names:
+            return None
+
+        notes = set(note_names)
+        best_key = None
+        best_score = (-1, 0)
+
+        chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        for tonic in chromatic:
+            for mode in ("major", "minor"):
+                try:
+                    k = cls(tonic, mode)
+                    scale_notes = set(k.note_names)
+                    match = len(notes & scale_notes)
+                    # Tiebreak: prefer major over minor
+                    score = (match, 1 if mode == "major" else 0)
+                    if score > best_score:
+                        best_score = score
+                        best_key = k
+                except (KeyError, ValueError):
+                    continue
+
+        return best_key
 
     def __repr__(self):
         return f"<Key {self.tonic_name} {self.mode}>"
