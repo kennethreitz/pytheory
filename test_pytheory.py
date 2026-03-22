@@ -1048,15 +1048,30 @@ def test_ionian_mode_intervals():
 # ── Chord intervals and properties ──────────────────────────────────────────
 
 def test_chord_intervals_c_major():
-    """C4-E4-G4 intervals should be ~67.96 Hz and ~98.00 Hz."""
+    """C4-E4-G4 intervals should be 4 and 3 semitones (major 3rd + minor 3rd)."""
     c_major = Chord(tones=[
         Tone.from_string("C4", system="western"),
         Tone.from_string("E4", system="western"),
         Tone.from_string("G4", system="western"),
     ])
-    intervals = c_major.intervals
-    assert len(intervals) == 2
-    assert all(i > 0 for i in intervals)
+    assert c_major.intervals == [4, 3]
+
+
+def test_chord_intervals_octave():
+    c_oct = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("C5", system="western"),
+    ])
+    assert c_oct.intervals == [12]
+
+
+def test_chord_intervals_minor_triad():
+    a_minor = Chord(tones=[
+        Tone.from_string("A4", system="western"),
+        Tone.from_string("C5", system="western"),
+        Tone.from_string("E5", system="western"),
+    ])
+    assert a_minor.intervals == [3, 4]  # minor 3rd + major 3rd
 
 
 def test_chord_beat_pulse_unison():
@@ -1077,16 +1092,30 @@ def test_chord_beat_pulse_octave():
     assert abs(chord.beat_pulse - 440.0) < 0.01
 
 
+def test_chord_beat_frequencies():
+    """beat_frequencies returns sorted (tone, tone, hz) tuples."""
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    beats = chord.beat_frequencies
+    assert len(beats) == 3  # 3 pairs from 3 tones
+    # Should be sorted ascending by Hz
+    assert beats[0][2] <= beats[1][2] <= beats[2][2]
+
+
 def test_chord_empty():
     chord = Chord(tones=[])
     assert chord.harmony == 0
     assert chord.dissonance == 0
     assert chord.beat_pulse == 0
     assert chord.intervals == []
+    assert chord.beat_frequencies == []
 
 
-def test_chord_harmony_more_consonant():
-    """A perfect fifth should be more harmonious than a tritone."""
+def test_chord_harmony_fifth_beats_tritone():
+    """A perfect fifth (3:2) should score higher harmony than a tritone."""
     fifth = Chord(tones=[
         Tone.from_string("C4", system="western"),
         Tone.from_string("G4", system="western"),
@@ -1095,12 +1124,56 @@ def test_chord_harmony_more_consonant():
         Tone.from_string("C4", system="western"),
         Tone.from_string("F#4", system="western"),
     ])
-    # The fifth interval is larger, so 1/interval is smaller → less harmony
-    # Actually in this model: harmony = sum(1/interval), and the fifth is a wider interval
-    # So the tritone (smaller interval) has higher harmony score
-    # This is testing the actual behavior of the model
-    assert fifth.harmony > 0
-    assert tritone.harmony > 0
+    assert fifth.harmony > tritone.harmony
+
+
+def test_chord_harmony_octave_highest():
+    """An octave (2:1) should score highest harmony."""
+    octave = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("C5", system="western"),
+    ])
+    fifth = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert octave.harmony > fifth.harmony
+
+
+def test_chord_dissonance_tritone_vs_fifth():
+    """A tritone should produce more roughness than a perfect fifth."""
+    tritone = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("F#4", system="western"),
+    ])
+    fifth = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert tritone.dissonance > fifth.dissonance
+
+
+def test_chord_dissonance_wide_interval_low():
+    """Very wide intervals (octave+) should have low roughness."""
+    octave = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("C5", system="western"),
+    ])
+    third = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+    ])
+    # Octave exceeds critical bandwidth → less roughness than a 3rd
+    assert octave.dissonance < third.dissonance
+
+
+def test_chord_dissonance_positive():
+    """Any two distinct tones should produce non-zero roughness."""
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert chord.dissonance > 0
 
 
 def test_chord_fingering_wrong_positions_raises():
