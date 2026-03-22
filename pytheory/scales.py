@@ -184,6 +184,99 @@ class Scale:
         return result
 
 
+class Key:
+    """A musical key — a convenient entry point for scales and harmony.
+
+    A Key represents a tonic note and a mode. It provides quick access
+    to the scale, diatonic chords, and common progressions.
+
+    Example::
+
+        >>> key = Key("C", "major")
+        >>> key.scale.note_names
+        ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
+        >>> key.chords
+        ['C major', 'D minor', 'E minor', 'F major', ...]
+        >>> key.progression("I", "V", "vi", "IV")
+        [<Chord (C,E,G)>, <Chord (G,B,D)>, ...]
+    """
+
+    def __init__(self, tonic, mode="major", system=None):
+        if system is None:
+            system = SYSTEMS["western"]
+        self.tonic_name = tonic
+        self.mode = mode
+        self._toned_scale = TonedScale(tonic=f"{tonic}4", system=system)
+        self._scale = self._toned_scale[mode]
+
+    def __repr__(self):
+        return f"<Key {self.tonic_name} {self.mode}>"
+
+    @property
+    def scale(self):
+        """The scale for this key."""
+        return self._scale
+
+    @property
+    def note_names(self):
+        """Note names in this key's scale."""
+        return self._scale.note_names
+
+    @property
+    def chords(self):
+        """Names of all diatonic triads in this key."""
+        return [c.identify() for c in self._scale.harmonize()]
+
+    @property
+    def seventh_chords(self):
+        """Names of all diatonic seventh chords in this key."""
+        unique = len(self._scale.tones) - 1
+        return [self._scale.seventh(i).identify() for i in range(unique)]
+
+    def triad(self, degree):
+        """Build a diatonic triad on the given degree (0-indexed)."""
+        return self._scale.triad(degree)
+
+    def seventh(self, degree):
+        """Build a diatonic seventh chord on the given degree (0-indexed)."""
+        return self._scale.seventh(degree)
+
+    def progression(self, *numerals):
+        """Build a chord progression from Roman numerals.
+
+        Example::
+
+            >>> Key("G", "major").progression("I", "IV", "V7", "I")
+        """
+        return self._scale.progression(*numerals)
+
+    @property
+    def relative(self):
+        """The relative major or minor key.
+
+        If this is a major key, returns the relative minor (vi).
+        If this is a minor key, returns the relative major (bIII).
+        """
+        if self.mode == "major":
+            # Relative minor starts on the 6th degree
+            minor_tonic = self._scale.tones[5].name
+            return Key(minor_tonic, "minor")
+        elif self.mode in ("minor", "aeolian"):
+            # Relative major starts on the 3rd degree
+            major_tonic = self._scale.tones[2].name
+            return Key(major_tonic, "major")
+        return None
+
+    @property
+    def parallel(self):
+        """The parallel major or minor key (same tonic, different mode)."""
+        if self.mode == "major":
+            return Key(self.tonic_name, "minor")
+        elif self.mode in ("minor", "aeolian"):
+            return Key(self.tonic_name, "major")
+        return None
+
+
 class TonedScale:
     def __init__(self, *, system=SYSTEMS["western"], tonic):
         self.system = system

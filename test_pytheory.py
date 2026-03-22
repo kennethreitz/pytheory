@@ -2,7 +2,7 @@ import pytest
 import numpy
 
 import pytheory
-from pytheory import Tone, TonedScale, Fretboard, Chord
+from pytheory import Tone, TonedScale, Fretboard, Chord, Key, Note
 from pytheory.charts import CHARTS, NamedChord, charts_for_fretboard, QUALITIES
 from pytheory.systems import System, SYSTEMS
 
@@ -2932,3 +2932,87 @@ def test_progression_pop():
     prog = major.progression("I", "V", "vi", "IV")
     assert prog[0].identify() == "G major"
     assert prog[3].identify() == "C major"
+
+
+# ── Key class ───────────────────────────────────────────────────────────────
+
+def test_key_c_major():
+    k = Key("C", "major")
+    assert k.note_names == ["C", "D", "E", "F", "G", "A", "B", "C"]
+
+
+def test_key_repr():
+    assert repr(Key("C", "major")) == "<Key C major>"
+
+
+def test_key_chords():
+    k = Key("C", "major")
+    assert k.chords == [
+        "C major", "D minor", "E minor", "F major",
+        "G major", "A minor", "B diminished",
+    ]
+
+
+def test_key_seventh_chords():
+    k = Key("C", "major")
+    sevenths = k.seventh_chords
+    assert sevenths[0] == "C major 7th"
+    assert sevenths[4] == "G dominant 7th"
+
+
+def test_key_triad():
+    k = Key("C", "major")
+    assert k.triad(0).identify() == "C major"
+    assert k.triad(4).identify() == "G major"
+
+
+def test_key_seventh():
+    k = Key("C", "major")
+    assert k.seventh(4).identify() == "G dominant 7th"
+
+
+def test_key_progression():
+    k = Key("G", "major")
+    prog = k.progression("I", "IV", "V")
+    assert prog[0].identify() == "G major"
+
+
+def test_key_relative_major_to_minor():
+    k = Key("C", "major")
+    rel = k.relative
+    assert rel.tonic_name == "A"
+    assert rel.mode == "minor"
+
+
+def test_key_relative_minor_to_major():
+    k = Key("A", "minor")
+    rel = k.relative
+    assert rel.tonic_name == "C"
+    assert rel.mode == "major"
+
+
+def test_key_parallel():
+    k = Key("C", "major")
+    par = k.parallel
+    assert par.tonic_name == "C"
+    assert par.mode == "minor"
+
+
+def test_key_relative_shares_notes():
+    c = Key("C", "major")
+    a = c.relative
+    c_notes = sorted(set(c.note_names))
+    a_notes = sorted(set(a.note_names))
+    assert c_notes == a_notes
+
+
+# ── Note alias ──────────────────────────────────────────────────────────────
+
+def test_note_is_tone():
+    assert Note is Tone
+
+
+def test_note_from_string():
+    n = Note.from_string("C4", system="western")
+    assert n.name == "C"
+    assert n.frequency == Tone.from_string("C4", system="western").frequency
