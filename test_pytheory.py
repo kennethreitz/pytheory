@@ -175,6 +175,16 @@ def test_pitch_a4_is_440():
     assert abs(t.pitch() - 440.0) < 0.01
 
 
+def test_pitch_a0():
+    t = Tone.from_string("A0", system="western")
+    assert abs(t.pitch() - 27.5) < 0.01
+
+
+def test_tone_octave_zero_full_name():
+    t = Tone.from_string("A0", system="western")
+    assert t.full_name == "A0"
+
+
 def test_pitch_a3_is_220():
     t = Tone.from_string("A3", system="western")
     assert abs(t.pitch() - 220.0) < 0.01

@@ -63,7 +63,7 @@ class Tone:
 
     @property
     def full_name(self):
-        if self.octave:
+        if self.octave is not None:
             return f"{self.name}{self.octave}"
         else:
             return self.name
@@ -450,7 +450,7 @@ class Tone:
             raise ValueError("Pitches can only be computed with an associated system!")
 
         pitch_scale = TEMPERAMENTS[temperament](tones)
-        octave = self.octave or 4
+        octave = self.octave if self.octave is not None else 4
 
         # C is at index 3; convert to semitones from C0 for both
         # this note and the reference A4.
