@@ -6,6 +6,14 @@ from pytheory import Tone, TonedScale, Fretboard, Chord
 from pytheory.charts import CHARTS, NamedChord, charts_for_fretboard, QUALITIES
 from pytheory.systems import System, SYSTEMS
 
+try:
+    import sounddevice
+    HAS_PORTAUDIO = True
+except OSError:
+    HAS_PORTAUDIO = False
+
+needs_portaudio = pytest.mark.skipif(not HAS_PORTAUDIO, reason="PortAudio not available")
+
 
 # ── Tone basics ──────────────────────────────────────────────────────────────
 
@@ -631,6 +639,7 @@ def test_all_mode_intervals_sum_to_12():
 
 # ── Play module (non-audio tests) ───────────────────────────────────────────
 
+@needs_portaudio
 def test_synth_enum():
     from pytheory.play import Synth, sine_wave, sawtooth_wave, triangle_wave
     # Enum with function values: members are the functions themselves
@@ -642,12 +651,14 @@ def test_synth_enum():
     assert len(wave) > 0
 
 
+@needs_portaudio
 def test_sine_wave_length():
     from pytheory.play import sine_wave, SAMPLE_RATE
     wave = sine_wave(440)
     assert len(wave) == SAMPLE_RATE
 
 
+@needs_portaudio
 def test_sine_wave_custom_samples():
     from pytheory.play import sine_wave
     wave = sine_wave(440, n_samples=1000)
@@ -1301,48 +1312,56 @@ def test_system_modes_list():
 
 # ── Wave generation ─────────────────────────────────────────────────────────
 
+@needs_portaudio
 def test_sawtooth_wave_length():
     from pytheory.play import sawtooth_wave, SAMPLE_RATE
     wave = sawtooth_wave(440)
     assert len(wave) == SAMPLE_RATE
 
 
+@needs_portaudio
 def test_sawtooth_wave_custom_samples():
     from pytheory.play import sawtooth_wave
     wave = sawtooth_wave(440, n_samples=2000)
     assert len(wave) == 2000
 
 
+@needs_portaudio
 def test_triangle_wave_length():
     from pytheory.play import triangle_wave, SAMPLE_RATE
     wave = triangle_wave(440)
     assert len(wave) == SAMPLE_RATE
 
 
+@needs_portaudio
 def test_triangle_wave_custom_samples():
     from pytheory.play import triangle_wave
     wave = triangle_wave(440, n_samples=2000)
     assert len(wave) == 2000
 
 
+@needs_portaudio
 def test_sine_wave_output_type():
     from pytheory.play import sine_wave
     wave = sine_wave(440)
     assert wave.dtype == numpy.int16
 
 
+@needs_portaudio
 def test_sawtooth_wave_output_type():
     from pytheory.play import sawtooth_wave
     wave = sawtooth_wave(440)
     assert wave.dtype == numpy.int16
 
 
+@needs_portaudio
 def test_triangle_wave_output_type():
     from pytheory.play import triangle_wave
     wave = triangle_wave(440)
     assert wave.dtype == numpy.int16
 
 
+@needs_portaudio
 def test_sine_wave_different_frequencies():
     from pytheory.play import sine_wave
     wave_low = sine_wave(220)
@@ -1353,6 +1372,7 @@ def test_sine_wave_different_frequencies():
     assert not numpy.array_equal(wave_low, wave_high)
 
 
+@needs_portaudio
 def test_synth_callable_with_pitch():
     """Synth enum members should work with actual pitch values from Tone."""
     from pytheory.play import Synth
