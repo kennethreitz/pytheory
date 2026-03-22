@@ -33,6 +33,9 @@ Documentation = "https://pytheory.kennethreitz.org"
 Repository = "https://github.com/kennethreitz/pytheory"
 Issues = "https://github.com/kennethreitz/pytheory/issues"
 
+[project.scripts]
+pytheory = "pytheory.cli:main"
+
 [dependency-groups]
 dev = ["pytest"]
 docs = ["sphinx"]
