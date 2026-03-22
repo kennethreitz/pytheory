@@ -7,11 +7,11 @@ tuning and generates chord fingerings.
 How Frets Work
 --------------
 
-Each fret on a guitar (or any fretted instrument) raises the pitch by
+Each `fret <https://en.wikipedia.org/wiki/Fret>`_ on a guitar (or any fretted instrument) raises the pitch by
 exactly **one semitone**. The open string is fret 0; fret 1 is one
 semitone up, fret 2 is two semitones up, and so on.
 
-Standard guitar tuning (high to low)::
+`Standard guitar tuning <https://en.wikipedia.org/wiki/Guitar_tunings>`_ (high to low)::
 
     String 1: E4  (highest)
     String 2: B3
@@ -39,6 +39,11 @@ Preset Tunings
 Alternate Guitar Tunings
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+PyTheory supports several common alternate tunings, including
+`open tunings <https://en.wikipedia.org/wiki/Open_tuning>`_,
+`Drop D <https://en.wikipedia.org/wiki/Drop_D_tuning>`_, and
+`DADGAD <https://en.wikipedia.org/wiki/DADGAD>`_:
+
 .. code-block:: python
 
    # Built-in alternate tunings
@@ -56,7 +61,8 @@ Alternate Guitar Tunings
 Custom Instruments
 ------------------
 
-Any fretted instrument can be modeled:
+Any fretted instrument can be modeled, including `banjo <https://en.wikipedia.org/wiki/Banjo>`_,
+`mandolin <https://en.wikipedia.org/wiki/Mandolin>`_, and more:
 
 .. code-block:: python
 
@@ -138,7 +144,7 @@ Generate fingerings for every chord at once:
    for name, fingering in chart.items():
        print(f"{name:6s} {fingering}")
 
-Ukulele Example
+`Ukulele <https://en.wikipedia.org/wiki/Ukulele>`_ Example
 ---------------
 
 .. code-block:: python

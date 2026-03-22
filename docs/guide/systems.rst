@@ -28,7 +28,7 @@ Indian Classical (Hindustani)
 -----------------------------
 
 The Hindustani system uses **swaras** (Sa, Re, Ga, Ma, Pa, Dha, Ni) and
-organizes scales into **thaats** — the 10 parent scales from which ragas
+organizes scales into **`thaats <https://en.wikipedia.org/wiki/Thaat>`_** — the 10 parent scales from which `ragas <https://en.wikipedia.org/wiki/Raga>`_
 are derived.
 
 .. code-block:: python
@@ -60,7 +60,7 @@ Arabic Maqam
 ------------
 
 The Arabic system uses **solfège-based names** (Do, Re, Mi, Fa, Sol, La, Si)
-and organizes scales into **maqamat** (plural of maqam).
+and organizes scales into **maqamat** (plural of `maqam <https://en.wikipedia.org/wiki/Maqam>`_).
 
 .. note::
 
@@ -120,11 +120,11 @@ Blues and Pentatonic
 -------------------
 
 The blues system provides the scales foundational to blues, rock, jazz,
-and folk music worldwide. Pentatonic scales (5 notes) are the oldest
+and folk music worldwide. `Pentatonic scales <https://en.wikipedia.org/wiki/Pentatonic_scale>`_ (5 notes) are the oldest
 known musical scales, found independently in cultures across every
 continent.
 
-The **blues scale** adds the "blue note" (flat 5th / sharp 4th) to the
+The **`blues scale <https://en.wikipedia.org/wiki/Blues_scale>`_** adds the "`blue note <https://en.wikipedia.org/wiki/Blue_note>`_" (flat 5th / sharp 4th) to the
 minor pentatonic — this chromatic passing tone is the defining sound
 of the blues.
 
@@ -158,13 +158,13 @@ minor (Dorian — the jazz minor sound)
 Javanese Gamelan
 ----------------
 
-The gamelan system approximates the scales of the Javanese and Balinese
+The `gamelan <https://en.wikipedia.org/wiki/Gamelan>`_ system approximates the scales of the Javanese and Balinese
 gamelan orchestra in 12-tone equal temperament. True gamelan tuning is
 unique to each ensemble and does not conform to Western intonation —
 these are the closest 12-TET approximations.
 
-**Slendro** is a roughly equal 5-tone division of the octave, producing
-an ethereal, floating quality. **Pelog** is a 7-tone scale with unequal
+**`Slendro <https://en.wikipedia.org/wiki/Slendro>`_** is a roughly equal 5-tone division of the octave, producing
+an ethereal, floating quality. **`Pelog <https://en.wikipedia.org/wiki/Pelog>`_** is a 7-tone scale with unequal
 intervals, typically performed using 5-note subsets called *pathet*.
 
 .. code-block:: python

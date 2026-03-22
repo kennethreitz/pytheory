@@ -1,7 +1,7 @@
 Working with Chords
 ===================
 
-A **chord** is two or more tones sounding simultaneously. Chords are the
+A **`chord <https://en.wikipedia.org/wiki/Chord_(music)>`_** is two or more tones sounding simultaneously. Chords are the
 vertical dimension of music — while melody moves horizontally through
 time, harmony stacks tones on top of each other.
 
@@ -9,7 +9,7 @@ Chord Construction
 ------------------
 
 Chords are built by stacking **intervals** above a **root** note. The
-most common chord type is the **triad** — three notes built from
+most common chord type is the **`triad <https://en.wikipedia.org/wiki/Triad_(music)>`_** — three notes built from
 alternating scale degrees (root, 3rd, 5th).
 
 The four triad types::
@@ -19,7 +19,7 @@ The four triad types::
     Diminished  root + minor 3rd (3) + diminished 5th (6) Tense, unstable
     Augmented   root + major 3rd (4) + augmented 5th (8)  Eerie, unresolved
 
-Adding a 7th creates a **seventh chord** — the foundation of jazz
+Adding a 7th creates a **`seventh chord <https://en.wikipedia.org/wiki/Seventh_chord>`_** — the foundation of jazz
 harmony::
 
     Dominant 7th   root + 4 + 7 + 10   Bluesy, wants to resolve (G7)
@@ -31,7 +31,7 @@ Inversions
 ----------
 
 A chord is in **root position** when the root is the lowest note.
-When a different chord tone is in the bass, the chord is **inverted**:
+When a different chord tone is in the bass, the chord is **`inverted <https://en.wikipedia.org/wiki/Inversion_(music)>`_**:
 
 - **Root position**: C E G (root in bass)
 - **First inversion**: E G C (3rd in bass) — notated C/E
@@ -61,7 +61,7 @@ For seventh chords, there's also **third inversion** (7th in bass):
 Extended Chords
 ---------------
 
-Beyond seventh chords, jazz harmony builds **extended chords** by
+Beyond seventh chords, jazz harmony builds **`extended chords <https://en.wikipedia.org/wiki/Extended_chord>`_** by
 continuing to stack thirds:
 
 - **9th chord**: adds the 9th (= 2nd, one octave up)
@@ -196,9 +196,9 @@ Tritone      45:32  Waves rarely align
 Dissonance Score
 ~~~~~~~~~~~~~~~~
 
-The ``dissonance`` property uses the **Plomp-Levelt roughness model**
+The ``dissonance`` property uses the **Plomp-Levelt `roughness <https://en.wikipedia.org/wiki/Roughness_(psychoacoustics)>`_ model**
 (1965). When two frequencies are close together, their sound waves
-interfere and produce rapid amplitude fluctuations called **beating**.
+interfere and produce rapid amplitude fluctuations called **`beating <https://en.wikipedia.org/wiki/Beat_(acoustics)>`_**.
 This beating is perceived as roughness — the physiological basis of
 dissonance.
 
@@ -268,7 +268,7 @@ against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
 Harmonic Analysis
 -----------------
 
-**Roman numeral analysis** labels each chord by its function within a
+**`Roman numeral analysis <https://en.wikipedia.org/wiki/Roman_numeral_analysis>`_** labels each chord by its function within a
 key. This is how musicians describe chord progressions independent of
 key — "I-IV-V" means the same thing in C major (C-F-G) as in G major
 (G-C-D).
@@ -320,7 +320,7 @@ quantifies this based on:
 Voice Leading
 -------------
 
-**Voice leading** is the art of connecting chords smoothly. Instead of
+**`Voice leading <https://en.wikipedia.org/wiki/Voice_leading>`_** is the art of connecting chords smoothly. Instead of
 jumping all voices to new positions, good voice leading moves each note
 the minimum distance to reach the next chord. Bach's chorales are the
 gold standard — every voice moves by step whenever possible.
@@ -338,7 +338,7 @@ The Overtone Series
 -------------------
 
 Every musical tone is actually a stack of frequencies — the
-**fundamental** plus its **overtones** (harmonics). The overtone series
+**fundamental** plus its **`overtones <https://en.wikipedia.org/wiki/Overtone>`_** (harmonics). The overtone series
 is nature's chord: it contains the octave, perfect fifth, perfect
 fourth, major third, and more, in that order.
 

@@ -13,13 +13,13 @@ Every scale is defined by its **interval pattern** — the sequence of
 whole steps (W = 2 semitones) and half steps (H = 1 semitone) between
 consecutive tones.
 
-The major scale::
+The `major scale <https://en.wikipedia.org/wiki/Major_scale>`_::
 
     W  W  H  W  W  W  H
     C  D  E  F  G  A  B  C
       2  2  1  2  2  2  1    ← semitones between each note
 
-The natural minor scale::
+The `natural minor scale <https://en.wikipedia.org/wiki/Minor_scale>`_::
 
     W  H  W  W  H  W  W
     C  D  Eb F  G  Ab Bb C
@@ -46,9 +46,9 @@ Use :class:`~pytheory.scales.TonedScale` to generate scales in any key:
 Major and Minor
 ---------------
 
-The **major scale** (Ionian mode) is the foundation of Western tonal
+The **major scale** (`Ionian <https://en.wikipedia.org/wiki/Ionian_mode>`_ mode) is the foundation of Western tonal
 music. Its pattern of whole and half steps creates a bright, resolved
-sound. Every major key has a **relative minor** that shares the same
+sound. Every major key has a **`relative minor <https://en.wikipedia.org/wiki/Relative_key>`_** that shares the same
 notes but starts from the 6th degree:
 
 - C major → A minor (both use only white keys)
@@ -63,7 +63,7 @@ notes but starts from the 6th degree:
    # Same notes, different starting point
    set(c_major.note_names) == set(a_minor.note_names)  # True
 
-The **harmonic minor** raises the 7th degree of the natural minor,
+The **`harmonic minor <https://en.wikipedia.org/wiki/Harmonic_minor_scale>`_** raises the 7th degree of the natural minor,
 creating an augmented 2nd interval (3 semitones) between the 6th and
 7th degrees. This gives it a distinctive "Middle Eastern" or "classical"
 sound and provides the leading tone needed for dominant harmony::
@@ -75,7 +75,7 @@ sound and provides the leading tone needed for dominant harmony::
 Modes
 -----
 
-The seven **modes** of the major scale are rotations of the same interval
+The seven **`modes <https://en.wikipedia.org/wiki/Mode_(music)>`_** of the major scale are rotations of the same interval
 pattern, each starting from a different degree. Each mode has a distinct
 emotional character:
 
@@ -87,32 +87,32 @@ emotional character:
 
    c["ionian"]    # C D E F G A B C
 
-**Dorian** (ii) — minor with a raised 6th. Jazzy, soulful (So What,
+**`Dorian <https://en.wikipedia.org/wiki/Dorian_mode>`_** (ii) — minor with a raised 6th. Jazzy, soulful (So What,
 Scarborough Fair)::
 
    c["dorian"]    # C D Eb F G A Bb C
 
-**Phrygian** (iii) — minor with a flat 2nd. Spanish, flamenco, dark
+**`Phrygian <https://en.wikipedia.org/wiki/Phrygian_mode>`_** (iii) — minor with a flat 2nd. Spanish, flamenco, dark
 (White Rabbit)::
 
    c["phrygian"]  # C Db Eb F G Ab Bb C
 
-**Lydian** (IV) — major with a raised 4th. Dreamy, floating, ethereal
+**`Lydian <https://en.wikipedia.org/wiki/Lydian_mode>`_** (IV) — major with a raised 4th. Dreamy, floating, ethereal
 (The Simpsons theme, Flying by ET)::
 
    c["lydian"]    # C D E F# G A B C
 
-**Mixolydian** (V) — major with a flat 7th. Bluesy, rock, dominant
+**`Mixolydian <https://en.wikipedia.org/wiki/Mixolydian_mode>`_** (V) — major with a flat 7th. Bluesy, rock, dominant
 (Norwegian Wood, Sweet Home Alabama)::
 
    c["mixolydian"]  # C D E F G A Bb C
 
-**Aeolian** (vi) — the natural minor scale. Sad, dark, introspective
+**`Aeolian <https://en.wikipedia.org/wiki/Aeolian_mode>`_** (vi) — the natural minor scale. Sad, dark, introspective
 (Stairway to Heaven, Losing My Religion)::
 
    c["aeolian"]   # C D Eb F G Ab Bb C
 
-**Locrian** (vii) — minor with flat 2nd and flat 5th. Unstable,
+**`Locrian <https://en.wikipedia.org/wiki/Locrian_mode>`_** (vii) — minor with flat 2nd and flat 5th. Unstable,
 rarely used as a home key (used in metal and jazz over diminished
 chords)::
 
@@ -167,7 +167,7 @@ Scales are iterable and support ``len()`` and ``in``:
 Building Chords from Scales
 ----------------------------
 
-**Diatonic harmony** builds chords by stacking every other note of the
+**`Diatonic <https://en.wikipedia.org/wiki/Diatonic_and_chromatic>`_ harmony** builds chords by stacking every other note of the
 scale. A **triad** takes the 1st, 3rd, and 5th; a **seventh chord** adds
 the 7th.
 
@@ -218,7 +218,7 @@ Some of the most-used chord progressions in Western music:
 The 12-Bar Blues
 ~~~~~~~~~~~~~~~~
 
-The **12-bar blues** is the most influential chord progression in
+The **`12-bar blues <https://en.wikipedia.org/wiki/Twelve-bar_blues>`_** is the most influential chord progression in
 American music. It's 12 measures long and uses only three chords
 (I, IV, V)::
 
@@ -249,7 +249,7 @@ Parallel Major and Minor
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Two scales are **relative** if they share the same notes (C major and
-A minor). Two scales are **parallel** if they share the same tonic but
+A minor). Two scales are **`parallel <https://en.wikipedia.org/wiki/Parallel_key>`_** if they share the same tonic but
 have different notes (C major and C minor).
 
 Mixing parallel major and minor is a powerful compositional tool —

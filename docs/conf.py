@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(".."))
 sys.modules["sounddevice"] = MagicMock()
 
 project = "PyTheory"
-copyright = "2024, Kenneth Reitz"
+copyright = "2026, Kenneth Reitz"
 author = "Kenneth Reitz"
 release = "0.2.0"
 
