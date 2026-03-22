@@ -1,4 +1,4 @@
-from ._statics import TEMPERAMENTS, TONES, DEGREES, SCALES, SYSTEMS
+from ._statics import TEMPERAMENTS, TONES, DEGREES, SCALES, INDIAN_SCALES, SYSTEMS
 
 
 class System:
@@ -55,6 +55,7 @@ class System:
         *,
         tones=7,
         semitones=12,
+        intervals=None,
         major=False,
         minor=False,
         hemitonic=False,  # Contains semitones.
@@ -63,7 +64,13 @@ class System:
         offset=None,
     ):
         """Generates the primary scale for a given number of semitones/tones."""
-        # TODO: Support minor, support harmonic, support melodic.
+
+        # Direct interval pattern — bypass generation logic.
+        if intervals is not None:
+            scale = list(intervals)
+            if offset:
+                scale = scale[offset:] + scale[:offset]
+            return {"intervals": scale, "hemitonic": 1 in scale, "meta": {}}
 
         # Sanity check.
         if major and minor:
@@ -119,4 +126,7 @@ class System:
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
 
-SYSTEMS = {"western": System(tone_names=TONES["western"], degrees=DEGREES["western"])}
+SYSTEMS = {
+    "western": System(tone_names=TONES["western"], degrees=DEGREES["western"]),
+    "indian": System(tone_names=TONES["indian"], degrees=DEGREES["indian"], scales=INDIAN_SCALES[12]),
+}

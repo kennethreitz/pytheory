@@ -1772,3 +1772,141 @@ def test_tone_arithmetic_workflow():
 
     # Compare
     assert c4 < major_third < perfect_fifth < octave
+
+
+# ── Indian system ───────────────────────────────────────────────────────────
+
+def test_indian_system_exists():
+    assert "indian" in SYSTEMS
+    assert SYSTEMS["indian"].semitones == 12
+
+
+def test_indian_system_tones():
+    indian = SYSTEMS["indian"]
+    names = [t.name for t in indian.tones]
+    assert "Sa" in names
+    assert "Pa" in names
+    assert "Dha" in names
+    assert len(names) == 12
+
+
+def test_indian_sa_pitch():
+    """Sa4 should equal C4 = 261.63 Hz."""
+    sa = Tone.from_string("Sa4", system="indian")
+    assert abs(sa.frequency - 261.63) < 0.01
+
+
+def test_indian_pa_pitch():
+    """Pa4 should equal G4 = 392.00 Hz."""
+    sa = Tone.from_string("Sa4", system="indian")
+    pa = sa + 7
+    assert pa.name == "Pa"
+    assert abs(pa.frequency - 392.00) < 0.01
+
+
+def test_indian_dha_pitch():
+    """Dha4 should equal A4 = 440 Hz."""
+    dha = Tone.from_string("Dha4", system="indian")
+    assert abs(dha.frequency - 440.0) < 0.01
+
+
+def test_indian_octave_sa():
+    """Sa4 + 12 = Sa5."""
+    sa = Tone.from_string("Sa4", system="indian")
+    result = sa + 12
+    assert result.name == "Sa"
+    assert result.octave == 5
+
+
+def test_indian_bilawal_thaat():
+    """Bilawal = major scale: Sa Re Ga Ma Pa Dha Ni Sa."""
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    bilawal = sa["bilawal"]
+    names = [t.name for t in bilawal]
+    assert names == ["Sa", "Re", "Ga", "Ma", "Pa", "Dha", "Ni", "Sa"]
+
+
+def test_indian_bhairav_thaat():
+    """Bhairav: Sa komal-Re Ga Ma Pa komal-Dha Ni Sa."""
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    bhairav = sa["bhairav"]
+    names = [t.name for t in bhairav]
+    assert names == ["Sa", "komal Re", "Ga", "Ma", "Pa", "komal Dha", "Ni", "Sa"]
+
+
+def test_indian_todi_thaat():
+    """Todi: Sa komal-Re komal-Ga tivra-Ma Pa komal-Dha Ni Sa."""
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    todi = sa["todi"]
+    names = [t.name for t in todi]
+    assert names == ["Sa", "komal Re", "komal Ga", "tivra Ma", "Pa", "komal Dha", "Ni", "Sa"]
+
+
+def test_indian_kalyan_thaat():
+    """Kalyan = Lydian: Sa Re Ga tivra-Ma Pa Dha Ni Sa."""
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    kalyan = sa["kalyan"]
+    names = [t.name for t in kalyan]
+    assert names == ["Sa", "Re", "Ga", "tivra Ma", "Pa", "Dha", "Ni", "Sa"]
+
+
+def test_indian_all_thaats_available():
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    thaats = sa.scales
+    for thaat in ["bilawal", "bhairav", "todi", "kalyan", "kafi",
+                  "asavari", "bhairavi", "khamaj", "poorvi", "marwa"]:
+        assert thaat in thaats, f"Missing thaat: {thaat}"
+
+
+def test_indian_all_thaat_intervals_sum_to_12():
+    indian = SYSTEMS["indian"]
+    for name, scale in indian.scales["thaat"].items():
+        total = sum(scale["intervals"])
+        assert total == 12, f"{name} intervals sum to {total}, not 12"
+
+
+def test_indian_bilawal_equals_western_major():
+    """Bilawal intervals should match Western major."""
+    indian = SYSTEMS["indian"]
+    western = SYSTEMS["western"]
+    bilawal = indian.scales["thaat"]["bilawal"]["intervals"]
+    major = western.scales["heptatonic"]["major"]["intervals"]
+    assert bilawal == major
+
+
+def test_indian_tone_arithmetic():
+    sa = Tone.from_string("Sa4", system="indian")
+    assert (sa + 2).name == "Re"
+    assert (sa + 4).name == "Ga"
+    assert (sa + 5).name == "Ma"
+    assert (sa + 7).name == "Pa"
+    assert (sa + 9).name == "Dha"
+    assert (sa + 11).name == "Ni"
+
+
+def test_indian_chromatic_walk():
+    """Walk all 12 swaras from Sa4."""
+    sa = Tone.from_string("Sa4", system="indian")
+    expected = ["Sa", "komal Re", "Re", "komal Ga", "Ga", "Ma",
+                "tivra Ma", "Pa", "komal Dha", "Dha", "komal Ni", "Ni", "Sa"]
+    for i, name in enumerate(expected):
+        result = sa + i
+        assert result.name == name, f"step {i}: expected {name}, got {result.name}"
+
+
+def test_indian_scale_triad():
+    """Build a triad from Bilawal (Sa Ga Pa)."""
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    bilawal = sa["bilawal"]
+    triad = bilawal.triad(0)
+    names = [t.name for t in triad]
+    assert names == ["Sa", "Ga", "Pa"]
+
+
+def test_indian_scale_degree_access():
+    sa = TonedScale(tonic="Sa4", system=SYSTEMS["indian"])
+    bilawal = sa["bilawal"]
+    assert bilawal[0].name == "Sa"
+    assert bilawal[4].name == "Pa"
+    assert bilawal["I"].name == "Sa"
+    assert bilawal["V"].name == "Pa"

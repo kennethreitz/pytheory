@@ -21,7 +21,23 @@ TONES = {
         ("F#", "Gb"),
         ("G",),
         ("G#", "Ab"),
-    ]
+    ],
+    # Indian classical (Hindustani) system.
+    # Ordered A-based to match Western index positions (Sa = index 3 = C).
+    "indian": [
+        ("Dha",),           # A  — shuddha dhaivat
+        ("komal Ni",),      # Bb — komal nishad
+        ("Ni",),            # B  — shuddha nishad
+        ("Sa",),            # C  — shadja
+        ("komal Re",),      # Db — komal rishabh
+        ("Re",),            # D  — shuddha rishabh
+        ("komal Ga",),      # Eb — komal gandhar
+        ("Ga",),            # E  — shuddha gandhar
+        ("Ma",),            # F  — shuddha madhyam
+        ("tivra Ma",),      # F# — tivra madhyam
+        ("Pa",),            # G  — pancham
+        ("komal Dha",),     # Ab — komal dhaivat
+    ],
 }
 
 DEGREES = {
@@ -34,7 +50,17 @@ DEGREES = {
         ("submediant", ("aeolian", "lydian")),
         ("leading tone", ("locrian", "mixolydian")),
         ("octave", ("ionian", "aeolian")),
-    ]
+    ],
+    "indian": [
+        ("shadja", ()),      # Sa — the tonic
+        ("rishabh", ()),     # Re — 2nd
+        ("gandhar", ()),     # Ga — 3rd
+        ("madhyam", ()),     # Ma — 4th
+        ("pancham", ()),     # Pa — 5th
+        ("dhaivat", ()),     # Dha — 6th
+        ("nishad", ()),      # Ni — 7th
+        ("saptak", ()),      # Sa — octave
+    ],
 }
 
 SCALES = {
@@ -66,6 +92,43 @@ SCALES = {
         # "pentatonic": (5, {}),
         # "tetratonic": (4, {}),
         # "monotonic": (1, {"monotonic": {"hemitonic": False}}),
+    }
+}
+
+# Indian scales — the 10 thaats of Hindustani classical music.
+# Each thaat defines a parent scale from which ragas are derived.
+INDIAN_SCALES = {
+    12: {
+        "chromatic": (12, {}),
+        "thaat": [
+            7,
+            {
+                # Bilawal = Western major / Ionian
+                "bilawal": {"intervals": (2, 2, 1, 2, 2, 2, 1)},
+                # Khamaj = Western Mixolydian
+                "khamaj": {"intervals": (2, 2, 1, 2, 2, 1, 2)},
+                # Kafi = Western Dorian
+                "kafi": {"intervals": (2, 1, 2, 2, 2, 1, 2)},
+                # Asavari = Western natural minor / Aeolian
+                "asavari": {"intervals": (2, 1, 2, 2, 1, 2, 2)},
+                # Bhairavi = Western Phrygian
+                "bhairavi": {"intervals": (1, 2, 2, 2, 1, 2, 2)},
+                # Kalyan = Western Lydian
+                "kalyan": {"intervals": (2, 2, 2, 1, 2, 2, 1)},
+                # Bhairav — unique to Indian music (no Western equivalent)
+                # Sa re Ga Ma Pa dha Ni
+                "bhairav": {"intervals": (1, 3, 1, 2, 1, 3, 1)},
+                # Poorvi — unique to Indian music
+                # Sa re Ga tivra-Ma Pa dha Ni
+                "poorvi": {"intervals": (1, 3, 2, 1, 1, 3, 1)},
+                # Marwa — unique to Indian music
+                # Sa re Ga tivra-Ma Pa Dha Ni
+                "marwa": {"intervals": (1, 3, 2, 1, 2, 2, 1)},
+                # Todi — unique to Indian music
+                # Sa re komal-Ga tivra-Ma Pa dha Ni
+                "todi": {"intervals": (1, 2, 3, 1, 1, 3, 1)},
+            },
+        ],
     }
 }
 
