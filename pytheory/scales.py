@@ -1,11 +1,25 @@
+from __future__ import annotations
+
+from typing import Optional, Union
+
 import numeral
 
-from .systems import SYSTEMS
+from .systems import SYSTEMS, System
 from .tones import Tone
 
 
 class Scale:
-    def __init__(self, *, tones, degrees=None, system='western'):
+    def __init__(self, *, tones: tuple[Tone, ...], degrees: Optional[tuple[str, ...]] = None, system: Union[str, System] = 'western') -> None:
+        """Initialize a Scale from a sequence of Tones.
+
+        Args:
+            tones: The tones that make up the scale.
+            degrees: Optional names for each scale degree (must match length of *tones*).
+            system: A tone system name or :class:`System` instance.
+
+        Raises:
+            ValueError: If *degrees* is provided but its length differs from *tones*.
+        """
         self.tones = tones
         self.degrees = degrees
 
@@ -21,14 +35,18 @@ class Scale:
                 raise ValueError("The number of tones and degrees must be equal!")
 
     @property
-    def system(self):
+    def system(self) -> Optional[System]:
+        """Return the tone system for this scale.
+
+        Resolves a system name to a :class:`System` object on first access.
+        """
         if self._system:
             return self._system
 
         if self.system_name:
             return SYSTEMS[self.system_name]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = []
         for (i, tone) in enumerate(self.tones):
             degree = numeral.int2roman(i + 1, only_ascii=True)
@@ -38,22 +56,25 @@ class Scale:
         return f"<Scale {r}>"
 
     def __iter__(self):
+        """Iterate over the tones in this scale."""
         return iter(self.tones)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of tones in this scale (including the octave)."""
         return len(self.tones)
 
-    def __contains__(self, item):
+    def __contains__(self, item: Union[str, Tone]) -> bool:
+        """Check whether a tone or note name belongs to this scale."""
         if isinstance(item, str):
             return any(item == t.name for t in self.tones)
         return item in self.tones
 
     @property
-    def note_names(self):
+    def note_names(self) -> list[str]:
         """List of note names in this scale."""
         return [t.name for t in self.tones]
 
-    def chord(self, *degrees):
+    def chord(self, *degrees: int) -> Chord:
         """Build a Chord from scale degrees (0-indexed).
 
         Wraps around if degrees exceed the scale length, transposing
@@ -75,7 +96,7 @@ class Scale:
             result.append(tone)
         return Chord(tones=result)
 
-    def transpose(self, semitones):
+    def transpose(self, semitones: int) -> Scale:
         """Return a new Scale transposed by the given number of semitones.
 
         Every tone is shifted by the same interval, preserving the
@@ -92,21 +113,21 @@ class Scale:
         new_tones = tuple(t.add(semitones) for t in self.tones)
         return Scale(tones=new_tones)
 
-    def triad(self, root=0):
+    def triad(self, root: int = 0) -> Chord:
         """Build a triad starting from the given scale degree (0-indexed).
 
         Returns a chord with the root, 3rd, and 5th above it.
         """
         return self.chord(root, root + 2, root + 4)
 
-    def seventh(self, root=0):
+    def seventh(self, root: int = 0) -> Chord:
         """Build a seventh chord from the given scale degree (0-indexed).
 
         Returns a chord with the root, 3rd, 5th, and 7th.
         """
         return self.chord(root, root + 2, root + 4, root + 6)
 
-    def progression(self, *numerals):
+    def progression(self, *numerals: str) -> list[Chord]:
         """Build a chord progression from Roman numeral strings.
 
         Accepts Roman numerals like ``"I"``, ``"IV"``, ``"V"``,
@@ -130,7 +151,7 @@ class Scale:
                 chords.append(self.triad(degree))
         return chords
 
-    def nashville(self, *numbers):
+    def nashville(self, *numbers: Union[int, str]) -> list[Chord]:
         """Build a chord progression using Nashville number system.
 
         The `Nashville number system <https://en.wikipedia.org/wiki/Nashville_Number_System>`_
@@ -159,7 +180,7 @@ class Scale:
         return chords
 
     @staticmethod
-    def detect(*note_names):
+    def detect(*note_names: str) -> Optional[tuple[str, str, int]]:
         """Detect the most likely scale from a set of note names.
 
         Tries all scales in the Western system and returns the best
@@ -200,7 +221,7 @@ class Scale:
             return (best[1], best[2], best[3])
         return None
 
-    def harmonize(self):
+    def harmonize(self) -> list[Chord]:
         """Build diatonic triads on every scale degree.
 
         Returns a list of Chords — one triad for each degree of the
@@ -214,7 +235,7 @@ class Scale:
         unique = len(self.tones) - 1
         return [self.triad(i) for i in range(unique)]
 
-    def degree(self, item, major=None, minor=False):
+    def degree(self, item: Union[str, int, slice], major: Optional[bool] = None, minor: bool = False) -> Optional[Union[Tone, tuple[Tone, ...]]]:
         # TODO: cleanup degrees.
 
         # Ensure that both major and minor aren't passed.
@@ -247,7 +268,12 @@ class Scale:
         if isinstance(item, int) or isinstance(item, slice):
             return self.tones[item]
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[str, int, slice]) -> Union[Tone, tuple[Tone, ...]]:
+        """Retrieve a tone by scale degree (integer, Roman numeral, or degree name).
+
+        Raises:
+            KeyError: If the given degree is not found in this scale.
+        """
         result = self.degree(item)
         if result is None:
             raise KeyError(item)
@@ -301,7 +327,7 @@ class Key:
         [<Chord (C,E,G)>, <Chord (G,B,D)>, ...]
     """
 
-    def __init__(self, tonic, mode="major", system=None):
+    def __init__(self, tonic: str, mode: str = "major", system: Optional[Union[str, System]] = None) -> None:
         if system is None:
             system = SYSTEMS["western"]
         elif isinstance(system, str):
@@ -313,7 +339,7 @@ class Key:
         self._scale = self._toned_scale[mode]
 
     @classmethod
-    def detect(cls, *note_names):
+    def detect(cls, *note_names: str) -> Optional[Key]:
         """Detect the most likely key from a set of note names.
 
         Tries every possible major and minor key and returns the one
@@ -355,42 +381,42 @@ class Key:
 
         return best_key
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Key {self.tonic_name} {self.mode}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.tonic_name} {self.mode}"
 
     @property
-    def scale(self):
+    def scale(self) -> Scale:
         """The scale for this key."""
         return self._scale
 
     @property
-    def note_names(self):
+    def note_names(self) -> list[str]:
         """Note names in this key's scale."""
         return self._scale.note_names
 
     @property
-    def chords(self):
+    def chords(self) -> list[str]:
         """Names of all diatonic triads in this key."""
         return [c.identify() for c in self._scale.harmonize()]
 
     @property
-    def seventh_chords(self):
+    def seventh_chords(self) -> list[str]:
         """Names of all diatonic seventh chords in this key."""
         unique = len(self._scale.tones) - 1
         return [self._scale.seventh(i).identify() for i in range(unique)]
 
-    def triad(self, degree):
+    def triad(self, degree: int) -> Chord:
         """Build a diatonic triad on the given degree (0-indexed)."""
         return self._scale.triad(degree)
 
-    def seventh(self, degree):
+    def seventh(self, degree: int) -> Chord:
         """Build a diatonic seventh chord on the given degree (0-indexed)."""
         return self._scale.seventh(degree)
 
-    def progression(self, *numerals):
+    def progression(self, *numerals: str) -> list[Chord]:
         """Build a chord progression from Roman numerals.
 
         Example::
@@ -399,7 +425,7 @@ class Key:
         """
         return self._scale.progression(*numerals)
 
-    def nashville(self, *numbers):
+    def nashville(self, *numbers: Union[int, str]) -> list[Chord]:
         """Build a chord progression using Nashville numbers.
 
         Example::
@@ -408,7 +434,7 @@ class Key:
         """
         return self._scale.nashville(*numbers)
 
-    def secondary_dominant(self, degree):
+    def secondary_dominant(self, degree: int) -> Chord:
         """Build a secondary dominant (V/x) for the given scale degree.
 
         A secondary dominant is the dominant chord of a non-tonic
@@ -441,7 +467,7 @@ class Key:
         return Chord(tones=[root, root.add(4), root.add(7), root.add(10)])
 
     @classmethod
-    def all_keys(cls):
+    def all_keys(cls) -> list[Key]:
         """Return all 24 major and minor keys.
 
         Returns:
@@ -461,7 +487,7 @@ class Key:
         return keys
 
     @property
-    def relative(self):
+    def relative(self) -> Optional[Key]:
         """The relative major or minor key.
 
         If this is a major key, returns the relative minor (vi).
@@ -478,7 +504,7 @@ class Key:
         return None
 
     @property
-    def parallel(self):
+    def parallel(self) -> Optional[Key]:
         """The parallel major or minor key (same tonic, different mode)."""
         if self.mode == "major":
             return Key(self.tonic_name, "minor")
@@ -488,7 +514,13 @@ class Key:
 
 
 class TonedScale:
-    def __init__(self, *, system=SYSTEMS["western"], tonic):
+    def __init__(self, *, system: Union[str, System] = SYSTEMS["western"], tonic: Union[str, Tone]) -> None:
+        """Initialize a TonedScale with a tonic note and tone system.
+
+        Args:
+            system: A tone system name or :class:`System` instance.
+            tonic: The tonic note as a string (e.g. ``"C4"``) or :class:`Tone`.
+        """
         if isinstance(system, str):
             system = SYSTEMS[system]
         self.system = system
@@ -497,28 +529,40 @@ class TonedScale:
             tonic = Tone.from_string(tonic, system=self.system)
 
         self.tonic = tonic
+        self._cached_scales: Optional[dict[str, Scale]] = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<TonedScale system={self.system!r} tonic={self.tonic}>"
 
-    def __getitem__(self, scale):
+    def __getitem__(self, scale: str) -> Scale:
+        """Retrieve a scale by name.
+
+        Raises:
+            KeyError: If the named scale is not found in this system.
+        """
         result = self.get(scale)
         if result is None:
             raise KeyError(scale)
         return result
 
-    def get(self, scale):
+    def get(self, scale: str) -> Optional[Scale]:
+        """Look up a scale by name, returning ``None`` if not found."""
         try:
             return self._scales[scale]
         except KeyError:
             pass
 
     @property
-    def scales(self):
+    def scales(self) -> tuple[str, ...]:
+        """Tuple of all available scale names in this system."""
         return tuple(self._scales.keys())
 
     @property
-    def _scales(self):
+    def _scales(self) -> dict[str, Scale]:
+        """Lazily computed (and cached) mapping of scale names to Scale objects."""
+        if self._cached_scales is not None:
+            return self._cached_scales
+
         scales = {}
 
         for scale_type in self.system.scales:
@@ -536,4 +580,5 @@ class TonedScale:
 
                 scales[scale] = Scale(tones=tuple(working_scale))
 
+        self._cached_scales = scales
         return scales

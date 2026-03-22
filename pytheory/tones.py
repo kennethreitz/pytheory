@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional, Union
+
 from ._statics import REFERENCE_A, TEMPERAMENTS
 
 
@@ -20,7 +24,24 @@ class Interval:
 
 class Tone:
 
-    def __init__(self, name, *, alt_names=None, octave=None, system="western"):
+    def __init__(
+        self,
+        name: str,
+        *,
+        alt_names: Optional[list[str]] = None,
+        octave: Optional[int] = None,
+        system: Union[str, object] = "western",
+    ) -> None:
+        """Initialize a Tone with a name, optional octave, and musical system.
+
+        Args:
+            name: The note name (e.g. ``"C"``, ``"C#4"``). If the name
+                contains a digit, it is parsed as the octave.
+            alt_names: Alternate spellings for this tone (e.g. enharmonics).
+            octave: The octave number. Overrides any octave parsed from *name*.
+            system: The tuning system, either as a string key (``"western"``)
+                or a ``ToneSystem`` instance.
+        """
         if alt_names is None:
             alt_names = []
 
@@ -38,6 +59,7 @@ class Tone:
         self.name = name
         self.octave = octave
         self.alt_names = alt_names
+        self._frequency: Optional[float] = None
 
         if isinstance(system, str):
             self.system_name = system
@@ -47,11 +69,16 @@ class Tone:
             self._system = system
 
     @property
-    def exists(self):
+    def exists(self) -> bool:
+        """True if this tone's name is found in the associated system."""
         return self.name in self.system.tones
 
     @property
-    def system(self):
+    def system(self) -> object:
+        """The ``ToneSystem`` associated with this tone.
+
+        Lazily resolved from ``system_name`` on first access and cached.
+        """
         from .systems import SYSTEMS
 
         if self._system:
@@ -62,32 +89,34 @@ class Tone:
             return self.system
 
     @property
-    def full_name(self):
+    def full_name(self) -> str:
+        """The tone name with octave appended, e.g. ``'C4'`` or ``'C'``."""
         if self.octave is not None:
             return f"{self.name}{self.octave}"
         else:
             return self.name
 
-    def names(self):
+    def names(self) -> list[str]:
+        """Return a list containing the primary name and all alternate names."""
         return [self.name] + self.alt_names
 
     @property
-    def is_natural(self):
+    def is_natural(self) -> bool:
         """True if this is a natural note (no sharp or flat)."""
         return not self.is_sharp and not self.is_flat
 
     @property
-    def is_sharp(self):
+    def is_sharp(self) -> bool:
         """True if this tone has a sharp (#)."""
         return "#" in self.name
 
     @property
-    def is_flat(self):
+    def is_flat(self) -> bool:
         """True if this tone has a flat (b after the first character)."""
         return "b" in self.name[1:]
 
     @property
-    def enharmonic(self):
+    def enharmonic(self) -> Optional[str]:
         """The enharmonic equivalent of this tone, or None if there isn't one.
 
         Returns the alternate spelling: C# → Db, Db → C#, etc.
@@ -109,16 +138,16 @@ class Tone:
             pass
         return None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Tone {self.full_name}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.full_name
 
-    def __add__(self, interval):
+    def __add__(self, interval: int) -> Tone:
         return self.add(interval)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Union[int, Tone]) -> Union[Tone, int]:
         # Tone - int: subtract semitones
         if isinstance(other, int):
             return self.subtract(other)
@@ -134,27 +163,27 @@ class Tone:
             return self_from_c0 - other_from_c0
         return NotImplemented
 
-    def __lt__(self, other):
+    def __lt__(self, other: Tone) -> bool:
         if not isinstance(other, Tone):
             return NotImplemented
         return self.pitch() < other.pitch()
 
-    def __le__(self, other):
+    def __le__(self, other: Tone) -> bool:
         if not isinstance(other, Tone):
             return NotImplemented
         return self.pitch() <= other.pitch()
 
-    def __gt__(self, other):
+    def __gt__(self, other: Tone) -> bool:
         if not isinstance(other, Tone):
             return NotImplemented
         return self.pitch() > other.pitch()
 
-    def __ge__(self, other):
+    def __ge__(self, other: Tone) -> bool:
         if not isinstance(other, Tone):
             return NotImplemented
         return self.pitch() >= other.pitch()
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
 
         # Comparing string literals.
         if isinstance(other, str):
@@ -169,11 +198,20 @@ class Tone:
 
         return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.name, self.octave))
 
     @classmethod
-    def from_string(klass, s, system=None):
+    def from_string(klass, s: str, system: Optional[Union[str, object]] = None) -> Tone:
+        """Create a Tone by parsing a string like ``'C#4'`` or ``'Bb'``.
+
+        Args:
+            s: A note string, optionally including an octave number.
+            system: The tuning system to associate with the tone.
+
+        Returns:
+            A new ``Tone`` instance.
+        """
         try:
             octave = int("".join([c for c in filter(str.isdigit, s)]))
         except ValueError:
@@ -187,7 +225,16 @@ class Tone:
             return klass(name=tone, octave=octave)
 
     @classmethod
-    def from_tuple(klass, t):
+    def from_tuple(klass, t: tuple[str, ...]) -> Tone:
+        """Create a Tone from a tuple of ``(name, *alt_names)``.
+
+        Args:
+            t: A tuple where the first element is the primary name and
+                any remaining elements are alternate names (enharmonics).
+
+        Returns:
+            A new ``Tone`` instance.
+        """
         if len(t) == 1:
             return klass.from_string(s=t[0])
         else:
@@ -196,7 +243,7 @@ class Tone:
             return tone
 
     @classmethod
-    def from_frequency(klass, hz, system="western"):
+    def from_frequency(klass, hz: float, system: Union[str, object] = "western") -> Tone:
         """Create a Tone from a frequency in Hz.
 
         Finds the nearest note in 12-TET tuning (A4=440Hz).
@@ -228,7 +275,7 @@ class Tone:
         return klass.from_index(index, octave=octave, system=system)
 
     @classmethod
-    def from_midi(klass, note_number, system="western"):
+    def from_midi(klass, note_number: int, system: Union[str, object] = "western") -> Tone:
         """Create a Tone from a MIDI note number.
 
         MIDI note 60 = C4 (middle C), 69 = A4 (440 Hz).
@@ -251,18 +298,33 @@ class Tone:
         return klass.from_index(index, octave=octave, system=system)
 
     @classmethod
-    def from_index(klass, i, *, octave, system):
+    def from_index(klass, i: int, *, octave: int, system: object) -> Tone:
+        """Create a Tone from its index within a tuning system.
+
+        Args:
+            i: The index of the tone in the system's tone list.
+            octave: The octave number.
+            system: The ``ToneSystem`` instance.
+
+        Returns:
+            A new ``Tone`` instance.
+        """
         tone = system.tones[i].name
         return klass(name=tone, octave=octave, system=system)
 
     @property
-    def _index(self):
+    def _index(self) -> int:
+        """The index of this tone within its associated system's tone list.
+
+        Raises:
+            ValueError: If no system is associated with this tone.
+        """
         try:
             return self.system.tones.index(self.name)
         except AttributeError:
             raise ValueError("Tone index cannot be referenced without a system!")
 
-    def _math(self, interval):
+    def _math(self, interval: int) -> tuple[int, int]:
         """Returns (new index, new octave).
 
         Octave boundaries follow scientific pitch notation, where the
@@ -292,11 +354,27 @@ class Tone:
 
         return (new_index, new_octave)
 
-    def add(self, interval):
+    def add(self, interval: int) -> Tone:
+        """Return a new Tone that is *interval* semitones above this one.
+
+        Args:
+            interval: Number of semitones to add (positive = up).
+
+        Returns:
+            A new ``Tone`` instance.
+        """
         index, octave = self._math(interval)
         return self.from_index(index, octave=octave, system=self.system)
 
-    def subtract(self, interval):
+    def subtract(self, interval: int) -> Tone:
+        """Return a new Tone that is *interval* semitones below this one.
+
+        Args:
+            interval: Number of semitones to subtract (positive = down).
+
+        Returns:
+            A new ``Tone`` instance.
+        """
         return self.add((-1 * interval))
 
     _INTERVAL_NAMES = {
@@ -306,7 +384,7 @@ class Tone:
         12: "octave",
     }
 
-    def interval_to(self, other):
+    def interval_to(self, other: Tone) -> str:
         """Name the interval between this tone and another.
 
         Returns a string like ``"perfect 5th"``, ``"major 3rd"``, or
@@ -335,7 +413,7 @@ class Tone:
         return f"{name} + {octaves} octaves"
 
     @property
-    def midi(self):
+    def midi(self) -> Optional[int]:
         """MIDI note number (C4 = 60, A4 = 69).
 
         The MIDI standard assigns integer note numbers from 0–127.
@@ -350,7 +428,7 @@ class Tone:
         semitones_from_c0 = ((self._index - c_index) % 12) + (self.octave * 12)
         return semitones_from_c0 + 12  # MIDI C0 = 12 (C-1 = 0)
 
-    def transpose(self, semitones):
+    def transpose(self, semitones: int) -> Tone:
         """Return a new Tone transposed by the given number of semitones.
 
         Alias for ``tone + semitones`` / ``tone - semitones``. Positive
@@ -358,7 +436,7 @@ class Tone:
         """
         return self.add(semitones)
 
-    def circle_of_fifths(self):
+    def circle_of_fifths(self) -> list[Tone]:
         """The 12 tones of the circle of fifths starting from this tone.
 
         Each step ascends by a perfect fifth (7 semitones). After 12
@@ -372,14 +450,14 @@ class Tone:
         Returns:
             A list of 12 Tones.
         """
-        tones = []
+        tones: list[Tone] = []
         t = self
         for _ in range(12):
             tones.append(t)
             t = t.add(7)
         return tones
 
-    def circle_of_fourths(self):
+    def circle_of_fourths(self) -> list[Tone]:
         """The 12 tones of the circle of fourths starting from this tone.
 
         Each step ascends by a perfect fourth (5 semitones) — the
@@ -390,7 +468,7 @@ class Tone:
         Returns:
             A list of 12 Tones.
         """
-        tones = []
+        tones: list[Tone] = []
         t = self
         for _ in range(12):
             tones.append(t)
@@ -398,11 +476,16 @@ class Tone:
         return tones
 
     @property
-    def frequency(self):
-        """The frequency of this tone in Hz (equal temperament, A4=440)."""
-        return self.pitch()
+    def frequency(self) -> float:
+        """The frequency of this tone in Hz (equal temperament, A4=440).
 
-    def overtones(self, n=8):
+        The result is cached after the first computation.
+        """
+        if self._frequency is None:
+            self._frequency = self.pitch()
+        return self._frequency
+
+    def overtones(self, n: int = 8) -> list[float]:
         """The first *n* overtones (harmonic series) of this tone.
 
         The harmonic series is the foundation of timbre and consonance.
@@ -439,11 +522,11 @@ class Tone:
     def pitch(
         self,
         *,
-        reference_pitch=REFERENCE_A,
-        temperament="equal",
-        symbolic=False,
-        precision=None,
-    ):
+        reference_pitch: float = REFERENCE_A,
+        temperament: str = "equal",
+        symbolic: bool = False,
+        precision: Optional[int] = None,
+    ) -> float:
         try:
             tones = len(self.system.tones)
         except AttributeError:

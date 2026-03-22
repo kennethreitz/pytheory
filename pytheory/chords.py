@@ -1,9 +1,20 @@
+from __future__ import annotations
+
+from typing import Iterator, Optional, Union
+
+
 class Chord:
-    def __init__(self, tones):
+    def __init__(self, tones: list[Tone]) -> None:
+        """Initialize a Chord from a list of Tone objects.
+
+        Args:
+            tones: A list of :class:`Tone` instances that make up the chord.
+        """
         self.tones = tones
+        self._identify_cache: Optional[str] = None
 
     @classmethod
-    def from_tones(cls, *note_names, octave=4):
+    def from_tones(cls, *note_names: str, octave: int = 4) -> Chord:
         """Create a Chord from note name strings.
 
         Example::
@@ -20,7 +31,7 @@ class Chord:
         ])
 
     @classmethod
-    def from_name(cls, name, octave=4):
+    def from_name(cls, name: str, octave: int = 4) -> Chord:
         """Create a Chord from a chord name like ``"Cmaj7"`` or ``"Am"``.
 
         Uses the built-in chord chart to find the correct tones,
@@ -49,31 +60,34 @@ class Chord:
                 f"{t.name}{octave}", system="western"))
         return cls(tones=tones)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         name = self.identify()
         if name:
             return f"<Chord {name}>"
         l = tuple([tone.full_name for tone in self.tones])
         return f"<Chord tones={l!r}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         name = self.identify()
         if name:
             return name
         return " ".join(t.full_name for t in self.tones)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tone]:
+        """Iterate over the tones in this chord."""
         return iter(self.tones)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of tones in this chord."""
         return len(self.tones)
 
-    def __contains__(self, item):
+    def __contains__(self, item: Union[str, Tone]) -> bool:
+        """Check if a tone (by name or Tone object) is in this chord."""
         if isinstance(item, str):
             return any(item == t.name for t in self.tones)
         return item in self.tones
 
-    def __add__(self, other):
+    def __add__(self, other: Chord) -> Chord:
         """Merge two chords into one (layer their tones).
 
         Example::
@@ -86,7 +100,7 @@ class Chord:
             return Chord(tones=list(self.tones) + list(other.tones))
         return NotImplemented
 
-    def tritone_sub(self):
+    def tritone_sub(self) -> Chord:
         """Return the tritone substitution of this chord.
 
         In jazz harmony, any dominant chord can be replaced by the
@@ -98,7 +112,7 @@ class Chord:
         """
         return self.transpose(6)
 
-    def inversion(self, n=1):
+    def inversion(self, n: int = 1) -> Chord:
         """Return the nth inversion of this chord.
 
         An inversion moves the lowest tone(s) up by one octave:
@@ -121,9 +135,11 @@ class Chord:
                 break
             tone = tones.pop(0)
             tones.append(tone.add(12))
-        return Chord(tones=tones)
+        result = Chord(tones=tones)
+        result._identify_cache = None
+        return result
 
-    def transpose(self, semitones):
+    def transpose(self, semitones: int) -> Chord:
         """Return a new Chord transposed by the given number of semitones.
 
         Every tone in the chord is shifted up (positive) or down
@@ -136,10 +152,12 @@ class Chord:
             >>> c_major.transpose(7).identify()
             'G major'
         """
-        return Chord(tones=[t.add(semitones) for t in self.tones])
+        result = Chord(tones=[t.add(semitones) for t in self.tones])
+        result._identify_cache = None
+        return result
 
     @property
-    def root(self):
+    def root(self) -> Optional[Tone]:
         """The root of this chord (if identifiable).
 
         Returns the Tone that serves as the root based on chord
@@ -155,7 +173,7 @@ class Chord:
         return None
 
     @property
-    def quality(self):
+    def quality(self) -> Optional[str]:
         """The quality of this chord (e.g. 'major', 'minor 7th').
 
         Returns the quality string from chord identification, or
@@ -168,7 +186,7 @@ class Chord:
         return parts[1] if len(parts) > 1 else None
 
     @property
-    def intervals(self):
+    def intervals(self) -> list[int]:
         """Semitone distances between adjacent tones in the chord.
 
         Returns a list of integers, where each value is the absolute
@@ -201,7 +219,7 @@ class Chord:
                 for i in range(1, len(self.tones))]
 
     @property
-    def harmony(self):
+    def harmony(self) -> float:
         """Consonance score based on frequency ratio simplicity.
 
         Computed by examining the frequency ratio between every pair of
@@ -243,7 +261,7 @@ class Chord:
         return score
 
     @property
-    def dissonance(self):
+    def dissonance(self) -> float:
         """Sensory dissonance score using the Plomp-Levelt roughness model.
 
         When two tones are close in frequency, their waveforms interfere
@@ -296,7 +314,7 @@ class Chord:
         return roughness
 
     @property
-    def beat_frequencies(self):
+    def beat_frequencies(self) -> list[tuple[Tone, Tone, float]]:
         """Beat frequencies (Hz) between all pairs of tones in the chord.
 
         When two tones with frequencies f1 and f2 are played together,
@@ -337,7 +355,7 @@ class Chord:
         return sorted(beats, key=lambda b: b[2])
 
     @property
-    def beat_pulse(self):
+    def beat_pulse(self) -> float:
         """The slowest (most perceptible) beat frequency in the chord, in Hz.
 
         This is the beat frequency between the two tones closest in
@@ -379,7 +397,7 @@ class Chord:
         "minor 9th": {0, 2, 3, 7, 10},
     }
 
-    def identify(self):
+    def identify(self) -> Optional[str]:
         """Identify this chord by name (root + quality).
 
         Tries each tone as a potential root and checks if the remaining
@@ -400,6 +418,9 @@ class Chord:
             >>> Chord([A4, C5, E5]).identify()
             'A minor'
         """
+        if self._identify_cache is not None:
+            return self._identify_cache
+
         if len(self.tones) < 2:
             return None
 
@@ -413,10 +434,11 @@ class Chord:
 
             for name, pattern in self._CHORD_PATTERNS.items():
                 if pitch_classes == pattern:
-                    return f"{root.name} {name}"
+                    self._identify_cache = f"{root.name} {name}"
+                    return self._identify_cache
         return None
 
-    def voice_leading(self, other):
+    def voice_leading(self, other: Chord) -> list[tuple[Tone, Tone, int]]:
         """Find the smoothest voice leading to another chord.
 
         Voice leading is the art of moving individual voices (tones)
@@ -471,7 +493,7 @@ class Chord:
             result.append((src[i], dst[j], movement))
         return sorted(result, key=lambda v: v[0].pitch(), reverse=True)
 
-    def analyze(self, key_tonic, mode="major"):
+    def analyze(self, key_tonic: Union[str, Tone], mode: str = "major") -> Optional[str]:
         """Roman numeral analysis of this chord relative to a key.
 
         In tonal music, every chord has a **function** determined by
@@ -541,7 +563,7 @@ class Chord:
         return numeral_str + suffix
 
     @property
-    def tension(self):
+    def tension(self) -> dict:
         """Harmonic tension score and resolution suggestions.
 
         Tension in tonal music arises from specific intervallic
@@ -603,7 +625,22 @@ class Chord:
             "has_dominant_function": has_dominant,
         }
 
-    def fingering(self, *positions):
+    def fingering(self, *positions: int) -> Chord:
+        """Apply fret positions to each tone, returning a new Chord.
+
+        Each position value is added (in semitones) to the corresponding
+        tone. The number of positions must match the number of tones.
+
+        Args:
+            *positions: One integer per tone indicating the fret offset.
+
+        Returns:
+            A new :class:`Chord` with each tone shifted by its position.
+
+        Raises:
+            ValueError: If the number of positions doesn't match the
+                number of tones.
+        """
         if not len(positions) == len(self.tones):
             raise ValueError(
                 "The number of positions must match the number of tones (strings)."
@@ -617,14 +654,20 @@ class Chord:
 
 
 class Fretboard:
-    def __init__(self, *, tones):
+    def __init__(self, *, tones: list[Tone]) -> None:
+        """Initialize a Fretboard from a list of open-string Tone objects.
+
+        Args:
+            tones: A list of :class:`Tone` instances representing the
+                open strings (high to low).
+        """
         self.tones = tones
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         l = tuple([tone.full_name for tone in self.tones])
         return f"<Fretboard tones={l!r}>"
 
-    def capo(self, fret):
+    def capo(self, fret: int) -> Fretboard:
         """Return a new Fretboard with a capo at the given fret.
 
         A `capo <https://en.wikipedia.org/wiki/Capo>`_ clamps across
@@ -652,10 +695,12 @@ class Fretboard:
         """
         return Fretboard(tones=[t.add(fret) for t in self.tones])
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tone]:
+        """Iterate over the open-string tones of this fretboard."""
         return iter(self.tones)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of strings on this fretboard."""
         return len(self.tones)
 
     INSTRUMENTS = [
@@ -680,7 +725,7 @@ class Fretboard:
     }
 
     @classmethod
-    def guitar(cls, tuning="standard", capo=0):
+    def guitar(cls, tuning: Union[str, tuple[str, ...]] = "standard", capo: int = 0) -> Fretboard:
         """Guitar with the given tuning and optional capo.
 
         Args:
@@ -699,7 +744,7 @@ class Fretboard:
         return fb
 
     @classmethod
-    def bass(cls, five_string=False):
+    def bass(cls, five_string: bool = False) -> Fretboard:
         """Standard bass guitar tuning.
 
         Args:
@@ -712,7 +757,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
     @classmethod
-    def ukulele(cls):
+    def ukulele(cls) -> Fretboard:
         """Standard ukulele tuning (A4 E4 C4 G4).
 
         Re-entrant tuning: the G4 string is higher than C4.
@@ -726,7 +771,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def mandolin(cls):
+    def mandolin(cls) -> Fretboard:
         """Standard mandolin tuning (E5 A4 D4 G3).
 
         Tuned in fifths, same as a violin but one octave relationship.
@@ -741,7 +786,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def mandola(cls):
+    def mandola(cls) -> Fretboard:
         """Standard mandola tuning (A4 D4 G3 C3).
 
         The mandola (or tenor mandola) is to the mandolin what the
@@ -757,7 +802,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def octave_mandolin(cls):
+    def octave_mandolin(cls) -> Fretboard:
         """Octave mandolin tuning (E4 A3 D3 G2).
 
         Also called the octave mandola in European terminology.
@@ -774,7 +819,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def mandocello(cls):
+    def mandocello(cls) -> Fretboard:
         """Mandocello tuning (A3 D3 G2 C2).
 
         The bass of the mandolin family. Tuned like a cello — an
@@ -790,7 +835,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def violin(cls):
+    def violin(cls) -> Fretboard:
         """Standard violin tuning (E5 A4 D4 G3).
 
         Tuned in perfect fifths. The violin has no frets — intonation
@@ -806,7 +851,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def viola(cls):
+    def viola(cls) -> Fretboard:
         """Standard viola tuning (A4 D4 G3 C3).
 
         A perfect fifth below the violin. The viola's darker, warmer
@@ -821,7 +866,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def cello(cls):
+    def cello(cls) -> Fretboard:
         """Standard cello tuning (A3 D3 G2 C2).
 
         An octave below the viola. Tuned in fifths. The cello spans
@@ -836,7 +881,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def banjo(cls, tuning="open g"):
+    def banjo(cls, tuning: Union[str, tuple[str, ...]] = "open g") -> Fretboard:
         """Banjo with the given tuning.
 
         Args:
@@ -858,7 +903,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(t, system="western") for t in tuning])
 
     @classmethod
-    def double_bass(cls):
+    def double_bass(cls) -> Fretboard:
         """Standard double bass (upright bass) tuning (G2 D2 A1 E1).
 
         The largest and lowest-pitched bowed string instrument in the
@@ -877,7 +922,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def harp(cls):
+    def harp(cls) -> Fretboard:
         """Concert harp strings — 47 strings spanning C1 to G7.
 
         The pedal harp has 7 strings per octave (one per note name),
@@ -905,7 +950,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(s, system="western") for s in strings])
 
     @classmethod
-    def pedal_steel(cls):
+    def pedal_steel(cls) -> Fretboard:
         """Pedal steel guitar — E9 Nashville tuning (10 strings).
 
         The standard tuning for country music. The pedal steel has
@@ -919,7 +964,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(s, system="western") for s in strings])
 
     @classmethod
-    def bouzouki(cls, variant="irish"):
+    def bouzouki(cls, variant: Union[str, tuple[str, ...]] = "irish") -> Fretboard:
         """Bouzouki tuning.
 
         Args:
@@ -939,7 +984,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(t, system="western") for t in variant])
 
     @classmethod
-    def oud(cls):
+    def oud(cls) -> Fretboard:
         """Standard Arabic oud tuning (C4 G3 D3 A2 G2 C2).
 
         The oud is the ancestor of the European lute and the defining
@@ -953,7 +998,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
     @classmethod
-    def sitar(cls):
+    def sitar(cls) -> Fretboard:
         """Sitar main playing strings (approximation).
 
         The sitar typically has 6-7 main strings and 11-13 sympathetic
@@ -970,7 +1015,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
     @classmethod
-    def shamisen(cls):
+    def shamisen(cls) -> Fretboard:
         """Standard shamisen tuning — honchoshi (C4 G3 C3).
 
         The shamisen is a 3-stringed Japanese instrument played with
@@ -988,7 +1033,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def erhu(cls):
+    def erhu(cls) -> Fretboard:
         """Standard erhu tuning (A4 D4).
 
         The erhu is a 2-stringed Chinese bowed instrument with a
@@ -1003,7 +1048,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def charango(cls):
+    def charango(cls) -> Fretboard:
         """Standard charango tuning (E5 A4 E5 C5 G4).
 
         A small Andean stringed instrument, traditionally made from
@@ -1021,7 +1066,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def pipa(cls):
+    def pipa(cls) -> Fretboard:
         """Standard pipa tuning (D4 A3 E3 A2).
 
         The pipa is a 4-stringed Chinese lute with a pear-shaped
@@ -1037,7 +1082,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def balalaika(cls):
+    def balalaika(cls) -> Fretboard:
         """Standard balalaika prima tuning (A4 E4 E4).
 
         The Russian balalaika has a distinctive triangular body and
@@ -1052,7 +1097,7 @@ class Fretboard:
         ])
 
     @classmethod
-    def keyboard(cls, keys=88, start="A0"):
+    def keyboard(cls, keys: int = 88, start: str = "A0") -> Fretboard:
         """Piano or keyboard with the given number of keys.
 
         Args:
@@ -1078,7 +1123,7 @@ class Fretboard:
         return cls(tones=tones)
 
     @classmethod
-    def lute(cls):
+    def lute(cls) -> Fretboard:
         """Renaissance lute in G tuning (6 courses).
 
         The European lute was the dominant instrument of the
@@ -1091,7 +1136,7 @@ class Fretboard:
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
     @classmethod
-    def twelve_string(cls):
+    def twelve_string(cls) -> Fretboard:
         """12-string guitar in standard tuning.
 
         The lower 4 courses are doubled at the octave; the upper 2
@@ -1111,7 +1156,23 @@ class Fretboard:
         ]
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
-    def fingering(self, *positions):
+    def fingering(self, *positions: int) -> Chord:
+        """Apply fret positions to each string, returning a Chord.
+
+        Each position value is added (in semitones) to the corresponding
+        open-string tone. The number of positions must match the number
+        of strings.
+
+        Args:
+            *positions: One integer per string indicating the fret number.
+
+        Returns:
+            A :class:`Chord` with each tone shifted by its fret position.
+
+        Raises:
+            ValueError: If the number of positions doesn't match the
+                number of strings.
+        """
         if not len(positions) == len(self.tones):
             raise ValueError(
                 "The number of positions must match the number of tones (strings)."
