@@ -241,6 +241,9 @@ pattern of strong and weak beats that organizes rhythm.
 - `3/4 time <https://en.wikipedia.org/wiki/Triple_metre>`_: waltz time. Strong-weak-weak. A lilting, circular feel.
 - `6/8 time <https://en.wikipedia.org/wiki/Compound_meter_(music)>`_: compound duple. Two groups of three. Irish jigs, many
   ballads.
+- `12/8 time <https://en.wikipedia.org/wiki/Compound_meter_(music)>`_: compound quadruple. Four groups of three. Slow blues,
+  doo-wop, gospel. Has a triplet feel over a 4/4 pulse — the shuffle
+  groove of "Stormy Monday" and "Oh! Darling."
 - 5/4 time: asymmetric. "`Take Five <https://en.wikipedia.org/wiki/Take_Five>`_"
   by Dave Brubeck. Creates constant forward momentum because it never
   fully settles.
