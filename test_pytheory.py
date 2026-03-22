@@ -2622,7 +2622,7 @@ def test_tension_empty():
 
 def test_version():
     import pytheory
-    assert pytheory.__version__ == "0.3.1"
+    assert pytheory.__version__ == "0.3.2"
 
 
 def test_all_exports():
