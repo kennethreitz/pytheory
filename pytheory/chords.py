@@ -6,6 +6,17 @@ class Chord:
         l = tuple([tone.full_name for tone in self.tones])
         return f"<Chord tones={l!r}>"
 
+    def __iter__(self):
+        return iter(self.tones)
+
+    def __len__(self):
+        return len(self.tones)
+
+    def __contains__(self, item):
+        if isinstance(item, str):
+            return any(item == t.name for t in self.tones)
+        return item in self.tones
+
     @property
     def harmony(self):
         if len(self.tones) < 2:
@@ -86,6 +97,47 @@ class Fretboard:
     def __repr__(self):
         l = tuple([tone.full_name for tone in self.tones])
         return f"<Fretboard tones={l!r}>"
+
+    def __iter__(self):
+        return iter(self.tones)
+
+    def __len__(self):
+        return len(self.tones)
+
+    @classmethod
+    def guitar(cls):
+        """Standard guitar tuning (E4 B3 G3 D3 A2 E2)."""
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("E4", system="western"),
+            Tone.from_string("B3", system="western"),
+            Tone.from_string("G3", system="western"),
+            Tone.from_string("D3", system="western"),
+            Tone.from_string("A2", system="western"),
+            Tone.from_string("E2", system="western"),
+        ])
+
+    @classmethod
+    def bass(cls):
+        """Standard bass guitar tuning (G2 D2 A1 E1)."""
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("G2", system="western"),
+            Tone.from_string("D2", system="western"),
+            Tone.from_string("A1", system="western"),
+            Tone.from_string("E1", system="western"),
+        ])
+
+    @classmethod
+    def ukulele(cls):
+        """Standard ukulele tuning (A4 E4 C4 G4)."""
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("E4", system="western"),
+            Tone.from_string("C4", system="western"),
+            Tone.from_string("G4", system="western"),
+        ])
 
     def fingering(self, *positions):
         if not len(positions) == len(self.tones):

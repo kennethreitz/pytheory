@@ -37,6 +37,51 @@ class Scale:
         r = " ".join(r)
         return f"<Scale {r}>"
 
+    def __iter__(self):
+        return iter(self.tones)
+
+    def __len__(self):
+        return len(self.tones)
+
+    def __contains__(self, item):
+        if isinstance(item, str):
+            return any(item == t.name for t in self.tones)
+        return item in self.tones
+
+    @property
+    def note_names(self):
+        """List of note names in this scale."""
+        return [t.name for t in self.tones]
+
+    def chord(self, *degrees):
+        """Build a Chord from scale degrees (0-indexed).
+
+        Wraps around if degrees exceed the scale length, transposing
+        up by an octave as needed.
+
+        Example: scale.chord(0, 2, 4) builds a triad from the 1st, 3rd, 5th.
+        """
+        from .chords import Chord
+        # Scale has N tones where the last is the octave of the first,
+        # so the unique tones are tones[:-1] (length N-1).
+        unique = len(self.tones) - 1
+        result = []
+        for d in degrees:
+            idx = d % unique
+            octaves_up = d // unique
+            tone = self.tones[idx]
+            if octaves_up > 0:
+                tone = tone.add(12 * octaves_up)
+            result.append(tone)
+        return Chord(tones=result)
+
+    def triad(self, root=0):
+        """Build a triad starting from the given scale degree (0-indexed).
+
+        Returns a chord with the root, 3rd, and 5th above it.
+        """
+        return self.chord(root, root + 2, root + 4)
+
     def degree(self, item, major=None, minor=False):
         # TODO: cleanup degrees.
 

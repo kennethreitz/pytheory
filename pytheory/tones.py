@@ -57,6 +57,48 @@ class Tone:
     def __repr__(self):
         return f"<Tone {self.full_name}>"
 
+    def __str__(self):
+        return self.full_name
+
+    def __add__(self, interval):
+        return self.add(interval)
+
+    def __sub__(self, other):
+        # Tone - int: subtract semitones
+        if isinstance(other, int):
+            return self.subtract(other)
+        # Tone - Tone: semitone distance
+        if isinstance(other, Tone):
+            c_index = 3
+            try:
+                mod = len(self.system.tones)
+            except AttributeError:
+                raise ValueError("Tone math can only be computed with an associated system!")
+            self_from_c0 = ((self._index - c_index) % mod) + ((self.octave or 0) * mod)
+            other_from_c0 = ((other._index - c_index) % mod) + ((other.octave or 0) * mod)
+            return self_from_c0 - other_from_c0
+        return NotImplemented
+
+    def __lt__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() < other.pitch()
+
+    def __le__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() <= other.pitch()
+
+    def __gt__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() > other.pitch()
+
+    def __ge__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() >= other.pitch()
+
     def __eq__(self, other):
 
         # Comparing string literals.
@@ -146,6 +188,11 @@ class Tone:
 
     def subtract(self, interval):
         return self.add((-1 * interval))
+
+    @property
+    def frequency(self):
+        """The frequency of this tone in Hz (equal temperament, A4=440)."""
+        return self.pitch()
 
     def pitch(
         self,

@@ -1415,3 +1415,340 @@ def test_relative_minor():
     c_names = sorted(set(t.name for t in c_major.tones))
     a_names = sorted(set(t.name for t in a_minor.tones))
     assert c_names == a_names
+
+
+# ── Tone operators ──────────────────────────────────────────────────────────
+
+def test_tone_add_operator():
+    t = Tone.from_string("C4", system="western")
+    result = t + 7
+    assert result.name == "G"
+    assert result.octave == 4
+
+
+def test_tone_sub_int_operator():
+    t = Tone.from_string("G4", system="western")
+    result = t - 7
+    assert result.name == "C"
+    assert result.octave == 4
+
+
+def test_tone_sub_tone_operator():
+    """Subtracting two tones gives semitone distance."""
+    c4 = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert g4 - c4 == 7
+
+
+def test_tone_sub_tone_negative():
+    c4 = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert c4 - g4 == -7
+
+
+def test_tone_sub_tone_octave():
+    c4 = Tone.from_string("C4", system="western")
+    c5 = Tone.from_string("C5", system="western")
+    assert c5 - c4 == 12
+
+
+def test_tone_lt():
+    c4 = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert c4 < g4
+    assert not g4 < c4
+
+
+def test_tone_gt():
+    c4 = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert g4 > c4
+    assert not c4 > g4
+
+
+def test_tone_le():
+    c4 = Tone.from_string("C4", system="western")
+    c4b = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert c4 <= g4
+    assert c4 <= c4b
+
+
+def test_tone_ge():
+    c4 = Tone.from_string("C4", system="western")
+    c4b = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert g4 >= c4
+    assert c4 >= c4b
+
+
+def test_tone_sorting():
+    """Tones should be sortable by pitch."""
+    tones = [
+        Tone.from_string("G4", system="western"),
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("A3", system="western"),
+    ]
+    sorted_tones = sorted(tones)
+    names = [t.name for t in sorted_tones]
+    assert names == ["A", "C", "E", "G"]
+
+
+def test_tone_str():
+    c4 = Tone(name="C", octave=4)
+    assert str(c4) == "C4"
+    d = Tone(name="D")
+    assert str(d) == "D"
+
+
+def test_tone_frequency_property():
+    t = Tone.from_string("A4", system="western")
+    assert abs(t.frequency - 440.0) < 0.01
+
+
+def test_tone_frequency_c4():
+    t = Tone.from_string("C4", system="western")
+    assert abs(t.frequency - 261.63) < 0.01
+
+
+def test_tone_chaining():
+    """Operators should be chainable."""
+    t = Tone.from_string("C4", system="western")
+    result = t + 4 + 3  # C -> E -> G
+    assert result.name == "G"
+    assert result.octave == 4
+
+
+# ── Scale iteration ─────────────────────────────────────────────────────────
+
+def test_scale_iter():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    names = [t.name for t in major]
+    assert names == ["C", "D", "E", "F", "G", "A", "B", "C"]
+
+
+def test_scale_len():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    assert len(major) == 8  # 7 notes + octave
+
+
+def test_scale_contains_name():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    assert "C" in major
+    assert "E" in major
+    assert "C#" not in major
+
+
+def test_scale_contains_tone():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    c4 = Tone(name="C", octave=4)
+    assert c4 in major
+
+
+def test_scale_note_names():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    assert major.note_names == ["C", "D", "E", "F", "G", "A", "B", "C"]
+
+
+# ── Scale.chord() and Scale.triad() ─────────────────────────────────────────
+
+def test_scale_chord():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    chord = major.chord(0, 2, 4)  # C E G
+    assert len(chord) == 3
+    assert chord.tones[0].name == "C"
+    assert chord.tones[1].name == "E"
+    assert chord.tones[2].name == "G"
+
+
+def test_scale_triad_root():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    triad = major.triad(0)  # I chord = C E G
+    assert len(triad) == 3
+    names = [t.name for t in triad]
+    assert names == ["C", "E", "G"]
+
+
+def test_scale_triad_iv():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    triad = major.triad(3)  # IV chord = F A C
+    names = [t.name for t in triad]
+    assert names == ["F", "A", "C"]
+
+
+def test_scale_triad_v():
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    triad = major.triad(4)  # V chord = G B D
+    names = [t.name for t in triad]
+    assert names == ["G", "B", "D"]
+
+
+def test_scale_triad_ii_minor():
+    """ii chord in C major should be D F A (minor triad)."""
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    triad = major.triad(1)
+    names = [t.name for t in triad]
+    assert names == ["D", "F", "A"]
+
+
+def test_scale_chord_seventh():
+    """Build a 7th chord from scale degrees."""
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+    seventh = major.chord(0, 2, 4, 6)  # C E G B = Cmaj7
+    assert len(seventh) == 4
+    names = [t.name for t in seventh]
+    assert names == ["C", "E", "G", "B"]
+
+
+# ── Chord iteration ─────────────────────────────────────────────────────────
+
+def test_chord_iter():
+    chord = Chord(tones=[
+        Tone(name="C", octave=4),
+        Tone(name="E", octave=4),
+        Tone(name="G", octave=4),
+    ])
+    names = [t.name for t in chord]
+    assert names == ["C", "E", "G"]
+
+
+def test_chord_len():
+    chord = Chord(tones=[
+        Tone(name="C", octave=4),
+        Tone(name="E", octave=4),
+    ])
+    assert len(chord) == 2
+
+
+def test_chord_contains_name():
+    chord = Chord(tones=[
+        Tone(name="C", octave=4),
+        Tone(name="E", octave=4),
+        Tone(name="G", octave=4),
+    ])
+    assert "C" in chord
+    assert "E" in chord
+    assert "D" not in chord
+
+
+def test_chord_contains_tone():
+    c4 = Tone(name="C", octave=4)
+    chord = Chord(tones=[c4, Tone(name="E", octave=4)])
+    assert c4 in chord
+
+
+# ── Fretboard presets ───────────────────────────────────────────────────────
+
+def test_fretboard_guitar():
+    fb = Fretboard.guitar()
+    assert len(fb) == 6
+    names = [t.name for t in fb]
+    assert names == ["E", "B", "G", "D", "A", "E"]
+
+
+def test_fretboard_guitar_octaves():
+    fb = Fretboard.guitar()
+    octaves = [t.octave for t in fb]
+    assert octaves == [4, 3, 3, 3, 2, 2]
+
+
+def test_fretboard_bass():
+    fb = Fretboard.bass()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["G", "D", "A", "E"]
+
+
+def test_fretboard_ukulele():
+    fb = Fretboard.ukulele()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["A", "E", "C", "G"]
+
+
+def test_fretboard_iter():
+    fb = Fretboard.guitar()
+    tones = list(fb)
+    assert len(tones) == 6
+    assert all(isinstance(t, Tone) for t in tones)
+
+
+def test_fretboard_len():
+    fb = Fretboard.guitar()
+    assert len(fb) == 6
+
+
+def test_fretboard_preset_fingerings():
+    """Preset fretboards should work with chord charts."""
+    fb = Fretboard.guitar()
+    c = CHARTS["western"]["C"]
+    fingering = c.fingering(fretboard=fb)
+    assert len(fingering) == 6
+
+
+def test_fretboard_ukulele_fingerings():
+    fb = Fretboard.ukulele()
+    c = CHARTS["western"]["C"]
+    fingering = c.fingering(fretboard=fb)
+    assert len(fingering) == 4
+
+
+# ── Ergonomic integration tests ─────────────────────────────────────────────
+
+def test_ergonomic_workflow():
+    """Demonstrate the improved API in a realistic workflow."""
+    # Build a scale
+    c = TonedScale(tonic="C4")
+    major = c["major"]
+
+    # Iterate and check
+    assert "C" in major
+    assert len(major) == 8
+
+    # Build chords from the scale
+    I = major.triad(0)   # C major
+    IV = major.triad(3)  # F major
+    V = major.triad(4)   # G major
+
+    assert "C" in I
+    assert "F" in IV
+    assert "G" in V
+
+    # Get fingerings
+    fb = Fretboard.guitar()
+    for name in ["C", "F", "G"]:
+        fingering = CHARTS["western"][name].fingering(fretboard=fb)
+        assert len(fingering) == len(fb)
+
+
+def test_tone_arithmetic_workflow():
+    """Demonstrate tone arithmetic with operators."""
+    c4 = Tone.from_string("C4", system="western")
+
+    # Build intervals
+    major_third = c4 + 4     # E4
+    perfect_fifth = c4 + 7   # G4
+    octave = c4 + 12         # C5
+
+    assert str(major_third) == "E4"
+    assert str(perfect_fifth) == "G4"
+    assert str(octave) == "C5"
+
+    # Measure intervals
+    assert perfect_fifth - c4 == 7
+    assert octave - c4 == 12
+
+    # Compare
+    assert c4 < major_third < perfect_fifth < octave
