@@ -6,3 +6,4 @@ t.py
 t2.py
 __pycache__
 pytheory.egg-info
+docs/_build
