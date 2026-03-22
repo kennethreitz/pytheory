@@ -73,6 +73,31 @@ class Chord:
             return any(item == t.name for t in self.tones)
         return item in self.tones
 
+    def __add__(self, other):
+        """Merge two chords into one (layer their tones).
+
+        Example::
+
+            >>> c_major = Chord.from_tones("C", "E", "G")
+            >>> g_bass = Chord.from_tones("G", octave=2)
+            >>> slash = c_major + g_bass  # C/G
+        """
+        if isinstance(other, Chord):
+            return Chord(tones=list(self.tones) + list(other.tones))
+        return NotImplemented
+
+    def tritone_sub(self):
+        """Return the tritone substitution of this chord.
+
+        In jazz harmony, any dominant chord can be replaced by the
+        dominant chord a tritone (6 semitones) away. G7 → Db7,
+        C7 → F#7. This works because the two chords share the same
+        tritone interval (the 3rd and 7th swap roles).
+
+        Returns a new Chord transposed by 6 semitones.
+        """
+        return self.transpose(6)
+
     def inversion(self, n=1):
         """Return the nth inversion of this chord.
 
@@ -599,6 +624,34 @@ class Fretboard:
         l = tuple([tone.full_name for tone in self.tones])
         return f"<Fretboard tones={l!r}>"
 
+    def capo(self, fret):
+        """Return a new Fretboard with a capo at the given fret.
+
+        A `capo <https://en.wikipedia.org/wiki/Capo>`_ clamps across
+        all strings at a fret, raising every string's pitch by that
+        many semitones. This lets you play open chord shapes in
+        higher keys.
+
+        Common uses:
+
+        - Capo 2 + G shapes = A major voicings
+        - Capo 4 + C shapes = E major voicings
+        - Capo 7 + D shapes = A major voicings (bright, high register)
+
+        Example::
+
+            >>> fb = Fretboard.guitar(capo=2)
+            >>> # Open strings are now F#4 C#4 A3 E3 B2 F#2
+            >>> # Playing a "G shape" sounds as A major
+
+        Args:
+            fret: The fret number to place the capo (1-12).
+
+        Returns:
+            A new Fretboard with all strings raised by ``fret`` semitones.
+        """
+        return Fretboard(tones=[t.add(fret) for t in self.tones])
+
     def __iter__(self):
         return iter(self.tones)
 
@@ -627,18 +680,23 @@ class Fretboard:
     }
 
     @classmethod
-    def guitar(cls, tuning="standard"):
-        """Guitar with the given tuning.
+    def guitar(cls, tuning="standard", capo=0):
+        """Guitar with the given tuning and optional capo.
 
         Args:
             tuning: Tuning name or tuple of tone strings (high to low).
                 Built-in tunings: standard, drop d, open g, open d,
                 open e, open a, dadgad, half step down.
+            capo: Fret number for the capo (0 = no capo). Raises all
+                strings by this many semitones.
         """
         from .tones import Tone
         if isinstance(tuning, str):
             tuning = cls.TUNINGS[tuning]
-        return cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+        fb = cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+        if capo:
+            fb = fb.capo(capo)
+        return fb
 
     @classmethod
     def bass(cls, five_string=False):

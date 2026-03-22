@@ -3248,3 +3248,97 @@ def test_nashville_on_scale():
     prog = scale.nashville(1, 5, 1)
     assert prog[0].identify() == "C major"
     assert prog[1].identify() == "G major"
+
+
+# ── Capo ───────────────────────────────────────────────────────────────────
+
+def test_guitar_capo():
+    fb = Fretboard.guitar(capo=2)
+    assert fb.tones[0].name == "F#"
+    assert len(fb) == 6
+
+
+def test_capo_method():
+    fb = Fretboard.guitar()
+    fb3 = fb.capo(3)
+    assert fb3.tones[0].name == "G"
+
+
+def test_capo_zero():
+    fb = Fretboard.guitar(capo=0)
+    assert fb.tones[0].name == "E"
+
+
+# ── Chord.__add__ ─────────────────────────────────────────────────────────
+
+def test_chord_add():
+    c = Chord.from_tones("C", "E", "G")
+    bass = Chord.from_tones("G", octave=2)
+    merged = c + bass
+    assert len(merged) == 4
+
+
+def test_chord_add_preserves_tones():
+    a = Chord.from_tones("C", "E")
+    b = Chord.from_tones("G", "B")
+    merged = a + b
+    names = [t.name for t in merged]
+    assert "C" in names and "G" in names
+
+
+# ── Tritone substitution ──────────────────────────────────────────────────
+
+def test_tritone_sub():
+    g7 = Chord.from_name("G7")
+    sub = g7.tritone_sub()
+    assert sub.identify() == "C# dominant 7th"
+
+
+def test_tritone_sub_is_6_semitones():
+    c = Chord.from_tones("C", "E", "G")
+    sub = c.tritone_sub()
+    assert sub.root.name == "F#"
+
+
+# ── Secondary dominants ──────────────────────────────────────────────────
+
+def test_secondary_dominant_V_of_V():
+    k = Key("C", "major")
+    vv = k.secondary_dominant(5)
+    assert vv.identify() == "D dominant 7th"
+
+
+def test_secondary_dominant_V_of_ii():
+    k = Key("C", "major")
+    assert k.secondary_dominant(2).identify() == "A dominant 7th"
+
+
+def test_secondary_dominant_V_of_vi():
+    k = Key("C", "major")
+    assert k.secondary_dominant(6).identify() == "E dominant 7th"
+
+
+# ── Key.all_keys ─────────────────────────────────────────────────────────
+
+def test_all_keys():
+    keys = Key.all_keys()
+    assert len(keys) == 24
+    majors = [k for k in keys if k.mode == "major"]
+    minors = [k for k in keys if k.mode == "minor"]
+    assert len(majors) == 12
+    assert len(minors) == 12
+
+
+# ── More progressions ───────────────────────────────────────────────────
+
+def test_progressions_count():
+    from pytheory.scales import PROGRESSIONS
+    assert len(PROGRESSIONS) >= 14
+
+
+def test_pachelbel_progression():
+    from pytheory.scales import PROGRESSIONS
+    k = Key("C", "major")
+    prog = k.progression(*PROGRESSIONS["Pachelbel"])
+    assert len(prog) == 8
+    assert prog[0].identify() == "C major"

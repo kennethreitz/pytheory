@@ -255,14 +255,26 @@ class Scale:
 
 
 PROGRESSIONS = {
+    # Rock / Pop / Folk
     "I-IV-V-I": ("I", "IV", "V", "I"),
     "I-V-vi-IV": ("I", "V", "vi", "IV"),
-    "ii-V-I": ("ii", "V7", "I"),
     "I-vi-IV-V": ("I", "vi", "IV", "V"),
-    "12-bar blues": ("I", "I", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"),
-    "i-bVI-bIII-bVII": ("i", "VI", "III", "VII"),
-    "vi-IV-I-V": ("vi", "IV", "I", "V"),
     "I-IV-vi-V": ("I", "IV", "vi", "V"),
+    "vi-IV-I-V": ("vi", "IV", "I", "V"),
+    # Blues
+    "12-bar blues": ("I", "I", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"),
+    # Jazz
+    "ii-V-I": ("ii", "V7", "I"),
+    "I-vi-ii-V": ("I", "vi", "ii", "V"),  # rhythm changes A section
+    "iii-vi-ii-V": ("iii", "vi", "ii", "V"),  # jazz turnaround
+    # Classical / Film
+    "i-bVI-bIII-bVII": ("i", "VI", "III", "VII"),
+    "Pachelbel": ("I", "V", "vi", "iii", "IV", "I", "IV", "V"),
+    # Flamenco / Spanish
+    "Andalusian": ("i", "VII", "VI", "V"),
+    # Modal
+    "Dorian vamp": ("i", "IV"),
+    "Mixolydian vamp": ("I", "VII"),
 }
 """Common chord progressions as Roman numeral tuples.
 
@@ -395,6 +407,58 @@ class Key:
             >>> Key("G", "major").nashville(1, 4, 5, 1)
         """
         return self._scale.nashville(*numbers)
+
+    def secondary_dominant(self, degree):
+        """Build a secondary dominant (V/x) for the given scale degree.
+
+        A secondary dominant is the dominant chord of a non-tonic
+        degree. For example, in C major, V/V is D major (the V chord
+        of G). Secondary dominants create momentary tonicizations
+        that add color and forward motion.
+
+        Common secondary dominants:
+
+        - V/V (e.g. D7 in C major) — approaches the dominant
+        - V/ii (e.g. A7 in C major) — approaches the supertonic
+        - V/vi (e.g. E7 in C major) — approaches the relative minor
+
+        Args:
+            degree: Scale degree to target (1-indexed). ``5`` means
+                "build the V of the 5th degree."
+
+        Returns:
+            A dominant 7th Chord that resolves to the given degree.
+
+        Example::
+
+            >>> Key("C", "major").secondary_dominant(5)  # V/V = D7
+            <Chord D dominant 7th>
+        """
+        target = self._scale.tones[degree - 1]
+        # Build a dominant 7th a perfect 5th above the target
+        from .chords import Chord
+        root = target.add(7)
+        return Chord(tones=[root, root.add(4), root.add(7), root.add(10)])
+
+    @classmethod
+    def all_keys(cls):
+        """Return all 24 major and minor keys.
+
+        Returns:
+            A list of Key objects for all 12 major and 12 minor keys.
+
+        Example::
+
+            >>> for k in Key.all_keys():
+            ...     print(k)
+        """
+        chromatic = ["C", "C#", "D", "D#", "E", "F",
+                     "F#", "G", "G#", "A", "A#", "B"]
+        keys = []
+        for tonic in chromatic:
+            keys.append(cls(tonic, "major"))
+            keys.append(cls(tonic, "minor"))
+        return keys
 
     @property
     def relative(self):
