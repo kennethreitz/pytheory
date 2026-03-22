@@ -184,6 +184,24 @@ class Scale:
         return result
 
 
+PROGRESSIONS = {
+    "I-IV-V-I": ("I", "IV", "V", "I"),
+    "I-V-vi-IV": ("I", "V", "vi", "IV"),
+    "ii-V-I": ("ii", "V7", "I"),
+    "I-vi-IV-V": ("I", "vi", "IV", "V"),
+    "12-bar blues": ("I", "I", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"),
+    "i-bVI-bIII-bVII": ("i", "VI", "III", "VII"),
+    "vi-IV-I-V": ("vi", "IV", "I", "V"),
+    "I-IV-vi-V": ("I", "IV", "vi", "V"),
+}
+"""Common chord progressions as Roman numeral tuples.
+
+Use with :meth:`Scale.progression` or :meth:`Key.progression`::
+
+    Key("C", "major").progression(*PROGRESSIONS["I-V-vi-IV"])
+"""
+
+
 class Key:
     """A musical key — a convenient entry point for scales and harmony.
 
@@ -211,6 +229,9 @@ class Key:
 
     def __repr__(self):
         return f"<Key {self.tonic_name} {self.mode}>"
+
+    def __str__(self):
+        return f"{self.tonic_name} {self.mode}"
 
     @property
     def scale(self):

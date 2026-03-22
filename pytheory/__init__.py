@@ -2,9 +2,9 @@
 
 __version__ = "0.3.0"
 
-from .tones import Tone
+from .tones import Tone, Interval
 from .systems import System, SYSTEMS
-from .scales import Scale, TonedScale, Key
+from .scales import Scale, TonedScale, Key, PROGRESSIONS
 from .chords import Chord, Fretboard
 from .charts import CHARTS, charts_for_fretboard
 
@@ -18,7 +18,8 @@ except OSError:
 Note = Tone
 
 __all__ = [
-    "Tone", "Note", "Scale", "TonedScale", "Key", "Chord", "Fretboard",
+    "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
+    "PROGRESSIONS", "Chord", "Fretboard",
     "System", "SYSTEMS", "CHARTS", "charts_for_fretboard",
     "play", "Synth",
 ]

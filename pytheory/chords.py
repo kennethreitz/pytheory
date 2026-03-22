@@ -2,9 +2,48 @@ class Chord:
     def __init__(self, tones):
         self.tones = tones
 
+    @classmethod
+    def from_name(cls, name, octave=4):
+        """Create a Chord from a chord name like ``"Cmaj7"`` or ``"Am"``.
+
+        Uses the built-in chord chart to find the correct tones,
+        then builds the chord at the given octave.
+
+        Example::
+
+            >>> Chord.from_name("C")
+            <Chord C major>
+            >>> Chord.from_name("Am7")
+            <Chord A minor 7th>
+            >>> Chord.from_name("G7", octave=3)
+            <Chord G dominant 7th>
+        """
+        from .charts import CHARTS
+        from .tones import Tone
+
+        chart = CHARTS.get("western", {})
+        if name not in chart:
+            raise ValueError(f"Unknown chord: {name!r}")
+
+        named = chart[name]
+        tones = []
+        for t in named.acceptable_tones:
+            tones.append(Tone.from_string(
+                f"{t.name}{octave}", system="western"))
+        return cls(tones=tones)
+
     def __repr__(self):
+        name = self.identify()
+        if name:
+            return f"<Chord {name}>"
         l = tuple([tone.full_name for tone in self.tones])
         return f"<Chord tones={l!r}>"
+
+    def __str__(self):
+        name = self.identify()
+        if name:
+            return name
+        return " ".join(t.full_name for t in self.tones)
 
     def __iter__(self):
         return iter(self.tones)

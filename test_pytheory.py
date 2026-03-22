@@ -3016,3 +3016,84 @@ def test_note_from_string():
     n = Note.from_string("C4", system="western")
     assert n.name == "C"
     assert n.frequency == Tone.from_string("C4", system="western").frequency
+
+
+# ── Chord.from_name ────────────────────────────────────────────────────────
+
+def test_chord_from_name_c():
+    c = Chord.from_name("C")
+    assert c.identify() == "C major"
+
+
+def test_chord_from_name_am7():
+    am7 = Chord.from_name("Am7")
+    assert am7.identify() == "A minor 7th"
+
+
+def test_chord_from_name_g7():
+    g7 = Chord.from_name("G7")
+    assert g7.identify() == "G dominant 7th"
+
+
+def test_chord_from_name_unknown_raises():
+    with pytest.raises(ValueError):
+        Chord.from_name("Xmaj13")
+
+
+def test_chord_str():
+    c = Chord.from_name("C")
+    assert str(c) == "C major"
+
+
+# ── Interval constants ─────────────────────────────────────────────────────
+
+def test_interval_constants():
+    from pytheory import Interval
+    assert Interval.PERFECT_FIFTH == 7
+    assert Interval.MAJOR_THIRD == 4
+    assert Interval.OCTAVE == 12
+    assert Interval.TRITONE == 6
+
+
+def test_interval_with_tone():
+    from pytheory import Interval
+    c4 = Tone.from_string("C4", system="western")
+    assert (c4 + Interval.PERFECT_FIFTH).name == "G"
+    assert (c4 + Interval.MAJOR_THIRD).name == "E"
+    assert (c4 + Interval.MINOR_THIRD).name == "D#"
+
+
+# ── Enharmonic ─────────────────────────────────────────────────────────────
+
+def test_enharmonic_sharp():
+    cs = Tone.from_string("C#4", system="western")
+    assert cs.enharmonic == "Db"
+
+
+def test_enharmonic_natural():
+    c = Tone.from_string("C4", system="western")
+    assert c.enharmonic is None
+
+
+# ── PROGRESSIONS ───────────────────────────────────────────────────────────
+
+def test_progressions_dict():
+    from pytheory import PROGRESSIONS
+    assert "I-V-vi-IV" in PROGRESSIONS
+    assert "12-bar blues" in PROGRESSIONS
+    assert len(PROGRESSIONS["12-bar blues"]) == 12
+
+
+def test_progressions_with_key():
+    from pytheory import PROGRESSIONS
+    k = Key("C", "major")
+    pop = k.progression(*PROGRESSIONS["I-V-vi-IV"])
+    assert len(pop) == 4
+    assert pop[0].identify() == "C major"
+
+
+# ── Key.__str__ ────────────────────────────────────────────────────────────
+
+def test_key_str():
+    assert str(Key("C", "major")) == "C major"
+    assert str(Key("A", "minor")) == "A minor"

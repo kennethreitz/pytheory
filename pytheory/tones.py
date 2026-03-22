@@ -1,6 +1,23 @@
 from ._statics import REFERENCE_A, TEMPERAMENTS
 
 
+class Interval:
+    """Named constants for common musical intervals (in semitones)."""
+    UNISON = 0
+    MINOR_SECOND = 1
+    MAJOR_SECOND = 2
+    MINOR_THIRD = 3
+    MAJOR_THIRD = 4
+    PERFECT_FOURTH = 5
+    TRITONE = 6
+    PERFECT_FIFTH = 7
+    MINOR_SIXTH = 8
+    MAJOR_SIXTH = 9
+    MINOR_SEVENTH = 10
+    MAJOR_SEVENTH = 11
+    OCTAVE = 12
+
+
 class Tone:
 
     def __init__(self, name, *, alt_names=None, octave=None, system="western"):
@@ -53,6 +70,29 @@ class Tone:
 
     def names(self):
         return [self.name] + self.alt_names
+
+    @property
+    def enharmonic(self):
+        """The enharmonic equivalent of this tone, or None if there isn't one.
+
+        Returns the alternate spelling: C# → Db, Db → C#, etc.
+        Natural notes (C, D, E, F, G, A, B) have no enharmonic.
+
+        Example::
+
+            >>> Tone.from_string("C#4").enharmonic
+            'Db'
+        """
+        if self.alt_names:
+            return self.alt_names[0] if isinstance(self.alt_names, (list, tuple)) else self.alt_names
+        # Check the system for alt names
+        try:
+            for tone in self.system.tones:
+                if tone.name == self.name and tone.alt_names:
+                    return tone.alt_names[0]
+        except (AttributeError, TypeError):
+            pass
+        return None
 
     def __repr__(self):
         return f"<Tone {self.full_name}>"
