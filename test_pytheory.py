@@ -1942,7 +1942,7 @@ def test_all_instruments_create():
         "violin", "viola", "cello", "double_bass",
         "banjo", "harp", "pedal_steel",
         "bouzouki", "oud", "sitar", "shamisen", "erhu",
-        "charango", "pipa", "balalaika", "lute",
+        "charango", "pipa", "balalaika", "lute", "keyboard",
     ]
     for name in instruments:
         fb = getattr(Fretboard, name)()
@@ -2000,6 +2000,23 @@ def test_fretboard_sitar():
 def test_fretboard_pipa():
     fb = Fretboard.pipa()
     assert len(fb) == 4
+
+
+def test_keyboard_88():
+    kb = Fretboard.keyboard()
+    assert len(kb) == 88
+
+
+def test_keyboard_25():
+    kb = Fretboard.keyboard(25, "C3")
+    assert len(kb) == 25
+    assert kb.tones[-1].name == "C"
+    assert kb.tones[-1].octave == 3
+
+
+def test_keyboard_custom():
+    kb = Fretboard.keyboard(61, "C2")
+    assert len(kb) == 61
 
 
 # ── Ergonomic integration tests ─────────────────────────────────────────────

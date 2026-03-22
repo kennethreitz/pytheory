@@ -928,6 +928,32 @@ class Fretboard:
         ])
 
     @classmethod
+    def keyboard(cls, keys=88, start="A0"):
+        """Piano or keyboard with the given number of keys.
+
+        Args:
+            keys: Number of keys (default 88 for a full piano).
+                Common sizes: 25, 37, 49, 61, 76, 88.
+            start: The lowest note (default ``"A0"`` for standard piano).
+
+        A full 88-key piano spans A0 (27.5 Hz) to C8 (4186 Hz) —
+        the widest range of any standard acoustic instrument.
+        Smaller MIDI controllers typically start at C.
+
+        Examples::
+
+            Fretboard.keyboard()            # 88-key piano
+            Fretboard.keyboard(61, "C2")    # 61-key controller
+            Fretboard.keyboard(25, "C3")    # 25-key mini controller
+        """
+        from .tones import Tone
+        start_tone = Tone.from_string(start, system="western")
+        tones = []
+        for i in range(keys - 1, -1, -1):
+            tones.append(start_tone.add(i))
+        return cls(tones=tones)
+
+    @classmethod
     def lute(cls):
         """Renaissance lute in G tuning (6 courses).
 
