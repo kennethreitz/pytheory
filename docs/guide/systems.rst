@@ -28,7 +28,7 @@ Indian Classical (Hindustani)
 -----------------------------
 
 The Hindustani system uses **swaras** (Sa, Re, Ga, Ma, Pa, Dha, Ni) and
-organizes scales into **`thaats <https://en.wikipedia.org/wiki/Thaat>`_** — the 10 parent scales from which `ragas <https://en.wikipedia.org/wiki/Raga>`_
+organizes scales into `thaats <https://en.wikipedia.org/wiki/Thaat>`_ — the 10 parent scales from which `ragas <https://en.wikipedia.org/wiki/Raga>`_
 are derived.
 
 .. code-block:: python
@@ -124,7 +124,7 @@ and folk music worldwide. `Pentatonic scales <https://en.wikipedia.org/wiki/Pent
 known musical scales, found independently in cultures across every
 continent.
 
-The **`blues scale <https://en.wikipedia.org/wiki/Blues_scale>`_** adds the "`blue note <https://en.wikipedia.org/wiki/Blue_note>`_" (flat 5th / sharp 4th) to the
+The `blues scale <https://en.wikipedia.org/wiki/Blues_scale>`_ adds the "`blue note <https://en.wikipedia.org/wiki/Blue_note>`_" (flat 5th / sharp 4th) to the
 minor pentatonic — this chromatic passing tone is the defining sound
 of the blues.
 
@@ -163,8 +163,8 @@ gamelan orchestra in 12-tone equal temperament. True gamelan tuning is
 unique to each ensemble and does not conform to Western intonation —
 these are the closest 12-TET approximations.
 
-**`Slendro <https://en.wikipedia.org/wiki/Slendro>`_** is a roughly equal 5-tone division of the octave, producing
-an ethereal, floating quality. **`Pelog <https://en.wikipedia.org/wiki/Pelog>`_** is a 7-tone scale with unequal
+`Slendro <https://en.wikipedia.org/wiki/Slendro>`_ is a roughly equal 5-tone division of the octave, producing
+an ethereal, floating quality. `Pelog <https://en.wikipedia.org/wiki/Pelog>`_ is a 7-tone scale with unequal
 intervals, typically performed using 5-note subsets called *pathet*.
 
 .. code-block:: python

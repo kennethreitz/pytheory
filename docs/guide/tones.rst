@@ -16,7 +16,7 @@ The 12 chromatic tones are::
 
     C  C#/Db  D  D#/Eb  E  F  F#/Gb  G  G#/Ab  A  A#/Bb  B
 
-Notes with two names (like C# and Db) are **`enharmonic equivalents <https://en.wikipedia.org/wiki/Enharmonic>`_** —
+Notes with two names (like C# and Db) are `enharmonic equivalents <https://en.wikipedia.org/wiki/Enharmonic>`_ —
 different names for the same pitch. Whether you call it C# or Db depends
 on the musical context (key signature, harmonic function).
 
@@ -32,7 +32,7 @@ pitch notation**, where the octave number increments at C::
 
 Key reference points:
 
-- **`A4 = 440 Hz <https://en.wikipedia.org/wiki/A440_(pitch_standard)>`_** — the international tuning standard (ISO 16)
+- `A4 = 440 Hz <https://en.wikipedia.org/wiki/A440_(pitch_standard)>`_ — the international tuning standard (ISO 16)
 - **C4 = 261.63 Hz** — middle C on the piano
 - **A0 = 27.5 Hz** — the lowest A on a standard piano
 - **C8 = 4186 Hz** — the highest C on a standard piano
@@ -96,17 +96,17 @@ Temperament
 Different temperaments produce slightly different frequencies for the
 same note name:
 
-- **`Equal temperament <https://en.wikipedia.org/wiki/Equal_temperament>`_** (default): Every semitone has an identical
+- `Equal temperament <https://en.wikipedia.org/wiki/Equal_temperament>`_ (default): Every semitone has an identical
   frequency ratio of 2^(1/12). This is the modern standard — it allows
   free modulation between all keys but no interval is acoustically
   "pure" except the octave.
 
-- **`Pythagorean temperament <https://en.wikipedia.org/wiki/Pythagorean_tuning>`_**: Built entirely from pure perfect fifths
+- `Pythagorean temperament <https://en.wikipedia.org/wiki/Pythagorean_tuning>`_: Built entirely from pure perfect fifths
   (3:2 ratio). Produces beatless fifths but introduces the "Pythagorean
   comma" — a small discrepancy when 12 fifths don't quite equal 7
   octaves. Used in medieval European music.
 
-- **`Quarter-comma meantone <https://en.wikipedia.org/wiki/Quarter-comma_meantone>`_**: Tunes major thirds to the pure ratio of
+- `Quarter-comma meantone <https://en.wikipedia.org/wiki/Quarter-comma_meantone>`_: Tunes major thirds to the pure ratio of
   5:4, distributing the resulting error across the fifths. Dominant in
   Renaissance and Baroque music (15th–18th century). Sounds beautiful
   in closely related keys but "wolf intervals" make distant keys
@@ -204,7 +204,7 @@ The Overtone Series
 
 Every tone you hear is actually a composite of many frequencies. When
 a string vibrates, it doesn't just vibrate as a whole — it also vibrates
-in halves, thirds, quarters, and so on, producing the **`harmonic series <https://en.wikipedia.org/wiki/Harmonic_series_(music)>`_**:
+in halves, thirds, quarters, and so on, producing the `harmonic series <https://en.wikipedia.org/wiki/Harmonic_series_(music)>`_:
 
 .. code-block:: python
 
@@ -231,7 +231,7 @@ It's also why the major triad (root, major 3rd, perfect 5th) feels
 
 Different instruments emphasize different harmonics, which is why a
 violin and a flute playing the same note sound different. This quality
-is called **`timbre <https://en.wikipedia.org/wiki/Timbre>`_**.
+is called `timbre <https://en.wikipedia.org/wiki/Timbre>`_.
 
 Enharmonic Equivalents
 ----------------------
@@ -258,7 +258,7 @@ tones carry their enharmonic equivalents:
 The Circle of Fifths
 --------------------
 
-The **`circle of fifths <https://en.wikipedia.org/wiki/Circle_of_fifths>`_** is the most important diagram in Western music
+The `circle of fifths <https://en.wikipedia.org/wiki/Circle_of_fifths>`_ is the most important diagram in Western music
 theory. Starting from any note and ascending by perfect fifths (7
 semitones), you pass through all 12 chromatic tones before returning
 to the starting note:

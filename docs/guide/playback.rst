@@ -37,19 +37,19 @@ Playing a Chord
 Waveform Types
 --------------
 
-The waveform shape determines the **`timbre <https://en.wikipedia.org/wiki/Timbre>`_** (tonal color) of the sound.
+The waveform shape determines the `timbre <https://en.wikipedia.org/wiki/Timbre>`_ (tonal color) of the sound.
 Different waveforms contain different combinations of **harmonics** —
 integer multiples of the fundamental frequency.
 
-- **`Sine wave <https://en.wikipedia.org/wiki/Sine_wave>`_** — the purest tone. Contains only the fundamental
+- `Sine wave <https://en.wikipedia.org/wiki/Sine_wave>`_ — the purest tone. Contains only the fundamental
   frequency with no harmonics. Sounds smooth, clear, and "electronic."
   This is the building block of all other waveforms (`Fourier's theorem <https://en.wikipedia.org/wiki/Fourier_series>`_).
 
-- **`Sawtooth wave <https://en.wikipedia.org/wiki/Sawtooth_wave>`_** — contains all harmonics (both odd and even),
+- `Sawtooth wave <https://en.wikipedia.org/wiki/Sawtooth_wave>`_ — contains all harmonics (both odd and even),
   each at amplitude 1/n. Sounds bright, buzzy, and aggressive.
   Named for its shape. Used extensively in `additive synthesis <https://en.wikipedia.org/wiki/Additive_synthesis>`_ and analog synthesizers.
 
-- **`Triangle wave <https://en.wikipedia.org/wiki/Triangle_wave>`_** — contains only odd harmonics, each at amplitude
+- `Triangle wave <https://en.wikipedia.org/wiki/Triangle_wave>`_ — contains only odd harmonics, each at amplitude
   1/n². Sounds softer and more mellow than sawtooth — somewhere between
   sine and sawtooth. Often described as "woody" or "hollow."
 
