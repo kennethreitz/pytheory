@@ -12,5 +12,8 @@ dependencies = [
     "scipy",
 ]
 
+[dependency-groups]
+dev = ["pytest"]
+
 [tool.setuptools]
 packages = ["pytheory"]

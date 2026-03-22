@@ -55,21 +55,16 @@ class Scale:
 
             # If we're still a string, attempt to grab degree name.
             if isinstance(item, str):
-                # Default to major mode, because that's how people do it, I think.
-                if not minor and major is None:
-                    major = True
-
                 for i, _degree in enumerate(self.system.degrees):
-                    # "tonic / octave"
-                    comp = _degree[0]
-
-                    if major:
-                        comp = _degree[1][0]
-                    elif minor:
-                        comp = _degree[1][1]
-
-                    if item == comp:
+                    # Match degree name (e.g. "tonic", "dominant")
+                    if item == _degree[0]:
                         item = i
+                        break
+
+                    # Also match mode name (e.g. "ionian", "dorian")
+                    if item in _degree[1]:
+                        item = i
+                        break
 
         # List/Tuple–style reference.
         if isinstance(item, int) or isinstance(item, slice):
