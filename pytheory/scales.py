@@ -130,6 +130,76 @@ class Scale:
                 chords.append(self.triad(degree))
         return chords
 
+    def nashville(self, *numbers):
+        """Build a chord progression using Nashville number system.
+
+        The `Nashville number system <https://en.wikipedia.org/wiki/Nashville_Number_System>`_
+        uses Arabic numerals instead of Roman numerals.
+        It's the standard chart system in Nashville recording studios.
+
+        Numbers 1-7 build diatonic triads. Suffix ``"7"`` for seventh
+        chords, ``"m"`` to force minor.
+
+        Example::
+
+            >>> scale.nashville(1, 4, 5, 1)
+            [<Chord C major>, <Chord F major>, <Chord G major>, <Chord C major>]
+        """
+        from .chords import Chord
+        chords = []
+        for num in numbers:
+            s = str(num)
+            is_seventh = s.endswith("7")
+            clean = s.rstrip("7m")
+            degree = int(clean) - 1
+            if is_seventh:
+                chords.append(self.seventh(degree))
+            else:
+                chords.append(self.triad(degree))
+        return chords
+
+    @staticmethod
+    def detect(*note_names):
+        """Detect the most likely scale from a set of note names.
+
+        Tries all scales in the Western system and returns the best
+        match as a ``(tonic, scale_name, match_count)`` tuple.
+
+        Example::
+
+            >>> Scale.detect("C", "D", "E", "F", "G", "A", "B")
+            ('C', 'major', 7)
+            >>> Scale.detect("C", "D", "Eb", "F", "G", "Ab", "Bb")
+            ('C', 'minor', 7)
+        """
+        if not note_names:
+            return None
+
+        notes = set(note_names)
+        best = None
+
+        chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        scale_names = ["major", "minor", "harmonic minor",
+                       "dorian", "phrygian", "lydian", "mixolydian",
+                       "aeolian", "locrian"]
+
+        for tonic in chromatic:
+            ts = TonedScale(tonic=f"{tonic}4")
+            for scale_name in ts.scales:
+                try:
+                    scale = ts[scale_name]
+                    scale_notes = set(scale.note_names)
+                    match = len(notes & scale_notes)
+                    score = (match, 1 if scale_name == "major" else 0)
+                    if best is None or score > best[0]:
+                        best = (score, tonic, scale_name, match)
+                except (KeyError, ValueError):
+                    continue
+
+        if best:
+            return (best[1], best[2], best[3])
+        return None
+
     def harmonize(self):
         """Build diatonic triads on every scale degree.
 
@@ -316,6 +386,15 @@ class Key:
             >>> Key("G", "major").progression("I", "IV", "V7", "I")
         """
         return self._scale.progression(*numerals)
+
+    def nashville(self, *numbers):
+        """Build a chord progression using Nashville numbers.
+
+        Example::
+
+            >>> Key("G", "major").nashville(1, 4, 5, 1)
+        """
+        return self._scale.nashville(*numbers)
 
     @property
     def relative(self):

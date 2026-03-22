@@ -3166,3 +3166,85 @@ def test_instruments_list():
     assert "guitar" in Fretboard.INSTRUMENTS
     assert "sitar" in Fretboard.INSTRUMENTS
     assert "keyboard" in Fretboard.INSTRUMENTS
+
+
+# ── Chord.from_tones ──────────────────────────────────────────────────────
+
+def test_chord_from_tones():
+    c = Chord.from_tones("C", "E", "G")
+    assert c.identify() == "C major"
+
+
+def test_chord_from_tones_minor():
+    am = Chord.from_tones("A", "C", "E")
+    assert am.identify() == "A minor"
+
+
+def test_chord_from_tones_octave():
+    c = Chord.from_tones("C", "E", "G", octave=3)
+    assert c.tones[0].octave == 3
+
+
+# ── Tab output ────────────────────────────────────────────────────────────
+
+def test_tab_output():
+    from pytheory.charts import CHARTS
+    fb = Fretboard.guitar()
+    tab = CHARTS["western"]["C"].tab(fretboard=fb)
+    assert "C" in tab
+    assert "|--" in tab
+    lines = tab.strip().split("\n")
+    assert len(lines) == 7  # chord name + 6 strings
+
+
+def test_tab_muted_string():
+    from pytheory.charts import CHARTS
+    fb = Fretboard.guitar()
+    tab = CHARTS["western"]["F"].tab(fretboard=fb)
+    # F chord may have muted strings shown as 'x'
+    assert "|--" in tab
+
+
+# ── Scale.detect ──────────────────────────────────────────────────────────
+
+def test_scale_detect_c_major():
+    from pytheory.scales import Scale
+    result = Scale.detect("C", "D", "E", "F", "G", "A", "B")
+    assert result[0] == "C"
+    assert result[1] == "major"
+    assert result[2] == 7
+
+
+def test_scale_detect_g_major():
+    from pytheory.scales import Scale
+    result = Scale.detect("C", "D", "E", "F#", "G", "A", "B")
+    assert result[0] == "G"
+    assert result[1] == "major"
+
+
+def test_scale_detect_none():
+    from pytheory.scales import Scale
+    assert Scale.detect() is None
+
+
+# ── Nashville numbers ────────────────────────────────────────────────────
+
+def test_nashville_1_4_5():
+    k = Key("C", "major")
+    prog = k.nashville(1, 4, 5)
+    assert prog[0].identify() == "C major"
+    assert prog[1].identify() == "F major"
+    assert prog[2].identify() == "G major"
+
+
+def test_nashville_with_seventh():
+    k = Key("G", "major")
+    prog = k.nashville(1, 4, "57")
+    assert prog[2].identify() == "D dominant 7th"
+
+
+def test_nashville_on_scale():
+    scale = TonedScale(tonic="C4")["major"]
+    prog = scale.nashville(1, 5, 1)
+    assert prog[0].identify() == "C major"
+    assert prog[1].identify() == "G major"

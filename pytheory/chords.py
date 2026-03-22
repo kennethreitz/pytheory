@@ -3,6 +3,23 @@ class Chord:
         self.tones = tones
 
     @classmethod
+    def from_tones(cls, *note_names, octave=4):
+        """Create a Chord from note name strings.
+
+        Example::
+
+            >>> Chord.from_tones("C", "E", "G")
+            <Chord C major>
+            >>> Chord.from_tones("A", "C", "E", octave=3)
+            <Chord A minor>
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string(f"{n}{octave}", system="western")
+            for n in note_names
+        ])
+
+    @classmethod
     def from_name(cls, name, octave=4):
         """Create a Chord from a chord name like ``"Cmaj7"`` or ``"Am"``.
 

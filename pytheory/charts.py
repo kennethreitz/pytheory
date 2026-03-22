@@ -154,6 +154,29 @@ class NamedChord:
         else:
             return tuple([self.fix_fingering(f) for f in best_fingerings])
 
+    def tab(self, *, fretboard):
+        """Render this chord as ASCII guitar tablature.
+
+        Example::
+
+            >>> print(CHARTS["western"]["C"].tab(fretboard=Fretboard.guitar()))
+            C
+            e|--0--
+            B|--1--
+            G|--0--
+            D|--2--
+            A|--3--
+            E|--0--
+        """
+        fingering = self.fingering(fretboard=fretboard)
+        string_names = [t.name for t in fretboard.tones]
+        lines = [self.name]
+        max_name = max(len(n) for n in string_names)
+        for i, (name, fret) in enumerate(zip(string_names, fingering)):
+            fret_str = "x" if fret is None else str(fret)
+            lines.append(f"{name:>{max_name}}|--{fret_str}--")
+        return "\n".join(lines)
+
 
 western_chart = {}
 for tone_titles in SYSTEMS["western"].tone_names:
