@@ -9,11 +9,14 @@ class Tone:
 
         if isinstance(name, str):
             try:
-                octave = int("".join([c for c in filter(str.isdigit, name)]))
+                parsed_octave = int("".join([c for c in filter(str.isdigit, name)]))
             except ValueError:
-                octave = None
+                parsed_octave = None
 
-            name = name.replace(str(octave), "") if octave else name
+            if parsed_octave is not None:
+                name = name.replace(str(parsed_octave), "")
+                if octave is None:
+                    octave = parsed_octave
 
         self.name = name
         self.octave = octave
@@ -54,18 +57,65 @@ class Tone:
     def __repr__(self):
         return f"<Tone {self.full_name}>"
 
+    def __str__(self):
+        return self.full_name
+
+    def __add__(self, interval):
+        return self.add(interval)
+
+    def __sub__(self, other):
+        # Tone - int: subtract semitones
+        if isinstance(other, int):
+            return self.subtract(other)
+        # Tone - Tone: semitone distance
+        if isinstance(other, Tone):
+            c_index = 3
+            try:
+                mod = len(self.system.tones)
+            except AttributeError:
+                raise ValueError("Tone math can only be computed with an associated system!")
+            self_from_c0 = ((self._index - c_index) % mod) + ((self.octave or 0) * mod)
+            other_from_c0 = ((other._index - c_index) % mod) + ((other.octave or 0) * mod)
+            return self_from_c0 - other_from_c0
+        return NotImplemented
+
+    def __lt__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() < other.pitch()
+
+    def __le__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() <= other.pitch()
+
+    def __gt__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() > other.pitch()
+
+    def __ge__(self, other):
+        if not isinstance(other, Tone):
+            return NotImplemented
+        return self.pitch() >= other.pitch()
+
     def __eq__(self, other):
 
         # Comparing string literals.
-        if self.name == other:
-            return True
+        if isinstance(other, str):
+            return self.name == other
 
         # Comparing against other Tones.
         try:
-            if (self.name in other.names) and (self.octave == other.octave):
+            if (self.name in other.names()) and (self.octave == other.octave):
                 return True
         except AttributeError:
             pass
+
+        return False
+
+    def __hash__(self):
+        return hash((self.name, self.octave))
 
     @classmethod
     def from_string(klass, s, system=None):
@@ -103,7 +153,11 @@ class Tone:
             raise ValueError("Tone index cannot be referenced without a system!")
 
     def _math(self, interval):
-        """Returns (new index, new octave)."""
+        """Returns (new index, new octave).
+
+        Octave boundaries follow scientific pitch notation, where the
+        octave number increments at C (index 3 in the Western system).
+        """
 
         octave = self.octave or 0
 
@@ -113,10 +167,20 @@ class Tone:
             raise ValueError(
                 "Tone math can only be computed with an associated system!"
             )
-        result = self._index + interval
-        index = result % mod
-        octave = result // mod + octave
-        return (index, octave)
+
+        # C is at index 3 in the Western tone list (A=0, A#=1, B=2, C=3, ...)
+        # Scientific pitch notation changes octave at C, not A.
+        c_index = 3
+
+        # Convert to absolute semitones from C0
+        note_from_c0 = ((self._index - c_index) % mod) + (octave * mod)
+        note_from_c0 += interval
+
+        new_octave = note_from_c0 // mod
+        relative = note_from_c0 % mod
+        new_index = (relative + c_index) % mod
+
+        return (new_index, new_octave)
 
     def add(self, interval):
         index, octave = self._math(interval)
@@ -124,6 +188,11 @@ class Tone:
 
     def subtract(self, interval):
         return self.add((-1 * interval))
+
+    @property
+    def frequency(self):
+        """The frequency of this tone in Hz (equal temperament, A4=440)."""
+        return self.pitch()
 
     def pitch(
         self,
@@ -137,9 +206,26 @@ class Tone:
             tones = len(self.system.tones)
         except AttributeError:
             raise ValueError("Pitches can only be computed with an associated system!")
+
         pitch_scale = TEMPERAMENTS[temperament](tones)
-        pitch = pitch_scale[self._index]
+        octave = self.octave or 4
+
+        # C is at index 3; convert to semitones from C0 for both
+        # this note and the reference A4.
+        c_index = 3
+        note_from_c0 = ((self._index - c_index) % tones) + (octave * tones)
+        a4_from_c0 = ((0 - c_index) % tones) + (4 * tones)  # A4
+
+        diff = note_from_c0 - a4_from_c0
+        octave_shift = diff // tones
+        within_octave = diff % tones
+
+        ratio = pitch_scale[within_octave] * (2 ** octave_shift)
+
         if symbolic:
-            return reference_pitch * pitch
+            return reference_pitch * ratio
         else:
-            return reference_pitch * pitch.evalf(precision)
+            result = reference_pitch * ratio
+            if precision:
+                return float(result.evalf(precision))
+            return float(result)

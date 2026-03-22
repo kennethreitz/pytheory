@@ -26,7 +26,7 @@ def sawtooth_wave(hz, peak=SAMPLE_PEAK, rising_ramp_width=1, n_samples=SAMPLE_RA
     rising_ramp_width is the percentage of the ramp spend rising:
     .5 is a triangle wave with equal rising and falling times.
     """
-    t = numpy.linspace(0, 1, 500 * 440 / hz, endpoint=False)
+    t = numpy.linspace(0, 1, int(500 * 440 / hz), endpoint=False)
     wave = scipy.signal.sawtooth(2 * numpy.pi * 5 * t, width=rising_ramp_width)
     wave = numpy.resize(wave, (n_samples,))
     # Sawtooth waves sound very quiet, so multiply peak by 4.
@@ -69,10 +69,10 @@ def play(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000):
     """Play a tone or chord."""
 
     if isinstance(tone_or_chord, Tone):
-        chord = [synth(tone_or_chord.pitch(temperament=temperament, symbolic=True))]
+        chord = [synth(tone_or_chord.pitch(temperament=temperament))]
     else:
         chord = [
-            synth(tone.pitch(temperament=temperament, symbolic=True))
+            synth(tone.pitch(temperament=temperament))
             for tone in tone_or_chord.tones
         ]
 

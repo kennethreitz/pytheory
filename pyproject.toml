@@ -1,7 +1,7 @@
 [project]
 name = "pytheory"
 version = "0.2.0"
-description = "Add your description here"
+description = "Music Theory for Humans"
 readme = "README.md"
 requires-python = ">=3.10"
 
@@ -11,6 +11,10 @@ dependencies = [
     "sounddevice",
     "scipy",
 ]
+
+[dependency-groups]
+dev = ["pytest"]
+docs = ["sphinx"]
 
 [tool.setuptools]
 packages = ["pytheory"]

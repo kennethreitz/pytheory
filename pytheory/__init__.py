@@ -5,4 +5,9 @@ from .systems import System, SYSTEMS
 from .scales import Scale, TonedScale
 from .chords import Chord, Fretboard
 from .charts import CHARTS, charts_for_fretboard
-from .play import play, Synth
+try:
+    from .play import play, Synth
+except OSError:
+    # sounddevice requires PortAudio; gracefully degrade if unavailable
+    play = None
+    Synth = None
