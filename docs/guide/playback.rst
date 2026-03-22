@@ -1,7 +1,8 @@
 Audio Playback
 ==============
 
-PyTheory can synthesize and play tones and chords through your speakers.
+PyTheory can synthesize and play tones and chords through your speakers
+using basic waveform synthesis.
 
 .. note::
 
@@ -36,7 +37,21 @@ Playing a Chord
 Waveform Types
 --------------
 
-Choose between sine, sawtooth, and triangle wave synthesis:
+The waveform shape determines the **timbre** (tonal color) of the sound.
+Different waveforms contain different combinations of **harmonics** —
+integer multiples of the fundamental frequency.
+
+- **Sine wave** — the purest tone. Contains only the fundamental
+  frequency with no harmonics. Sounds smooth, clear, and "electronic."
+  This is the building block of all other waveforms (Fourier's theorem).
+
+- **Sawtooth wave** — contains all harmonics (both odd and even),
+  each at amplitude 1/n. Sounds bright, buzzy, and aggressive.
+  Named for its shape. Used extensively in analog synthesizers.
+
+- **Triangle wave** — contains only odd harmonics, each at amplitude
+  1/n². Sounds softer and more mellow than sawtooth — somewhere between
+  sine and sawtooth. Often described as "woody" or "hollow."
 
 .. code-block:: python
 
@@ -44,17 +59,22 @@ Choose between sine, sawtooth, and triangle wave synthesis:
 
    tone = Tone.from_string("C4", system="western")
 
-   play(tone, synth=Synth.SINE)      # Smooth, pure tone
+   play(tone, synth=Synth.SINE)      # Pure, clean
    play(tone, synth=Synth.SAW)       # Bright, buzzy
-   play(tone, synth=Synth.TRIANGLE)  # Softer than sawtooth
+   play(tone, synth=Synth.TRIANGLE)  # Mellow, hollow
 
 Temperaments
 ------------
 
-Play in different tuning systems:
+Hear the difference between tuning systems:
 
 .. code-block:: python
 
-   play(tone, temperament="equal")        # Default, modern tuning
-   play(tone, temperament="pythagorean")  # Ancient Greek tuning
-   play(tone, temperament="meantone")     # Renaissance tuning
+   play(tone, temperament="equal")        # Modern standard (since ~1917)
+   play(tone, temperament="pythagorean")  # Pure fifths, wolf intervals
+   play(tone, temperament="meantone")     # Pure thirds, Renaissance sound
+
+Try playing a C major chord in each temperament — you'll hear subtle
+differences in the "color" of the major third. Equal temperament is
+a compromise; the other systems sacrifice some keys to make the good
+keys sound better.

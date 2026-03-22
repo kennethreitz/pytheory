@@ -1,7 +1,29 @@
 Working with Scales
 ===================
 
-Scales are sequences of tones following a specific interval pattern.
+A **scale** is an ordered set of tones spanning an octave, defined by a
+pattern of intervals. Scales are the foundation of melody and harmony —
+they determine which notes "belong" in a piece of music and shape its
+emotional character.
+
+Scale Construction
+------------------
+
+Every scale is defined by its **interval pattern** — the sequence of
+whole steps (W = 2 semitones) and half steps (H = 1 semitone) between
+consecutive tones.
+
+The major scale::
+
+    W  W  H  W  W  W  H
+    C  D  E  F  G  A  B  C
+      2  2  1  2  2  2  1    ← semitones between each note
+
+The natural minor scale::
+
+    W  H  W  W  H  W  W
+    C  D  Eb F  G  Ab Bb C
+      2  1  2  2  1  2  2
 
 Building Scales
 ---------------
@@ -14,7 +36,6 @@ Use :class:`~pytheory.scales.TonedScale` to generate scales in any key:
 
    c = TonedScale(tonic="C4")
 
-   # Access scales by name
    major = c["major"]
    minor = c["minor"]
    harmonic_minor = c["harmonic minor"]
@@ -22,62 +43,117 @@ Use :class:`~pytheory.scales.TonedScale` to generate scales in any key:
    print(major.note_names)
    # ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
-Available Scales
-----------------
+Major and Minor
+---------------
+
+The **major scale** (Ionian mode) is the foundation of Western tonal
+music. Its pattern of whole and half steps creates a bright, resolved
+sound. Every major key has a **relative minor** that shares the same
+notes but starts from the 6th degree:
+
+- C major → A minor (both use only white keys)
+- G major → E minor (both have one sharp: F#)
+- F major → D minor (both have one flat: Bb)
 
 .. code-block:: python
 
-   >>> c = TonedScale(tonic="C4")
-   >>> c.scales
-   ('chromatic', 'major', 'minor', 'harmonic minor',
-    'ionian', 'dorian', 'phrygian', 'lydian',
-    'mixolydian', 'aeolian', 'locrian')
+   c_major = TonedScale(tonic="C4")["major"]
+   a_minor = TonedScale(tonic="A4")["minor"]
+
+   # Same notes, different starting point
+   set(c_major.note_names) == set(a_minor.note_names)  # True
+
+The **harmonic minor** raises the 7th degree of the natural minor,
+creating an augmented 2nd interval (3 semitones) between the 6th and
+7th degrees. This gives it a distinctive "Middle Eastern" or "classical"
+sound and provides the leading tone needed for dominant harmony::
+
+    Natural minor:   C  D  Eb  F  G  Ab  Bb  C
+    Harmonic minor:  C  D  Eb  F  G  Ab  B   C
+                                          ↑ raised 7th
 
 Modes
 -----
 
-All seven modes of the major scale are supported:
+The seven **modes** of the major scale are rotations of the same interval
+pattern, each starting from a different degree. Each mode has a distinct
+emotional character:
 
 .. code-block:: python
 
    c = TonedScale(tonic="C4")
 
-   c["ionian"]      # Same as major: C D E F G A B C
-   c["dorian"]       # C D Eb F G A Bb C
-   c["phrygian"]     # C Db Eb F G Ab Bb C
-   c["lydian"]       # C D E F# G A B C
-   c["mixolydian"]   # C D E F G A Bb C
-   c["aeolian"]      # Same as minor: C D Eb F G Ab Bb C
-   c["locrian"]      # C Db Eb F Gb Ab Bb C
+**Ionian** (I) — the major scale itself. Bright, happy, resolved::
 
-Accessing Degrees
------------------
+   c["ionian"]    # C D E F G A B C
 
-Scale tones can be accessed by index, Roman numeral, or degree name:
+**Dorian** (ii) — minor with a raised 6th. Jazzy, soulful (So What,
+Scarborough Fair)::
+
+   c["dorian"]    # C D Eb F G A Bb C
+
+**Phrygian** (iii) — minor with a flat 2nd. Spanish, flamenco, dark
+(White Rabbit)::
+
+   c["phrygian"]  # C Db Eb F G Ab Bb C
+
+**Lydian** (IV) — major with a raised 4th. Dreamy, floating, ethereal
+(The Simpsons theme, Flying by ET)::
+
+   c["lydian"]    # C D E F# G A B C
+
+**Mixolydian** (V) — major with a flat 7th. Bluesy, rock, dominant
+(Norwegian Wood, Sweet Home Alabama)::
+
+   c["mixolydian"]  # C D E F G A Bb C
+
+**Aeolian** (vi) — the natural minor scale. Sad, dark, introspective
+(Stairway to Heaven, Losing My Religion)::
+
+   c["aeolian"]   # C D Eb F G Ab Bb C
+
+**Locrian** (vii) — minor with flat 2nd and flat 5th. Unstable,
+rarely used as a home key (used in metal and jazz over diminished
+chords)::
+
+   c["locrian"]   # C Db Eb F Gb Ab Bb C
+
+Scale Degrees
+-------------
+
+Each note in a scale has a **degree name** that describes its function:
+
+===========  ======  =======================================
+Degree       Number  Function
+===========  ======  =======================================
+Tonic        I       Home base — the key center
+Supertonic   II      One step above tonic
+Mediant      III     Halfway between tonic and dominant
+Subdominant  IV      A fifth below tonic (or fourth above)
+Dominant     V       The strongest pull back to tonic
+Submediant   VI      Root of the relative minor (or major)
+Leading Tone VII     One semitone below tonic — pulls upward
+===========  ======  =======================================
+
+Access degrees by index, Roman numeral, or name:
 
 .. code-block:: python
 
    major = TonedScale(tonic="C4")["major"]
 
-   # By index
-   major[0]           # C4
-   major[4]           # G4
+   major[0]           # C4  (by index)
+   major["I"]         # C4  (by Roman numeral)
+   major["tonic"]     # C4  (by degree name)
 
-   # By Roman numeral
-   major["I"]         # C4
-   major["V"]         # G4
-
-   # By degree name
-   major["tonic"]     # C4
+   major["V"]         # G4  (dominant)
    major["dominant"]  # G4
 
-   # Slicing
-   major[0:3]         # (C4, D4, E4)
+   major[0:3]         # (C4, D4, E4) — slicing works too
 
 Iteration
 ---------
 
-Scales are iterable:
+Scales are iterable and support ``len()`` and ``in``:
 
 .. code-block:: python
 
@@ -91,16 +167,47 @@ Scales are iterable:
 Building Chords from Scales
 ----------------------------
 
-Build chords directly from scale degrees:
+**Diatonic harmony** builds chords by stacking every other note of the
+scale. A **triad** takes the 1st, 3rd, and 5th; a **seventh chord** adds
+the 7th.
+
+In the C major scale, the diatonic triads are::
+
+    I    C  E  G    = C major
+    ii   D  F  A    = D minor
+    iii  E  G  B    = E minor
+    IV   F  A  C    = F major
+    V    G  B  D    = G major
+    vi   A  C  E    = A minor
+    vii° B  D  F    = B diminished
+
+Notice the pattern: **major** triads on I, IV, V; **minor** triads on
+ii, iii, vi; **diminished** on vii°. This pattern holds for every major
+key.
 
 .. code-block:: python
 
    major = TonedScale(tonic="C4")["major"]
 
-   # Build a triad (root, 3rd, 5th)
-   I  = major.triad(0)   # C E G  (C major)
-   ii = major.triad(1)   # D F A  (D minor)
-   V  = major.triad(4)   # G B D  (G major)
+   # Build diatonic triads
+   I   = major.triad(0)   # C E G  (C major)
+   ii  = major.triad(1)   # D F A  (D minor)
+   iii = major.triad(2)   # E G B  (E minor)
+   IV  = major.triad(3)   # F A C  (F major)
+   V   = major.triad(4)   # G B D  (G major)
+   vi  = major.triad(5)   # A C E  (A minor)
 
-   # Custom chord voicings
-   cmaj7 = major.chord(0, 2, 4, 6)  # C E G B
+   # Build seventh chords
+   Imaj7 = major.chord(0, 2, 4, 6)  # C E G B = Cmaj7
+   V7    = major.chord(4, 6, 8, 10) # G B D F = G7 (dominant 7th)
+
+Common Progressions
+~~~~~~~~~~~~~~~~~~~
+
+Some of the most-used chord progressions in Western music:
+
+- **I–IV–V–I** — the foundation of blues, rock, country, folk
+- **I–V–vi–IV** — the "pop progression" (Let It Be, No Woman No Cry,
+  With or Without You)
+- **ii–V–I** — the backbone of jazz harmony
+- **I–vi–IV–V** — the "50s progression" (Stand By Me, Every Breath You Take)

@@ -4,6 +4,26 @@ Fretboard and Fingerings
 The :class:`~pytheory.chords.Fretboard` class represents a fretted instrument's
 tuning and generates chord fingerings.
 
+How Frets Work
+--------------
+
+Each fret on a guitar (or any fretted instrument) raises the pitch by
+exactly **one semitone**. The open string is fret 0; fret 1 is one
+semitone up, fret 2 is two semitones up, and so on.
+
+Standard guitar tuning (high to low)::
+
+    String 1: E4  (highest)
+    String 2: B3
+    String 3: G3
+    String 4: D3
+    String 5: A2
+    String 6: E2  (lowest)
+
+This tuning uses intervals of a perfect 4th (5 semitones) between most
+strings, except between G and B which is a major 3rd (4 semitones). This
+asymmetry is why guitar chord shapes shift when they cross the G-B pair.
+
 Preset Tunings
 --------------
 
@@ -11,47 +31,97 @@ Preset Tunings
 
    from pytheory import Fretboard
 
-   guitar  = Fretboard.guitar()    # E4 B3 G3 D3 A2 E2
-   bass    = Fretboard.bass()      # G2 D2 A1 E1
-   ukulele = Fretboard.ukulele()   # A4 E4 C4 G4
+   guitar  = Fretboard.guitar()             # Standard EADGBE
+   bass    = Fretboard.bass()               # Standard EADG
+   bass5   = Fretboard.bass(five_string=True)  # 5-string BEADG
+   ukulele = Fretboard.ukulele()            # GCEA (re-entrant)
 
-Custom Tunings
---------------
+Alternate Guitar Tunings
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   # Built-in alternate tunings
+   drop_d = Fretboard.guitar("drop d")       # DADGBE — heavy riffs
+   open_g = Fretboard.guitar("open g")       # DGDGBD — slide guitar, Keith Richards
+   open_d = Fretboard.guitar("open d")       # DADF#AD — slide, folk
+   open_e = Fretboard.guitar("open e")       # EBEG#BE — slide blues
+   open_a = Fretboard.guitar("open a")       # EAC#EAE
+   dadgad = Fretboard.guitar("dadgad")       # DADGAD — Celtic, fingerstyle
+   half_down = Fretboard.guitar("half step down")  # Eb standard — Hendrix, SRV
+
+   # Custom tuning with any notes
+   custom = Fretboard.guitar(("D4", "A3", "F#3", "D3", "A2", "D2"))
+
+Custom Instruments
+------------------
+
+Any fretted instrument can be modeled:
 
 .. code-block:: python
 
    from pytheory import Tone, Fretboard
 
-   # Open D tuning
-   open_d = Fretboard(tones=[
+   # Banjo (open G tuning)
+   banjo = Fretboard(tones=[
        Tone.from_string("D4"),
-       Tone.from_string("A3"),
-       Tone.from_string("F#3"),
+       Tone.from_string("B3"),
+       Tone.from_string("G3"),
        Tone.from_string("D3"),
-       Tone.from_string("A2"),
-       Tone.from_string("D2"),
+       Tone.from_string("G4"),  # 5th string (high drone)
+   ])
+
+   # Mandolin
+   mandolin = Fretboard(tones=[
+       Tone.from_string("E5"),
+       Tone.from_string("A4"),
+       Tone.from_string("D4"),
+       Tone.from_string("G3"),
    ])
 
 Getting Fingerings
 ------------------
+
+The fingering algorithm finds the most playable voicing for any chord on
+any fretboard. It scores each possibility by:
+
+1. Preferring **open strings** (fret 0) — they ring freely
+2. Preferring **ascending** fret patterns — easier hand position
+3. Minimizing the number of **fingers needed**
 
 .. code-block:: python
 
    from pytheory import Fretboard, CHARTS
 
    fb = Fretboard.guitar()
-
-   # Best fingering for a chord
    c = CHARTS["western"]["C"]
+
+   # Best single fingering
    print(c.fingering(fretboard=fb))
    # (0, 1, 0, 2, 3, 0)
+   # String: E4=0  B3=1  G3=0  D3=2  A2=3  E2=0
 
-   # All possible fingerings
+   # All equally-scored fingerings
    all_c = c.fingering(fretboard=fb, multiple=True)
 
    # Muted strings appear as None
    f = CHARTS["western"]["F"]
    print(f.fingering(fretboard=fb))
+
+Reading Fingerings
+~~~~~~~~~~~~~~~~~~
+
+The tuple ``(0, 1, 0, 2, 3, 0)`` reads from the highest string to the
+lowest::
+
+    e|--0--    (open — E)
+    B|--1--    (fret 1 — C)
+    G|--0--    (open — G)
+    D|--2--    (fret 2 — E)
+    A|--3--    (fret 3 — C)
+    E|--0--    (open — E)
+
+A value of ``None`` means the string is muted (not played).
 
 Generating Full Charts
 ----------------------
