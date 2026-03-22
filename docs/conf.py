@@ -36,3 +36,4 @@ exclude_patterns = ["_build"]
 html_theme = "alabaster"
 html_title = "PyTheory"
 html_static_path = ["_static"]
+html_extra_path = ["CNAME"]
