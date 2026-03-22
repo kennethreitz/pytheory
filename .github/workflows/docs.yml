@@ -26,7 +26,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --group docs
+        run: uv sync && uv sync --group docs
 
       - name: Build docs
         run: uv run sphinx-build -b html docs docs/_build/html
