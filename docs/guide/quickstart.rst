@@ -40,10 +40,14 @@ Create tones, build scales, and explore music theory:
    IV = c_major.triad(3)   # F A C  (F major)
    V  = c_major.triad(4)   # G B D  (G major)
 
-   # Guitar chord fingerings
+   # Guitar chord fingerings — labeled with string names
    fb = Fretboard.guitar()
    fingering = CHARTS["western"]["Am"].fingering(fretboard=fb)
-   print(fingering)  # (0, 1, 2, 2, 0, 0)
+   print(fingering)  # Fingering(e=0, B=1, G=2, D=2, A=0, E=0)
+
+   # Identify a chord from fret positions
+   f = fb.fingering(0, 1, 0, 2, 3, 0)
+   print(f.identify())  # C major
 
 What's Included
 ---------------
@@ -54,9 +58,12 @@ What's Included
   10 maqamat, 6 Japanese pentatonic scales, blues, pentatonic,
   slendro, pelog, and more
 - **Pitch calculation** in equal, Pythagorean, and meantone temperaments
+- **Chord identification**: name any chord from its notes, intervals, or
+  MIDI numbers (17 chord types recognized)
 - **Chord charts** with 144 pre-built chords (12 roots x 12 qualities)
 - **Chord analysis**: consonance scoring, Plomp-Levelt dissonance,
-  beat frequency calculation
-- **Fingering generation** for guitar (8 tunings), bass, ukulele, or
-  any custom fretted instrument
+  beat frequency calculation, harmonic tension, voice leading
+- **Key detection** and **Roman numeral analysis** (I-IV-V-I progressions)
+- **Fingering generation** for 25 instruments with labeled string names,
+  including guitar (8 tunings), bass, ukulele, mandolin, and more
 - **Audio playback** with sine, sawtooth, and triangle wave synthesis

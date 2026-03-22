@@ -127,13 +127,33 @@ Quality       Intervals         Example tones (from C)
    >>> chart["Cm7"].acceptable_tone_names
    ('C', 'D#', 'G', 'A#')    # Eb and Bb shown as sharps
 
-Building Chords Manually
--------------------------
+Building Chords
+---------------
+
+Several convenience constructors make chord creation concise:
 
 .. code-block:: python
 
-   from pytheory import Tone, Chord
+   from pytheory import Chord
 
+   # From note names (simplest)
+   Chord.from_tones("C", "E", "G")           # <Chord C major>
+   Chord.from_tones("A", "C", "E")           # <Chord A minor>
+
+   # From a chord name (uses the built-in chart)
+   Chord.from_name("Am7")                    # <Chord A minor 7th>
+   Chord.from_name("G7")                     # <Chord G dominant 7th>
+
+   # From root + semitone intervals
+   Chord.from_intervals("C", 4, 7)           # <Chord C major>
+   Chord.from_intervals("D", 3, 7)           # <Chord D minor>
+   Chord.from_intervals("G", 4, 7, 10)       # <Chord G dominant 7th>
+
+   # From MIDI note numbers
+   Chord.from_midi_message(60, 64, 67)       # <Chord C major>
+
+   # Full manual construction
+   from pytheory import Tone
    c_major = Chord(tones=[
        Tone.from_string("C4", system="western"),
        Tone.from_string("E4", system="western"),

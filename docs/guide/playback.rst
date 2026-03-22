@@ -25,14 +25,13 @@ Playing a Chord
 
 .. code-block:: python
 
-   from pytheory import Chord, Tone, play
+   from pytheory import Chord, play
 
-   c_major = Chord(tones=[
-       Tone.from_string("C4", system="western"),
-       Tone.from_string("E4", system="western"),
-       Tone.from_string("G4", system="western"),
-   ])
-   play(c_major, t=2_000)  # Play for 2 seconds
+   # From a chord name
+   play(Chord.from_name("Am7"), t=2_000)
+
+   # From note names
+   play(Chord.from_tones("C", "E", "G"), t=2_000)
 
 Waveform Types
 --------------

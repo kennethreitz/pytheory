@@ -62,6 +62,22 @@ $ pip install pytheory
 ['C major', 'G major', 'A minor', 'F major']
 ```
 
+## Keys and Progressions
+
+```pycon
+>>> from pytheory import Key
+
+>>> key = Key("G", "major")
+>>> key.chords
+['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
+
+>>> [c.identify() for c in key.progression("I", "V", "vi", "IV")]
+['G major', 'D major', 'E minor', 'C major']
+
+>>> Key.detect("C", "E", "G", "A", "D")
+<Key C major>
+```
+
 ## Chord Analysis
 
 ```pycon
@@ -116,7 +132,10 @@ $ pip install pytheory
 >>> Fretboard.keyboard(25, "C3")      # 25-key MIDI controller
 
 >>> CHARTS['western']['Am'].fingering(fretboard=Fretboard.guitar())
-(0, 1, 2, 2, 0, 0)
+Fingering(e=0, B=1, G=2, D=2, A=0, E=0)
+
+>>> Fretboard.guitar().fingering(0, 1, 0, 2, 3, 0).identify()
+'C major'
 ```
 
 ## Audio Playback

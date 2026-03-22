@@ -215,6 +215,35 @@ Some of the most-used chord progressions in Western music:
   My Heart Will Go On)
 - **I–IV–vi–V** — axis of awesome (many, many pop songs)
 
+The :class:`~pytheory.scales.Key` class makes working with progressions
+easy:
+
+.. code-block:: python
+
+   from pytheory import Key
+
+   key = Key("G", "major")
+
+   # Build a progression from Roman numerals
+   chords = key.progression("I", "V", "vi", "IV")
+   for c in chords:
+       print(c.identify())
+   # G major, D major, E minor, C major
+
+   # Nashville number system (same thing, with integers)
+   key.nashville(1, 5, 6, 4)
+
+   # All diatonic triads in the key
+   key.chords
+   # ['G major', 'A minor', 'B minor', 'C major', ...]
+
+   # All diatonic seventh chords
+   key.seventh_chords
+   # ['G major 7th', 'A minor 7th', ...]
+
+   # Detect the key from a set of notes
+   Key.detect("C", "E", "G", "A", "D")   # <Key C major>
+
 The 12-Bar Blues
 ~~~~~~~~~~~~~~~~
 

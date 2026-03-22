@@ -179,9 +179,22 @@ on any instrument. It scores each possibility by:
    fb = Fretboard.guitar()
    c = CHARTS["western"]["C"]
 
-   # Best single fingering
-   print(c.fingering(fretboard=fb))
-   # (0, 1, 0, 2, 3, 0)
+   # Fingerings return a Fingering object with labeled strings
+   f = c.fingering(fretboard=fb)
+   print(f)
+   # Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
+
+   # Access by string name or index
+   f['A']     # 3
+   f[1]       # 1 (B string)
+
+   # Identify the chord directly from a fingering
+   f.identify()   # 'C major'
+
+   # Convert to a Chord for further analysis
+   chord = f.to_chord()
+   chord.harmony       # consonance score
+   chord.intervals     # [4, 3] — major triad
 
    # All equally-scored fingerings
    all_c = c.fingering(fretboard=fb, multiple=True)
@@ -190,11 +203,22 @@ on any instrument. It scores each possibility by:
    f = CHARTS["western"]["F"]
    print(f.fingering(fretboard=fb))
 
+You can also go from fret positions to chord identification:
+
+.. code-block:: python
+
+   # "What chord am I playing?"
+   fb = Fretboard.guitar()
+   f = fb.fingering(0, 0, 0, 2, 2, 0)
+   print(f)            # Fingering(e=0, B=0, G=0, D=2, A=2, E=0)
+   print(f.identify()) # E minor
+
 Reading Fingerings
 ~~~~~~~~~~~~~~~~~~
 
-The tuple ``(0, 1, 0, 2, 3, 0)`` reads from the highest string to the
-lowest::
+Each position is labeled with its string name. Duplicate string names
+are disambiguated — on a standard guitar, high E appears as ``e`` and
+low E as ``E``::
 
     e|--0--    (open — E)
     B|--1--    (fret 1 — C)
@@ -204,6 +228,22 @@ lowest::
     E|--0--    (open — E)
 
 A value of ``None`` means the string is muted (not played).
+
+ASCII Tablature
+~~~~~~~~~~~~~~~
+
+For a more visual representation, use ``tab()``:
+
+.. code-block:: python
+
+   >>> print(CHARTS["western"]["C"].tab(fretboard=fb))
+   C
+   E|--0--
+   B|--1--
+   G|--0--
+   D|--2--
+   A|--3--
+   E|--0--
 
 Generating Full Charts
 ----------------------

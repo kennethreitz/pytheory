@@ -303,11 +303,15 @@ to the starting note:
 
 .. code-block:: python
 
-   >>> t = Tone.from_string("C4", system="western")
-   >>> for i in range(12):
-   ...     print(t.name, end=" ")
-   ...     t = t + 7
-   C G D A E B F# C# G# D# A# F
+   >>> c4 = Tone.from_string("C4", system="western")
+
+   # Clockwise — ascending fifths (adds sharps)
+   >>> [t.name for t in c4.circle_of_fifths()]
+   ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F']
+
+   # Counter-clockwise — ascending fourths (adds flats)
+   >>> [t.name for t in c4.circle_of_fourths()]
+   ['C', 'F', 'A#', 'D#', 'G#', 'C#', 'F#', 'B', 'E', 'A', 'D', 'G']
 
 Each step clockwise adds one sharp to the key signature; each step
 counter-clockwise (ascending by fourths = 5 semitones) adds one flat.
