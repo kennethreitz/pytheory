@@ -1,6 +1,6 @@
 [project]
 name = "pytheory"
-version = "0.4.1"
+version = "0.5.0"
 description = "Music Theory for Humans"
 readme = "README.md"
 license = "MIT"

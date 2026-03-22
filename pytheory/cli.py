@@ -91,6 +91,33 @@ def cmd_progression(args):
         print(f"    {numeral:6s}  {chord}")
 
 
+def cmd_play(args):
+    from .tones import Tone
+    from .chords import Chord
+    from .play import play, Synth
+
+    synth_map = {"sine": Synth.SINE, "saw": Synth.SAW, "triangle": Synth.TRIANGLE}
+    synth = synth_map[args.synth]
+    duration = args.duration
+
+    # Parse notes — if single note, play as tone; otherwise as chord.
+    tones = [Tone.from_string(n if any(c.isdigit() for c in n) else f"{n}4",
+                              system="western") for n in args.notes]
+
+    if len(tones) == 1:
+        target = tones[0]
+        label = target.full_name
+    else:
+        target = Chord(tones=tones)
+        name = target.identify() or "Custom"
+        label = f"{name} ({' '.join(t.full_name for t in tones)})"
+
+    print(f"  Playing: {label}")
+    print(f"  Synth:   {args.synth}")
+    print(f"  Duration: {duration} ms")
+    play(target, temperament=args.temperament, synth=synth, t=duration)
+
+
 def cmd_detect(args):
     from .scales import Key
     key = Key.detect(*args.notes)
@@ -141,6 +168,18 @@ def main():
     p.add_argument("mode", help="Mode (e.g. major, minor)")
     p.add_argument("numerals", nargs="+", help="Roman numerals (e.g. I V vi IV)")
 
+    # play
+    p = sub.add_parser("play", help="Play notes or chords (e.g. pytheory play C E G)")
+    p.add_argument("notes", nargs="+", help="Note names, with optional octave (e.g. C4, A#3, or just C E G)")
+    p.add_argument("--synth", "-s", default="sine",
+                   choices=["sine", "saw", "triangle"],
+                   help="Waveform (default: sine)")
+    p.add_argument("--duration", "-d", type=int, default=1000,
+                   help="Duration in milliseconds (default: 1000)")
+    p.add_argument("--temperament", "-t", default="equal",
+                   choices=["equal", "pythagorean", "meantone"],
+                   help="Tuning temperament (default: equal)")
+
     # detect
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
@@ -157,6 +196,7 @@ def main():
         "key": cmd_key,
         "fingering": cmd_fingering,
         "progression": cmd_progression,
+        "play": cmd_play,
         "detect": cmd_detect,
     }
     commands[args.command](args)
