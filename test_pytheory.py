@@ -1882,6 +1882,71 @@ def test_fretboard_violin_tuned_in_fifths():
         assert interval == 7, f"Strings {i} and {i+1} not a 5th apart"
 
 
+def test_fretboard_octave_mandolin():
+    fb = Fretboard.octave_mandolin()
+    assert len(fb) == 4
+    assert fb.tones[0].name == "E"
+    assert fb.tones[0].octave == 4
+
+
+def test_fretboard_mandocello():
+    fb = Fretboard.mandocello()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["A", "D", "G", "C"]
+    assert fb.tones[0].octave == 3
+
+
+def test_fretboard_double_bass():
+    fb = Fretboard.double_bass()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["G", "D", "A", "E"]
+
+
+def test_fretboard_double_bass_tuned_in_fourths():
+    fb = Fretboard.double_bass()
+    for i in range(len(fb.tones) - 1):
+        interval = fb.tones[i] - fb.tones[i + 1]
+        assert interval == 5, f"Strings {i} and {i+1} not a 4th apart"
+
+
+def test_fretboard_harp():
+    fb = Fretboard.harp()
+    assert len(fb) == 47
+    assert fb.tones[0].name == "G"
+    assert fb.tones[0].octave == 7
+    assert fb.tones[-1].name == "C"
+    assert fb.tones[-1].octave == 1
+
+
+def test_fretboard_pedal_steel():
+    fb = Fretboard.pedal_steel()
+    assert len(fb) == 10
+
+
+def test_mandolin_family_fifths():
+    """All mandolin family instruments should be tuned in 5ths."""
+    for name in ["mandolin", "mandola", "octave_mandolin", "mandocello"]:
+        fb = getattr(Fretboard, name)()
+        for i in range(len(fb.tones) - 1):
+            interval = fb.tones[i] - fb.tones[i + 1]
+            assert interval == 7, f"{name} strings {i},{i+1} not a 5th apart"
+
+
+def test_all_instruments_create():
+    """Every instrument preset should instantiate without error."""
+    instruments = [
+        "guitar", "twelve_string", "bass", "ukulele",
+        "mandolin", "mandola", "octave_mandolin", "mandocello",
+        "violin", "viola", "cello", "double_bass",
+        "banjo", "harp", "pedal_steel",
+    ]
+    for name in instruments:
+        fb = getattr(Fretboard, name)()
+        assert len(fb) > 0, f"{name} has no strings"
+
+
 # ── Ergonomic integration tests ─────────────────────────────────────────────
 
 def test_ergonomic_workflow():

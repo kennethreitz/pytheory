@@ -620,8 +620,9 @@ class Fretboard:
     def mandola(cls):
         """Standard mandola tuning (A4 D4 G3 C3).
 
-        An octave below the mandolin, same relationship as viola to
-        violin. Tuned in fifths: C3-G3-D4-A4.
+        The mandola (or tenor mandola) is to the mandolin what the
+        viola is to the violin — a fifth lower, with a warmer,
+        darker tone. Tuned in fifths like all the mandolin family.
         """
         from .tones import Tone
         return cls(tones=[
@@ -629,6 +630,39 @@ class Fretboard:
             Tone.from_string("D4", system="western"),
             Tone.from_string("G3", system="western"),
             Tone.from_string("C3", system="western"),
+        ])
+
+    @classmethod
+    def octave_mandolin(cls):
+        """Octave mandolin tuning (E4 A3 D3 G2).
+
+        Also called the octave mandola in European terminology.
+        One octave below the mandolin — same tuning as the violin
+        family's cello-to-violin relationship. Popular in Irish
+        and Celtic folk music.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("E4", system="western"),
+            Tone.from_string("A3", system="western"),
+            Tone.from_string("D3", system="western"),
+            Tone.from_string("G2", system="western"),
+        ])
+
+    @classmethod
+    def mandocello(cls):
+        """Mandocello tuning (A3 D3 G2 C2).
+
+        The bass of the mandolin family. Tuned like a cello — an
+        octave below the mandola. Rare but beautiful; used in
+        mandolin orchestras.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A3", system="western"),
+            Tone.from_string("D3", system="western"),
+            Tone.from_string("G2", system="western"),
+            Tone.from_string("C2", system="western"),
         ])
 
     @classmethod
@@ -698,6 +732,67 @@ class Fretboard:
         if isinstance(tuning, str):
             tuning = tunings[tuning]
         return cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+
+    @classmethod
+    def double_bass(cls):
+        """Standard double bass (upright bass) tuning (G2 D2 A1 E1).
+
+        The largest and lowest-pitched bowed string instrument in the
+        orchestra. Unlike the rest of the string family, the double
+        bass is tuned in fourths (like a bass guitar) rather than
+        fifths.
+
+        The 5-string double bass adds a low B0 or C1.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("G2", system="western"),
+            Tone.from_string("D2", system="western"),
+            Tone.from_string("A1", system="western"),
+            Tone.from_string("E1", system="western"),
+        ])
+
+    @classmethod
+    def harp(cls):
+        """Concert harp strings — 47 strings spanning C1 to G7.
+
+        The pedal harp has 7 strings per octave (one per note name),
+        tuned to Cb major. Pedals alter each note name by up to two
+        semitones across all octaves simultaneously.
+
+        This returns the full set of 47 strings in the default
+        Cb (enharmonic B) tuning.
+        """
+        from .tones import Tone
+        # 47 strings: C1 to G7, one per diatonic note
+        notes = ["C", "D", "E", "F", "G", "A", "B"]
+        strings = []
+        # Start from bottom: C1 D1 E1 ... up to G7
+        for octave in range(1, 8):
+            for note in notes:
+                strings.append(f"{note}{octave}")
+                if note == "G" and octave == 7:
+                    break
+            else:
+                continue
+            break
+        # Harp strings are high to low
+        strings.reverse()
+        return cls(tones=[Tone.from_string(s, system="western") for s in strings])
+
+    @classmethod
+    def pedal_steel(cls):
+        """Pedal steel guitar — E9 Nashville tuning (10 strings).
+
+        The standard tuning for country music. The pedal steel has
+        foot pedals and knee levers that change string pitches during
+        play, enabling its signature swooping, crying sound.
+        """
+        from .tones import Tone
+        # E9 Nashville tuning (high to low)
+        strings = ["F#4", "D#4", "G#3", "E3", "B3", "G#3",
+                    "F#3", "E3", "D3", "B2"]
+        return cls(tones=[Tone.from_string(s, system="western") for s in strings])
 
     @classmethod
     def twelve_string(cls):
