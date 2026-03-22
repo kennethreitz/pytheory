@@ -1,0 +1,254 @@
+Music Theory Fundamentals
+=========================
+
+This page covers the essential concepts of music theory — the framework
+behind everything PyTheory does.
+
+Sound and Pitch
+---------------
+
+All sound is vibration. When an object vibrates, it pushes air molecules
+back and forth, creating pressure waves that travel to your ears. The
+speed of this vibration — measured in cycles per second (Hertz, Hz) —
+determines the **pitch** you hear.
+
+- **20 Hz**: the lowest pitch most humans can hear
+- **60–250 Hz**: the range of the human voice (speaking)
+- **261.63 Hz**: middle C (C4)
+- **440 Hz**: the tuning standard A (A4)
+- **4186 Hz**: the highest C on a piano (C8)
+- **20,000 Hz**: the upper limit of human hearing
+
+The relationship between pitch and frequency is **logarithmic** — each
+octave doubles the frequency. This means the distance from A3 (220 Hz)
+to A4 (440 Hz) is 220 Hz, but the distance from A4 to A5 (880 Hz) is
+440 Hz. Both sound like "one octave" to our ears.
+
+Why Twelve Notes?
+-----------------
+
+The Western chromatic scale has 12 notes per octave. This isn't arbitrary —
+it emerges from the physics of vibrating strings and air columns.
+
+The **harmonic series** is the sequence of frequencies produced when a
+string vibrates: f, 2f, 3f, 4f, 5f... The relationships between these
+harmonics create the intervals we perceive as consonant:
+
+- 2:1 = octave (the most fundamental)
+- 3:2 = perfect fifth
+- 4:3 = perfect fourth
+- 5:4 = major third
+- 6:5 = minor third
+
+If you stack perfect fifths (multiply by 3/2 repeatedly) and reduce to
+within one octave, you get 12 roughly evenly-spaced notes before the
+cycle almost closes. The tiny gap where it doesn't close perfectly is
+the **Pythagorean comma** — the reason we need temperament.
+
+.. code-block:: python
+
+   from pytheory import Tone
+
+   # Walk the circle of fifths — all 12 notes
+   c = Tone.from_string("C4", system="western")
+   [t.name for t in c.circle_of_fifths()]
+   # ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F']
+
+Other cultures divide the octave differently: Indonesian gamelan uses
+5 or 7 unequal divisions; Indian classical music theoretically has 22
+shrutis (microtones); Arabic maqam uses quarter-tones.
+
+Intervals: The Atoms of Music
+------------------------------
+
+An **interval** is the distance between two pitches. Intervals are the
+building blocks of everything — melodies are sequences of intervals,
+chords are stacks of intervals, and scales are patterns of intervals.
+
+Every interval has two properties:
+
+**Size** (how many scale steps)::
+
+    Unison → 2nd → 3rd → 4th → 5th → 6th → 7th → Octave
+
+**Quality** (exact number of semitones)::
+
+    Perfect:     unison (0), 4th (5), 5th (7), octave (12)
+    Major:       2nd (2), 3rd (4), 6th (9), 7th (11)
+    Minor:       2nd (1), 3rd (3), 6th (8), 7th (10)
+    Augmented:   one semitone larger than perfect or major
+    Diminished:  one semitone smaller than perfect or minor
+
+The "perfect" intervals (unison, 4th, 5th, octave) are called perfect
+because they appear in both major AND minor scales unchanged. They've
+been considered consonant across virtually all musical cultures
+throughout history.
+
+The **tritone** (augmented 4th / diminished 5th = 6 semitones) divides
+the octave exactly in half. Medieval theorists called it *diabolus in
+musica* ("the devil in music") because of its extreme instability.
+Today it's the foundation of dominant harmony and the blues.
+
+Keys and Key Signatures
+-----------------------
+
+A **key** is a group of notes that form the tonal center of a piece.
+The key of C major uses only the white keys on the piano: C D E F G A B.
+The key of G major uses the same notes except F becomes F#.
+
+Key signatures tell you which notes are sharped or flatted throughout
+a piece. They follow the circle of fifths:
+
+**Sharp keys** (add one sharp per step clockwise)::
+
+    C major:  no sharps or flats
+    G major:  F#
+    D major:  F# C#
+    A major:  F# C# G#
+    E major:  F# C# G# D#
+    B major:  F# C# G# D# A#
+
+**Flat keys** (add one flat per step counter-clockwise)::
+
+    C major:  no sharps or flats
+    F major:  Bb
+    Bb major: Bb Eb
+    Eb major: Bb Eb Ab
+    Ab major: Bb Eb Ab Db
+    Db major: Bb Eb Ab Db Gb
+
+The order of sharps is always F C G D A E B (Father Charles Goes Down
+And Ends Battle). The order of flats is the reverse: B E A D G C F.
+
+Harmony: How Chords Work
+-------------------------
+
+**Harmony** is the art of combining tones simultaneously. While melody
+is horizontal (tones in sequence), harmony is vertical (tones stacked).
+
+The simplest harmony is the **triad** — three notes built by stacking
+thirds. The quality of each third determines the chord type:
+
+- **Major triad** = major 3rd + minor 3rd (e.g. C-E-G)
+- **Minor triad** = minor 3rd + major 3rd (e.g. C-Eb-G)
+- **Diminished triad** = minor 3rd + minor 3rd (e.g. B-D-F)
+- **Augmented triad** = major 3rd + major 3rd (e.g. C-E-G#)
+
+In any major key, the triads built on each scale degree always follow
+the same pattern::
+
+    Degree   Quality        Function
+    I        Major          Tonic (home)
+    ii       Minor          Pre-dominant
+    iii      Minor          Tonic substitute
+    IV       Major          Subdominant (departure)
+    V        Major          Dominant (tension, wants to go home)
+    vi       Minor          Tonic substitute, relative minor
+    vii°     Diminished     Dominant substitute (leading tone chord)
+
+This pattern is the DNA of Western harmony. Pop songs, classical
+sonatas, jazz standards, and church hymns all derive from it.
+
+Functional Harmony
+~~~~~~~~~~~~~~~~~~
+
+Chords don't just have names — they have **functions**:
+
+- **Tonic function** (I, iii, vi): stability, rest, home
+- **Subdominant function** (ii, IV): motion away from home
+- **Dominant function** (V, vii°): tension, desire to return home
+
+The most fundamental progression in Western music is **T → S → D → T**
+(tonic → subdominant → dominant → tonic). The classic I-IV-V-I is
+exactly this pattern. Every "Louie Louie" and every Bach chorale follows
+this basic tonal gravity.
+
+.. code-block:: python
+
+   from pytheory import TonedScale
+
+   scale = TonedScale(tonic="C4")["major"]
+
+   # The I-IV-V-I progression
+   I  = scale.triad(0)   # C major — home
+   IV = scale.triad(3)   # F major — departure
+   V  = scale.triad(4)   # G major — tension
+   # I again               # C major — resolution
+
+The Dominant Seventh
+~~~~~~~~~~~~~~~~~~~~
+
+The most important chord in tonal music is the **dominant seventh** —
+the V7 chord. In C major, this is G-B-D-F. It contains:
+
+- A **leading tone** (B) that pulls up to the tonic (C) by half step
+- A **tritone** (B-F) that wants to resolve inward (B→C, F→E)
+- The **dominant note** (G) that falls to the tonic by a fifth
+
+This combination creates the strongest possible pull toward resolution.
+When you hear V7→I, you feel arrival.
+
+.. code-block:: python
+
+   from pytheory import Chord, Tone
+
+   C4 = Tone.from_string("C4", system="western")
+   G4 = Tone.from_string("G4", system="western")
+
+   g7 = Chord([G4, G4+4, G4+7, G4+10])   # G B D F
+   g7.identify()                           # 'G dominant 7th'
+   g7.tension['has_dominant_function']      # True
+   g7.tension['tritones']                  # 1
+
+   c_major = Chord([C4, C4+4, C4+7])      # C E G
+   c_major.tension['score']                # 0.0 — fully resolved
+
+Rhythm and Meter
+----------------
+
+While PyTheory focuses on pitch, rhythm is the other half of music.
+
+**Rhythm** is the pattern of durations. **Meter** is the recurring
+pattern of strong and weak beats that organizes rhythm.
+
+- **4/4 time**: the most common meter. Strong-weak-medium-weak.
+  Used in rock, pop, hip-hop, most Western music.
+- **3/4 time**: waltz time. Strong-weak-weak. A lilting, circular feel.
+- **6/8 time**: compound duple. Two groups of three. Irish jigs, many
+  ballads.
+- **5/4 time**: asymmetric. "Take Five" by Dave Brubeck. Creates
+  constant forward momentum because it never fully settles.
+- **7/8 time**: common in Balkan folk music. Often felt as 2+2+3 or
+  3+2+2.
+
+The Physics of Consonance
+-------------------------
+
+Why do some intervals sound "good" and others "bad"? The answer lies
+in the physics of sound waves.
+
+When two frequencies are related by a simple ratio (like 3:2 for a
+perfect fifth), their waveforms align regularly. The combined wave
+is smooth and periodic — the brain perceives this as consonant.
+
+When two frequencies are related by a complex ratio (like 45:32 for
+a tritone), their waveforms rarely align. The combined wave is
+irregular and the brain perceives roughness — dissonance.
+
+But consonance and dissonance are also cultural. The major third (5:4)
+was considered dissonant in medieval European music but consonant since
+the Renaissance. The tritone was forbidden in church music but is the
+foundation of blues and jazz. Indonesian gamelan embraces beating
+between paired instruments as a core aesthetic.
+
+.. code-block:: python
+
+   from pytheory import Chord, Tone
+
+   C4 = Tone.from_string("C4", system="western")
+
+   # The overtone series explains why fifths sound consonant
+   C4.overtones(6)
+   # [261.63, 523.25, 784.88, 1046.50, 1308.13, 1569.75]
+   # The 3rd harmonic (784.88) is very close to G5 (783.99)
+   # — the fifth is "built into" the tone itself

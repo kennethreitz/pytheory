@@ -27,6 +27,63 @@ harmony::
     Minor 7th      root + 3 + 7 + 10   Warm, mellow (Am7)
     Diminished 7th root + 3 + 6 + 9    Dramatic, symmetrical
 
+Inversions
+----------
+
+A chord is in **root position** when the root is the lowest note.
+When a different chord tone is in the bass, the chord is **inverted**:
+
+- **Root position**: C E G (root in bass)
+- **First inversion**: E G C (3rd in bass) — notated C/E
+- **Second inversion**: G C E (5th in bass) — notated C/G
+
+Inversions change the color and weight of a chord without changing its
+identity. First inversion sounds lighter; second inversion sounds
+suspended, often used as a passing chord.
+
+For seventh chords, there's also **third inversion** (7th in bass):
+
+- G7 in third inversion: F G B D (notated G7/F)
+
+.. code-block:: python
+
+   from pytheory import Chord, Tone
+
+   # All three are "C major" — identify() finds the root
+   root     = Chord([Tone.from_string(n, system="western") for n in ["C4", "E4", "G4"]])
+   first    = Chord([Tone.from_string(n, system="western") for n in ["E3", "G3", "C4"]])
+   second   = Chord([Tone.from_string(n, system="western") for n in ["G3", "C4", "E4"]])
+
+   root.identify()     # 'C major'
+   first.identify()    # 'C major'
+   second.identify()   # 'C major'
+
+Extended Chords
+---------------
+
+Beyond seventh chords, jazz harmony builds **extended chords** by
+continuing to stack thirds:
+
+- **9th chord**: adds the 9th (= 2nd, one octave up)
+- **11th chord**: adds the 9th and 11th (= 4th)
+- **13th chord**: adds the 9th, 11th, and 13th (= 6th)
+
+A full 13th chord contains all 7 notes of the scale! In practice,
+tones are usually omitted — the 5th is typically dropped first, then
+the 11th (which clashes with the 3rd in dominant chords).
+
+.. code-block:: python
+
+   from pytheory import TonedScale
+
+   scale = TonedScale(tonic="C4")["major"]
+
+   # Build a Cmaj9 from the scale: C E G B D
+   cmaj9 = scale.chord(0, 2, 4, 6, 8)
+
+   # Build a full C13 (in theory): C E G B D F A
+   c13 = scale.chord(0, 2, 4, 6, 8, 10, 12)
+
 Using the Chord Chart
 ---------------------
 

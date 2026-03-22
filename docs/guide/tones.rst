@@ -199,6 +199,62 @@ Equality checks note name and octave:
    >>> c4 == Tone(name="C", octave=4)
    True
 
+The Overtone Series
+-------------------
+
+Every tone you hear is actually a composite of many frequencies. When
+a string vibrates, it doesn't just vibrate as a whole — it also vibrates
+in halves, thirds, quarters, and so on, producing the **harmonic series**:
+
+.. code-block:: python
+
+   >>> a4 = Tone.from_string("A4", system="western")
+   >>> a4.overtones(8)
+   [440.0, 880.0, 1320.0, 1760.0, 2200.0, 2640.0, 3080.0, 3520.0]
+
+These harmonics correspond to musical intervals::
+
+    Harmonic  Frequency  Interval from fundamental
+    1st       440 Hz     Unison (A4)
+    2nd       880 Hz     Octave (A5)
+    3rd       1320 Hz    Octave + perfect 5th (E6)
+    4th       1760 Hz    Two octaves (A6)
+    5th       2200 Hz    Two octaves + major 3rd (C#7)
+    6th       2640 Hz    Two octaves + perfect 5th (E7)
+    7th       3080 Hz    Two octaves + minor 7th (≈G7, slightly flat)
+    8th       3520 Hz    Three octaves (A7)
+
+The overtone series is why a perfect fifth sounds consonant — the 3rd
+harmonic of the lower note matches the 2nd harmonic of the upper note.
+It's also why the major triad (root, major 3rd, perfect 5th) feels
+"natural" — these intervals appear in the first 6 harmonics.
+
+Different instruments emphasize different harmonics, which is why a
+violin and a flute playing the same note sound different. This quality
+is called **timbre**.
+
+Enharmonic Equivalents
+----------------------
+
+In equal temperament, C# and Db are the same pitch (they have the
+same frequency). They're called **enharmonic equivalents**. Which name
+you use depends on context:
+
+- In the key of **D major** (2 sharps), you write **C#**
+- In the key of **Gb major** (6 flats), you write **Db**
+
+The rule: each letter name should appear exactly once in a scale. The
+D major scale is D E F# G A B C# — not D E Gb G A B Db, even though
+F#=Gb and C#=Db.
+
+PyTheory uses sharps by default (following the tone list ordering), but
+tones carry their enharmonic equivalents:
+
+.. code-block:: python
+
+   >>> Tone.from_tuple(("C#", "Db")).names()
+   ['C#', 'Db']
+
 The Circle of Fifths
 --------------------
 

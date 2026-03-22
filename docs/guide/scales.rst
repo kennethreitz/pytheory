@@ -208,6 +208,60 @@ Some of the most-used chord progressions in Western music:
 
 - **I–IV–V–I** — the foundation of blues, rock, country, folk
 - **I–V–vi–IV** — the "pop progression" (Let It Be, No Woman No Cry,
-  With or Without You)
+  With or Without You, Someone Like You)
 - **ii–V–I** — the backbone of jazz harmony
 - **I–vi–IV–V** — the "50s progression" (Stand By Me, Every Breath You Take)
+- **i–bVI–bIII–bVII** — the "epic" minor progression (Stairway to Heaven,
+  My Heart Will Go On)
+- **I–IV–vi–V** — axis of awesome (many, many pop songs)
+
+The 12-Bar Blues
+~~~~~~~~~~~~~~~~
+
+The **12-bar blues** is the most influential chord progression in
+American music. It's 12 measures long and uses only three chords
+(I, IV, V)::
+
+    | I  | I  | I  | I  |
+    | IV | IV | I  | I  |
+    | V  | IV | I  | V  |
+
+Every blues, early rock and roll, and much of jazz is built on this
+structure. In the key of A::
+
+    | A  | A  | A  | A  |
+    | D  | D  | A  | A  |
+    | E  | D  | A  | E  |
+
+.. code-block:: python
+
+   from pytheory import TonedScale
+
+   a = TonedScale(tonic="A4")["major"]
+   I  = a.triad(0)   # A major
+   IV = a.triad(3)   # D major
+   V  = a.triad(4)   # E major
+
+   # The 12-bar blues progression
+   blues_12 = [I, I, I, I, IV, IV, I, I, V, IV, I, V]
+
+Parallel Major and Minor
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Two scales are **relative** if they share the same notes (C major and
+A minor). Two scales are **parallel** if they share the same tonic but
+have different notes (C major and C minor).
+
+Mixing parallel major and minor is a powerful compositional tool —
+borrowing chords from the parallel minor in a major key creates
+dramatic color shifts. The bVI and bVII chords (Ab and Bb in C major)
+are borrowed from C minor and appear constantly in rock and film music.
+
+.. code-block:: python
+
+   c_major = TonedScale(tonic="C4")["major"]
+   c_minor = TonedScale(tonic="C4")["minor"]
+
+   # Compare: same tonic, different notes
+   c_major.note_names  # ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
+   c_minor.note_names  # ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']

@@ -27,6 +27,7 @@ Work with tones, scales, chords, and fretboards using a clean, Pythonic API.
    :caption: User Guide
 
    guide/quickstart
+   guide/theory
    guide/tones
    guide/scales
    guide/chords
