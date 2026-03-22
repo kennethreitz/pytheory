@@ -208,6 +208,251 @@ class Chord:
                 return hz
         return 0
 
+    # ── Chord quality patterns (semitones from root) ──────────────────
+    _CHORD_PATTERNS = {
+        "major": {0, 4, 7},
+        "minor": {0, 3, 7},
+        "diminished": {0, 3, 6},
+        "augmented": {0, 4, 8},
+        "sus2": {0, 2, 7},
+        "sus4": {0, 5, 7},
+        "power": {0, 7},
+        "dominant 7th": {0, 4, 7, 10},
+        "major 7th": {0, 4, 7, 11},
+        "minor 7th": {0, 3, 7, 10},
+        "diminished 7th": {0, 3, 6, 9},
+        "half-diminished 7th": {0, 3, 6, 10},
+        "minor-major 7th": {0, 3, 7, 11},
+        "augmented 7th": {0, 4, 8, 10},
+        "dominant 9th": {0, 2, 4, 7, 10},
+        "major 9th": {0, 2, 4, 7, 11},
+        "minor 9th": {0, 2, 3, 7, 10},
+    }
+
+    def identify(self):
+        """Identify this chord by name (root + quality).
+
+        Tries each tone as a potential root and checks if the remaining
+        intervals match a known chord pattern. Returns the name with the
+        simplest match (fewest tones in the pattern preferred for ties).
+
+        Known patterns include major, minor, diminished, augmented,
+        sus2, sus4, power chords, and all common 7th/9th chords.
+
+        Returns:
+            A string like ``"C major"``, ``"A minor 7th"``, or ``None``
+            if no known pattern matches.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).identify()
+            'C major'
+            >>> Chord([A4, C5, E5]).identify()
+            'A minor'
+        """
+        if len(self.tones) < 2:
+            return None
+
+        from .tones import Tone
+
+        for root in self.tones:
+            pitch_classes = set()
+            for tone in self.tones:
+                interval = (tone - root) % 12
+                pitch_classes.add(interval)
+
+            for name, pattern in self._CHORD_PATTERNS.items():
+                if pitch_classes == pattern:
+                    return f"{root.name} {name}"
+        return None
+
+    def voice_leading(self, other):
+        """Find the smoothest voice leading to another chord.
+
+        Voice leading is the art of moving individual voices (tones)
+        from one chord to the next with minimal motion. Good voice
+        leading prefers stepwise motion (1-2 semitones) and contrary
+        motion between voices.
+
+        This method finds the assignment of tones that minimizes the
+        total semitone movement. For chords of different sizes, extra
+        tones are held or dropped as needed.
+
+        Args:
+            other: The target :class:`Chord` to voice-lead to.
+
+        Returns:
+            A list of ``(from_tone, to_tone, semitones)`` tuples
+            describing how each voice moves. Sorted by voice (highest
+            to lowest). ``semitones`` is signed: positive = up,
+            negative = down.
+
+        Example::
+
+            >>> c_major = Chord([C4, E4, G4])
+            >>> f_major = Chord([C4, F4, A4])
+            >>> c_major.voice_leading(f_major)
+            [(<Tone G4>, <Tone A4>, 2),
+             (<Tone E4>, <Tone F4>, 1),
+             (<Tone C4>, <Tone C4>, 0)]
+        """
+        import itertools
+
+        src = list(self.tones)
+        dst = list(other.tones)
+
+        while len(src) < len(dst):
+            src.append(src[-1])
+        while len(dst) < len(src):
+            dst.append(dst[-1])
+
+        best_cost = float("inf")
+        best_assignment = None
+
+        for perm in itertools.permutations(range(len(dst))):
+            cost = sum(abs(src[i] - dst[perm[i]]) for i in range(len(src)))
+            if cost < best_cost:
+                best_cost = cost
+                best_assignment = perm
+
+        result = []
+        for i, j in enumerate(best_assignment):
+            movement = dst[j] - src[i]
+            result.append((src[i], dst[j], movement))
+        return sorted(result, key=lambda v: v[0].pitch(), reverse=True)
+
+    def analyze(self, key_tonic, mode="major"):
+        """Roman numeral analysis of this chord relative to a key.
+
+        In tonal music, every chord has a **function** determined by
+        its relationship to the key center. The Roman numeral system
+        describes this: uppercase for major chords, lowercase for minor,
+        with degree symbols for diminished.
+
+        Args:
+            key_tonic: The tonic note name (e.g. ``"C"``) or a Tone.
+            mode: ``"major"`` or ``"minor"`` (default ``"major"``).
+
+        Returns:
+            A string like ``"I"``, ``"IV"``, ``"V7"``, ``"ii"``,
+            ``"vi"``, or ``None`` if the chord doesn't fit the key.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).analyze("C")
+            'I'
+            >>> Chord([G4, B4, D5]).analyze("C")
+            'V'
+            >>> Chord([D4, F4, A4]).analyze("C")
+            'ii'
+        """
+        import numeral as numeral_mod
+        from .scales import TonedScale
+        from .systems import SYSTEMS
+        from .tones import Tone
+
+        if isinstance(key_tonic, str):
+            key_tonic_tone = Tone.from_string(key_tonic + "4", system="western")
+        else:
+            key_tonic_tone = key_tonic
+
+        system = key_tonic_tone._system or SYSTEMS.get(
+            key_tonic_tone.system_name, SYSTEMS["western"])
+        scale = TonedScale(tonic=key_tonic_tone.full_name, system=system)[mode]
+
+        chord_id = self.identify()
+        if not chord_id:
+            return None
+
+        parts = chord_id.split(" ", 1)
+        root_name = parts[0]
+        quality = parts[1] if len(parts) > 1 else ""
+
+        scale_names = [t.name for t in scale.tones[:-1]]
+        if root_name not in scale_names:
+            return None
+        degree_idx = scale_names.index(root_name)
+
+        numeral_str = numeral_mod.int2roman(degree_idx + 1, only_ascii=True)
+
+        suffix = ""
+        if "minor" in quality:
+            numeral_str = numeral_str.lower()
+        if "diminished" in quality:
+            numeral_str = numeral_str.lower()
+            suffix = "dim"
+        if "augmented" in quality:
+            suffix = "+"
+        if "7th" in quality:
+            suffix += "7"
+        if "9th" in quality:
+            suffix += "9"
+
+        return numeral_str + suffix
+
+    @property
+    def tension(self):
+        """Harmonic tension score and resolution suggestions.
+
+        Tension in tonal music arises from specific intervallic
+        content — primarily the **tritone** (6 semitones), the most
+        unstable interval in Western harmony. The dominant 7th chord
+        (e.g. G7 = G-B-D-F) contains a tritone between B and F,
+        which "wants" to resolve: B pulls up to C, F pulls down to E.
+
+        This property analyzes:
+
+        - **Tritone count**: each tritone adds significant tension
+        - **Minor 2nd count**: semitone clashes add dissonance
+        - **Dominant function**: the combination of major 3rd + minor 7th
+          is the strongest tendency tone pattern in Western music
+
+        Returns:
+            A dict with:
+
+            - ``score`` (float): 0.0 = fully resolved, 1.0 = max tension
+            - ``tritones`` (int): number of tritone intervals
+            - ``minor_seconds`` (int): number of semitone clashes
+            - ``has_dominant_function`` (bool): contains the 3-7 tritone
+
+        Example::
+
+            >>> g7 = Chord([G4, B4, D5, F5])
+            >>> g7.tension['has_dominant_function']
+            True
+            >>> g7.tension['tritones']
+            1
+        """
+        if len(self.tones) < 2:
+            return {"score": 0.0, "tritones": 0, "minor_seconds": 0,
+                    "has_dominant_function": False}
+
+        tritones = 0
+        minor_seconds = 0
+
+        for i in range(len(self.tones)):
+            for j in range(i + 1, len(self.tones)):
+                interval = abs(self.tones[i] - self.tones[j]) % 12
+                if interval == 6:
+                    tritones += 1
+                if interval == 1 or interval == 11:
+                    minor_seconds += 1
+
+        has_dominant = False
+        chord_id = self.identify()
+        if chord_id and "dominant" in chord_id:
+            has_dominant = True
+
+        score = min(1.0, (tritones * 0.35) + (minor_seconds * 0.15) +
+                    (0.25 if has_dominant else 0.0))
+
+        return {
+            "score": score,
+            "tritones": tritones,
+            "minor_seconds": minor_seconds,
+            "has_dominant_function": has_dominant,
+        }
+
     def fingering(self, *positions):
         if not len(positions) == len(self.tones):
             raise ValueError(

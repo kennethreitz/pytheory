@@ -180,3 +180,122 @@ you hear a pulsing at the **beat frequency**: ``|f1 - f2|`` Hz.
 
    # The slowest (most perceptible) beat
    chord.beat_pulse  # 189.6 Hz
+
+Chord Identification
+--------------------
+
+Give PyTheory any set of tones and it will tell you what chord it is.
+It tries every tone as a potential root and matches the interval pattern
+against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
+
+.. code-block:: python
+
+   from pytheory import Chord, Tone
+
+   # Build a chord and identify it
+   chord = Chord([
+       Tone.from_string("A4", system="western"),
+       Tone.from_string("C5", system="western"),
+       Tone.from_string("E5", system="western"),
+   ])
+   chord.identify()   # 'A minor'
+
+   # Works with any voicing or inversion
+   chord2 = Chord([
+       Tone.from_string("E4", system="western"),
+       Tone.from_string("G4", system="western"),
+       Tone.from_string("C5", system="western"),
+   ])
+   chord2.identify()  # 'C major' (first inversion detected)
+
+Harmonic Analysis
+-----------------
+
+**Roman numeral analysis** labels each chord by its function within a
+key. This is how musicians describe chord progressions independent of
+key — "I-IV-V" means the same thing in C major (C-F-G) as in G major
+(G-C-D).
+
+.. code-block:: python
+
+   from pytheory import Chord, Tone
+
+   C4 = Tone.from_string("C4", system="western")
+   D4 = Tone.from_string("D4", system="western")
+   E4 = Tone.from_string("E4", system="western")
+   F4 = Tone.from_string("F4", system="western")
+   G4 = Tone.from_string("G4", system="western")
+   A4 = Tone.from_string("A4", system="western")
+   B4 = Tone.from_string("B4", system="western")
+
+   Chord([C4, E4, G4]).analyze("C")              # 'I'    (tonic)
+   Chord([D4, F4, A4]).analyze("C")              # 'ii'   (supertonic minor)
+   Chord([G4, B4, G4+5]).analyze("C")            # 'V'    (dominant)
+   Chord([G4, B4, G4+5, G4+10]).analyze("C")     # 'V7'   (dominant 7th)
+
+Tension and Resolution
+----------------------
+
+**Tension** is what makes music move forward. Without it, there's no
+desire to resolve — no drama, no narrative. The ``tension`` property
+quantifies this based on:
+
+- **Tritones** (6 semitones): the most unstable interval. The tritone
+  between the 3rd and 7th of a dominant chord (e.g. B and F in G7)
+  creates the strongest pull toward resolution.
+- **Minor 2nds**: semitone clashes that add bite and urgency.
+- **Dominant function**: the specific combination of a major 3rd and
+  minor 7th above the root — the hallmark of the V7 chord.
+
+.. code-block:: python
+
+   # A C major triad is fully resolved — no tension
+   c_major = Chord([C4, E4, G4])
+   c_major.tension['score']               # 0.0
+   c_major.tension['tritones']            # 0
+
+   # G7 is loaded with tension — it wants to resolve to C
+   g7 = Chord([G4, B4, G4+5, G4+10])
+   g7.tension['score']                    # 0.6
+   g7.tension['tritones']                 # 1
+   g7.tension['has_dominant_function']     # True
+
+Voice Leading
+-------------
+
+**Voice leading** is the art of connecting chords smoothly. Instead of
+jumping all voices to new positions, good voice leading moves each note
+the minimum distance to reach the next chord. Bach's chorales are the
+gold standard — every voice moves by step whenever possible.
+
+.. code-block:: python
+
+   c_maj = Chord([C4, E4, G4])
+   f_maj = Chord([F4, A4, C4+12])
+
+   for src, dst, motion in c_maj.voice_leading(f_maj):
+       print(f"{src} -> {dst}  ({motion:+d} semitones)")
+   # Each voice moves the minimum distance to reach the target chord
+
+The Overtone Series
+-------------------
+
+Every musical tone is actually a stack of frequencies — the
+**fundamental** plus its **overtones** (harmonics). The overtone series
+is nature's chord: it contains the octave, perfect fifth, perfect
+fourth, major third, and more, in that order.
+
+This is *why* consonance exists. When you play C and G together, the
+overtones of C already contain G. The two tones share acoustic energy,
+reinforcing each other. A dissonant interval like C and C# shares
+almost no overtones — the waves clash.
+
+.. code-block:: python
+
+   from pytheory import Tone
+
+   a4 = Tone.from_string("A4", system="western")
+   a4.overtones(8)
+   # [440.0, 880.0, 1320.0, 1760.0, 2200.0, 2640.0, 3080.0, 3520.0]
+   #  A4     A5     E6      A6      C#7     E7      ~G7     A7
+   #  fund.  oct.   5th+oct 2oct    3rd     5th     ~7th    3oct

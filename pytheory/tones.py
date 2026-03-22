@@ -194,6 +194,40 @@ class Tone:
         """The frequency of this tone in Hz (equal temperament, A4=440)."""
         return self.pitch()
 
+    def overtones(self, n=8):
+        """The first *n* overtones (harmonic series) of this tone.
+
+        The harmonic series is the foundation of timbre and consonance.
+        When a string or air column vibrates, it produces not just the
+        fundamental frequency but also integer multiples: 2f, 3f, 4f...
+
+        The intervals between consecutive harmonics form the basis of
+        Western harmony::
+
+            Harmonic  Ratio  Interval from fundamental
+            1         1:1    Unison (the fundamental)
+            2         2:1    Octave
+            3         3:1    Octave + perfect 5th
+            4         4:1    Two octaves
+            5         5:1    Two octaves + major 3rd
+            6         6:1    Two octaves + perfect 5th
+            7         7:1    Two octaves + minor 7th (slightly flat)
+            8         8:1    Three octaves
+
+        The reason a perfect fifth sounds consonant is that the 3rd
+        harmonic of the lower note aligns with the 2nd harmonic of the
+        upper note (when the upper note is a fifth above). More shared
+        harmonics = more consonance.
+
+        Args:
+            n: Number of harmonics to return (default 8).
+
+        Returns:
+            List of frequencies in Hz.
+        """
+        f = self.pitch()
+        return [f * i for i in range(1, n + 1)]
+
     def pitch(
         self,
         *,

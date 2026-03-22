@@ -34,8 +34,5 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build"]
 
 html_theme = "alabaster"
-html_title = " "
-html_short_title = " "
-html_logo = "_static/logo.png"
 html_static_path = ["_static"]
 html_extra_path = ["CNAME"]

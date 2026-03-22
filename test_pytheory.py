@@ -2240,3 +2240,179 @@ def test_gamelan_all_intervals_sum_to_12():
         for name, scale in gamelan.scales[scale_type].items():
             total = sum(scale["intervals"])
             assert total == 12, f"{name} intervals sum to {total}, not 12"
+
+
+# ── Overtone series ─────────────────────────────────────────────────────────
+
+def test_overtones_a4():
+    a4 = Tone.from_string("A4", system="western")
+    harmonics = a4.overtones(4)
+    assert len(harmonics) == 4
+    assert abs(harmonics[0] - 440.0) < 0.01
+    assert abs(harmonics[1] - 880.0) < 0.01
+    assert abs(harmonics[2] - 1320.0) < 0.01
+    assert abs(harmonics[3] - 1760.0) < 0.01
+
+
+def test_overtones_default_count():
+    c4 = Tone.from_string("C4", system="western")
+    assert len(c4.overtones()) == 8
+
+
+def test_overtones_ratios():
+    a4 = Tone.from_string("A4", system="western")
+    harmonics = a4.overtones(8)
+    f0 = harmonics[0]
+    for i, h in enumerate(harmonics):
+        assert abs(h / f0 - (i + 1)) < 0.001
+
+
+# ── Chord identification ────────────────────────────────────────────────────
+
+def test_identify_c_major():
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert chord.identify() == "C major"
+
+
+def test_identify_a_minor():
+    chord = Chord(tones=[
+        Tone.from_string("A4", system="western"),
+        Tone.from_string("C5", system="western"),
+        Tone.from_string("E5", system="western"),
+    ])
+    assert chord.identify() == "A minor"
+
+
+def test_identify_g_dominant_7th():
+    chord = Chord(tones=[
+        Tone.from_string("G4", system="western"),
+        Tone.from_string("B4", system="western"),
+        Tone.from_string("D5", system="western"),
+        Tone.from_string("F5", system="western"),
+    ])
+    assert chord.identify() == "G dominant 7th"
+
+
+def test_identify_power_chord():
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert chord.identify() == "C power"
+
+
+def test_identify_diminished():
+    chord = Chord(tones=[
+        Tone.from_string("B4", system="western"),
+        Tone.from_string("D5", system="western"),
+        Tone.from_string("F5", system="western"),
+    ])
+    assert chord.identify() == "B diminished"
+
+
+def test_identify_single_tone():
+    chord = Chord(tones=[Tone.from_string("C4", system="western")])
+    assert chord.identify() is None
+
+
+# ── Voice leading ───────────────────────────────────────────────────────────
+
+def test_voice_leading_same_chord():
+    c_maj = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    vl = c_maj.voice_leading(c_maj)
+    total = sum(abs(v[2]) for v in vl)
+    assert total == 0
+
+
+def test_voice_leading_returns_tuples():
+    c = Chord([Tone.from_string("C4", system="western")])
+    d = Chord([Tone.from_string("D4", system="western")])
+    vl = c.voice_leading(d)
+    assert len(vl) == 1
+    assert vl[0][2] == 2
+
+
+# ── Harmonic analysis ───────────────────────────────────────────────────────
+
+def test_analyze_I():
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert chord.analyze("C") == "I"
+
+
+def test_analyze_V():
+    chord = Chord(tones=[
+        Tone.from_string("G4", system="western"),
+        Tone.from_string("B4", system="western"),
+        Tone.from_string("D5", system="western"),
+    ])
+    assert chord.analyze("C") == "V"
+
+
+def test_analyze_ii():
+    chord = Chord(tones=[
+        Tone.from_string("D4", system="western"),
+        Tone.from_string("F4", system="western"),
+        Tone.from_string("A4", system="western"),
+    ])
+    assert chord.analyze("C") == "ii"
+
+
+def test_analyze_V7():
+    chord = Chord(tones=[
+        Tone.from_string("G4", system="western"),
+        Tone.from_string("B4", system="western"),
+        Tone.from_string("D5", system="western"),
+        Tone.from_string("F5", system="western"),
+    ])
+    assert chord.analyze("C") == "V7"
+
+
+def test_analyze_not_in_key():
+    chord = Chord(tones=[
+        Tone.from_string("F#4", system="western"),
+        Tone.from_string("A#4", system="western"),
+        Tone.from_string("C#5", system="western"),
+    ])
+    assert chord.analyze("C") is None
+
+
+# ── Tension ─────────────────────────────────────────────────────────────────
+
+def test_tension_c_major_low():
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert chord.tension["score"] == 0.0
+    assert chord.tension["tritones"] == 0
+
+
+def test_tension_g7_high():
+    chord = Chord(tones=[
+        Tone.from_string("G4", system="western"),
+        Tone.from_string("B4", system="western"),
+        Tone.from_string("D5", system="western"),
+        Tone.from_string("F5", system="western"),
+    ])
+    t = chord.tension
+    assert t["tritones"] == 1
+    assert t["has_dominant_function"] is True
+    assert t["score"] > 0.5
+
+
+def test_tension_empty():
+    chord = Chord(tones=[])
+    assert chord.tension["score"] == 0.0
