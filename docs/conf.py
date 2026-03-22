@@ -1,7 +1,11 @@
 import os
 import sys
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(".."))
+
+# Mock sounddevice so Sphinx can import pytheory.play without PortAudio
+sys.modules["sounddevice"] = MagicMock()
 
 project = "PyTheory"
 copyright = "2024, Kenneth Reitz"
