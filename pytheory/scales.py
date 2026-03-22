@@ -108,7 +108,7 @@ class TonedScale:
 
     @property
     def scales(self):
-        return tuple(self._scales().keys())
+        return tuple(self._scales.keys())
 
     @property
     def _scales(self):

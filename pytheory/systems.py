@@ -111,7 +111,7 @@ class System:
         ]
 
         if offset:
-            scale = scale[offset - 1 :] + scale[: offset - 1]
+            scale = scale[offset:] + scale[:offset]
 
         # descending goes in meta?
         return {"intervals": scale, "hemitonic": hemitonic, "meta": {}}

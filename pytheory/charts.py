@@ -35,45 +35,53 @@ class NamedChord:
     def acceptable_tones(self):
         acceptable = [self.tone]
 
-        # Major third.
         if self.quality == "maj":
-            acceptable += [self.tone.add(3)]
-
-        # Minor third.
-        elif self.quality == "m":
-            acceptable += [self.tone.add(4)]
-
-        # Perfect fifth.
-        elif self.quality == "5":
-            acceptable += [self.tone.add(5)]
-
-        elif self.quality == "7":
-            acceptable += [self.tone.add(7)]
-
-        elif self.quality == "9":
-            acceptable += [self.tone.add(9)]
-
-        elif self.quality == "dim":
-            acceptable += [self.tone.add(4), self.tone.add(8)]
-
-        elif self.quality == "m6":
-            acceptable += [self.tone.add(4), self.tone.add(6)]
-
-        elif self.quality == "m7":
+            # Major triad: root, major 3rd, perfect 5th
             acceptable += [self.tone.add(4), self.tone.add(7)]
 
-        elif self.quality == "m9":
-            acceptable += [self.tone.add(4), self.tone.add(9)]
-
-        elif self.quality == "maj7":
+        elif self.quality == "m":
+            # Minor triad: root, minor 3rd, perfect 5th
             acceptable += [self.tone.add(3), self.tone.add(7)]
 
+        elif self.quality == "5":
+            # Power chord: root, perfect 5th
+            acceptable += [self.tone.add(7)]
+
+        elif self.quality == "7":
+            # Dominant 7th: root, major 3rd, perfect 5th, minor 7th
+            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(10)]
+
+        elif self.quality == "9":
+            # Dominant 9th: root, major 3rd, perfect 5th, minor 7th, major 9th
+            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(10), self.tone.add(2)]
+
+        elif self.quality == "dim":
+            # Diminished: root, minor 3rd, diminished 5th
+            acceptable += [self.tone.add(3), self.tone.add(6)]
+
+        elif self.quality == "m6":
+            # Minor 6th: root, minor 3rd, perfect 5th, major 6th
+            acceptable += [self.tone.add(3), self.tone.add(7), self.tone.add(9)]
+
+        elif self.quality == "m7":
+            # Minor 7th: root, minor 3rd, perfect 5th, minor 7th
+            acceptable += [self.tone.add(3), self.tone.add(7), self.tone.add(10)]
+
+        elif self.quality == "m9":
+            # Minor 9th: root, minor 3rd, perfect 5th, minor 7th, major 9th
+            acceptable += [self.tone.add(3), self.tone.add(7), self.tone.add(10), self.tone.add(2)]
+
+        elif self.quality == "maj7":
+            # Major 7th: root, major 3rd, perfect 5th, major 7th
+            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(11)]
+
         elif self.quality == "maj9":
-            acceptable += [self.tone.add(3), self.tone.add(9)]
+            # Major 9th: root, major 3rd, perfect 5th, major 7th, major 9th
+            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(11), self.tone.add(2)]
 
         else:
-            acceptable += [self.tone.add(5)]
-            acceptable += [self.tone.subtract(5)]
+            # Default (no quality): major triad
+            acceptable += [self.tone.add(4), self.tone.add(7)]
 
         return tuple(acceptable)
 

@@ -71,8 +71,19 @@ SCALES = {
 
 SYSTEMS = NotImplemented
 
-for i, (degree_name, modes) in enumerate(DEGREES["western"]):
-    for mode in modes:
-        SCALES[12]["heptatonic"][1].update(
-            {mode: {"major": True, "hemitonic": True, "offset": i}}
-        )
+# Modes are rotations of the major scale pattern.
+# Each mode's offset is its position in the major scale.
+_MODES = {
+    "ionian": 0,
+    "dorian": 1,
+    "phrygian": 2,
+    "lydian": 3,
+    "mixolydian": 4,
+    "aeolian": 5,
+    "locrian": 6,
+}
+
+for mode_name, offset in _MODES.items():
+    SCALES[12]["heptatonic"][1][mode_name] = {
+        "major": True, "hemitonic": True, "offset": offset
+    }

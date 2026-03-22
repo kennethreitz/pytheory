@@ -79,12 +79,6 @@ class Chord:
         return Chord(tones=tones)
 
 
-class NamedChord:
-    def __init__(self, *, name, system):
-        self.name
-        self.system
-
-
 class Fretboard:
     def __init__(self, *, tones):
         self.tones = tones
