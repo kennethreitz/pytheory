@@ -4,15 +4,9 @@ Quickstart
 Installation
 ------------
 
-.. code-block:: bash
+::
 
-   pip install pytheory
-
-Or with `uv <https://github.com/astral-sh/uv>`_:
-
-.. code-block:: bash
-
-   uv add pytheory
+   $ pip install pytheory
 
 Basic Usage
 -----------
