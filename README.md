@@ -2,8 +2,6 @@
 
 This library makes exploring music theory approachable and fun, treating Python as a musical instrument.
 
-![logo](https://github.com/kennethreitz/pytheory/raw/master/ext/pytheory-small.png)
-
 ## Installation
 
 ```
