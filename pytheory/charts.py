@@ -1,10 +1,111 @@
 import itertools
+from typing import Optional
 
 from .systems import SYSTEMS
 from .tones import Tone
 
 QUALITIES = ("", "maj", "m", "5", "7", "9", "dim", "m6", "m7", "m9", "maj7", "maj9")
 MAX_FRET = 7
+
+
+class Fingering:
+    """A chord fingering labeled with string names.
+
+    Provides both index and named access to fret positions, making it
+    clear which string each position corresponds to.
+
+    Example::
+
+        >>> f = Fingering(positions=(0, 3, 2, 0, 1, 0),
+        ...               string_names=('E', 'A', 'D', 'G', 'B', 'e'))
+        >>> f
+        Fingering(E=0, A=3, D=2, G=0, B=1, e=0)
+        >>> f['A']
+        3
+        >>> f[1]
+        3
+    """
+
+    def __init__(self, positions: tuple, string_names: tuple[str, ...], *, fretboard=None) -> None:
+        self.positions = tuple(positions)
+        self._fretboard = fretboard
+        # Disambiguate duplicate names: for standard guitar tuning
+        # (high-to-low), the first occurrence of a duplicate becomes
+        # lowercase (e.g. high E → 'e') while the last keeps uppercase.
+        from collections import Counter
+        name_counts = Counter(string_names)
+        seen: dict[str, int] = {}
+        unique_names: list[str] = []
+        for name in string_names:
+            seen[name] = seen.get(name, 0) + 1
+            if name_counts[name] > 1 and seen[name] < name_counts[name]:
+                unique_names.append(name.lower())
+            else:
+                unique_names.append(name)
+
+        self.string_names = tuple(unique_names)
+        self._map = dict(zip(self.string_names, self.positions))
+
+    def __repr__(self) -> str:
+        pairs = ", ".join(
+            f"{name}={'x' if pos is None else pos}"
+            for name, pos in zip(self.string_names, self.positions)
+        )
+        return f"Fingering({pairs})"
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.positions[key]
+        return self._map[key]
+
+    def __iter__(self):
+        return iter(self.positions)
+
+    def __len__(self):
+        return len(self.positions)
+
+    def __eq__(self, other):
+        if isinstance(other, Fingering):
+            return self.positions == other.positions and self.string_names == other.string_names
+        if isinstance(other, tuple):
+            return self.positions == other
+        return NotImplemented
+
+    @property
+    def tones(self):
+        """Return the sounding tones for this fingering.
+
+        Requires that the Fingering was created with a fretboard reference.
+        Muted strings (``None``) are excluded.
+        """
+        if self._fretboard is None:
+            raise ValueError("Cannot resolve tones without a fretboard reference.")
+        tones = []
+        for pos, tone in zip(self.positions, self._fretboard.tones):
+            if pos is not None:
+                tones.append(tone.add(pos))
+        return tones
+
+    def to_chord(self, fretboard=None) -> "Chord":
+        """Apply this fingering to a fretboard, returning a Chord.
+
+        Strings with ``None`` positions (muted) are excluded.
+        If no fretboard is given, uses the one stored at creation time.
+        """
+        from .chords import Chord
+
+        fb = fretboard or self._fretboard
+        if fb is None:
+            raise ValueError("No fretboard provided.")
+        tones = []
+        for pos, tone in zip(self.positions, fb.tones):
+            if pos is not None:
+                tones.append(tone.add(pos))
+        return Chord(tones=tones)
+
+    def identify(self) -> Optional[str]:
+        """Identify the chord name from this fingering."""
+        return self.to_chord().identify()
 
 CHARTS = {}
 CHARTS["western"] = []
@@ -148,11 +249,12 @@ class NamedChord:
                 if fingering_score(possible_fingering) == max_score:
                     yield possible_fingering
 
+        string_names = tuple(t.name for t in fretboard.tones)
         best_fingerings = tuple([g for g in gen()])
         if not multiple:
-            return self.fix_fingering(best_fingerings[0])
+            return Fingering(self.fix_fingering(best_fingerings[0]), string_names, fretboard=fretboard)
         else:
-            return tuple([self.fix_fingering(f) for f in best_fingerings])
+            return tuple([Fingering(self.fix_fingering(f), string_names, fretboard=fretboard) for f in best_fingerings])
 
     def tab(self, *, fretboard):
         """Render this chord as ASCII guitar tablature.

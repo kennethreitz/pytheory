@@ -6,7 +6,7 @@ from .tones import Tone, Interval
 from .systems import System, SYSTEMS
 from .scales import Scale, TonedScale, Key, PROGRESSIONS
 from .chords import Chord, Fretboard, analyze_progression
-from .charts import CHARTS, charts_for_fretboard
+from .charts import CHARTS, Fingering, charts_for_fretboard
 
 try:
     from .play import play, Synth
@@ -19,7 +19,7 @@ Note = Tone
 
 __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
-    "PROGRESSIONS", "Chord", "Fretboard", "analyze_progression",
+    "PROGRESSIONS", "Chord", "Fretboard", "Fingering", "analyze_progression",
     "System", "SYSTEMS", "CHARTS", "charts_for_fretboard",
     "play", "Synth",
 ]

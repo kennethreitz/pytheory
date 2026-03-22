@@ -680,8 +680,8 @@ class Chord:
         """
         return Chord(tones=[t for t in self.tones if t.name != tone_name])
 
-    def fingering(self, *positions: int) -> Chord:
-        """Apply fret positions to each tone, returning a new Chord.
+    def fingering(self, *positions: int) -> "Fingering":
+        """Apply fret positions to each tone, returning a Fingering.
 
         Each position value is added (in semitones) to the corresponding
         tone. The number of positions must match the number of tones.
@@ -690,22 +690,21 @@ class Chord:
             *positions: One integer per tone indicating the fret offset.
 
         Returns:
-            A new :class:`Chord` with each tone shifted by its position.
+            A :class:`Fingering` labeled with tone names.
 
         Raises:
             ValueError: If the number of positions doesn't match the
                 number of tones.
         """
+        from .charts import Fingering
+
         if not len(positions) == len(self.tones):
             raise ValueError(
                 "The number of positions must match the number of tones (strings)."
             )
 
-        tones = []
-        for i, tone in enumerate(self.tones):
-            tones.append(tone.add(positions[i]))
-
-        return Chord(tones=tones)
+        string_names = tuple(t.name for t in self.tones)
+        return Fingering(positions, string_names)
 
 
 class Fretboard:
@@ -1252,8 +1251,8 @@ class Fretboard:
 
         return "\n".join(lines)
 
-    def fingering(self, *positions: int) -> Chord:
-        """Apply fret positions to each string, returning a Chord.
+    def fingering(self, *positions: int) -> "Fingering":
+        """Apply fret positions to each string, returning a Fingering.
 
         Each position value is added (in semitones) to the corresponding
         open-string tone. The number of positions must match the number
@@ -1263,22 +1262,22 @@ class Fretboard:
             *positions: One integer per string indicating the fret number.
 
         Returns:
-            A :class:`Chord` with each tone shifted by its fret position.
+            A :class:`Fingering` labeled with string names. Call
+            ``.to_chord(fretboard)`` or use the resulting chord directly.
 
         Raises:
             ValueError: If the number of positions doesn't match the
                 number of strings.
         """
+        from .charts import Fingering
+
         if not len(positions) == len(self.tones):
             raise ValueError(
                 "The number of positions must match the number of tones (strings)."
             )
 
-        tones = []
-        for i, tone in enumerate(self.tones):
-            tones.append(tone.add(positions[i]))
-
-        return Chord(tones=tones)
+        string_names = tuple(t.name for t in self.tones)
+        return Fingering(positions, string_names, fretboard=self)
 
 
 def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major") -> list[str | None]:
