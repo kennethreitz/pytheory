@@ -68,6 +68,37 @@ TONES = {
         ("G",),
         ("G#", "Ab"),
     ],
+    # Blues/Pentatonic — Western names with blues and pentatonic scales.
+    "blues": [
+        ("A",),
+        ("A#", "Bb"),
+        ("B",),
+        ("C",),
+        ("C#", "Db"),
+        ("D",),
+        ("D#", "Eb"),
+        ("E",),
+        ("F",),
+        ("F#", "Gb"),
+        ("G",),
+        ("G#", "Ab"),
+    ],
+    # Javanese gamelan — pelog approximation in 12-TET.
+    # True gamelan uses non-Western intonation; these are closest 12-TET fits.
+    "gamelan": [
+        ("nem",),           # A  — 6
+        ("pi",),            # Bb — 7 (barang in some)
+        ("barang",),        # B  — 7
+        ("ji",),            # C  — 1
+        ("ro-",),           # Db — 2b
+        ("ro",),            # D  — 2
+        ("lu-",),           # Eb — 3b
+        ("lu",),            # E  — 3
+        ("pat",),           # F  — 4
+        ("pat+",),          # F# — 4#
+        ("mo",),            # G  — 5
+        ("nem-",),          # Ab — 6b
+    ],
 }
 
 DEGREES = {
@@ -107,7 +138,25 @@ DEGREES = {
         ("san", ()),         # 3rd
         ("shi", ()),         # 4th
         ("go", ()),          # 5th
-        ("roku", ()),        # 6th (pentatonic scales skip some)
+        ("roku", ()),        # 6th
+    ],
+    "blues": [
+        ("tonic", ()),
+        ("supertonic", ()),
+        ("mediant", ()),
+        ("subdominant", ()),
+        ("dominant", ()),
+        ("submediant", ()),
+        ("subtonic", ()),
+    ],
+    "gamelan": [
+        ("ji", ()),          # 1
+        ("ro", ()),          # 2
+        ("lu", ()),          # 3
+        ("pat", ()),         # 4
+        ("mo", ()),          # 5
+        ("nem", ()),         # 6
+        ("pi", ()),          # 7
     ],
 }
 
@@ -249,6 +298,71 @@ JAPANESE_SCALES = {
                 # Ryo — gagaku court music scale
                 # C D E F# G A B (= Lydian)
                 "ryo": {"intervals": (2, 2, 2, 1, 2, 2, 1)},
+            },
+        ],
+    }
+}
+
+# Blues and pentatonic scales — foundational to American music.
+BLUES_SCALES = {
+    12: {
+        "chromatic": (12, {}),
+        "pentatonic": [
+            5,
+            {
+                # Major pentatonic — C D E G A
+                "major pentatonic": {"intervals": (2, 2, 3, 2, 3)},
+                # Minor pentatonic — C Eb F G Bb
+                "minor pentatonic": {"intervals": (3, 2, 2, 3, 2)},
+            },
+        ],
+        "hexatonic": [
+            6,
+            {
+                # Blues scale — C Eb F F# G Bb
+                "blues": {"intervals": (3, 2, 1, 1, 3, 2)},
+                # Major blues — C D D# E G A
+                "major blues": {"intervals": (2, 1, 1, 3, 2, 3)},
+            },
+        ],
+        "heptatonic": [
+            7,
+            {
+                # Mixolydian (dominant blues sound) — C D E F G A Bb
+                "dominant": {"intervals": (2, 2, 1, 2, 2, 1, 2)},
+                # Dorian (minor blues/jazz) — C D Eb F G A Bb
+                "minor": {"intervals": (2, 1, 2, 2, 2, 1, 2)},
+            },
+        ],
+    }
+}
+
+# Javanese gamelan scales — 12-TET approximations.
+# True gamelan tuning varies between ensembles and does not conform
+# to equal temperament. These approximations capture the melodic
+# character of the scales.
+GAMELAN_SCALES = {
+    12: {
+        "chromatic": (12, {}),
+        "pentatonic": [
+            5,
+            {
+                # Slendro — roughly equal 5-tone division of the octave
+                # Approximated as: C D F G Bb
+                "slendro": {"intervals": (2, 3, 2, 3, 2)},
+                # Pelog pathet nem — C Db E F G (approx)
+                "pelog nem": {"intervals": (1, 3, 1, 2, 5)},
+                # Pelog pathet barang — C Db E F# B (approx)
+                "pelog barang": {"intervals": (1, 3, 3, 4, 1)},
+                # Pelog pathet lima — C Db E F Ab (approx)
+                "pelog lima": {"intervals": (1, 3, 1, 3, 4)},
+            },
+        ],
+        "heptatonic": [
+            7,
+            {
+                # Full pelog — all 7 tones: C Db E F G Ab B (approx)
+                "pelog": {"intervals": (1, 3, 1, 2, 1, 3, 1)},
             },
         ],
     }

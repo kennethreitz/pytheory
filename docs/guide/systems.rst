@@ -116,6 +116,84 @@ and heptatonic scales from Japanese music.
 
 **Heptatonic scales:** ritsu, ryo
 
+Blues and Pentatonic
+-------------------
+
+The blues system provides the scales foundational to blues, rock, jazz,
+and folk music worldwide. Pentatonic scales (5 notes) are the oldest
+known musical scales, found independently in cultures across every
+continent.
+
+The **blues scale** adds the "blue note" (flat 5th / sharp 4th) to the
+minor pentatonic — this chromatic passing tone is the defining sound
+of the blues.
+
+.. code-block:: python
+
+   from pytheory import TonedScale
+   from pytheory.systems import SYSTEMS
+
+   c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
+
+   c["major pentatonic"].note_names  # the "happy" pentatonic
+   # ['C', 'D', 'E', 'G', 'A', 'C']
+
+   c["minor pentatonic"].note_names  # the "sad" pentatonic
+   # ['C', 'D#', 'F', 'G', 'A#', 'C']
+
+   c["blues"].note_names             # minor pentatonic + blue note
+   # ['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
+
+   c["major blues"].note_names       # major pentatonic + blue note
+   # ['C', 'D', 'D#', 'E', 'G', 'A', 'C']
+
+**Pentatonic:** major pentatonic, minor pentatonic
+
+**Hexatonic:** blues, major blues
+
+**Heptatonic:** dominant (Mixolydian — the dominant 7th sound),
+minor (Dorian — the jazz minor sound)
+
+
+Javanese Gamelan
+----------------
+
+The gamelan system approximates the scales of the Javanese and Balinese
+gamelan orchestra in 12-tone equal temperament. True gamelan tuning is
+unique to each ensemble and does not conform to Western intonation —
+these are the closest 12-TET approximations.
+
+**Slendro** is a roughly equal 5-tone division of the octave, producing
+an ethereal, floating quality. **Pelog** is a 7-tone scale with unequal
+intervals, typically performed using 5-note subsets called *pathet*.
+
+.. code-block:: python
+
+   from pytheory import TonedScale
+   from pytheory.systems import SYSTEMS
+
+   ji = TonedScale(tonic="ji4", system=SYSTEMS["gamelan"])
+
+   ji["slendro"].note_names      # the 5-tone equidistant scale
+   # ['ji', 'ro', 'pat', 'mo', 'pi', 'ji']
+
+   ji["pelog"].note_names         # full 7-tone pelog
+   # ['ji', 'ro-', 'lu', 'pat', 'mo', 'nem-', 'barang', 'ji']
+
+   ji["pelog nem"].note_names     # pathet nem subset
+   # ['ji', 'ro-', 'lu', 'pat', 'mo', 'ji']
+
+**Pentatonic:** slendro, pelog nem, pelog barang, pelog lima
+
+**Heptatonic:** pelog (full 7-tone)
+
+.. note::
+
+   Gamelan tone names follow Javanese numbering: ji (1), ro (2),
+   lu (3), pat (4), mo (5), nem (6), pi/barang (7). Suffixes
+   indicate microtonal variants approximated to the nearest semitone.
+
+
 Cross-System Comparison
 -----------------------
 

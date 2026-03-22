@@ -1,6 +1,7 @@
 from ._statics import (
     TEMPERAMENTS, TONES, DEGREES, SCALES,
-    INDIAN_SCALES, ARABIC_SCALES, JAPANESE_SCALES, SYSTEMS,
+    INDIAN_SCALES, ARABIC_SCALES, JAPANESE_SCALES,
+    BLUES_SCALES, GAMELAN_SCALES, SYSTEMS,
 )
 
 
@@ -134,4 +135,6 @@ SYSTEMS = {
     "indian": System(tone_names=TONES["indian"], degrees=DEGREES["indian"], scales=INDIAN_SCALES[12]),
     "arabic": System(tone_names=TONES["arabic"], degrees=DEGREES["arabic"], scales=ARABIC_SCALES[12]),
     "japanese": System(tone_names=TONES["japanese"], degrees=DEGREES["japanese"], scales=JAPANESE_SCALES[12]),
+    "blues": System(tone_names=TONES["blues"], degrees=DEGREES["blues"], scales=BLUES_SCALES[12]),
+    "gamelan": System(tone_names=TONES["gamelan"], degrees=DEGREES["gamelan"], scales=GAMELAN_SCALES[12]),
 }

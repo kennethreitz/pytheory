@@ -2157,3 +2157,86 @@ def test_japanese_heptatonic_intervals_sum_to_12():
     for name, scale in japanese.scales["heptatonic"].items():
         total = sum(scale["intervals"])
         assert total == 12, f"{name} intervals sum to {total}, not 12"
+
+
+# ── Blues system ────────────────────────────────────────────────────────────
+
+def test_blues_system_exists():
+    assert "blues" in SYSTEMS
+    assert SYSTEMS["blues"].semitones == 12
+
+
+def test_blues_major_pentatonic():
+    c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
+    s = c["major pentatonic"]
+    assert s.note_names == ["C", "D", "E", "G", "A", "C"]
+
+
+def test_blues_minor_pentatonic():
+    c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
+    s = c["minor pentatonic"]
+    assert s.note_names == ["C", "D#", "F", "G", "A#", "C"]
+
+
+def test_blues_scale():
+    c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
+    s = c["blues"]
+    names = s.note_names
+    assert names == ["C", "D#", "F", "F#", "G", "A#", "C"]
+    assert len(names) == 7  # 6 notes + octave
+
+
+def test_blues_all_scales_available():
+    c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
+    for scale in ["major pentatonic", "minor pentatonic", "blues",
+                   "major blues", "dominant", "minor"]:
+        assert scale in c.scales, f"Missing scale: {scale}"
+
+
+def test_blues_all_intervals_sum_to_12():
+    blues = SYSTEMS["blues"]
+    for scale_type in blues.scales:
+        for name, scale in blues.scales[scale_type].items():
+            total = sum(scale["intervals"])
+            assert total == 12, f"{name} intervals sum to {total}, not 12"
+
+
+# ── Gamelan system ──────────────────────────────────────────────────────────
+
+def test_gamelan_system_exists():
+    assert "gamelan" in SYSTEMS
+    assert SYSTEMS["gamelan"].semitones == 12
+
+
+def test_gamelan_tones():
+    gamelan = SYSTEMS["gamelan"]
+    names = [t.name for t in gamelan.tones]
+    assert "ji" in names
+    assert "ro" in names
+    assert "mo" in names
+
+
+def test_gamelan_slendro():
+    ji = TonedScale(tonic="ji4", system=SYSTEMS["gamelan"])
+    s = ji["slendro"]
+    assert s.note_names == ["ji", "ro", "pat", "mo", "pi", "ji"]
+
+
+def test_gamelan_pelog():
+    ji = TonedScale(tonic="ji4", system=SYSTEMS["gamelan"])
+    s = ji["pelog"]
+    assert len(s) == 8  # 7 notes + octave
+
+
+def test_gamelan_all_scales_available():
+    ji = TonedScale(tonic="ji4", system=SYSTEMS["gamelan"])
+    for scale in ["slendro", "pelog nem", "pelog barang", "pelog lima", "pelog"]:
+        assert scale in ji.scales, f"Missing scale: {scale}"
+
+
+def test_gamelan_all_intervals_sum_to_12():
+    gamelan = SYSTEMS["gamelan"]
+    for scale_type in gamelan.scales:
+        for name, scale in gamelan.scales[scale_type].items():
+            total = sum(scale["intervals"])
+            assert total == 12, f"{name} intervals sum to {total}, not 12"
