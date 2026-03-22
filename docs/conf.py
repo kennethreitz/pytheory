@@ -10,7 +10,7 @@ sys.modules["sounddevice"] = MagicMock()
 project = "PyTheory"
 copyright = "2026, Kenneth Reitz"
 author = "Kenneth Reitz"
-release = "0.3.0"
+release = "0.3.1"
 
 extensions = [
     "sphinx.ext.autodoc",
