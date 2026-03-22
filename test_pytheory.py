@@ -1941,10 +1941,65 @@ def test_all_instruments_create():
         "mandolin", "mandola", "octave_mandolin", "mandocello",
         "violin", "viola", "cello", "double_bass",
         "banjo", "harp", "pedal_steel",
+        "bouzouki", "oud", "sitar", "shamisen", "erhu",
+        "charango", "pipa", "balalaika", "lute",
     ]
     for name in instruments:
         fb = getattr(Fretboard, name)()
         assert len(fb) > 0, f"{name} has no strings"
+
+
+def test_fretboard_oud():
+    fb = Fretboard.oud()
+    assert len(fb) == 6
+
+
+def test_fretboard_shamisen():
+    fb = Fretboard.shamisen()
+    assert len(fb) == 3
+
+
+def test_fretboard_erhu():
+    fb = Fretboard.erhu()
+    assert len(fb) == 2
+    assert fb.tones[0] - fb.tones[1] == 7  # tuned in 5ths
+
+
+def test_fretboard_bouzouki_irish():
+    fb = Fretboard.bouzouki("irish")
+    assert len(fb) == 4
+
+
+def test_fretboard_bouzouki_greek():
+    fb = Fretboard.bouzouki("greek")
+    assert len(fb) == 4
+
+
+def test_fretboard_charango():
+    fb = Fretboard.charango()
+    assert len(fb) == 5
+
+
+def test_fretboard_balalaika():
+    fb = Fretboard.balalaika()
+    assert len(fb) == 3
+    # Two unison strings
+    assert fb.tones[1].name == fb.tones[2].name
+
+
+def test_fretboard_lute():
+    fb = Fretboard.lute()
+    assert len(fb) == 6
+
+
+def test_fretboard_sitar():
+    fb = Fretboard.sitar()
+    assert len(fb) == 7
+
+
+def test_fretboard_pipa():
+    fb = Fretboard.pipa()
+    assert len(fb) == 4
 
 
 # ── Ergonomic integration tests ─────────────────────────────────────────────

@@ -795,6 +795,152 @@ class Fretboard:
         return cls(tones=[Tone.from_string(s, system="western") for s in strings])
 
     @classmethod
+    def bouzouki(cls, variant="irish"):
+        """Bouzouki tuning.
+
+        Args:
+            variant: ``"irish"`` (default, GDAD) or ``"greek"`` (CFAD).
+
+        The Irish bouzouki is a staple of Celtic music, usually tuned
+        in unison or octave pairs. The Greek bouzouki traditionally
+        has 3 or 4 courses and a brighter, more metallic sound.
+        """
+        from .tones import Tone
+        tunings = {
+            "irish": ("D4", "A3", "D3", "G2"),
+            "greek": ("D4", "A3", "F3", "C3"),
+        }
+        if isinstance(variant, str):
+            variant = tunings[variant]
+        return cls(tones=[Tone.from_string(t, system="western") for t in variant])
+
+    @classmethod
+    def oud(cls):
+        """Standard Arabic oud tuning (C4 G3 D3 A2 G2 C2).
+
+        The oud is the ancestor of the European lute and the defining
+        instrument of Arabic, Turkish, and Persian classical music.
+        It is fretless, allowing the quarter-tone inflections
+        essential to maqam performance. 6 courses (11 strings),
+        typically tuned in fourths.
+        """
+        from .tones import Tone
+        strings = ["C4", "G3", "D3", "A2", "G2", "C2"]
+        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+
+    @classmethod
+    def sitar(cls):
+        """Sitar main playing strings (approximation).
+
+        The sitar typically has 6-7 main strings and 11-13 sympathetic
+        strings (taraf). This models the main playing strings in a
+        common tuning. The actual tuning varies by raga and tradition.
+
+        Main strings: Sa Sa Pa Sa Re Sa Ma (approximated in 12-TET).
+        Represented here as the most common Ravi Shankar school tuning.
+        """
+        from .tones import Tone
+        # Common Ravi Shankar tuning mapped to Western notes
+        # (sitar is tuned relative to Sa, typically C# or D)
+        strings = ["C4", "C3", "G3", "C3", "D3", "C2", "F2"]
+        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+
+    @classmethod
+    def shamisen(cls):
+        """Standard shamisen tuning — honchoshi (C4 G3 C3).
+
+        The shamisen is a 3-stringed Japanese instrument played with
+        a large plectrum (bachi). Three standard tunings:
+
+        - honchoshi (本調子): root-5th-root
+        - niagari (二上り): root-5th-2nd (raises 2nd string)
+        - sansagari (三下り): root-5th-b7th (lowers 3rd string)
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("C4", system="western"),
+            Tone.from_string("G3", system="western"),
+            Tone.from_string("C3", system="western"),
+        ])
+
+    @classmethod
+    def erhu(cls):
+        """Standard erhu tuning (A4 D4).
+
+        The erhu is a 2-stringed Chinese bowed instrument with a
+        hauntingly vocal quality. Tuned a fifth apart. No fingerboard
+        — the player presses the strings without touching the neck,
+        allowing continuous pitch bending.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("D4", system="western"),
+        ])
+
+    @classmethod
+    def charango(cls):
+        """Standard charango tuning (E5 A4 E5 C5 G4).
+
+        A small Andean stringed instrument, traditionally made from
+        an armadillo shell. 5 doubled courses with re-entrant tuning
+        — the 3rd course (E5) is the highest pitched, creating the
+        charango's bright, sparkling sound.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("E5", system="western"),
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("E5", system="western"),
+            Tone.from_string("C5", system="western"),
+            Tone.from_string("G4", system="western"),
+        ])
+
+    @classmethod
+    def pipa(cls):
+        """Standard pipa tuning (D4 A3 E3 A2).
+
+        The pipa is a 4-stringed Chinese lute with a pear-shaped
+        body, dating back over 2000 years. Known for its percussive
+        attack and rapid tremolo technique.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("D4", system="western"),
+            Tone.from_string("A3", system="western"),
+            Tone.from_string("E3", system="western"),
+            Tone.from_string("A2", system="western"),
+        ])
+
+    @classmethod
+    def balalaika(cls):
+        """Standard balalaika prima tuning (A4 E4 E4).
+
+        The Russian balalaika has a distinctive triangular body and
+        3 strings. The two lower strings are tuned in unison — a
+        unique feature that gives it a natural chorus effect.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("E4", system="western"),
+            Tone.from_string("E4", system="western"),
+        ])
+
+    @classmethod
+    def lute(cls):
+        """Renaissance lute in G tuning (6 courses).
+
+        The European lute was the dominant instrument of the
+        Renaissance (15th-17th century). Tuned in fourths with
+        a major third between the 3rd and 4th courses — the
+        same intervallic pattern as a modern guitar.
+        """
+        from .tones import Tone
+        strings = ["G4", "D4", "A3", "F3", "C3", "G2"]
+        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+
+    @classmethod
     def twelve_string(cls):
         """12-string guitar in standard tuning.
 
