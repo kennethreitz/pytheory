@@ -31,10 +31,21 @@ Preset Tunings
 
    from pytheory import Fretboard
 
+   # Guitars
    guitar  = Fretboard.guitar()             # Standard EADGBE
+   twelve  = Fretboard.twelve_string()       # 12-string (6 doubled courses)
    bass    = Fretboard.bass()               # Standard EADG
    bass5   = Fretboard.bass(five_string=True)  # 5-string BEADG
-   ukulele = Fretboard.ukulele()            # GCEA (re-entrant)
+
+   # Plucked strings
+   ukulele  = Fretboard.ukulele()            # GCEA (re-entrant)
+   mandolin = Fretboard.mandolin()           # GDAE (tuned in 5ths)
+   banjo    = Fretboard.banjo()              # Open G (5-string with drone)
+
+   # Bowed strings
+   violin = Fretboard.violin()              # GDAE
+   viola  = Fretboard.viola()               # CGDA (5th below violin)
+   cello  = Fretboard.cello()               # CGDA (octave below viola)
 
 Alternate Guitar Tunings
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,31 +69,64 @@ PyTheory supports several common alternate tunings, including
    # Custom tuning with any notes
    custom = Fretboard.guitar(("D4", "A3", "F#3", "D3", "A2", "D2"))
 
+The String Family
+-----------------
+
+All four members of the orchestral string family are tuned in
+`perfect fifths <https://en.wikipedia.org/wiki/Perfect_fifth>`_
+(7 semitones between adjacent strings):
+
+.. code-block:: python
+
+   violin = Fretboard.violin()   # E5 A4 D4 G3  — soprano
+   viola  = Fretboard.viola()    # A4 D4 G3 C3  — alto (5th below violin)
+   cello  = Fretboard.cello()    # A3 D3 G2 C2  — tenor/bass (octave below viola)
+
+Unlike fretted instruments, bowed strings have no frets — the player
+can produce any pitch along the fingerboard, enabling vibrato and
+microtonal inflections.
+
+Other String Instruments
+------------------------
+
+.. code-block:: python
+
+   mandolin = Fretboard.mandolin()          # E5 A4 D4 G3 (violin tuning)
+   banjo    = Fretboard.banjo()             # Open G (with high drone string)
+   banjo_d  = Fretboard.banjo("open d")     # Open D (clawhammer)
+   twelve   = Fretboard.twelve_string()     # 12 strings (6 doubled courses)
+
 Custom Instruments
 ------------------
 
-Any fretted instrument can be modeled, including `banjo <https://en.wikipedia.org/wiki/Banjo>`_,
-`mandolin <https://en.wikipedia.org/wiki/Mandolin>`_, and more:
+Any stringed instrument can be modeled:
 
 .. code-block:: python
 
    from pytheory import Tone, Fretboard
 
-   # Banjo (open G tuning)
-   banjo = Fretboard(tones=[
-       Tone.from_string("D4"),
+   # Mandola (octave below mandolin, like viola to violin)
+   mandola = Fretboard(tones=[
+       Tone.from_string("E4"),
+       Tone.from_string("A3"),
+       Tone.from_string("D3"),
+       Tone.from_string("G2"),
+   ])
+
+   # Baritone ukulele (DGBE — like the top 4 guitar strings)
+   bari_uke = Fretboard(tones=[
+       Tone.from_string("E4"),
        Tone.from_string("B3"),
        Tone.from_string("G3"),
        Tone.from_string("D3"),
-       Tone.from_string("G4"),  # 5th string (high drone)
    ])
 
-   # Mandolin
-   mandolin = Fretboard(tones=[
-       Tone.from_string("E5"),
-       Tone.from_string("A4"),
-       Tone.from_string("D4"),
-       Tone.from_string("G3"),
+   # Double bass / upright bass
+   upright = Fretboard(tones=[
+       Tone.from_string("G2"),
+       Tone.from_string("D2"),
+       Tone.from_string("A1"),
+       Tone.from_string("E1"),
    ])
 
 Getting Fingerings

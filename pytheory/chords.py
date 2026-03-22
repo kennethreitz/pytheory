@@ -589,7 +589,10 @@ class Fretboard:
 
     @classmethod
     def ukulele(cls):
-        """Standard ukulele tuning (A4 E4 C4 G4)."""
+        """Standard ukulele tuning (A4 E4 C4 G4).
+
+        Re-entrant tuning: the G4 string is higher than C4.
+        """
         from .tones import Tone
         return cls(tones=[
             Tone.from_string("A4", system="western"),
@@ -597,6 +600,125 @@ class Fretboard:
             Tone.from_string("C4", system="western"),
             Tone.from_string("G4", system="western"),
         ])
+
+    @classmethod
+    def mandolin(cls):
+        """Standard mandolin tuning (E5 A4 D4 G3).
+
+        Tuned in fifths, same as a violin but one octave relationship.
+        Strings are typically doubled (paired courses).
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("E5", system="western"),
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("D4", system="western"),
+            Tone.from_string("G3", system="western"),
+        ])
+
+    @classmethod
+    def mandola(cls):
+        """Standard mandola tuning (A4 D4 G3 C3).
+
+        An octave below the mandolin, same relationship as viola to
+        violin. Tuned in fifths: C3-G3-D4-A4.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("D4", system="western"),
+            Tone.from_string("G3", system="western"),
+            Tone.from_string("C3", system="western"),
+        ])
+
+    @classmethod
+    def violin(cls):
+        """Standard violin tuning (E5 A4 D4 G3).
+
+        Tuned in perfect fifths. The violin has no frets — intonation
+        is continuous, allowing vibrato and microtonal inflections
+        not possible on fretted instruments.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("E5", system="western"),
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("D4", system="western"),
+            Tone.from_string("G3", system="western"),
+        ])
+
+    @classmethod
+    def viola(cls):
+        """Standard viola tuning (A4 D4 G3 C3).
+
+        A perfect fifth below the violin. The viola's darker, warmer
+        tone comes from its larger body and lower register.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A4", system="western"),
+            Tone.from_string("D4", system="western"),
+            Tone.from_string("G3", system="western"),
+            Tone.from_string("C3", system="western"),
+        ])
+
+    @classmethod
+    def cello(cls):
+        """Standard cello tuning (A3 D3 G2 C2).
+
+        An octave below the viola. Tuned in fifths. The cello spans
+        the range of the human voice — tenor through bass.
+        """
+        from .tones import Tone
+        return cls(tones=[
+            Tone.from_string("A3", system="western"),
+            Tone.from_string("D3", system="western"),
+            Tone.from_string("G2", system="western"),
+            Tone.from_string("C2", system="western"),
+        ])
+
+    @classmethod
+    def banjo(cls, tuning="open g"):
+        """Banjo with the given tuning.
+
+        Args:
+            tuning: ``"open g"`` (default, bluegrass) or ``"open d"``
+                (old-time, clawhammer). The 5th string is a high
+                drone — a defining feature of the banjo sound.
+
+        Standard open G: G4 D3 G3 B3 D4 (5th string is the short
+        high G4 drone).
+        """
+        from .tones import Tone
+        tunings = {
+            "open g": ("D4", "B3", "G3", "D3", "G4"),
+            "open d": ("D4", "A3", "F#3", "D3", "A4"),
+            "double c": ("D4", "C4", "G3", "C3", "G4"),
+        }
+        if isinstance(tuning, str):
+            tuning = tunings[tuning]
+        return cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+
+    @classmethod
+    def twelve_string(cls):
+        """12-string guitar in standard tuning.
+
+        The lower 4 courses are doubled at the octave; the upper 2
+        are doubled in unison. This creates the characteristic
+        shimmering, chorus-like sound.
+
+        Represented as 12 strings (high to low, pairs together).
+        """
+        from .tones import Tone
+        strings = [
+            "E4", "E4",      # 1st course (unison)
+            "B3", "B3",      # 2nd course (unison)
+            "G4", "G3",      # 3rd course (octave)
+            "D4", "D3",      # 4th course (octave)
+            "A3", "A2",      # 5th course (octave)
+            "E3", "E2",      # 6th course (octave)
+        ]
+        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
     def fingering(self, *positions):
         if not len(positions) == len(self.tones):

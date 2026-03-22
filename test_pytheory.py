@@ -1829,6 +1829,59 @@ def test_fretboard_tunings_dict():
         assert len(fb) == 6, f"Tuning {name} should have 6 strings"
 
 
+def test_fretboard_mandolin():
+    fb = Fretboard.mandolin()
+    assert len(fb) == 4
+    assert fb.tones[0].name == "E"
+    assert fb.tones[-1].name == "G"
+
+
+def test_fretboard_violin():
+    fb = Fretboard.violin()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["E", "A", "D", "G"]
+
+
+def test_fretboard_viola():
+    fb = Fretboard.viola()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["A", "D", "G", "C"]
+
+
+def test_fretboard_cello():
+    fb = Fretboard.cello()
+    assert len(fb) == 4
+    names = [t.name for t in fb]
+    assert names == ["A", "D", "G", "C"]
+    assert fb.tones[0].octave == 3
+
+
+def test_fretboard_banjo():
+    fb = Fretboard.banjo()
+    assert len(fb) == 5
+    assert fb.tones[-1].name == "G"  # high drone string
+
+
+def test_fretboard_banjo_open_d():
+    fb = Fretboard.banjo("open d")
+    assert len(fb) == 5
+
+
+def test_fretboard_twelve_string():
+    fb = Fretboard.twelve_string()
+    assert len(fb) == 12
+
+
+def test_fretboard_violin_tuned_in_fifths():
+    """Violin strings should be a perfect 5th apart."""
+    fb = Fretboard.violin()
+    for i in range(len(fb.tones) - 1):
+        interval = fb.tones[i] - fb.tones[i + 1]
+        assert interval == 7, f"Strings {i} and {i+1} not a 5th apart"
+
+
 # ── Ergonomic integration tests ─────────────────────────────────────────────
 
 def test_ergonomic_workflow():
