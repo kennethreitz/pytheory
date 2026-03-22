@@ -20,13 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-
-[project.urls]
-Homepage = "https://github.com/kennethreitz/pytheory"
-Documentation = "https://pytheory.kennethreitz.org"
-Repository = "https://github.com/kennethreitz/pytheory"
-Issues = "https://github.com/kennethreitz/pytheory/issues"
-
 dependencies = [
     "pytuning",
     "numeral",
@@ -34,9 +27,19 @@ dependencies = [
     "scipy",
 ]
 
+[project.urls]
+Homepage = "https://github.com/kennethreitz/pytheory"
+Documentation = "https://pytheory.kennethreitz.org"
+Repository = "https://github.com/kennethreitz/pytheory"
+Issues = "https://github.com/kennethreitz/pytheory/issues"
+
 [dependency-groups]
 dev = ["pytest"]
 docs = ["sphinx"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["pytheory"]
