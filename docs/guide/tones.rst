@@ -125,9 +125,47 @@ same note name:
    >>> c5.pitch(temperament="pythagorean")
    521.48   # Slightly different!
 
-   # Symbolic output (SymPy expression)
+Symbolic Pitch
+~~~~~~~~~~~~~~
+
+Pass ``symbolic=True`` to get exact pitch ratios as
+`SymPy <https://en.wikipedia.org/wiki/SymPy>`_ expressions instead of
+floating-point approximations. This is useful for mathematical analysis,
+proving tuning relationships, or comparing temperaments with exact
+arithmetic.
+
+.. code-block:: python
+
+   >>> a4 = Tone.from_string("A4", system="western")
+
+   # Equal temperament: irrational ratios (roots of 2)
    >>> a4.pitch(symbolic=True)
    440
+   >>> Tone.from_string("C5", system="western").pitch(symbolic=True)
+   440*2**(1/4)
+
+   # Pythagorean: pure rational ratios (powers of 3/2)
+   >>> Tone.from_string("G4", system="western").pitch(
+   ...     temperament="pythagorean", symbolic=True)
+   660
+
+   # Compare the major third across temperaments
+   >>> e4 = Tone.from_string("E4", system="western")
+   >>> e4.pitch(temperament="equal", symbolic=True)
+   440*2**(1/3)
+   >>> e4.pitch(temperament="pythagorean", symbolic=True)
+   12160/27
+   >>> e4.pitch(temperament="meantone", symbolic=True)
+   550
+
+   # Symbolic expressions can be evaluated to any precision
+   >>> e4.pitch(symbolic=True).evalf(50)
+   329.62755691286991583007431157433859631791591649985
+
+The symbolic output reveals *why* temperaments differ: equal temperament
+uses irrational numbers (roots of 2), Pythagorean uses powers of 3/2
+(rational but accumulating error), and meantone tunes thirds to the
+pure 5/4 ratio (sacrificing fifths).
 
 Intervals and Arithmetic
 -------------------------
