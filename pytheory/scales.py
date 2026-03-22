@@ -99,6 +99,51 @@ class Scale:
         """
         return self.chord(root, root + 2, root + 4)
 
+    def seventh(self, root=0):
+        """Build a seventh chord from the given scale degree (0-indexed).
+
+        Returns a chord with the root, 3rd, 5th, and 7th.
+        """
+        return self.chord(root, root + 2, root + 4, root + 6)
+
+    def progression(self, *numerals):
+        """Build a chord progression from Roman numeral strings.
+
+        Accepts Roman numerals like ``"I"``, ``"IV"``, ``"V"``,
+        ``"ii"``, ``"vi"``. Lowercase = minor triad, uppercase = major
+        triad. Add ``"7"`` suffix for seventh chords.
+
+        Example::
+
+            >>> scale.progression("I", "IV", "V", "I")
+            [<Chord (C,E,G)>, <Chord (F,A,C)>, <Chord (G,B,D)>, <Chord (C,E,G)>]
+        """
+        import numeral as numeral_mod
+        chords = []
+        for num in numerals:
+            is_seventh = num.endswith("7")
+            clean = num.rstrip("7")
+            degree = numeral_mod.roman2int(clean.upper()) - 1
+            if is_seventh:
+                chords.append(self.seventh(degree))
+            else:
+                chords.append(self.triad(degree))
+        return chords
+
+    def harmonize(self):
+        """Build diatonic triads on every scale degree.
+
+        Returns a list of Chords — one triad for each degree of the
+        scale. In a major scale this produces: I, ii, iii, IV, V, vi, vii°.
+
+        Example::
+
+            >>> [c.identify() for c in TonedScale(tonic="C4")["major"].harmonize()]
+            ['C major', 'D minor', 'E minor', 'F major', 'G major', 'A minor', 'B diminished']
+        """
+        unique = len(self.tones) - 1
+        return [self.triad(i) for i in range(unique)]
+
     def degree(self, item, major=None, minor=False):
         # TODO: cleanup degrees.
 

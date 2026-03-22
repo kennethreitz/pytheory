@@ -17,6 +17,31 @@ class Chord:
             return any(item == t.name for t in self.tones)
         return item in self.tones
 
+    def inversion(self, n=1):
+        """Return the nth inversion of this chord.
+
+        An inversion moves the lowest tone(s) up by one octave:
+
+        - 0th inversion = root position (unchanged)
+        - 1st inversion = move root up an octave
+        - 2nd inversion = move root and 3rd up an octave
+
+        Example::
+
+            >>> c_major = Chord([C4, E4, G4])
+            >>> c_major.inversion(1)   # E4, G4, C5
+            >>> c_major.inversion(2)   # G4, C5, E5
+        """
+        if n == 0:
+            return Chord(tones=list(self.tones))
+        tones = list(self.tones)
+        for _ in range(n):
+            if not tones:
+                break
+            tone = tones.pop(0)
+            tones.append(tone.add(12))
+        return Chord(tones=tones)
+
     def transpose(self, semitones):
         """Return a new Chord transposed by the given number of semitones.
 

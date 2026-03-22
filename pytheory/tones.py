@@ -141,6 +141,61 @@ class Tone:
             return tone
 
     @classmethod
+    def from_frequency(klass, hz, system="western"):
+        """Create a Tone from a frequency in Hz.
+
+        Finds the nearest note in 12-TET tuning (A4=440Hz).
+
+        Example::
+
+            >>> Tone.from_frequency(440)
+            <Tone A4>
+            >>> Tone.from_frequency(261.63)
+            <Tone C4>
+        """
+        import math
+        if hz <= 0:
+            raise ValueError("Frequency must be positive")
+        # Semitones from A4
+        semitones_from_a4 = 12 * math.log2(hz / REFERENCE_A)
+        semitones = round(semitones_from_a4)
+        # A4 is index 0 in the Western system, octave 4
+        # Convert to absolute position from C0
+        c_index = 3
+        a4_from_c0 = ((0 - c_index) % 12) + (4 * 12)  # = 57
+        abs_pos = a4_from_c0 + semitones
+        octave = abs_pos // 12
+        relative = abs_pos % 12
+        index = (relative + c_index) % 12
+        if isinstance(system, str):
+            from .systems import SYSTEMS
+            system = SYSTEMS[system]
+        return klass.from_index(index, octave=octave, system=system)
+
+    @classmethod
+    def from_midi(klass, note_number, system="western"):
+        """Create a Tone from a MIDI note number.
+
+        MIDI note 60 = C4 (middle C), 69 = A4 (440 Hz).
+
+        Example::
+
+            >>> Tone.from_midi(60)
+            <Tone C4>
+            >>> Tone.from_midi(69)
+            <Tone A4>
+        """
+        c_index = 3
+        adjusted = note_number - 12  # MIDI C0=12
+        octave = adjusted // 12
+        relative = adjusted % 12
+        index = (relative + c_index) % 12
+        if isinstance(system, str):
+            from .systems import SYSTEMS
+            system = SYSTEMS[system]
+        return klass.from_index(index, octave=octave, system=system)
+
+    @classmethod
     def from_index(klass, i, *, octave, system):
         tone = system.tones[i].name
         return klass(name=tone, octave=octave, system=system)

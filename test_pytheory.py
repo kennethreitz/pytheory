@@ -2583,3 +2583,162 @@ def test_chord_root_unknown():
     ])
     assert chord.root is None
     assert chord.quality is None
+
+
+# ── Tone.from_frequency ────────────────────────────────────────────────────
+
+def test_from_frequency_a4():
+    t = Tone.from_frequency(440)
+    assert t.name == "A"
+    assert t.octave == 4
+
+
+def test_from_frequency_c4():
+    t = Tone.from_frequency(261.63)
+    assert t.name == "C"
+    assert t.octave == 4
+
+
+def test_from_frequency_a5():
+    t = Tone.from_frequency(880)
+    assert t.name == "A"
+    assert t.octave == 5
+
+
+def test_from_frequency_a3():
+    t = Tone.from_frequency(220)
+    assert t.name == "A"
+    assert t.octave == 3
+
+
+def test_from_frequency_roundtrip():
+    """from_frequency(tone.frequency) should return the same note."""
+    for note in ["C4", "E4", "G4", "A4", "B3", "F#5"]:
+        t = Tone.from_string(note, system="western")
+        recovered = Tone.from_frequency(t.frequency)
+        assert recovered.name == t.name
+        assert recovered.octave == t.octave
+
+
+# ── Tone.from_midi ─────────────────────────────────────────────────────────
+
+def test_from_midi_c4():
+    assert Tone.from_midi(60).name == "C"
+    assert Tone.from_midi(60).octave == 4
+
+
+def test_from_midi_a4():
+    assert Tone.from_midi(69).name == "A"
+    assert Tone.from_midi(69).octave == 4
+
+
+def test_from_midi_roundtrip():
+    """from_midi(tone.midi) should return the same note."""
+    for midi in [48, 60, 69, 72, 84]:
+        t = Tone.from_midi(midi)
+        assert t.midi == midi
+
+
+# ── Chord.inversion ────────────────────────────────────────────────────────
+
+def test_chord_inversion_0():
+    c = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    inv0 = c.inversion(0)
+    assert [t.full_name for t in inv0] == ["C4", "E4", "G4"]
+
+
+def test_chord_inversion_1():
+    c = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    inv1 = c.inversion(1)
+    assert inv1.tones[0].name == "E"
+    assert inv1.tones[-1].name == "C"
+    assert inv1.tones[-1].octave == 5
+
+
+def test_chord_inversion_2():
+    c = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    inv2 = c.inversion(2)
+    assert inv2.tones[0].name == "G"
+    assert inv2.tones[0].octave == 4
+
+
+def test_chord_inversion_preserves_identity():
+    c = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert c.inversion(1).identify() == "C major"
+    assert c.inversion(2).identify() == "C major"
+
+
+# ── Scale.seventh ──────────────────────────────────────────────────────────
+
+def test_scale_seventh_I():
+    major = TonedScale(tonic="C4")["major"]
+    assert major.seventh(0).identify() == "C major 7th"
+
+
+def test_scale_seventh_ii():
+    major = TonedScale(tonic="C4")["major"]
+    assert major.seventh(1).identify() == "D minor 7th"
+
+
+def test_scale_seventh_V():
+    major = TonedScale(tonic="C4")["major"]
+    assert major.seventh(4).identify() == "G dominant 7th"
+
+
+# ── Scale.harmonize ────────────────────────────────────────────────────────
+
+def test_harmonize_c_major():
+    major = TonedScale(tonic="C4")["major"]
+    chords = major.harmonize()
+    assert len(chords) == 7
+    qualities = [c.identify() for c in chords]
+    assert qualities == [
+        "C major", "D minor", "E minor", "F major",
+        "G major", "A minor", "B diminished",
+    ]
+
+
+def test_harmonize_len():
+    minor = TonedScale(tonic="A4")["minor"]
+    assert len(minor.harmonize()) == 7
+
+
+# ── Scale.progression ──────────────────────────────────────────────────────
+
+def test_progression_I_IV_V():
+    major = TonedScale(tonic="C4")["major"]
+    prog = major.progression("I", "IV", "V")
+    assert len(prog) == 3
+    assert prog[0].identify() == "C major"
+    assert prog[1].identify() == "F major"
+    assert prog[2].identify() == "G major"
+
+
+def test_progression_with_seventh():
+    major = TonedScale(tonic="C4")["major"]
+    prog = major.progression("I", "V7")
+    assert prog[0].identify() == "C major"
+    assert prog[1].identify() == "G dominant 7th"
+
+
+def test_progression_pop():
+    major = TonedScale(tonic="G4")["major"]
+    prog = major.progression("I", "V", "vi", "IV")
+    assert prog[0].identify() == "G major"
+    assert prog[3].identify() == "C major"
