@@ -104,29 +104,43 @@ class Fretboard:
     def __len__(self):
         return len(self.tones)
 
-    @classmethod
-    def guitar(cls):
-        """Standard guitar tuning (E4 B3 G3 D3 A2 E2)."""
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("E4", system="western"),
-            Tone.from_string("B3", system="western"),
-            Tone.from_string("G3", system="western"),
-            Tone.from_string("D3", system="western"),
-            Tone.from_string("A2", system="western"),
-            Tone.from_string("E2", system="western"),
-        ])
+    TUNINGS = {
+        "standard": ("E4", "B3", "G3", "D3", "A2", "E2"),
+        "drop d": ("E4", "B3", "G3", "D3", "A2", "D2"),
+        "open g": ("D4", "B3", "G3", "D3", "G2", "D2"),
+        "open d": ("D4", "A3", "F#3", "D3", "A2", "D2"),
+        "open e": ("E4", "B3", "G#3", "E3", "B2", "E2"),
+        "open a": ("E4", "C#4", "A3", "E3", "A2", "E2"),
+        "dadgad": ("D4", "A3", "G3", "D3", "A2", "D2"),
+        "half step down": ("D#4", "A#3", "F#3", "C#3", "G#2", "D#2"),
+    }
 
     @classmethod
-    def bass(cls):
-        """Standard bass guitar tuning (G2 D2 A1 E1)."""
+    def guitar(cls, tuning="standard"):
+        """Guitar with the given tuning.
+
+        Args:
+            tuning: Tuning name or tuple of tone strings (high to low).
+                Built-in tunings: standard, drop d, open g, open d,
+                open e, open a, dadgad, half step down.
+        """
         from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("G2", system="western"),
-            Tone.from_string("D2", system="western"),
-            Tone.from_string("A1", system="western"),
-            Tone.from_string("E1", system="western"),
-        ])
+        if isinstance(tuning, str):
+            tuning = cls.TUNINGS[tuning]
+        return cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+
+    @classmethod
+    def bass(cls, five_string=False):
+        """Standard bass guitar tuning.
+
+        Args:
+            five_string: If True, adds a low B string (B0).
+        """
+        from .tones import Tone
+        strings = ["G2", "D2", "A1", "E1"]
+        if five_string:
+            strings.append("B0")
+        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
     @classmethod
     def ukulele(cls):

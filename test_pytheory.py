@@ -1725,6 +1725,37 @@ def test_fretboard_ukulele_fingerings():
     assert len(fingering) == 4
 
 
+def test_fretboard_guitar_drop_d():
+    fb = Fretboard.guitar("drop d")
+    assert len(fb) == 6
+    assert fb.tones[-1].name == "D"
+    assert fb.tones[-1].octave == 2
+
+
+def test_fretboard_guitar_open_g():
+    fb = Fretboard.guitar("open g")
+    assert len(fb) == 6
+    assert fb.tones[0].name == "D"
+
+
+def test_fretboard_guitar_custom_tuple():
+    fb = Fretboard.guitar(("E4", "B3", "G3", "D3", "A2", "D2"))
+    assert len(fb) == 6
+    assert fb.tones[-1].name == "D"
+
+
+def test_fretboard_bass_five_string():
+    fb = Fretboard.bass(five_string=True)
+    assert len(fb) == 5
+    assert fb.tones[-1].name == "B"
+
+
+def test_fretboard_tunings_dict():
+    for name in Fretboard.TUNINGS:
+        fb = Fretboard.guitar(name)
+        assert len(fb) == 6, f"Tuning {name} should have 6 strings"
+
+
 # ── Ergonomic integration tests ─────────────────────────────────────────────
 
 def test_ergonomic_workflow():
@@ -1910,3 +1941,146 @@ def test_indian_scale_degree_access():
     assert bilawal[4].name == "Pa"
     assert bilawal["I"].name == "Sa"
     assert bilawal["V"].name == "Pa"
+
+
+# ── Arabic system ───────────────────────────────────────────────────────────
+
+def test_arabic_system_exists():
+    assert "arabic" in SYSTEMS
+    assert SYSTEMS["arabic"].semitones == 12
+
+
+def test_arabic_tones():
+    arabic = SYSTEMS["arabic"]
+    names = [t.name for t in arabic.tones]
+    assert "Do" in names
+    assert "Re" in names
+    assert "Sol" in names
+
+
+def test_arabic_do_pitch():
+    """Do4 should equal C4 = 261.63 Hz."""
+    do = Tone.from_string("Do4", system="arabic")
+    assert abs(do.frequency - 261.63) < 0.01
+
+
+def test_arabic_ajam_maqam():
+    """Ajam = major scale."""
+    do = TonedScale(tonic="Do4", system=SYSTEMS["arabic"])
+    ajam = do["ajam"]
+    names = [t.name for t in ajam]
+    assert names == ["Do", "Re", "Mi", "Fa", "Sol", "La", "Si", "Do"]
+
+
+def test_arabic_hijaz_maqam():
+    """Hijaz has augmented 2nd between 2nd and 3rd degrees."""
+    do = TonedScale(tonic="Do4", system=SYSTEMS["arabic"])
+    hijaz = do["hijaz"]
+    names = [t.name for t in hijaz]
+    assert names[0] == "Do"
+    assert names[1] == "Reb"  # flat 2nd
+    assert names[2] == "Mi"   # natural 3rd (augmented 2nd interval)
+
+
+def test_arabic_all_maqamat_available():
+    do = TonedScale(tonic="Do4", system=SYSTEMS["arabic"])
+    for maqam in ["ajam", "nahawand", "kurd", "hijaz", "nikriz",
+                   "bayati", "rast", "saba", "sikah", "jiharkah"]:
+        assert maqam in do.scales, f"Missing maqam: {maqam}"
+
+
+def test_arabic_all_maqam_intervals_sum_to_12():
+    arabic = SYSTEMS["arabic"]
+    for name, scale in arabic.scales["maqam"].items():
+        total = sum(scale["intervals"])
+        assert total == 12, f"{name} intervals sum to {total}, not 12"
+
+
+def test_arabic_ajam_equals_western_major():
+    arabic = SYSTEMS["arabic"]
+    western = SYSTEMS["western"]
+    ajam = arabic.scales["maqam"]["ajam"]["intervals"]
+    major = western.scales["heptatonic"]["major"]["intervals"]
+    assert ajam == major
+
+
+def test_arabic_tone_arithmetic():
+    do = Tone.from_string("Do4", system="arabic")
+    assert (do + 2).name == "Re"
+    assert (do + 4).name == "Mi"
+    assert (do + 7).name == "Sol"
+
+
+# ── Japanese system ─────────────────────────────────────────────────────────
+
+def test_japanese_system_exists():
+    assert "japanese" in SYSTEMS
+    assert SYSTEMS["japanese"].semitones == 12
+
+
+def test_japanese_hirajoshi():
+    """Hirajoshi: C D Eb G Ab."""
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    h = c["hirajoshi"]
+    names = [t.name for t in h]
+    assert names == ["C", "D", "D#", "G", "G#", "C"]
+
+
+def test_japanese_in_scale():
+    """In (Miyako-bushi): C Db F G Ab."""
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    s = c["in"]
+    names = [t.name for t in s]
+    assert names == ["C", "C#", "F", "G", "G#", "C"]
+
+
+def test_japanese_yo_scale():
+    """Yo: C D F G Bb."""
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    s = c["yo"]
+    names = [t.name for t in s]
+    assert names == ["C", "D", "F", "G", "A#", "C"]
+
+
+def test_japanese_iwato():
+    """Iwato: C Db F Gb Bb."""
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    s = c["iwato"]
+    names = [t.name for t in s]
+    assert names == ["C", "C#", "F", "F#", "A#", "C"]
+
+
+def test_japanese_kumoi():
+    """Kumoi: C D Eb G A."""
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    s = c["kumoi"]
+    names = [t.name for t in s]
+    assert names == ["C", "D", "D#", "G", "A", "C"]
+
+
+def test_japanese_ritsu():
+    """Ritsu (gagaku): C D Eb F G A Bb = Dorian."""
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    s = c["ritsu"]
+    names = [t.name for t in s]
+    assert names == ["C", "D", "D#", "F", "G", "A", "A#", "C"]
+
+
+def test_japanese_all_scales_available():
+    c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
+    for scale in ["hirajoshi", "in", "yo", "iwato", "kumoi", "insen", "ritsu", "ryo"]:
+        assert scale in c.scales, f"Missing scale: {scale}"
+
+
+def test_japanese_pentatonic_intervals_sum_to_12():
+    japanese = SYSTEMS["japanese"]
+    for name, scale in japanese.scales["pentatonic"].items():
+        total = sum(scale["intervals"])
+        assert total == 12, f"{name} intervals sum to {total}, not 12"
+
+
+def test_japanese_heptatonic_intervals_sum_to_12():
+    japanese = SYSTEMS["japanese"]
+    for name, scale in japanese.scales["heptatonic"].items():
+        total = sum(scale["intervals"])
+        assert total == 12, f"{name} intervals sum to {total}, not 12"

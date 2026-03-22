@@ -31,6 +31,7 @@ Work with tones, scales, chords, and fretboards using a clean, Pythonic API.
    guide/scales
    guide/chords
    guide/fretboard
+   guide/systems
    guide/playback
 
 .. toctree::

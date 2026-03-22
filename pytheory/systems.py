@@ -1,4 +1,7 @@
-from ._statics import TEMPERAMENTS, TONES, DEGREES, SCALES, INDIAN_SCALES, SYSTEMS
+from ._statics import (
+    TEMPERAMENTS, TONES, DEGREES, SCALES,
+    INDIAN_SCALES, ARABIC_SCALES, JAPANESE_SCALES, SYSTEMS,
+)
 
 
 class System:
@@ -129,4 +132,6 @@ class System:
 SYSTEMS = {
     "western": System(tone_names=TONES["western"], degrees=DEGREES["western"]),
     "indian": System(tone_names=TONES["indian"], degrees=DEGREES["indian"], scales=INDIAN_SCALES[12]),
+    "arabic": System(tone_names=TONES["arabic"], degrees=DEGREES["arabic"], scales=ARABIC_SCALES[12]),
+    "japanese": System(tone_names=TONES["japanese"], degrees=DEGREES["japanese"], scales=JAPANESE_SCALES[12]),
 }
