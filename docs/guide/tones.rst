@@ -286,12 +286,19 @@ D major scale is D E F# G A B C# — not D E Gb G A B Db, even though
 F#=Gb and C#=Db.
 
 PyTheory uses sharps by default (following the tone list ordering), but
-tones carry their enharmonic equivalents:
+every tone knows its enharmonic spelling:
 
 .. code-block:: python
 
-   >>> Tone.from_tuple(("C#", "Db")).names()
-   ['C#', 'Db']
+   >>> Tone.from_string("C#4", system="western").enharmonic
+   'Db'
+
+   >>> Tone.from_string("A#4", system="western").enharmonic
+   'Bb'
+
+   # Natural notes have no enharmonic
+   >>> Tone.from_string("C4", system="western").enharmonic is None
+   True
 
 The Circle of Fifths
 --------------------
