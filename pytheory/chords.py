@@ -17,6 +17,50 @@ class Chord:
             return any(item == t.name for t in self.tones)
         return item in self.tones
 
+    def transpose(self, semitones):
+        """Return a new Chord transposed by the given number of semitones.
+
+        Every tone in the chord is shifted up (positive) or down
+        (negative) by the same interval, preserving the chord's
+        quality and voicing.
+
+        Example::
+
+            >>> c_major = Chord([C4, E4, G4])
+            >>> c_major.transpose(7).identify()
+            'G major'
+        """
+        return Chord(tones=[t.add(semitones) for t in self.tones])
+
+    @property
+    def root(self):
+        """The root of this chord (if identifiable).
+
+        Returns the Tone that serves as the root based on chord
+        identification, or None if the chord can't be identified.
+        """
+        chord_id = self.identify()
+        if not chord_id:
+            return None
+        root_name = chord_id.split(" ", 1)[0]
+        for t in self.tones:
+            if t.name == root_name:
+                return t
+        return None
+
+    @property
+    def quality(self):
+        """The quality of this chord (e.g. 'major', 'minor 7th').
+
+        Returns the quality string from chord identification, or
+        None if the chord can't be identified.
+        """
+        chord_id = self.identify()
+        if not chord_id:
+            return None
+        parts = chord_id.split(" ", 1)
+        return parts[1] if len(parts) > 1 else None
+
     @property
     def intervals(self):
         """Semitone distances between adjacent tones in the chord.

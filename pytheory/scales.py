@@ -75,6 +75,23 @@ class Scale:
             result.append(tone)
         return Chord(tones=result)
 
+    def transpose(self, semitones):
+        """Return a new Scale transposed by the given number of semitones.
+
+        Every tone is shifted by the same interval, preserving the
+        scale's interval pattern.
+
+        Example::
+
+            >>> c_major = TonedScale(tonic="C4")["major"]
+            >>> d_major = c_major.transpose(2)
+            >>> d_major.note_names
+            ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D']
+        """
+        from .chords import Chord
+        new_tones = tuple(t.add(semitones) for t in self.tones)
+        return Scale(tones=new_tones)
+
     def triad(self, root=0):
         """Build a triad starting from the given scale degree (0-indexed).
 

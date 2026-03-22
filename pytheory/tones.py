@@ -189,6 +189,65 @@ class Tone:
     def subtract(self, interval):
         return self.add((-1 * interval))
 
+    _INTERVAL_NAMES = {
+        0: "unison", 1: "minor 2nd", 2: "major 2nd", 3: "minor 3rd",
+        4: "major 3rd", 5: "perfect 4th", 6: "tritone", 7: "perfect 5th",
+        8: "minor 6th", 9: "major 6th", 10: "minor 7th", 11: "major 7th",
+        12: "octave",
+    }
+
+    def interval_to(self, other):
+        """Name the interval between this tone and another.
+
+        Returns a string like ``"perfect 5th"``, ``"major 3rd"``, or
+        ``"octave"``. For intervals larger than an octave, returns
+        the compound form (e.g. ``"minor 2nd + 1 octave"``).
+
+        Example::
+
+            >>> C4.interval_to(G4)
+            'perfect 5th'
+            >>> C4.interval_to(C5)
+            'octave'
+        """
+        semitones = abs(self - other)
+        octaves = semitones // 12
+        remainder = semitones % 12
+        name = self._INTERVAL_NAMES.get(remainder, f"{remainder} semitones")
+        if octaves == 0:
+            return name
+        if remainder == 0:
+            if octaves == 1:
+                return "octave"
+            return f"{octaves} octaves"
+        if octaves == 1:
+            return f"{name} + 1 octave"
+        return f"{name} + {octaves} octaves"
+
+    @property
+    def midi(self):
+        """MIDI note number (C4 = 60, A4 = 69).
+
+        The MIDI standard assigns integer note numbers from 0–127.
+        Middle C (C4) is 60, and each semitone increments by 1.
+
+        Returns:
+            int: the MIDI note number, or None if no octave is set.
+        """
+        if self.octave is None:
+            return None
+        c_index = 3
+        semitones_from_c0 = ((self._index - c_index) % 12) + (self.octave * 12)
+        return semitones_from_c0 + 12  # MIDI C0 = 12 (C-1 = 0)
+
+    def transpose(self, semitones):
+        """Return a new Tone transposed by the given number of semitones.
+
+        Alias for ``tone + semitones`` / ``tone - semitones``. Positive
+        values transpose up, negative values transpose down.
+        """
+        return self.add(semitones)
+
     def circle_of_fifths(self):
         """The 12 tones of the circle of fifths starting from this tone.
 

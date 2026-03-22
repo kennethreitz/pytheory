@@ -2416,3 +2416,170 @@ def test_tension_g7_high():
 def test_tension_empty():
     chord = Chord(tones=[])
     assert chord.tension["score"] == 0.0
+
+
+# ── Version ─────────────────────────────────────────────────────────────────
+
+def test_version():
+    import pytheory
+    assert pytheory.__version__ == "0.3.0"
+
+
+def test_all_exports():
+    import pytheory
+    assert not hasattr(pytheory, "ceil")
+    assert not hasattr(pytheory, "floor")
+    assert "Tone" in pytheory.__all__
+
+
+# ── Interval naming ─────────────────────────────────────────────────────────
+
+def test_interval_to_perfect_fifth():
+    c4 = Tone.from_string("C4", system="western")
+    g4 = Tone.from_string("G4", system="western")
+    assert c4.interval_to(g4) == "perfect 5th"
+
+
+def test_interval_to_major_third():
+    c4 = Tone.from_string("C4", system="western")
+    e4 = Tone.from_string("E4", system="western")
+    assert c4.interval_to(e4) == "major 3rd"
+
+
+def test_interval_to_octave():
+    c4 = Tone.from_string("C4", system="western")
+    c5 = Tone.from_string("C5", system="western")
+    assert c4.interval_to(c5) == "octave"
+
+
+def test_interval_to_unison():
+    c4 = Tone.from_string("C4", system="western")
+    assert c4.interval_to(c4) == "unison"
+
+
+def test_interval_to_compound():
+    c4 = Tone.from_string("C4", system="western")
+    d5 = c4 + 14
+    assert c4.interval_to(d5) == "major 2nd + 1 octave"
+
+
+def test_interval_to_two_octaves():
+    c4 = Tone.from_string("C4", system="western")
+    c6 = c4 + 24
+    assert c4.interval_to(c6) == "2 octaves"
+
+
+# ── MIDI ────────────────────────────────────────────────────────────────────
+
+def test_midi_c4():
+    c4 = Tone.from_string("C4", system="western")
+    assert c4.midi == 60
+
+
+def test_midi_a4():
+    a4 = Tone.from_string("A4", system="western")
+    assert a4.midi == 69
+
+
+def test_midi_c5():
+    c5 = Tone.from_string("C5", system="western")
+    assert c5.midi == 72
+
+
+def test_midi_no_octave():
+    c = Tone(name="C")
+    assert c.midi is None
+
+
+def test_midi_chromatic_sequence():
+    """MIDI numbers should increment by 1 per semitone."""
+    c4 = Tone.from_string("C4", system="western")
+    for i in range(12):
+        assert (c4 + i).midi == 60 + i
+
+
+# ── Transpose ──────────────────────────────────────────────────────────────
+
+def test_tone_transpose():
+    c4 = Tone.from_string("C4", system="western")
+    assert c4.transpose(7).name == "G"
+
+
+def test_chord_transpose():
+    c_maj = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    g_maj = c_maj.transpose(7)
+    assert g_maj.identify() == "G major"
+
+
+def test_chord_transpose_preserves_quality():
+    am = Chord(tones=[
+        Tone.from_string("A4", system="western"),
+        Tone.from_string("C5", system="western"),
+        Tone.from_string("E5", system="western"),
+    ])
+    dm = am.transpose(5)
+    assert dm.identify() == "D minor"
+
+
+def test_chord_transpose_negative():
+    g_maj = Chord(tones=[
+        Tone.from_string("G4", system="western"),
+        Tone.from_string("B4", system="western"),
+        Tone.from_string("D5", system="western"),
+    ])
+    c_maj = g_maj.transpose(-7)
+    assert c_maj.identify() == "C major"
+
+
+def test_scale_transpose():
+    c_major = TonedScale(tonic="C4")["major"]
+    d_major = c_major.transpose(2)
+    assert d_major.note_names == ["D", "E", "F#", "G", "A", "B", "C#", "D"]
+
+
+def test_scale_transpose_negative():
+    d_major = TonedScale(tonic="D4")["major"]
+    c_major = d_major.transpose(-2)
+    assert c_major.note_names == ["C", "D", "E", "F", "G", "A", "B", "C"]
+
+
+# ── Chord root and quality ─────────────────────────────────────────────────
+
+def test_chord_root():
+    c_maj = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert c_maj.root.name == "C"
+
+
+def test_chord_quality():
+    c_maj = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("E4", system="western"),
+        Tone.from_string("G4", system="western"),
+    ])
+    assert c_maj.quality == "major"
+
+
+def test_chord_quality_minor():
+    am = Chord(tones=[
+        Tone.from_string("A4", system="western"),
+        Tone.from_string("C5", system="western"),
+        Tone.from_string("E5", system="western"),
+    ])
+    assert am.quality == "minor"
+
+
+def test_chord_root_unknown():
+    chord = Chord(tones=[
+        Tone.from_string("C4", system="western"),
+        Tone.from_string("D4", system="western"),
+    ])
+    assert chord.root is None
+    assert chord.quality is None

@@ -1,9 +1,31 @@
 [project]
 name = "pytheory"
-version = "0.2.0"
+version = "0.3.0"
 description = "Music Theory for Humans"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
+authors = [
+    { name = "Kenneth Reitz", email = "me@kennethreitz.org" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/kennethreitz/pytheory"
+Documentation = "https://pytheory.kennethreitz.org"
+Repository = "https://github.com/kennethreitz/pytheory"
+Issues = "https://github.com/kennethreitz/pytheory/issues"
 
 dependencies = [
     "pytuning",
