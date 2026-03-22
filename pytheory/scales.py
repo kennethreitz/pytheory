@@ -487,6 +487,109 @@ class Key:
         return keys
 
     @property
+    def signature(self) -> dict:
+        """The key signature — number and names of sharps or flats.
+
+        In Western music, each key has a unique key signature that tells
+        you which notes are sharped or flatted throughout a piece.
+
+        Returns:
+            A dict with:
+            - ``sharps`` (int): number of sharps (0 if flat key)
+            - ``flats`` (int): number of flats (0 if sharp key)
+            - ``accidentals`` (list[str]): the sharped/flatted note names
+
+        Example::
+
+            >>> Key("G", "major").signature
+            {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
+            >>> Key("F", "major").signature
+            {'sharps': 0, 'flats': 1, 'accidentals': ['Bb']}
+            >>> Key("C", "major").signature
+            {'sharps': 0, 'flats': 0, 'accidentals': []}
+        """
+        # Compare scale notes against the natural notes C D E F G A B
+        naturals = {"C", "D", "E", "F", "G", "A", "B"}
+        scale_notes = set(self.note_names[:-1])  # exclude octave
+
+        sharps = [n for n in scale_notes if "#" in n]
+        flats = [n for n in scale_notes if "b" in n[1:]]  # skip first char for B
+
+        # Order sharps: F C G D A E B
+        sharp_order = ["F#", "C#", "G#", "D#", "A#", "E#", "B#"]
+        flat_order = ["Bb", "Eb", "Ab", "Db", "Gb", "Cb", "Fb"]
+
+        sharps_sorted = [s for s in sharp_order if s in sharps]
+        flats_sorted = [f for f in flat_order if f in flats]
+
+        if sharps_sorted:
+            return {"sharps": len(sharps_sorted), "flats": 0, "accidentals": sharps_sorted}
+        elif flats_sorted:
+            return {"sharps": 0, "flats": len(flats_sorted), "accidentals": flats_sorted}
+        else:
+            return {"sharps": 0, "flats": 0, "accidentals": []}
+
+    @property
+    def borrowed_chords(self) -> list[str]:
+        """Chords borrowed from the parallel key.
+
+        Modal interchange (or modal mixture) borrows chords from the
+        parallel major or minor key. In C major, the parallel minor
+        is C minor, which provides chords like Ab major, Bb major,
+        and Eb major — commonly heard in rock, film, and pop music.
+
+        Returns:
+            A list of chord names from the parallel key that are NOT
+            in the current key's diatonic chords.
+
+        Example::
+
+            >>> Key("C", "major").borrowed_chords
+            ['C minor', 'D diminished', 'D# major', ...]
+        """
+        par = self.parallel
+        if par is None:
+            return []
+        own = set(self.chords)
+        return [c for c in par.chords if c not in own]
+
+    def random_progression(self, length: int = 4) -> list:
+        """Generate a random diatonic chord progression.
+
+        Uses weighted probabilities based on common chord function:
+        I and vi are most common, IV and V are very common, ii is
+        common, iii and viidim are rare. Always starts on I and
+        ends on I or V.
+
+        Args:
+            length: Number of chords (default 4).
+
+        Returns:
+            A list of Chord objects.
+
+        Example::
+
+            >>> Key("C", "major").random_progression(4)
+            [<Chord C major>, <Chord F major>, <Chord G major>, <Chord C major>]
+        """
+        import random
+
+        harmonized = self._scale.harmonize()
+        unique = len(harmonized)
+        # Weights: I=high, ii=med, iii=low, IV=high, V=high, vi=med, vii=low
+        weights = [10, 5, 2, 8, 8, 5, 1]
+        if unique < len(weights):
+            weights = weights[:unique]
+
+        chords = [harmonized[0]]  # Start on I
+        for _ in range(length - 2):
+            chords.append(random.choices(harmonized, weights=weights, k=1)[0])
+        if length > 1:
+            # End on I or V
+            chords.append(random.choice([harmonized[0], harmonized[4 % unique]]))
+        return chords
+
+    @property
     def relative(self) -> Optional[Key]:
         """The relative major or minor key.
 

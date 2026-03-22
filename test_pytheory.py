@@ -2622,7 +2622,7 @@ def test_tension_empty():
 
 def test_version():
     import pytheory
-    assert pytheory.__version__ == "0.3.2"
+    assert pytheory.__version__ == "0.4.0"
 
 
 def test_all_exports():
@@ -3342,3 +3342,101 @@ def test_pachelbel_progression():
     prog = k.progression(*PROGRESSIONS["Pachelbel"])
     assert len(prog) == 8
     assert prog[0].identify() == "C major"
+
+
+# ── Tone.letter ────────────────────────────────────────────────────────────
+
+def test_tone_letter_natural():
+    assert Tone.from_string("C4").letter == "C"
+
+
+def test_tone_letter_sharp():
+    assert Tone.from_string("C#4").letter == "C"
+
+
+def test_tone_letter_flat():
+    assert Tone(name="Bb", octave=4).letter == "B"
+
+
+# ── Key.signature ──────────────────────────────────────────────────────────
+
+def test_key_signature_c_major():
+    sig = Key("C", "major").signature
+    assert sig["sharps"] == 0
+    assert sig["flats"] == 0
+
+
+def test_key_signature_g_major():
+    sig = Key("G", "major").signature
+    assert sig["sharps"] == 1
+    assert sig["accidentals"] == ["F#"]
+
+
+def test_key_signature_d_major():
+    sig = Key("D", "major").signature
+    assert sig["sharps"] == 2
+
+
+# ── Chord.from_intervals ──────────────────────────────────────────────────
+
+def test_chord_from_intervals_major():
+    assert Chord.from_intervals("C", 4, 7).identify() == "C major"
+
+
+def test_chord_from_intervals_dom7():
+    assert Chord.from_intervals("G", 4, 7, 10).identify() == "G dominant 7th"
+
+
+# ── Chord.from_midi_message ──────────────────────────────────────────────
+
+def test_chord_from_midi_message():
+    c = Chord.from_midi_message(60, 64, 67)
+    assert c.identify() == "C major"
+
+
+# ── Chord.add_tone / remove_tone ──────────────────────────────────────────
+
+def test_chord_add_tone():
+    c = Chord.from_tones("C", "E", "G")
+    cmaj7 = c.add_tone(Tone("B", octave=4))
+    assert cmaj7.identify() == "C major 7th"
+
+
+def test_chord_remove_tone():
+    cmaj7 = Chord.from_name("Cmaj7")
+    c = cmaj7.remove_tone("B")
+    assert c.identify() == "C major"
+
+
+# ── analyze_progression ──────────────────────────────────────────────────
+
+def test_analyze_progression():
+    from pytheory import analyze_progression
+    prog = [Chord.from_name("C"), Chord.from_name("Am"),
+            Chord.from_name("F"), Chord.from_name("G")]
+    assert analyze_progression(prog, key="C") == ["I", "vi", "IV", "V"]
+
+
+# ── Key.borrowed_chords ─────────────────────────────────────────────────
+
+def test_borrowed_chords():
+    borrowed = Key("C", "major").borrowed_chords
+    assert len(borrowed) > 0
+
+
+# ── Key.random_progression ──────────────────────────────────────────────
+
+def test_random_progression():
+    prog = Key("C", "major").random_progression(4)
+    assert len(prog) == 4
+
+
+# ── Fretboard.scale_diagram ────────────────────────────────────────────
+
+def test_scale_diagram():
+    fb = Fretboard.guitar()
+    scale = TonedScale(tonic="C4")["major"]
+    diagram = fb.scale_diagram(scale, frets=5)
+    assert "E|" in diagram
+    lines = diagram.strip().split("\n")
+    assert len(lines) == 7

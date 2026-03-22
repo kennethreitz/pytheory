@@ -116,6 +116,21 @@ class Tone:
         return "b" in self.name[1:]
 
     @property
+    def letter(self) -> str:
+        """The letter name without any accidental.
+
+        Example::
+
+            >>> Tone.from_string("C#4").letter
+            'C'
+            >>> Tone.from_string("Bb4").letter
+            'B'
+            >>> Tone.from_string("G4").letter
+            'G'
+        """
+        return self.name[0]
+
+    @property
     def enharmonic(self) -> Optional[str]:
         """The enharmonic equivalent of this tone, or None if there isn't one.
 

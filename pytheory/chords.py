@@ -60,6 +60,36 @@ class Chord:
                 f"{t.name}{octave}", system="western"))
         return cls(tones=tones)
 
+    @classmethod
+    def from_intervals(cls, root: str, *intervals: int, octave: int = 4) -> Chord:
+        """Create a Chord from a root note and semitone intervals.
+
+        Example::
+
+            >>> Chord.from_intervals("C", 4, 7)          # C major
+            <Chord C major>
+            >>> Chord.from_intervals("G", 4, 7, 10)      # G7
+            <Chord G dominant 7th>
+            >>> Chord.from_intervals("D", 3, 7)           # D minor
+            <Chord D minor>
+        """
+        from .tones import Tone
+        root_tone = Tone.from_string(f"{root}{octave}", system="western")
+        tones = [root_tone] + [root_tone.add(i) for i in intervals]
+        return cls(tones=tones)
+
+    @classmethod
+    def from_midi_message(cls, *note_numbers: int) -> Chord:
+        """Create a Chord from MIDI note numbers.
+
+        Example::
+
+            >>> Chord.from_midi_message(60, 64, 67)   # C4, E4, G4
+            <Chord C major>
+        """
+        from .tones import Tone
+        return cls(tones=[Tone.from_midi(n) for n in note_numbers])
+
     def __repr__(self) -> str:
         name = self.identify()
         if name:
@@ -625,6 +655,31 @@ class Chord:
             "has_dominant_function": has_dominant,
         }
 
+    def add_tone(self, tone) -> Chord:
+        """Return a new Chord with an additional tone.
+
+        Example::
+
+            >>> c_major = Chord.from_tones("C", "E", "G")
+            >>> c_major.add_tone(Tone.from_string("B4", system="western"))
+            <Chord C major 7th>
+        """
+        return Chord(tones=list(self.tones) + [tone])
+
+    def remove_tone(self, tone_name: str) -> Chord:
+        """Return a new Chord with tones of the given name removed.
+
+        Args:
+            tone_name: The note name to remove (e.g. "G").
+
+        Example::
+
+            >>> cmaj7 = Chord.from_name("Cmaj7")
+            >>> cmaj7.remove_tone("B")   # Remove the 7th
+            <Chord C major>
+        """
+        return Chord(tones=[t for t in self.tones if t.name != tone_name])
+
     def fingering(self, *positions: int) -> Chord:
         """Apply fret positions to each tone, returning a new Chord.
 
@@ -1156,6 +1211,47 @@ class Fretboard:
         ]
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
+    def scale_diagram(self, scale, frets: int = 12) -> str:
+        """Render an ASCII diagram showing where scale notes fall on the neck.
+
+        Each string is shown with dots on frets where scale notes appear.
+        Useful for learning scale patterns on guitar, mandolin, etc.
+
+        Args:
+            scale: A Scale object (or anything with a ``note_names`` attribute).
+            frets: Number of frets to display (default 12).
+
+        Returns:
+            A multi-line string showing the fretboard diagram.
+
+        Example::
+
+            >>> from pytheory import Fretboard, TonedScale
+            >>> fb = Fretboard.guitar()
+            >>> pentatonic = TonedScale(tonic="A4")["minor"]
+            >>> print(fb.scale_diagram(pentatonic, frets=5))
+        """
+        scale_notes = set(scale.note_names)
+        max_name = max(len(t.name) for t in self.tones)
+        lines = []
+
+        # Header with fret numbers
+        header = " " * (max_name + 1) + "  ".join(f"{f:<3d}" for f in range(frets + 1))
+        lines.append(header)
+
+        for tone in self.tones:
+            fret_marks = []
+            for f in range(frets + 1):
+                note = tone.add(f)
+                if note.name in scale_notes:
+                    fret_marks.append(f" {note.name:<2s}")
+                else:
+                    fret_marks.append(" - ")
+            line = f"{tone.name:>{max_name}}|{'|'.join(fret_marks)}|"
+            lines.append(line)
+
+        return "\n".join(lines)
+
     def fingering(self, *positions: int) -> Chord:
         """Apply fret positions to each string, returning a Chord.
 
@@ -1183,3 +1279,15 @@ class Fretboard:
             tones.append(tone.add(positions[i]))
 
         return Chord(tones=tones)
+
+
+def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major") -> list[str | None]:
+    """Analyze a list of chords and return their Roman numeral functions.
+
+    Example::
+
+        >>> chords = [Chord.from_name("C"), Chord.from_name("Am"), Chord.from_name("F"), Chord.from_name("G")]
+        >>> analyze_progression(chords, key="C")
+        ['I', 'vi', 'IV', 'V']
+    """
+    return [c.analyze(key, mode) for c in chords]

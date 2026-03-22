@@ -1,11 +1,11 @@
 """PyTheory: Music Theory for Humans."""
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 
 from .tones import Tone, Interval
 from .systems import System, SYSTEMS
 from .scales import Scale, TonedScale, Key, PROGRESSIONS
-from .chords import Chord, Fretboard
+from .chords import Chord, Fretboard, analyze_progression
 from .charts import CHARTS, charts_for_fretboard
 
 try:
@@ -19,7 +19,7 @@ Note = Tone
 
 __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
-    "PROGRESSIONS", "Chord", "Fretboard",
+    "PROGRESSIONS", "Chord", "Fretboard", "analyze_progression",
     "System", "SYSTEMS", "CHARTS", "charts_for_fretboard",
     "play", "Synth",
 ]
