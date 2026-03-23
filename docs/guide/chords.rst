@@ -389,6 +389,29 @@ gold standard — every voice moves by step whenever possible.
        print(f"{src} -> {dst}  ({motion:+d} semitones)")
    # Each voice moves the minimum distance to reach the target chord
 
+Tritone Substitution
+--------------------
+
+In jazz harmony, any `dominant chord <https://en.wikipedia.org/wiki/Dominant_seventh_chord>`_
+can be replaced by the dominant chord a
+`tritone <https://en.wikipedia.org/wiki/Tritone_substitution>`_ (6
+semitones) away. This works because the two chords share the same
+tritone interval — the 3rd and 7th simply swap roles.
+
+Common tritone subs: G7 <-> Db7, C7 <-> F#7, D7 <-> Ab7.
+
+.. code-block:: python
+
+   from pytheory import Chord
+
+   g7 = Chord.from_name("G7")
+   sub = g7.tritone_sub()
+   sub.identify()       # 'C# dominant 7th' (enharmonic Db7)
+
+   # Both resolve to C — try them in a ii-V-I:
+   #   Dm7 → G7  → Cmaj7   (standard)
+   #   Dm7 → Db7 → Cmaj7   (with tritone sub — chromatic bass line!)
+
 The Overtone Series
 -------------------
 

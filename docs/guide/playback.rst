@@ -77,3 +77,23 @@ Try playing a C major chord in each temperament — you'll hear subtle
 differences in the "color" of the major third. Equal temperament is
 a compromise; the other systems sacrifice some keys to make the good
 keys sound better.
+
+Saving to WAV
+-------------
+
+Render tones or chords to a WAV file instead of playing them live.
+This works even without speakers or PortAudio:
+
+.. code-block:: python
+
+   from pytheory import save, Chord, Tone, Synth
+
+   # Save a single tone
+   save(Tone.from_string("A4"), "a440.wav", t=1_000)
+
+   # Save a chord
+   save(Chord.from_name("Am7"), "am7.wav", t=2_000)
+
+   # Choose waveform and temperament
+   save(Chord.from_name("C"), "c_triangle.wav",
+        synth=Synth.TRIANGLE, temperament="meantone", t=3_000)
