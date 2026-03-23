@@ -1,3 +1,4 @@
+import functools
 import itertools
 from typing import Optional
 
@@ -6,6 +7,12 @@ from .tones import Tone
 
 QUALITIES = ("", "maj", "m", "5", "7", "9", "dim", "m6", "m7", "m9", "maj7", "maj9")
 MAX_FRET = 7
+
+# Memoization cache for fingering lookups.
+# Key: (chord_name, fretboard_tuning_tuple)
+# Value: Fingering object (single) or tuple of Fingerings (multiple)
+_fingering_cache: dict[tuple, "Fingering"] = {}
+_fingering_multi_cache: dict[tuple, tuple] = {}
 
 
 class Fingering:
@@ -250,7 +257,22 @@ class NamedChord:
     def fingerings(self, *, fretboard):
         return tuple(itertools.product(*self._possible_fingerings(fretboard=fretboard)))
 
+    def _cache_key(self, fretboard):
+        """Return a hashable key for memoization."""
+        return (self.name, tuple(t.full_name for t in fretboard.tones))
+
     def fingering(self, *, fretboard, multiple=False):
+        # Check cache first
+        key = self._cache_key(fretboard)
+        if multiple:
+            if key in _fingering_multi_cache:
+                return _fingering_multi_cache[key]
+        else:
+            if key in _fingering_cache:
+                return _fingering_cache[key]
+
+        MAX_SPAN = 4  # max fret span for a human hand
+
         def fingering_score(fingering):
             score = 0.0
             fretted = [f for f in fingering if f not in (0, -1)]
@@ -260,6 +282,14 @@ class NamedChord:
             # Must have at least 2 sounding strings
             if sounding < 2:
                 return -100.0
+
+            # Hard constraint: fret span must be playable
+            if fretted:
+                span = max(fretted) - min(fretted)
+                if span > MAX_SPAN:
+                    return -100.0
+            else:
+                span = 0
 
             # Check that all chord tones are present in the voicing
             sounding_names = set()
@@ -277,17 +307,36 @@ class NamedChord:
             # Penalize muted strings, but only mildly
             score -= muted * 0.3
 
-            # Penalize fret span (hard to stretch)
-            if fretted:
-                span = max(fretted) - min(fretted)
-                score -= span * 2.0
+            # Penalize fret span
+            score -= span * 2.0
 
             # Penalize high fret positions (prefer open position)
             if fretted:
                 score -= (sum(fretted) / len(fretted)) * 0.8
 
-            # Penalize many fingers needed
-            score -= len(fretted) * 0.3
+            # Barre chord detection: if multiple strings share the same
+            # fret and it's the lowest fret in the shape, one finger can
+            # cover them all — so they cost only 1 finger, not N.
+            # Also check that barre strings are contiguous (no gaps).
+            if fretted:
+                min_fret = min(fretted)
+                barre_indices = [i for i, f in enumerate(fingering) if f == min_fret and f > 0]
+                barre_count = len(barre_indices)
+
+                if barre_count >= 2:
+                    unique_higher = len(set(f for f in fretted if f > min_fret))
+                    fingers_needed = unique_higher + 1  # 1 for barre
+                    # Mild reward for barre efficiency (saves fingers)
+                    score += (barre_count - 1) * 0.5
+                else:
+                    fingers_needed = len(fretted)
+            else:
+                fingers_needed = 0
+
+            # Penalize fingers needed (max 4 on a guitar)
+            score -= fingers_needed * 0.3
+            if fingers_needed > 4:
+                score -= (fingers_needed - 4) * 5.0
 
             # Reward root in bass — the lowest sounding string
             for i in range(len(fingering) - 1, -1, -1):
@@ -298,7 +347,6 @@ class NamedChord:
                 if bass_tone.name == self.tone.name:
                     score += 4.0
                 else:
-                    # Penalize non-root bass notes
                     score -= 1.5
                 break
 
@@ -327,9 +375,13 @@ class NamedChord:
         string_names = tuple(t.name for t in fretboard.tones)
         best_fingerings = tuple([g for g in gen()])
         if not multiple:
-            return Fingering(self.fix_fingering(best_fingerings[0]), string_names, fretboard=fretboard)
+            result = Fingering(self.fix_fingering(best_fingerings[0]), string_names, fretboard=fretboard)
+            _fingering_cache[key] = result
+            return result
         else:
-            return tuple([Fingering(self.fix_fingering(f), string_names, fretboard=fretboard) for f in best_fingerings])
+            result = tuple([Fingering(self.fix_fingering(f), string_names, fretboard=fretboard) for f in best_fingerings])
+            _fingering_multi_cache[key] = result
+            return result
 
     def tab(self, *, fretboard):
         """Render this chord as ASCII guitar tablature.
