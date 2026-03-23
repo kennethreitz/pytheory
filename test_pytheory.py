@@ -3724,3 +3724,151 @@ def test_system_resolve_name_natural():
 
 def test_system_resolve_name_unknown():
     assert SYSTEMS["western"].resolve_name("X") is None
+
+
+# ── CLI tests ─────────────────────────────────────────────────────────────────
+
+def test_cli_tone(capsys):
+    from pytheory.cli import cmd_tone
+    import argparse
+    args = argparse.Namespace(note="A4", temperament="equal")
+    cmd_tone(args)
+    out = capsys.readouterr().out
+    assert "440.00" in out
+    assert "A4" in out
+    assert "MIDI" in out
+
+
+def test_cli_tone_pythagorean(capsys):
+    from pytheory.cli import cmd_tone
+    import argparse
+    args = argparse.Namespace(note="C5", temperament="pythagorean")
+    cmd_tone(args)
+    out = capsys.readouterr().out
+    assert "Equal temp" in out
+    assert "cents" in out
+
+
+def test_cli_scale(capsys):
+    from pytheory.cli import cmd_scale
+    import argparse
+    args = argparse.Namespace(tonic="C", mode="major", system="western")
+    cmd_scale(args)
+    out = capsys.readouterr().out
+    assert "C D E F G A B C" in out
+
+
+def test_cli_chord(capsys):
+    from pytheory.cli import cmd_chord
+    import argparse
+    args = argparse.Namespace(notes=["C", "E", "G"])
+    cmd_chord(args)
+    out = capsys.readouterr().out
+    assert "C major" in out
+    assert "Harmony" in out
+    assert "Tension" in out
+
+
+def test_cli_key(capsys):
+    from pytheory.cli import cmd_key
+    import argparse
+    args = argparse.Namespace(tonic="G", mode="major")
+    cmd_key(args)
+    out = capsys.readouterr().out
+    assert "G major" in out
+    assert "Signature" in out
+    assert "Relative" in out
+
+
+def test_cli_fingering(capsys):
+    from pytheory.cli import cmd_fingering
+    import argparse
+    args = argparse.Namespace(chord="Am", capo=0)
+    cmd_fingering(args)
+    out = capsys.readouterr().out
+    assert "Am" in out
+    assert "|--" in out
+
+
+def test_cli_progression(capsys):
+    from pytheory.cli import cmd_progression
+    import argparse
+    args = argparse.Namespace(tonic="C", mode="major", numerals=["I", "V", "vi", "IV"])
+    cmd_progression(args)
+    out = capsys.readouterr().out
+    assert "C major" in out
+    assert "I → V → vi → IV" in out
+
+
+def test_cli_detect(capsys):
+    from pytheory.cli import cmd_detect
+    import argparse
+    args = argparse.Namespace(notes=["C", "E", "G", "A", "D"])
+    cmd_detect(args)
+    out = capsys.readouterr().out
+    assert "C major" in out
+
+
+def test_cli_detect_no_match(capsys):
+    from pytheory.cli import cmd_detect
+    import argparse
+    args = argparse.Namespace(notes=[])
+    cmd_detect(args)
+    out = capsys.readouterr().out
+    assert "Could not detect" in out
+
+
+def test_cli_main_no_args(capsys):
+    from pytheory.cli import main
+    import sys
+    old_argv = sys.argv
+    sys.argv = ["pytheory"]
+    try:
+        main()
+    except SystemExit:
+        pass
+    sys.argv = old_argv
+
+
+# ── Play module tests ─────────────────────────────────────────────────────────
+
+def test_play_render():
+    """_render produces a numpy array of the right length."""
+    from pytheory.play import _render, Synth, SAMPLE_RATE
+    tone = Tone.from_string("A4", system="western")
+    samples = _render(tone, synth=Synth.SINE, t=500)
+    expected = int(SAMPLE_RATE * 500 / 1000)
+    assert len(samples) == expected
+
+
+def test_play_render_chord():
+    from pytheory.play import _render, Synth
+    chord = Chord.from_tones("C", "E", "G")
+    samples = _render(chord, synth=Synth.SINE, t=200)
+    assert len(samples) > 0
+
+
+def test_play_render_all_synths():
+    from pytheory.play import _render, Synth
+    tone = Tone.from_string("C4", system="western")
+    for synth in Synth:
+        samples = _render(tone, synth=synth, t=100)
+        assert len(samples) > 0
+
+
+def test_play_save(tmp_path):
+    """save() writes a valid WAV file."""
+    from pytheory.play import save, Synth
+    path = tmp_path / "test.wav"
+    tone = Tone.from_string("A4", system="western")
+    save(tone, str(path), synth=Synth.SINE, t=200)
+    assert path.exists()
+    assert path.stat().st_size > 44  # WAV header is 44 bytes
+
+
+def test_play_save_chord(tmp_path):
+    from pytheory.play import save
+    path = tmp_path / "chord.wav"
+    chord = Chord.from_tones("C", "E", "G")
+    save(chord, str(path), t=200)
+    assert path.exists()

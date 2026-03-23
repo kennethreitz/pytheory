@@ -115,7 +115,6 @@ class System:
                         yield step
                 else:
                     for i in range(tones):
-                        # TODO: figure out how to make this work with monotonic.
                         yield 1
 
         scale = [

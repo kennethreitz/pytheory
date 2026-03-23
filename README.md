@@ -146,6 +146,22 @@ Fingering(e=0, B=1, G=2, D=2, A=0, E=0)
 >>> tone = Tone.from_string("A4", system="western")
 >>> play(tone, t=1_000)                   # sine wave, 1 second
 >>> play(tone, synth=Synth.SAW, t=1_000)  # sawtooth wave
+
+>>> from pytheory import save, Chord
+>>> save(Chord.from_name("Am7"), "am7.wav", t=2_000)  # save to WAV
+```
+
+## Command-Line Interface
+
+```
+$ pytheory tone A4                          # frequency, MIDI, overtones
+$ pytheory chord C E G                      # identify chord from notes
+$ pytheory key G major                      # explore a key
+$ pytheory scale C dorian                   # show a scale
+$ pytheory fingering Am --capo 2            # guitar fingering
+$ pytheory progression C major I V vi IV    # build a progression
+$ pytheory detect C E G A D                 # detect key from notes
+$ pytheory play Am7 --synth triangle        # play a chord
 ```
 
 ## Features
@@ -157,7 +173,7 @@ Fingering(e=0, B=1, G=2, D=2, A=0, E=0)
 - **25 instrument presets**: guitar (8 tunings), 12-string, bass, mandolin family, violin family, banjo, harp, oud, sitar, shamisen, erhu, charango, pipa, balalaika, lute, pedal steel, keyboard
 - **Pitch tools**: frequency ↔ tone conversion, MIDI ↔ tone, interval naming, circle of fifths, overtone series, transposition
 - **3 temperaments**: equal, Pythagorean, quarter-comma meantone
-- **Audio synthesis**: sine, sawtooth, and triangle wave playback
+- **Audio synthesis**: sine, sawtooth, and triangle wave playback + WAV export
 
 ## Documentation
 

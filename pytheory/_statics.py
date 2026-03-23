@@ -175,20 +175,6 @@ SCALES = {
                 # "melodic minor": {"minor": True, "melodic": True, "hemitonic": True},
             },
         ],
-        # TODO: understand this
-        # "hexatonic": (
-        #     6,
-        #     {
-        #         # name, arguments to scale generator.
-        #         "wholetone": {},
-        #         "augmented": {},
-        #         "prometheus": {},
-        #         "blues": {},
-        #     },
-        # ),
-        # "pentatonic": (5, {}),
-        # "tetratonic": (4, {}),
-        # "monotonic": (1, {"monotonic": {"hemitonic": False}}),
     }
 }
 

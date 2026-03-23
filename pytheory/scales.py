@@ -236,7 +236,6 @@ class Scale:
         return [self.triad(i) for i in range(unique)]
 
     def degree(self, item: Union[str, int, slice], major: Optional[bool] = None, minor: bool = False) -> Optional[Union[Tone, tuple[Tone, ...]]]:
-        # TODO: cleanup degrees.
 
         # Ensure that both major and minor aren't passed.
         if all((major, minor)):
@@ -653,7 +652,7 @@ class TonedScale:
         try:
             return self._scales[scale]
         except KeyError:
-            pass
+            return None
 
     @property
     def scales(self) -> tuple[str, ...]:
