@@ -20,32 +20,28 @@ def sine_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return numpy.resize(onecycle, (n_samples,)).astype(numpy.int16)
 
 
-def sawtooth_wave(hz, peak=SAMPLE_PEAK, rising_ramp_width=1, n_samples=SAMPLE_RATE):
-    """Compute N samples of a sine wave with given frequency and peak amplitude.
+def sawtooth_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Compute N samples of a sawtooth wave with given frequency and peak amplitude.
     Defaults to one second.
-    rising_ramp_width is the percentage of the ramp spend rising:
-    .5 is a triangle wave with equal rising and falling times.
     """
-    t = numpy.linspace(0, 1, int(500 * 440 / hz), endpoint=False)
-    wave = scipy.signal.sawtooth(2 * numpy.pi * 5 * t, width=rising_ramp_width)
-    wave = numpy.resize(wave, (n_samples,))
-    # Sawtooth waves sound very quiet, so multiply peak by 4.
-    return peak * 6 * wave.astype(numpy.int16)
+    length = SAMPLE_RATE / float(hz)
+    omega = numpy.pi * 2 / length
+    xvalues = numpy.arange(int(length)) * omega
+    onecycle = scipy.signal.sawtooth(xvalues, width=1)
+    onecycle = (peak * onecycle).astype(numpy.int16)
+    return numpy.resize(onecycle, (n_samples,))
 
 
-def triangle_wave(hz, peak=SAMPLE_PEAK, rising_ramp_width=0.5, n_samples=SAMPLE_RATE):
+def triangle_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Compute N samples of a triangle wave with given frequency and peak amplitude.
     Defaults to one second.
-    rising_ramp_width is the percentage of the ramp spend rising:
-    .5 is a triangle wave with equal rising and falling times.
     """
-    hz_value = float(hz)
-    num_samples = int(500 * 440 / hz_value)
-    t = numpy.linspace(0, 1, num_samples, endpoint=False)
-    wave = scipy.signal.sawtooth(2 * numpy.pi * 5 * t, width=rising_ramp_width)
-    wave = numpy.resize(wave, (n_samples,))
-    # Use same amplitude as sawtooth_wave for testing
-    return peak * 6 * wave.astype(numpy.int16)
+    length = SAMPLE_RATE / float(hz)
+    omega = numpy.pi * 2 / length
+    xvalues = numpy.arange(int(length)) * omega
+    onecycle = scipy.signal.sawtooth(xvalues, width=0.5)
+    onecycle = (peak * onecycle).astype(numpy.int16)
+    return numpy.resize(onecycle, (n_samples,))
 
 
 def _play_for(sample_wave, ms):
