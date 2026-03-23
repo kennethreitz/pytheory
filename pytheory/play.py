@@ -1,4 +1,6 @@
 from enum import Enum
+import time
+
 import numpy
 import scipy.signal
 import sounddevice as sd
@@ -124,3 +126,24 @@ def save(tone_or_chord, path, temperament="equal", synth=Synth.SINE, t=1_000):
     # Convert to 16-bit PCM
     pcm = (normalized * 32767).astype(numpy.int16)
     scipy.io.wavfile.write(path, SAMPLE_RATE, pcm)
+
+
+def play_progression(chords, *, t=1000, synth=Synth.SINE, gap=100):
+    """Play a list of chords in sequence.
+
+    Args:
+        chords: List of Chord objects to play in order.
+        t: Duration of each chord in milliseconds.
+        synth: Waveform type (Synth.SINE, etc). Defaults to sine.
+        gap: Silence between chords in milliseconds.
+
+    Example::
+
+        >>> from pytheory import Key, play_progression
+        >>> chords = Key("C", "major").progression("I", "V", "vi", "IV")
+        >>> play_progression(chords, t=800)
+    """
+    for i, chord in enumerate(chords):
+        play(chord, synth=synth, t=t)
+        if gap > 0 and i < len(chords) - 1:
+            time.sleep(gap / 1000.0)

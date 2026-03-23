@@ -11,7 +11,7 @@ instruments using a clean, Pythonic API.
 
 .. code-block:: pycon
 
-   >>> from pytheory import Key, Chord, Tone, Fretboard
+   >>> from pytheory import Key, Chord, Tone, Scale, Fretboard
 
    >>> key = Key("C", "major")
    >>> key.chords
@@ -31,6 +31,15 @@ instruments using a clean, Pythonic API.
    >>> fb = Fretboard.guitar()
    >>> fb.chord("G")
    Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
+
+   >>> print(fb.scale_diagram(Scale(tonic="A4", system="blues")["minor pentatonic"], frets=5))
+     0    1    2    3    4    5
+   E| E | - | - | G | - | A |
+   B| - | C | - | D | - | E |
+   G| G | - | A | - | - | C |
+   D| D | - | E | - | - | G |
+   A| A | - | - | C | - | D |
+   E| E | - | - | G | - | A |
 
 Highlights
 ----------
@@ -78,6 +87,7 @@ It also works from the command line::
    guide/systems
    guide/playback
    guide/cli
+   guide/cookbook
 
 .. toctree::
    :maxdepth: 2

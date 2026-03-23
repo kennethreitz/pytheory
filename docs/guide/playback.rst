@@ -78,6 +78,26 @@ differences in the "color" of the major third. Equal temperament is
 a compromise; the other systems sacrifice some keys to make the good
 keys sound better.
 
+Chord Progressions
+-------------------
+
+Play an entire chord progression in sequence with a single call:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key, play_progression
+
+   >>> chords = Key("C", "major").progression("I", "V", "vi", "IV")
+   >>> play_progression(chords, t=800)
+
+You can customize the waveform and the gap (silence) between chords:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Synth
+
+   >>> play_progression(chords, t=1000, synth=Synth.TRIANGLE, gap=200)
+
 Saving to WAV
 -------------
 
