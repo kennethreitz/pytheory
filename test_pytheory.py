@@ -3647,3 +3647,80 @@ def test_charts_muted_string():
     nc = NamedChord(tone_name="C", quality="")
     fixed = nc.fix_fingering((0, -1, 2))
     assert fixed == (0, None, 2)
+
+
+# ── Flat note support ─────────────────────────────────────────────────────────
+
+def test_flat_tone_from_string():
+    db = Tone.from_string("Db4", system="western")
+    assert db.name == "Db"
+    assert db.octave == 4
+
+
+def test_flat_tone_frequency_matches_sharp():
+    db = Tone.from_string("Db4", system="western")
+    cs = Tone.from_string("C#4", system="western")
+    assert db.frequency == cs.frequency
+
+
+def test_flat_tone_frequency_all_enharmonics():
+    pairs = [("Bb3", "A#3"), ("Eb4", "D#4"), ("Gb4", "F#4"), ("Ab4", "G#4")]
+    for flat, sharp in pairs:
+        f = Tone.from_string(flat, system="western").frequency
+        s = Tone.from_string(sharp, system="western").frequency
+        assert f == s, f"{flat} != {sharp}"
+
+
+def test_flat_tone_arithmetic():
+    db = Tone.from_string("Db4", system="western")
+    result = db + 2
+    assert result.name == "D#"
+    assert result.octave == 4
+
+
+def test_flat_tone_interval():
+    c4 = Tone.from_string("C4", system="western")
+    db4 = Tone.from_string("Db4", system="western")
+    assert db4 - c4 == 1
+
+
+def test_flat_tone_exists():
+    db = Tone.from_string("Db4", system="western")
+    assert db.exists is True
+
+
+def test_flat_tone_index_resolves():
+    db = Tone.from_string("Db4", system="western")
+    cs = Tone.from_string("C#4", system="western")
+    assert db._index == cs._index
+
+
+def test_flat_chord_from_tones():
+    chord = Chord.from_tones("Db", "F", "Ab")
+    assert chord.identify() == "Db major"
+
+
+def test_flat_chord_from_tones_minor():
+    chord = Chord.from_tones("Bb", "Db", "F")
+    assert chord.identify() == "Bb minor"
+
+
+def test_flat_chord_from_tones_seventh():
+    chord = Chord.from_tones("Eb", "G", "Bb", "Db")
+    assert chord.identify() == "Eb dominant 7th"
+
+
+def test_system_resolve_name_sharp():
+    assert SYSTEMS["western"].resolve_name("C#") == "C#"
+
+
+def test_system_resolve_name_flat():
+    assert SYSTEMS["western"].resolve_name("Db") == "C#"
+
+
+def test_system_resolve_name_natural():
+    assert SYSTEMS["western"].resolve_name("C") == "C"
+
+
+def test_system_resolve_name_unknown():
+    assert SYSTEMS["western"].resolve_name("X") is None
