@@ -258,6 +258,39 @@ you hear a pulsing at the **beat frequency**: ``|f1 - f2|`` Hz.
    # The slowest (most perceptible) beat
    chord.beat_pulse  # 189.6 Hz
 
+Transposition
+-------------
+
+Shift an entire chord up or down by any number of semitones:
+
+.. code-block:: python
+
+   >>> Chord.from_name("C").transpose(7).identify()
+   'G major'
+
+   >>> Chord.from_name("Am7").transpose(-2).identify()
+   'G minor 7th'
+
+Chord Manipulation
+------------------
+
+Add or remove individual tones from a chord:
+
+.. code-block:: python
+
+   from pytheory import Chord, Tone
+
+   c_major = Chord.from_tones("C", "E", "G")
+
+   # Add a tone to build a seventh chord
+   b4 = Tone.from_string("B4", system="western")
+   cmaj7 = c_major.add_tone(b4)
+   cmaj7.identify()     # 'C major 7th'
+
+   # Remove a tone
+   c_again = cmaj7.remove_tone("B")
+   c_again.identify()   # 'C major'
+
 Chord Identification
 --------------------
 
@@ -267,23 +300,25 @@ against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
 
 .. code-block:: python
 
-   from pytheory import Chord, Tone
+   from pytheory import Chord
 
-   # Build a chord and identify it
-   chord = Chord([
-       Tone.from_string("A4", system="western"),
-       Tone.from_string("C5", system="western"),
-       Tone.from_string("E5", system="western"),
-   ])
-   chord.identify()   # 'A minor'
+   # From note names
+   Chord.from_tones("A", "C", "E").identify()        # 'A minor'
+   Chord.from_tones("G", "B", "D", "F").identify()   # 'G dominant 7th'
 
    # Works with any voicing or inversion
-   chord2 = Chord([
-       Tone.from_string("E4", system="western"),
-       Tone.from_string("G4", system="western"),
-       Tone.from_string("C5", system="western"),
-   ])
-   chord2.identify()  # 'C major' (first inversion detected)
+   Chord.from_tones("E", "G", "C").identify()         # 'C major'
+
+   # Flats work too
+   Chord.from_tones("Bb", "D", "F").identify()        # 'Bb major'
+
+You can also access the root and quality separately:
+
+.. code-block:: python
+
+   chord = Chord.from_name("Am7")
+   chord.root         # <Tone A4>
+   chord.quality       # 'minor 7th'
 
 Harmonic Analysis
 -----------------

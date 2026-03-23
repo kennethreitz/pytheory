@@ -34,6 +34,7 @@ Work with tones, scales, chords, and fretboards using a clean, Pythonic API.
    guide/fretboard
    guide/systems
    guide/playback
+   guide/cli
 
 .. toctree::
    :maxdepth: 2

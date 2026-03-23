@@ -44,9 +44,10 @@ Creating Tones
 
    from pytheory import Tone
 
-   # From a string (most common)
+   # From a string (most common) — sharps and flats both work
    c4 = Tone.from_string("C4")
    cs4 = Tone.from_string("C#4")
+   db4 = Tone.from_string("Db4")     # Same pitch as C#4
 
    # Direct construction
    d = Tone(name="D", octave=3)
@@ -54,20 +55,32 @@ Creating Tones
    # With a specific system
    a4 = Tone.from_string("A4", system="western")
 
+   # From a frequency (finds the nearest note)
+   Tone.from_frequency(440)           # <Tone A4>
+   Tone.from_frequency(261.63)        # <Tone C4>
+
+   # From a MIDI note number
+   Tone.from_midi(60)                 # <Tone C4> (middle C)
+   Tone.from_midi(69)                 # <Tone A4>
+
 Properties
 ----------
 
 .. code-block:: python
 
-   >>> c4 = Tone.from_string("C4")
+   >>> c4 = Tone.from_string("C4", system="western")
    >>> c4.name
    'C'
    >>> c4.octave
    4
    >>> c4.full_name
    'C4'
-   >>> str(c4)
-   'C4'
+   >>> c4.letter       # Note letter without accidentals
+   'C'
+   >>> c4.midi         # MIDI note number
+   60
+   >>> c4.exists       # Is this note in the system?
+   True
 
 Pitch and Frequency
 -------------------
@@ -215,6 +228,58 @@ Subtracting two tones gives the semitone distance:
    >>> c5 = Tone.from_string("C5", system="western")
    >>> c5 - c4       # Octave = 12 semitones
    12
+
+Naming Intervals
+~~~~~~~~~~~~~~~~
+
+The ``interval_to`` method gives the musical name of the interval
+between two tones, including compound intervals that span more than
+one octave:
+
+.. code-block:: python
+
+   >>> c4.interval_to(g4)
+   'perfect 5th'
+   >>> c4.interval_to(c4 + 4)
+   'major 3rd'
+   >>> c4.interval_to(c5)
+   'octave'
+
+   # Compound intervals (more than an octave)
+   >>> c4.interval_to(c4 + 19)    # Octave + perfect 5th
+   'perfect 5th + 1 octave'
+
+Transposition
+~~~~~~~~~~~~~
+
+The ``transpose`` method returns a new tone shifted by a number of
+semitones — equivalent to the ``+`` operator but reads more clearly
+in some contexts:
+
+.. code-block:: python
+
+   >>> c4.transpose(7)     # Same as c4 + 7
+   <Tone G4>
+   >>> c4.transpose(-2)    # Two semitones down
+   <Tone A#3>
+
+MIDI
+~~~~
+
+Every tone maps to a `MIDI note number <https://en.wikipedia.org/wiki/MIDI>`_
+(0–127), the standard for communicating with synthesizers, DAWs, and
+digital instruments:
+
+.. code-block:: python
+
+   >>> c4.midi
+   60          # Middle C
+   >>> Tone.from_string("A4", system="western").midi
+   69          # Concert A
+
+   # Round-trip: MIDI → Tone → MIDI
+   >>> Tone.from_midi(60).midi
+   60
 
 Comparison and Sorting
 ----------------------

@@ -274,23 +274,101 @@ structure. In the key of A::
    # The 12-bar blues progression
    blues_12 = [I, I, I, I, IV, IV, I, I, V, IV, I, V]
 
-Parallel Major and Minor
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Key Signatures
+~~~~~~~~~~~~~~
 
-Two scales are **relative** if they share the same notes (C major and
-A minor). Two scales are `parallel <https://en.wikipedia.org/wiki/Parallel_key>`_ if they share the same tonic but
-have different notes (C major and C minor).
+The ``signature`` property tells you how many sharps or flats a key has:
 
-Mixing parallel major and minor is a powerful compositional tool —
-borrowing chords from the parallel minor in a major key creates
-dramatic color shifts. The bVI and bVII chords (Ab and Bb in C major)
-are borrowed from C minor and appear constantly in rock and film music.
+.. code-block:: python
+
+   >>> Key("G", "major").signature
+   {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
+
+   >>> Key("F", "major").signature
+   {'sharps': 0, 'flats': 1, 'accidentals': ['Bb']}
+
+   >>> Key("C", "major").signature
+   {'sharps': 0, 'flats': 0, 'accidentals': []}
+
+Relative and Parallel Keys
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Two keys are **relative** if they share the same notes (C major and
+A minor). Two keys are `parallel <https://en.wikipedia.org/wiki/Parallel_key>`_ if they share the same tonic but
+have different notes (C major and C minor):
+
+.. code-block:: python
+
+   >>> Key("C", "major").relative
+   <Key A minor>
+
+   >>> Key("A", "minor").relative
+   <Key C major>
+
+   >>> Key("C", "major").parallel
+   <Key C minor>
+
+Borrowed Chords
+~~~~~~~~~~~~~~~
+
+`Modal interchange <https://en.wikipedia.org/wiki/Borrowed_chord>`_ —
+borrowing chords from the parallel key — is one of the most powerful
+tools in songwriting. The bVI and bVII chords (Ab and Bb in C major)
+are borrowed from C minor and appear constantly in rock and film music:
+
+.. code-block:: python
+
+   >>> Key("C", "major").borrowed_chords
+   # Chords from C minor that aren't in C major
+
+Secondary Dominants
+~~~~~~~~~~~~~~~~~~~
+
+A `secondary dominant <https://en.wikipedia.org/wiki/Secondary_dominant>`_
+is the V chord *of* a non-tonic chord. It creates a momentary pull
+toward that chord, adding harmonic color:
+
+.. code-block:: python
+
+   key = Key("C", "major")
+
+   # V/V — the dominant of the dominant (D7 → G)
+   key.secondary_dominant(5)     # D dominant 7th
+
+   # V/ii — the dominant of the supertonic (A7 → Dm)
+   key.secondary_dominant(2)     # A dominant 7th
+
+Random Progressions
+~~~~~~~~~~~~~~~~~~~
+
+Need inspiration? Generate weighted random progressions. The weights
+favor common chord functions (I and vi most likely, vii least):
+
+.. code-block:: python
+
+   key = Key("C", "major")
+   chords = key.random_progression(4)    # 4 chords
+   [c.identify() for c in chords]
+   # e.g. ['C major', 'F major', 'A minor', 'G major']
+
+All Keys
+~~~~~~~~
+
+Enumerate all 24 major and minor keys:
+
+.. code-block:: python
+
+   >>> Key.all_keys()
+   [<Key C major>, <Key C minor>, <Key C# major>, <Key C# minor>, ...]
+
+Scale Transposition
+~~~~~~~~~~~~~~~~~~~
+
+Transpose an entire scale by a number of semitones:
 
 .. code-block:: python
 
    c_major = TonedScale(tonic="C4")["major"]
-   c_minor = TonedScale(tonic="C4")["minor"]
-
-   # Compare: same tonic, different notes
-   c_major.note_names  # ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
-   c_minor.note_names  # ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
+   d_major = c_major.transpose(2)    # Up a whole step
+   d_major.note_names
+   # ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D']
