@@ -7,28 +7,34 @@ from pytheory import Tone, Chord, Key, TonedScale, play, Synth
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 
-BPM = 120
+BPM = 180
 BEAT = 60_000 // BPM  # ms per beat
 
 
 def play_melody(notes, synth=Synth.SINE):
     """Play a sequence of (note_string, beats) tuples."""
-    for note, beats in notes:
-        if note == "REST":
-            import time
-            time.sleep(beats * BEAT / 1000)
-        else:
-            tone = Tone.from_string(note, system="western")
-            play(tone, synth=synth, t=int(beats * BEAT))
+    try:
+        for note, beats in notes:
+            if note == "REST":
+                import time
+                time.sleep(beats * BEAT / 1000)
+            else:
+                tone = Tone.from_string(note, system="western")
+                play(tone, synth=synth, t=int(beats * BEAT))
+    except KeyboardInterrupt:
+        print("\n  Stopped.")
 
 
 def play_progression(chords, beats_each=2, synth=Synth.TRIANGLE):
     """Play a list of Chord objects."""
-    for chord in chords:
-        name = chord.identify() or "?"
-        tones = " ".join(t.full_name for t in chord.tones)
-        print(f"  {name:20s}  {tones}")
-        play(chord, synth=synth, t=int(beats_each * BEAT))
+    try:
+        for chord in chords:
+            name = chord.identify() or "?"
+            tones = " ".join(t.full_name for t in chord.tones)
+            print(f"  {name:20s}  {tones}")
+            play(chord, synth=synth, t=int(beats_each * BEAT))
+    except KeyboardInterrupt:
+        print("\n  Stopped.")
 
 
 # ── Songs ───────────────────────────────────────────────────────────────
@@ -184,24 +190,27 @@ SONGS = {
 }
 
 if __name__ == "__main__":
-    print("PyTheory Song Player")
-    print("=" * 40)
-    print()
+    try:
+        print("PyTheory Song Player")
+        print("=" * 40)
+        print()
 
-    for key, (name, _) in SONGS.items():
-        print(f"  {key}. {name}")
+        for key, (name, _) in SONGS.items():
+            print(f"  {key}. {name}")
 
-    print()
-    choice = input("Pick a song (1-7, or 'all'): ").strip()
+        print()
+        choice = input("Pick a song (1-7, or 'all'): ").strip()
 
-    if choice == "all":
-        for _, (_, fn) in SONGS.items():
-            fn()
-            print()
-    elif choice in SONGS:
-        SONGS[choice][1]()
-    else:
-        print("Playing all melodies...")
-        for _, (_, fn) in SONGS.items():
-            fn()
-            print()
+        if choice == "all":
+            for _, (_, fn) in SONGS.items():
+                fn()
+                print()
+        elif choice in SONGS:
+            SONGS[choice][1]()
+        else:
+            print("Playing all melodies...")
+            for _, (_, fn) in SONGS.items():
+                fn()
+                print()
+    except KeyboardInterrupt:
+        print("\n\nBye!")
