@@ -44,5 +44,8 @@ docs = ["sphinx"]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.pytest.ini_options]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+
 [tool.setuptools]
 packages = ["pytheory"]

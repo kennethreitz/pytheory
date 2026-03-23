@@ -1270,6 +1270,23 @@ class Fretboard:
         from .charts import CHARTS
         return CHARTS[system][name].fingering(fretboard=self)
 
+    def __getitem__(self, name: str) -> "Fingering":
+        """Shorthand for :meth:`chord` — ``fb["G"]`` equals ``fb.chord("G")``.
+
+        Args:
+            name: Chord name like ``"G"``, ``"Am7"``, ``"Bb"``.
+
+        Returns:
+            A :class:`Fingering` for that chord on this fretboard.
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> fb["G"]
+            Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
+        """
+        return self.chord(name)
+
     def tab(self, name: str, *, system: str = "western") -> str:
         """Look up a chord by name and return its ASCII tablature.
 

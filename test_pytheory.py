@@ -525,6 +525,7 @@ def test_chord_fingering_em(guitar_fretboard):
     assert zeros >= 3
 
 
+@pytest.mark.slow
 def test_chord_fingering_all_western_chords(guitar_fretboard):
     """Every chord in the western chart should produce a valid fingering."""
     for name, chord in CHARTS["western"].items():
@@ -1330,6 +1331,7 @@ def test_charts_all_qualities_present():
         assert len(matching) > 0, f"No chords with quality '{quality}'"
 
 
+@pytest.mark.slow
 def test_charts_for_fretboard(guitar_fretboard):
     result = charts_for_fretboard(fretboard=guitar_fretboard)
     assert len(result) == len(CHARTS["western"])
@@ -1337,6 +1339,7 @@ def test_charts_for_fretboard(guitar_fretboard):
         assert len(fingering) == 6, f"{name} has wrong fingering length"
 
 
+@pytest.mark.slow
 def test_charts_fingering_values_in_range(guitar_fretboard):
     """All fret values should be 0-6 or None (muted)."""
     for name, chord in CHARTS["western"].items():
@@ -3673,6 +3676,7 @@ def test_fretboard_tab_method():
     assert "E|" in tab
 
 
+@pytest.mark.slow
 def test_fretboard_chart_method():
     """Fretboard.chart() generates all fingerings."""
     fb = Fretboard.guitar()

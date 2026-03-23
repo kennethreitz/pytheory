@@ -4,7 +4,7 @@ __version__ = "0.7.0"
 
 from .tones import Tone, Interval
 from .systems import System, SYSTEMS
-from .scales import Scale, TonedScale, Key, PROGRESSIONS
+from .scales import TonedScale, Key, PROGRESSIONS
 from .chords import Chord, Fretboard, analyze_progression
 from .charts import CHARTS, Fingering, charts_for_fretboard
 
@@ -17,6 +17,7 @@ except OSError:
 
 # Aliases for discoverability.
 Note = Tone
+Scale = TonedScale
 
 __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",

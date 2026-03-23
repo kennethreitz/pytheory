@@ -8,11 +8,38 @@ from .tones import Tone
 QUALITIES = ("", "maj", "m", "5", "7", "9", "dim", "m6", "m7", "m9", "maj7", "maj9")
 MAX_FRET = 7
 
+# Standard guitar tuning (high to low): E4 B3 G3 D3 A2 E2
+STANDARD_GUITAR_TUNING = ("E4", "B3", "G3", "D3", "A2", "E2")
+
+# Curated override fingerings for common guitar chords in standard tuning.
+# Key: chord name, Value: tuple of fret positions (-1 = muted string).
+# Order is high-to-low (matching Fretboard.guitar() string order).
+GUITAR_OVERRIDES = {
+    "C":    (0, 1, 0, 2, 3, -1),
+    "D":    (2, 3, 2, 0, -1, -1),
+    "Dm":   (1, 3, 2, 0, -1, -1),
+    "D7":   (2, 1, 2, 0, -1, -1),
+    "E":    (0, 0, 1, 2, 2, 0),
+    "Em":   (0, 0, 0, 2, 2, 0),
+    "F":    (1, 1, 2, 3, 3, 1),
+    "G":    (3, 0, 0, 0, 2, 3),
+    "G7":   (1, 0, 0, 0, 2, 3),
+    "A":    (0, 2, 2, 2, 0, -1),
+    "Am":   (0, 1, 2, 2, 0, -1),
+    "Am7":  (0, 1, 0, 2, 0, -1),
+    "B":    (2, 4, 4, 4, 2, -1),
+    "Bm":   (2, 3, 4, 4, 2, -1),
+    "B7":   (2, 0, 2, 1, 2, -1),
+}
+
 # Memoization cache for fingering lookups.
 # Key: (chord_name, fretboard_tuning_tuple)
 # Value: Fingering object (single) or tuple of Fingerings (multiple)
+# Bounded to _CACHE_MAX_SIZE entries; cleared entirely when full.
+_CACHE_MAX_SIZE = 1024
 _fingering_cache: dict[tuple, "Fingering"] = {}
 _fingering_multi_cache: dict[tuple, tuple] = {}
+_possible_cache: dict[tuple, tuple] = {}
 
 
 class Fingering:
@@ -225,6 +252,11 @@ class NamedChord:
         return tuple([tone.name for tone in self.acceptable_tones])
 
     def _possible_fingerings(self, *, fretboard):
+        # Check the _possible_cache first
+        key = self._cache_key(fretboard)
+        if key in _possible_cache:
+            return _possible_cache[key]
+
         def find_fingerings(tone):
             fingerings = []
             for j in range(MAX_FRET):
@@ -244,7 +276,14 @@ class NamedChord:
             else:
                 fingering.append((-1,))
 
-        return tuple(fingering)
+        result = tuple(fingering)
+
+        # Bounded cache: clear entirely if over limit
+        if len(_possible_cache) >= _CACHE_MAX_SIZE:
+            _possible_cache.clear()
+        _possible_cache[key] = result
+
+        return result
 
     @staticmethod
     def fix_fingering(fingering):
@@ -270,6 +309,24 @@ class NamedChord:
         else:
             if key in _fingering_cache:
                 return _fingering_cache[key]
+
+        # Check for curated guitar chord overrides in standard tuning
+        tuning = tuple(t.full_name for t in fretboard.tones)
+        if tuning == STANDARD_GUITAR_TUNING and self.name in GUITAR_OVERRIDES:
+            string_names = tuple(t.name for t in fretboard.tones)
+            override = GUITAR_OVERRIDES[self.name]
+            if not multiple:
+                result = Fingering(self.fix_fingering(override), string_names, fretboard=fretboard)
+                if len(_fingering_cache) >= _CACHE_MAX_SIZE:
+                    _fingering_cache.clear()
+                _fingering_cache[key] = result
+                return result
+            else:
+                result = (Fingering(self.fix_fingering(override), string_names, fretboard=fretboard),)
+                if len(_fingering_multi_cache) >= _CACHE_MAX_SIZE:
+                    _fingering_multi_cache.clear()
+                _fingering_multi_cache[key] = result
+                return result
 
         MAX_SPAN = 4  # max fret span for a human hand
 
@@ -376,10 +433,16 @@ class NamedChord:
         best_fingerings = tuple([g for g in gen()])
         if not multiple:
             result = Fingering(self.fix_fingering(best_fingerings[0]), string_names, fretboard=fretboard)
+            # Bounded cache: clear entirely if over limit
+            if len(_fingering_cache) >= _CACHE_MAX_SIZE:
+                _fingering_cache.clear()
             _fingering_cache[key] = result
             return result
         else:
             result = tuple([Fingering(self.fix_fingering(f), string_names, fretboard=fretboard) for f in best_fingerings])
+            # Bounded cache: clear entirely if over limit
+            if len(_fingering_multi_cache) >= _CACHE_MAX_SIZE:
+                _fingering_multi_cache.clear()
             _fingering_multi_cache[key] = result
             return result
 

@@ -32,6 +32,21 @@ instruments using a clean, Pythonic API.
    >>> fb.chord("G")
    Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
 
+Highlights
+----------
+
+- **Tones**: frequencies, MIDI, intervals, transposition, circle of fifths,
+  overtone series, 3 temperaments (equal, Pythagorean, meantone)
+- **Scales**: 40+ scales across 6 musical systems — Western, Indian,
+  Arabic, Japanese, Blues, Javanese Gamelan
+- **Chords**: 17 chord types identified automatically, Roman numeral
+  analysis, tension scoring, voice leading, consonance/dissonance
+- **Keys**: key detection, signatures, progressions (Roman numerals and
+  Nashville numbers), borrowed chords, secondary dominants
+- **Instruments**: 25 presets (guitar, bass, ukulele, mandolin, violin,
+  banjo, oud, sitar, erhu, and more) with fingering generation
+- **Audio**: sine, sawtooth, and triangle wave playback + WAV export
+
 It also works from the command line::
 
    $ pytheory key G major
@@ -49,21 +64,6 @@ It also works from the command line::
    $ pytheory play Am7 --synth triangle
      Playing: A minor 7th (A4 C4 E4 G4)
      Synth:   triangle
-
-Highlights
-----------
-
-- **Tones**: frequencies, MIDI, intervals, transposition, circle of fifths,
-  overtone series, 3 temperaments (equal, Pythagorean, meantone)
-- **Scales**: 40+ scales across 6 musical systems — Western, Indian,
-  Arabic, Japanese, Blues, Javanese Gamelan
-- **Chords**: 17 chord types identified automatically, Roman numeral
-  analysis, tension scoring, voice leading, consonance/dissonance
-- **Keys**: key detection, signatures, progressions (Roman numerals and
-  Nashville numbers), borrowed chords, secondary dominants
-- **Instruments**: 25 presets (guitar, bass, ukulele, mandolin, violin,
-  banjo, oud, sitar, erhu, and more) with fingering generation
-- **Audio**: sine, sawtooth, and triangle wave playback + WAV export
 
 .. toctree::
    :maxdepth: 2
