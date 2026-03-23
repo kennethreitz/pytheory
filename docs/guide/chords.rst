@@ -139,7 +139,7 @@ Quality       Intervals         Example tones (from C)
    ('C', 'E', 'G')
 
    >>> chart["Cm7"].acceptable_tone_names
-   ('C', 'D#', 'G', 'A#')
+   ('C', 'Eb', 'G', 'Bb')
 
 Building Chords
 ---------------

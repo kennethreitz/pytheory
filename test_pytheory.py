@@ -417,7 +417,7 @@ def test_named_chord_c_minor_tones():
     cm = NamedChord(tone_name="C", quality="m")
     names = cm.acceptable_tone_names
     assert "C" in names
-    assert "D#" in names  # Eb enharmonic
+    assert "Eb" in names  # minor 3rd
     assert "G" in names
 
 
@@ -435,24 +435,24 @@ def test_named_chord_dominant_7th():
     assert "C" in names
     assert "E" in names   # major 3rd
     assert "G" in names   # perfect 5th
-    assert "A#" in names  # minor 7th (Bb)
+    assert "Bb" in names  # minor 7th
 
 
 def test_named_chord_diminished():
     cdim = NamedChord(tone_name="C", quality="dim")
     names = cdim.acceptable_tone_names
     assert "C" in names
-    assert "D#" in names  # minor 3rd (Eb)
-    assert "F#" in names  # diminished 5th (Gb)
+    assert "Eb" in names  # minor 3rd
+    assert "Gb" in names  # diminished 5th
 
 
 def test_named_chord_minor_7th():
     cm7 = NamedChord(tone_name="C", quality="m7")
     names = cm7.acceptable_tone_names
     assert "C" in names
-    assert "D#" in names  # minor 3rd
+    assert "Eb" in names  # minor 3rd
     assert "G" in names   # perfect 5th
-    assert "A#" in names  # minor 7th
+    assert "Bb" in names  # minor 7th
 
 
 def test_named_chord_major_7th():
@@ -1258,7 +1258,7 @@ def test_named_chord_m6_tones():
     cm6 = NamedChord(tone_name="C", quality="m6")
     names = cm6.acceptable_tone_names
     assert "C" in names
-    assert "D#" in names  # minor 3rd
+    assert "Eb" in names  # minor 3rd
     assert "G" in names   # perfect 5th
     assert "A" in names   # major 6th
     assert len(names) == 4
@@ -1268,9 +1268,9 @@ def test_named_chord_m9_tones():
     cm9 = NamedChord(tone_name="C", quality="m9")
     names = cm9.acceptable_tone_names
     assert "C" in names
-    assert "D#" in names  # minor 3rd
+    assert "Eb" in names  # minor 3rd
     assert "G" in names   # perfect 5th
-    assert "A#" in names  # minor 7th
+    assert "Bb" in names  # minor 7th
     assert "D" in names   # major 9th
     assert len(names) == 5
 
@@ -1292,7 +1292,7 @@ def test_named_chord_9_tones():
     assert "C" in names
     assert "E" in names   # major 3rd
     assert "G" in names   # perfect 5th
-    assert "A#" in names  # minor 7th
+    assert "Bb" in names  # minor 7th
     assert "D" in names   # major 9th
     assert len(names) == 5
 

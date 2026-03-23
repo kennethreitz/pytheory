@@ -194,62 +194,100 @@ class NamedChord:
         return f"<NamedChord name={self.name!r}>"
 
     @property
+    def _prefer_flats(self):
+        """Determine whether this chord's tones should use flat spellings.
+
+        Uses the circle-of-fifths convention:
+        - Flat-root notes (Bb, Eb, Ab, Db, Gb) always prefer flats.
+        - Major-type qualities prefer flats for roots: F, Bb, Eb, Ab, Db, Gb.
+        - Minor-type qualities prefer flats for roots: D, G, C, F, Bb, Eb, Ab.
+        """
+        # Root is itself a flat note — always prefer flats
+        if "b" in self.tone_name and self.tone_name != "B":
+            return True
+
+        _FLAT_MAJOR_ROOTS = {"F", "Bb", "Eb", "Ab", "Db", "Gb"}
+        _FLAT_MINOR_ROOTS = {"D", "G", "C", "F", "Bb", "Eb", "Ab"}
+        # Dominant 7th/9th chords contain a minor 7th (b7), so they
+        # follow the same flat-preference roots as minor chords.
+        _FLAT_DOMINANT_ROOTS = {"C", "F", "G", "Bb", "Eb", "Ab", "Db", "Gb"}
+
+        minor_qualities = {"m", "m6", "m7", "m9", "dim"}
+        dominant_qualities = {"7", "9"}
+        major_qualities = {"", "maj", "5", "maj7", "maj9"}
+
+        if self.quality in minor_qualities and self.tone_name in _FLAT_MINOR_ROOTS:
+            return True
+        if self.quality in dominant_qualities and self.tone_name in _FLAT_DOMINANT_ROOTS:
+            return True
+        if self.quality in major_qualities and self.tone_name in _FLAT_MAJOR_ROOTS:
+            return True
+
+        return False
+
+    @property
     def acceptable_tones(self):
         acceptable = [self.tone]
+        flats = self._prefer_flats
 
         if self.quality == "maj":
             # Major triad: root, major 3rd, perfect 5th
-            acceptable += [self.tone.add(4), self.tone.add(7)]
+            acceptable += [self.tone.add(4, prefer_flats=flats), self.tone.add(7, prefer_flats=flats)]
 
         elif self.quality == "m":
             # Minor triad: root, minor 3rd, perfect 5th
-            acceptable += [self.tone.add(3), self.tone.add(7)]
+            acceptable += [self.tone.add(3, prefer_flats=flats), self.tone.add(7, prefer_flats=flats)]
 
         elif self.quality == "5":
             # Power chord: root, perfect 5th
-            acceptable += [self.tone.add(7)]
+            acceptable += [self.tone.add(7, prefer_flats=flats)]
 
         elif self.quality == "7":
             # Dominant 7th: root, major 3rd, perfect 5th, minor 7th
-            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(10)]
+            acceptable += [self.tone.add(4, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(10, prefer_flats=flats)]
 
         elif self.quality == "9":
             # Dominant 9th: root, major 3rd, perfect 5th, minor 7th, major 9th
-            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(10), self.tone.add(2)]
+            acceptable += [self.tone.add(4, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(10, prefer_flats=flats), self.tone.add(2, prefer_flats=flats)]
 
         elif self.quality == "dim":
             # Diminished: root, minor 3rd, diminished 5th
-            acceptable += [self.tone.add(3), self.tone.add(6)]
+            acceptable += [self.tone.add(3, prefer_flats=flats), self.tone.add(6, prefer_flats=flats)]
 
         elif self.quality == "m6":
             # Minor 6th: root, minor 3rd, perfect 5th, major 6th
-            acceptable += [self.tone.add(3), self.tone.add(7), self.tone.add(9)]
+            acceptable += [self.tone.add(3, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(9, prefer_flats=flats)]
 
         elif self.quality == "m7":
             # Minor 7th: root, minor 3rd, perfect 5th, minor 7th
-            acceptable += [self.tone.add(3), self.tone.add(7), self.tone.add(10)]
+            acceptable += [self.tone.add(3, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(10, prefer_flats=flats)]
 
         elif self.quality == "m9":
             # Minor 9th: root, minor 3rd, perfect 5th, minor 7th, major 9th
-            acceptable += [self.tone.add(3), self.tone.add(7), self.tone.add(10), self.tone.add(2)]
+            acceptable += [self.tone.add(3, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(10, prefer_flats=flats), self.tone.add(2, prefer_flats=flats)]
 
         elif self.quality == "maj7":
             # Major 7th: root, major 3rd, perfect 5th, major 7th
-            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(11)]
+            acceptable += [self.tone.add(4, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(11, prefer_flats=flats)]
 
         elif self.quality == "maj9":
             # Major 9th: root, major 3rd, perfect 5th, major 7th, major 9th
-            acceptable += [self.tone.add(4), self.tone.add(7), self.tone.add(11), self.tone.add(2)]
+            acceptable += [self.tone.add(4, prefer_flats=flats), self.tone.add(7, prefer_flats=flats), self.tone.add(11, prefer_flats=flats), self.tone.add(2, prefer_flats=flats)]
 
         else:
             # Default (no quality): major triad
-            acceptable += [self.tone.add(4), self.tone.add(7)]
+            acceptable += [self.tone.add(4, prefer_flats=flats), self.tone.add(7, prefer_flats=flats)]
 
         return tuple(acceptable)
 
     @property
     def acceptable_tone_names(self):
-        return tuple([tone.name for tone in self.acceptable_tones])
+        names = [tone.name for tone in self.acceptable_tones]
+        # The root tone is stored internally with sharp spelling (e.g. A#
+        # for Bb) via flat_to_sharp mapping; restore the original flat name.
+        if names and names[0] != self.tone_name:
+            names[0] = self.tone_name
+        return tuple(names)
 
     def _possible_fingerings(self, *, fretboard):
         # Check the _possible_cache first
