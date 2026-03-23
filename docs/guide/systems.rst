@@ -19,7 +19,7 @@ and all seven modes.
    ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
    >>> c["dorian"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'A', 'Bb', 'C']
 
 **Scales:** major, minor, harmonic minor, ionian, dorian, phrygian,
 lydian, mixolydian, aeolian, locrian, chromatic
@@ -98,16 +98,16 @@ and heptatonic scales from Japanese music.
    >>> c = TonedScale(tonic="C4", system="japanese")
 
    >>> c["hirajoshi"].note_names  # most iconic Japanese scale
-   ['C', 'D', 'D#', 'G', 'G#', 'C']
+   ['C', 'D', 'Eb', 'G', 'Ab', 'C']
 
    >>> c["in"].note_names         # Miyako-bushi, used in koto music
-   ['C', 'C#', 'F', 'G', 'G#', 'C']
+   ['C', 'Db', 'F', 'G', 'Ab', 'C']
 
    >>> c["yo"].note_names         # folk music scale
    ['C', 'D', 'F', 'G', 'A#', 'C']
 
    >>> c["ritsu"].note_names      # gagaku court music (= Dorian)
-   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'A', 'Bb', 'C']
 
 **Pentatonic scales:** hirajoshi, in, yo, iwato, kumoi, insen
 
@@ -138,10 +138,10 @@ of the blues.
    ['C', 'D#', 'F', 'G', 'A#', 'C']
 
    >>> c["blues"].note_names             # minor pentatonic + blue note
-   ['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
+   ['C', 'Eb', 'F', 'Gb', 'G', 'Bb', 'C']
 
    >>> c["major blues"].note_names       # major pentatonic + blue note
-   ['C', 'D', 'D#', 'E', 'G', 'A', 'C']
+   ['C', 'D', 'Eb', 'E', 'G', 'A', 'C']
 
 **Pentatonic:** major pentatonic, minor pentatonic
 

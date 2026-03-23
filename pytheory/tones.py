@@ -313,18 +313,24 @@ class Tone:
         return klass.from_index(index, octave=octave, system=system)
 
     @classmethod
-    def from_index(klass, i: int, *, octave: int, system: object) -> Tone:
+    def from_index(klass, i: int, *, octave: int, system: object, prefer_flats: bool = False) -> Tone:
         """Create a Tone from its index within a tuning system.
 
         Args:
             i: The index of the tone in the system's tone list.
             octave: The octave number.
             system: The ``ToneSystem`` instance.
+            prefer_flats: If True and the tone has a flat spelling,
+                use it instead of the default sharp spelling.
 
         Returns:
             A new ``Tone`` instance.
         """
-        tone = system.tones[i].name
+        tone_names = system.tone_names[i]
+        if prefer_flats and len(tone_names) > 1:
+            tone = tone_names[1]  # flat spelling (e.g. "Bb")
+        else:
+            tone = tone_names[0]  # sharp spelling (e.g. "A#")
         return klass(name=tone, octave=octave, system=system)
 
     @property
@@ -375,17 +381,19 @@ class Tone:
 
         return (new_index, new_octave)
 
-    def add(self, interval: int) -> Tone:
+    def add(self, interval: int, *, prefer_flats: bool = False) -> Tone:
         """Return a new Tone that is *interval* semitones above this one.
 
         Args:
             interval: Number of semitones to add (positive = up).
+            prefer_flats: If True, use flat spellings (Bb, Eb) instead
+                of sharp spellings (A#, D#) for accidentals.
 
         Returns:
             A new ``Tone`` instance.
         """
         index, octave = self._math(interval)
-        return self.from_index(index, octave=octave, system=self.system)
+        return self.from_index(index, octave=octave, system=self.system, prefer_flats=prefer_flats)
 
     def subtract(self, interval: int) -> Tone:
         """Return a new Tone that is *interval* semitones below this one.

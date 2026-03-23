@@ -92,7 +92,7 @@ Scarborough Fair):
 .. code-block:: pycon
 
    >>> c["dorian"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'A', 'Bb', 'C']
 
 `Phrygian <https://en.wikipedia.org/wiki/Phrygian_mode>`_ (iii) — minor with a flat 2nd. Spanish, flamenco, dark
 (White Rabbit):
@@ -100,7 +100,7 @@ Scarborough Fair):
 .. code-block:: pycon
 
    >>> c["phrygian"].note_names
-   ['C', 'C#', 'D#', 'F', 'G', 'G#', 'A#', 'C']
+   ['C', 'Db', 'Eb', 'F', 'G', 'Ab', 'Bb', 'C']
 
 `Lydian <https://en.wikipedia.org/wiki/Lydian_mode>`_ (IV) — major with a raised 4th. Dreamy, floating, ethereal
 (The Simpsons theme, Flying by ET):
@@ -116,7 +116,7 @@ Scarborough Fair):
 .. code-block:: pycon
 
    >>> c["mixolydian"].note_names
-   ['C', 'D', 'E', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'E', 'F', 'G', 'A', 'Bb', 'C']
 
 `Aeolian <https://en.wikipedia.org/wiki/Aeolian_mode>`_ (vi) — the natural minor scale. Sad, dark, introspective
 (Stairway to Heaven, Losing My Religion):
@@ -124,7 +124,7 @@ Scarborough Fair):
 .. code-block:: pycon
 
    >>> c["aeolian"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb', 'C']
 
 `Locrian <https://en.wikipedia.org/wiki/Locrian_mode>`_ (vii) — minor with flat 2nd and flat 5th. Unstable,
 rarely used as a home key (used in metal and jazz over diminished
@@ -133,7 +133,7 @@ chords):
 .. code-block:: pycon
 
    >>> c["locrian"].note_names
-   ['C', 'C#', 'D#', 'F', 'F#', 'G#', 'A#', 'C']
+   ['C', 'Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C']
 
 Scale Degrees
 -------------
@@ -309,7 +309,7 @@ The ``signature`` property tells you how many sharps or flats a key has:
    >>> Key("G", "major").signature
    {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
    >>> Key("F", "major").signature
-   {'sharps': 1, 'flats': 0, 'accidentals': ['A#']}
+   {'sharps': 0, 'flats': 1, 'accidentals': ['Bb']}
    >>> Key("C", "major").signature
    {'sharps': 0, 'flats': 0, 'accidentals': []}
 
@@ -340,7 +340,7 @@ are borrowed from C minor and appear constantly in rock and film music:
 .. code-block:: pycon
 
    >>> Key("C", "major").borrowed_chords
-   ['C minor', 'D diminished', 'D# major', 'F minor', 'G minor', 'G# major', 'A# major']
+   ['C minor', 'D diminished', 'Eb major', 'F minor', 'G minor', 'Ab major', 'Bb major']
 
 Secondary Dominants
 ~~~~~~~~~~~~~~~~~~~

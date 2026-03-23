@@ -659,26 +659,50 @@ class TonedScale:
         """Tuple of all available scale names in this system."""
         return tuple(self._scales.keys())
 
+    @staticmethod
+    def _should_prefer_flats(tones: list) -> bool:
+        """Determine if a scale should use flat spellings.
+
+        Uses the "no duplicate letters" rule: build the scale with sharps
+        first, and if any letter name appears twice (excluding the octave
+        repeat at the end), try flats instead. This correctly handles all
+        keys on the circle of fifths.
+        """
+        # Exclude the last tone (octave repeat of the tonic)
+        unique_tones = tones[:-1] if len(tones) > 1 else tones
+        letters = [t.name[0] for t in unique_tones]
+        return len(letters) != len(set(letters))
+
     @property
     def _scales(self) -> dict[str, Scale]:
         """Lazily computed (and cached) mapping of scale names to Scale objects."""
         if self._cached_scales is not None:
             return self._cached_scales
 
+        # Also check if tonic itself is a flat (always prefer flats then)
+        tonic_is_flat = "b" in self.tonic.name and self.tonic.name != "B"
+
         scales = {}
 
         for scale_type in self.system.scales:
             for scale in self.system.scales[scale_type]:
 
-                working_scale = []
                 reference_scale = self.system.scales[scale_type][scale]["intervals"]
 
+                # First pass: build with sharps (default)
+                working_scale = [self.tonic]
                 current_tone = self.tonic
-                working_scale.append(current_tone)
-
                 for interval in reference_scale:
                     current_tone = current_tone.add(interval)
                     working_scale.append(current_tone)
+
+                # Check if we need flats (duplicate letter names)
+                if tonic_is_flat or self._should_prefer_flats(working_scale):
+                    working_scale = [self.tonic]
+                    current_tone = self.tonic
+                    for interval in reference_scale:
+                        current_tone = current_tone.add(interval, prefer_flats=True)
+                        working_scale.append(current_tone)
 
                 scales[scale] = Scale(tones=tuple(working_scale))
 

@@ -65,10 +65,10 @@ Build scales in any key and mode:
    ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
    >>> c["minor"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb', 'C']
 
    >>> c["dorian"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'A', 'Bb', 'C']
 
    >>> major = c["major"]
    >>> major["tonic"]

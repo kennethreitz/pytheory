@@ -238,8 +238,8 @@ def test_c_minor_scale():
     c = TonedScale(tonic="C4")
     minor = c["minor"]
     names = [t.name for t in minor.tones]
-    # C D Eb F G Ab Bb C (using sharps: D#, G#, A#)
-    assert names == ["C", "D", "D#", "F", "G", "G#", "A#", "C"]
+    # C D Eb F G Ab Bb C (using flats for flat keys)
+    assert names == ["C", "D", "Eb", "F", "G", "Ab", "Bb", "C"]
 
 
 def test_c_harmonic_minor_scale():
@@ -247,7 +247,7 @@ def test_c_harmonic_minor_scale():
     hminor = c["harmonic minor"]
     names = [t.name for t in hminor.tones]
     # C D Eb F G Ab B C (raised 7th)
-    assert names == ["C", "D", "D#", "F", "G", "G#", "B", "C"]
+    assert names == ["C", "D", "Eb", "F", "G", "Ab", "B", "C"]
 
 
 def test_g_major_scale():
@@ -308,7 +308,7 @@ def test_c_dorian():
     dorian = c["dorian"]
     names = [t.name for t in dorian.tones]
     # Dorian: W H W W W H W → C D Eb F G A Bb C
-    assert names == ["C", "D", "D#", "F", "G", "A", "A#", "C"]
+    assert names == ["C", "D", "Eb", "F", "G", "A", "Bb", "C"]
 
 
 def test_c_phrygian():
@@ -316,7 +316,7 @@ def test_c_phrygian():
     phrygian = c["phrygian"]
     names = [t.name for t in phrygian.tones]
     # Phrygian: H W W W H W W → C Db Eb F G Ab Bb C
-    assert names == ["C", "C#", "D#", "F", "G", "G#", "A#", "C"]
+    assert names == ["C", "Db", "Eb", "F", "G", "Ab", "Bb", "C"]
 
 
 def test_c_lydian():
@@ -332,7 +332,7 @@ def test_c_mixolydian():
     mixolydian = c["mixolydian"]
     names = [t.name for t in mixolydian.tones]
     # Mixolydian: W W H W W H W → C D E F G A Bb C
-    assert names == ["C", "D", "E", "F", "G", "A", "A#", "C"]
+    assert names == ["C", "D", "E", "F", "G", "A", "Bb", "C"]
 
 
 def test_c_locrian():
@@ -340,7 +340,7 @@ def test_c_locrian():
     locrian = c["locrian"]
     names = [t.name for t in locrian.tones]
     # Locrian: H W W H W W W → C Db Eb F Gb Ab Bb C
-    assert names == ["C", "C#", "D#", "F", "F#", "G#", "A#", "C"]
+    assert names == ["C", "Db", "Eb", "F", "Gb", "Ab", "Bb", "C"]
 
 
 # ── Chords ───────────────────────────────────────────────────────────────────
@@ -976,7 +976,7 @@ def test_f_major_scale():
     f = TonedScale(tonic="F4")
     major = f["major"]
     names = [t.name for t in major.tones]
-    assert names == ["F", "G", "A", "A#", "C", "D", "E", "F"]
+    assert names == ["F", "G", "A", "Bb", "C", "D", "E", "F"]
 
 
 def test_a_minor_scale():
@@ -2299,7 +2299,7 @@ def test_japanese_hirajoshi():
     c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
     h = c["hirajoshi"]
     names = [t.name for t in h]
-    assert names == ["C", "D", "D#", "G", "G#", "C"]
+    assert names == ["C", "D", "Eb", "G", "Ab", "C"]
 
 
 def test_japanese_in_scale():
@@ -2307,7 +2307,7 @@ def test_japanese_in_scale():
     c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
     s = c["in"]
     names = [t.name for t in s]
-    assert names == ["C", "C#", "F", "G", "G#", "C"]
+    assert names == ["C", "Db", "F", "G", "Ab", "C"]
 
 
 def test_japanese_yo_scale():
@@ -2323,7 +2323,7 @@ def test_japanese_iwato():
     c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
     s = c["iwato"]
     names = [t.name for t in s]
-    assert names == ["C", "C#", "F", "F#", "A#", "C"]
+    assert names == ["C", "Db", "F", "Gb", "Bb", "C"]
 
 
 def test_japanese_kumoi():
@@ -2331,7 +2331,7 @@ def test_japanese_kumoi():
     c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
     s = c["kumoi"]
     names = [t.name for t in s]
-    assert names == ["C", "D", "D#", "G", "A", "C"]
+    assert names == ["C", "D", "Eb", "G", "A", "C"]
 
 
 def test_japanese_ritsu():
@@ -2339,7 +2339,7 @@ def test_japanese_ritsu():
     c = TonedScale(tonic="C4", system=SYSTEMS["japanese"])
     s = c["ritsu"]
     names = [t.name for t in s]
-    assert names == ["C", "D", "D#", "F", "G", "A", "A#", "C"]
+    assert names == ["C", "D", "Eb", "F", "G", "A", "Bb", "C"]
 
 
 def test_japanese_all_scales_available():
@@ -2385,7 +2385,7 @@ def test_blues_scale():
     c = TonedScale(tonic="C4", system=SYSTEMS["blues"])
     s = c["blues"]
     names = s.note_names
-    assert names == ["C", "D#", "F", "F#", "G", "A#", "C"]
+    assert names == ["C", "Eb", "F", "Gb", "G", "Bb", "C"]
     assert len(names) == 7  # 6 notes + octave
 
 

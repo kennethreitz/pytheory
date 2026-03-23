@@ -89,15 +89,15 @@ on different degrees; the blues scale adds the "blue note" (flat 5th):
    >>> c["major"].note_names
    ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
    >>> c["minor"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb', 'C']
    >>> c["dorian"].note_names
-   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'Eb', 'F', 'G', 'A', 'Bb', 'C']
    >>> c["mixolydian"].note_names
-   ['C', 'D', 'E', 'F', 'G', 'A', 'A#', 'C']
+   ['C', 'D', 'E', 'F', 'G', 'A', 'Bb', 'C']
 
    >>> c_blues = TonedScale(tonic="C4", system="blues")
    >>> c_blues["blues"].note_names
-   ['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
+   ['C', 'Eb', 'F', 'Gb', 'G', 'Bb', 'C']
 
 Guitar Chord Chart
 ------------------
@@ -279,7 +279,7 @@ dominants that approach other scale degrees:
    >>> c = Key("C", "major")
 
    >>> c.borrowed_chords[:4]
-   ['C minor', 'D diminished', 'D# major', 'F minor']
+   ['C minor', 'D diminished', 'Eb major', 'F minor']
 
    >>> c.secondary_dominant(5).identify()
    'D dominant 7th'
@@ -342,7 +342,7 @@ Explore scales from Indian, Arabic, and Japanese traditions:
 
    >>> japanese = TonedScale(tonic="C4", system="japanese")
    >>> japanese["hirajoshi"].note_names
-   ['C', 'D', 'D#', 'G', 'G#', 'C']
+   ['C', 'D', 'Eb', 'G', 'Ab', 'C']
 
 Visualize a Scale on Guitar
 ----------------------------
