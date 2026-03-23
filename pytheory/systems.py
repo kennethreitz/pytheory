@@ -24,6 +24,16 @@ class System:
         from . import Tone
         return tuple([Tone.from_tuple(tone) for tone in self.tone_names])
 
+    def resolve_name(self, name: str) -> str | None:
+        """Resolve a note name (including flats) to the canonical name.
+
+        Returns the primary name if found, or None if not recognized.
+        """
+        for names in self.tone_names:
+            if name in names:
+                return names[0]
+        return None
+
 
     @property
     def scales(self):

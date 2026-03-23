@@ -71,7 +71,7 @@ class Tone:
     @property
     def exists(self) -> bool:
         """True if this tone's name is found in the associated system."""
-        return self.name in self.system.tones
+        return self.system.resolve_name(self.name) is not None
 
     @property
     def system(self) -> object:
@@ -331,11 +331,17 @@ class Tone:
     def _index(self) -> int:
         """The index of this tone within its associated system's tone list.
 
+        Resolves enharmonic names (e.g. 'Db' → 'C#') before lookup.
+
         Raises:
-            ValueError: If no system is associated with this tone.
+            ValueError: If no system is associated with this tone or
+                the name is not found.
         """
         try:
-            return self.system.tones.index(self.name)
+            canonical = self.system.resolve_name(self.name)
+            if canonical is None:
+                raise ValueError(f"Tone {self.name!r} not found in system")
+            return self.system.tones.index(canonical)
         except AttributeError:
             raise ValueError("Tone index cannot be referenced without a system!")
 
