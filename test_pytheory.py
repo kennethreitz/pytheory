@@ -3832,6 +3832,7 @@ def test_cli_main_no_args(capsys):
 
 # ── Play module tests ─────────────────────────────────────────────────────────
 
+@needs_portaudio
 def test_play_render():
     """_render produces a numpy array of the right length."""
     from pytheory.play import _render, Synth, SAMPLE_RATE
@@ -3841,6 +3842,7 @@ def test_play_render():
     assert len(samples) == expected
 
 
+@needs_portaudio
 def test_play_render_chord():
     from pytheory.play import _render, Synth
     chord = Chord.from_tones("C", "E", "G")
@@ -3848,6 +3850,7 @@ def test_play_render_chord():
     assert len(samples) > 0
 
 
+@needs_portaudio
 def test_play_render_all_synths():
     from pytheory.play import _render, Synth
     tone = Tone.from_string("C4", system="western")
@@ -3856,6 +3859,7 @@ def test_play_render_all_synths():
         assert len(samples) > 0
 
 
+@needs_portaudio
 def test_play_save(tmp_path):
     """save() writes a valid WAV file."""
     from pytheory.play import save, Synth
@@ -3866,6 +3870,7 @@ def test_play_save(tmp_path):
     assert path.stat().st_size > 44  # WAV header is 44 bytes
 
 
+@needs_portaudio
 def test_play_save_chord(tmp_path):
     from pytheory.play import save
     path = tmp_path / "chord.wav"
