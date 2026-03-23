@@ -28,19 +28,22 @@ systems = [
     ]),
     ("japanese", "C4", [
         ("hirajoshi", "Haunting pentatonic — koto music"),
-        ("miyako-bushi", "Urban folk — shamisen music"),
-        ("yo", "Bright pentatonic — folk songs, festival music"),
         ("in", "Dark pentatonic — court music, Buddhist chant"),
-        ("ritsu", "Elegant pentatonic — gagaku court music"),
+        ("yo", "Bright pentatonic — folk songs, festival music"),
+        ("iwato", "Sparse, mysterious — zen atmosphere"),
+        ("kumoi", "Gentle pentatonic — lyrical, nostalgic"),
+        ("ritsu", "Elegant heptatonic — gagaku court music"),
     ]),
     ("blues", "C4", [
         ("blues", "The 6-note blues scale with the 'blue note'"),
         ("minor pentatonic", "The backbone of rock guitar solos"),
         ("major pentatonic", "Bright, open — country, folk, pop"),
     ]),
-    ("gamelan", "C4", [
+    ("gamelan", "nem4", [
         ("slendro", "5-note near-equal division — metallic, shimmering"),
         ("pelog", "7-note unequal — mysterious, otherworldly"),
+        ("pelog nem", "Pelog mode on nem — the most common mode"),
+        ("pelog barang", "Pelog mode on barang — bright, festive"),
     ]),
 ]
 
@@ -58,7 +61,7 @@ for system_name, tonic, scales in systems:
             print(f"  {scale_name:20s}  {notes}")
             print(f"  {'':20s}  {description}")
             print()
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, ValueError):
             print(f"  {scale_name:20s}  (not available)")
             print()
 
