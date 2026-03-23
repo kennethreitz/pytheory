@@ -44,6 +44,9 @@ html_theme_options = {
     "github_type": "star",
     "github_count": True,
     "description": "Music Theory for Humans",
+    "extra_nav_links": {
+        f"v{pytheory.__version__}": "https://pypi.org/project/pytheory/",
+    },
     "show_powered_by": False,
 }
 html_static_path = ["_static"]
