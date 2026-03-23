@@ -154,3 +154,213 @@ frequency ratios:
    'octave'
    >>> round(octave.frequency / a4.frequency, 4)
    2.0
+
+Walk the Circle of Fifths
+-------------------------
+
+The `circle of fifths <https://en.wikipedia.org/wiki/Circle_of_fifths>`_
+is the backbone of Western harmony — each step adds one sharp or flat:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Tone
+
+   >>> c = Tone.from_string("C4", system="western")
+   >>> [t.name for t in c.circle_of_fifths()]
+   ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F']
+
+   >>> g = Tone.from_string("G4", system="western")
+   >>> [t.name for t in g.circle_of_fifths()]
+   ['G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F', 'C']
+
+Voice Leading Between Chords
+-----------------------------
+
+Find the smoothest path from one chord to the next — each voice moves
+the minimum distance:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> c_maj = Chord.from_tones("C", "E", "G")
+   >>> f_maj = Chord.from_tones("F", "A", "C")
+
+   >>> for src, dst, motion in c_maj.voice_leading(f_maj):
+   ...     print(f"{src} -> {dst}  ({motion:+d} semitones)")
+   G4 -> A4  (+2 semitones)
+   E4 -> F4  (+1 semitones)
+   C4 -> C4  (+0 semitones)
+
+Measure Harmonic Tension
+------------------------
+
+Quantify how much a chord "wants to resolve." Dominant 7ths have
+the most tension — the tritone between the 3rd and 7th pulls toward
+resolution:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> for name in ["C", "Am", "G7", "Cmaj7"]:
+   ...     ch = Chord.from_name(name)
+   ...     t = ch.tension
+   ...     print(f"{name:6s} tension={t['score']:.2f}  tritones={t['tritones']}  dominant={t['has_dominant_function']}")
+   C      tension=0.00  tritones=0  dominant=False
+   Am     tension=0.00  tritones=0  dominant=False
+   G7     tension=0.60  tritones=1  dominant=True
+   Cmaj7  tension=0.15  tritones=0  dominant=False
+
+Tritone Substitution (Jazz)
+---------------------------
+
+Replace any dominant chord with the one a
+`tritone <https://en.wikipedia.org/wiki/Tritone_substitution>`_ away —
+they share the same tritone interval:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> g7 = Chord.from_name("G7")
+   >>> g7.tritone_sub().identify()
+   'C# dominant 7th'
+
+   >>> # ii-V-I with tritone sub:
+   >>> #   Dm7 -> G7  -> Cmaj7   (standard)
+   >>> #   Dm7 -> Db7 -> Cmaj7   (chromatic bass line!)
+
+Key Signatures and Detection
+-----------------------------
+
+View the accidentals in any key, or detect the key from a set of notes:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key
+
+   >>> Key("C", "major").signature
+   {'sharps': 0, 'flats': 0, 'accidentals': []}
+   >>> Key("G", "major").signature
+   {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
+   >>> Key("D", "major").signature
+   {'sharps': 2, 'flats': 0, 'accidentals': ['F#', 'C#']}
+
+   >>> Key.detect("C", "E", "G", "A", "D")
+   <Key C major>
+
+Relative and Parallel Keys
+--------------------------
+
+Every major key has a **relative minor** (same notes, different root)
+and a **parallel minor** (same root, different notes):
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key
+
+   >>> c = Key("C", "major")
+   >>> c.relative
+   'A minor'
+   >>> c.parallel
+   'C minor'
+
+Borrowed Chords and Secondary Dominants
+---------------------------------------
+
+Add color by borrowing from the parallel key or building secondary
+dominants that approach other scale degrees:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key
+
+   >>> c = Key("C", "major")
+
+   >>> c.borrowed_chords[:4]
+   ['C minor', 'D diminished', 'D# major', 'F minor']
+
+   >>> c.secondary_dominant(5).identify()
+   'D dominant 7th'
+   >>> c.secondary_dominant(2).identify()
+   'A dominant 7th'
+   >>> c.secondary_dominant(6).identify()
+   'E dominant 7th'
+
+The Overtone Series
+-------------------
+
+Every musical tone contains a stack of harmonics — the physics behind
+why intervals sound consonant:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Tone
+
+   >>> a4 = Tone.from_string("A4", system="western")
+   >>> [round(f, 1) for f in a4.overtones(6)]
+   [440.0, 880.0, 1320.0, 1760.0, 2200.0, 2640.0]
+
+   >>> # Harmonic 2 = octave (2:1)
+   >>> # Harmonic 3 = perfect 5th + octave (3:1)
+   >>> # Harmonic 5 = major 3rd + two octaves (5:1)
+
+Enharmonic Spellings
+--------------------
+
+Find the alternate name for any sharp or flat:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Tone
+
+   >>> for name in ["C#4", "D#4", "F#4", "G#4"]:
+   ...     t = Tone.from_string(name, system="western")
+   ...     print(f"{t.name} = {t.enharmonic}")
+   C# = Db
+   D# = Eb
+   F# = Gb
+   G# = Ab
+
+World Scales
+------------
+
+Explore scales from Indian, Arabic, and Japanese traditions:
+
+.. code-block:: pycon
+
+   >>> from pytheory import TonedScale
+
+   >>> indian = TonedScale(tonic="Sa", system="indian")
+   >>> indian["bhairav"].note_names
+   ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
+
+   >>> arabic = TonedScale(tonic="Do", system="arabic")
+   >>> arabic["hijaz"].note_names
+   ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
+
+   >>> japanese = TonedScale(tonic="C4", system="japanese")
+   >>> japanese["hirajoshi"].note_names
+   ['C', 'D', 'D#', 'G', 'G#', 'C']
+
+Visualize a Scale on Guitar
+----------------------------
+
+See where the notes fall across the fretboard — E minor pentatonic,
+the most-played scale in rock:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard, Scale
+
+   >>> fb = Fretboard.guitar()
+   >>> pent = Scale(tonic="E4", system="blues")["minor pentatonic"]
+   >>> print(fb.scale_diagram(pent, frets=12))
+       0   1   2   3   4   5   6   7   8   9  10  11  12
+   E| E | - | - | G | - | A | - | B | - | - | D | - | E |
+   B| B | - | - | D | - | E | - | - | G | - | A | - | B |
+   G| G | - | A | - | B | - | - | D | - | E | - | - | G |
+   D| D | - | E | - | - | G | - | A | - | B | - | - | D |
+   A| A | - | B | - | - | D | - | E | - | - | G | - | A |
+   E| E | - | - | G | - | A | - | B | - | - | D | - | E |

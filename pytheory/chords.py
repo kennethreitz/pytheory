@@ -1234,8 +1234,15 @@ class Fretboard:
         max_name = max(len(t.name) for t in self.tones)
         lines = []
 
-        # Header with fret numbers
-        header = " " * (max_name + 1) + "  ".join(f"{f:<3d}" for f in range(frets + 1))
+        # Each cell is " X |" where X is a note name or dash.
+        # Cell content width is 3 chars (space + 2-char note/dash).
+        # Full cell with separator: 4 chars.
+        # Header must align fret numbers to the center of each cell.
+        header_parts = []
+        for f in range(frets + 1):
+            header_parts.append(f"{f:>2} ")
+        # Offset header to align with cell content (after "X|" prefix)
+        header = " " * (max_name + 2) + " ".join(header_parts)
         lines.append(header)
 
         for tone in self.tones:

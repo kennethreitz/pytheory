@@ -34,7 +34,7 @@ instruments using a clean, Pythonic API.
 
    >>> pentatonic = Scale(tonic="A4", system="blues")["minor pentatonic"]
    >>> print(fb.scale_diagram(pentatonic, frets=5))
-     0    1    2    3    4    5
+       0   1   2   3   4   5
    E| E | - | - | G | - | A |
    B| - | C | - | D | - | E |
    G| G | - | A | - | - | C |
