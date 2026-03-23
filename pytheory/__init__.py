@@ -1,6 +1,6 @@
 """PyTheory: Music Theory for Humans."""
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 from .tones import Tone, Interval
 from .systems import System, SYSTEMS
