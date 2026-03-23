@@ -25,7 +25,7 @@ def play_melody(notes, synth=Synth.SINE):
         print("\n  Stopped.")
 
 
-def play_progression(chords, beats_each=2, synth=Synth.TRIANGLE):
+def play_progression(chords, beats_each=2, synth=Synth.SINE):
     """Play a list of Chord objects."""
     try:
         for chord in chords:
