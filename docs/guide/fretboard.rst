@@ -55,6 +55,19 @@ strings, except between G and B which is a major 3rd (4 semitones).
    # Custom tuning with any notes
    Fretboard.guitar(("C4", "G3", "C3", "G2", "C2", "G1"))
 
+**Capo** — a `capo <https://en.wikipedia.org/wiki/Capo>`_ raises all
+strings by a number of frets, letting you play open chord shapes in
+higher keys:
+
+.. code-block:: python
+
+   # Capo on fret 2 — open G shape now sounds as A major
+   fb = Fretboard.guitar(capo=2)
+
+   # Or apply a capo to an existing fretboard
+   fb = Fretboard.guitar()
+   fb_capo3 = fb.capo(3)
+
 The Mandolin Family
 -------------------
 
