@@ -10,7 +10,9 @@ sys.modules["sounddevice"] = MagicMock()
 project = "PyTheory"
 copyright = "2026, Kenneth Reitz"
 author = "Kenneth Reitz"
-release = "0.4.1"
+import pytheory
+release = pytheory.__version__
+version = pytheory.__version__
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -38,7 +40,11 @@ html_theme_options = {
     "github_user": "kennethreitz",
     "github_repo": "pytheory",
     "github_banner": True,
+    "github_button": True,
+    "github_type": "star",
+    "github_count": True,
     "description": "Music Theory for Humans",
+    "show_powered_by": False,
 }
 html_static_path = ["_static"]
 html_extra_path = ["CNAME"]
