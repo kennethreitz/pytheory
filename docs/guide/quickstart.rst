@@ -19,58 +19,64 @@ Tones
 
 A :class:`~pytheory.tones.Tone` is a single musical note:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone
+   >>> from pytheory import Tone
 
-   # Create tones — sharps and flats both work
-   a4 = Tone.from_string("A4", system="western")
-   a4.frequency    # 440.0 Hz — the tuning standard
+   >>> a4 = Tone.from_string("A4", system="western")
+   >>> a4.frequency
+   440.0
 
-   c4 = Tone.from_string("C4", system="western")
-   c4.midi         # 60 — middle C
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> c4.midi
+   60
 
-   # From a frequency or MIDI number
-   Tone.from_frequency(440)    # <Tone A4>
-   Tone.from_midi(60)          # <Tone C4>
+   >>> Tone.from_frequency(440)
+   <Tone A4>
+   >>> Tone.from_midi(60)
+   <Tone C4>
 
-   # Tone arithmetic
-   c4 + 4          # <Tone E4> — major third up
-   c4 + 7          # <Tone G4> — perfect fifth up
+   >>> c4 + 4
+   <Tone E4>
+   >>> c4 + 7
+   <Tone G4>
 
-   # Interval between two tones
-   g4 = c4 + 7
-   g4 - c4         # 7 semitones
-   c4.interval_to(g4)  # 'perfect 5th'
+   >>> g4 = c4 + 7
+   >>> g4 - c4
+   7
+   >>> c4.interval_to(g4)
+   'perfect 5th'
 
-   # Enharmonics
-   Tone.from_string("C#4", system="western").enharmonic  # 'Db'
+   >>> Tone.from_string("C#4", system="western").enharmonic
+   'Db'
 
 Scales
 ------
 
 Build scales in any key and mode:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   c = TonedScale(tonic="C4")
+   >>> c = TonedScale(tonic="C4")
 
-   c["major"].note_names
-   # ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
+   >>> c["major"].note_names
+   ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
-   c["minor"].note_names
-   # ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
+   >>> c["minor"].note_names
+   ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
 
-   c["dorian"].note_names
-   # ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   >>> c["dorian"].note_names
+   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
 
-   # Access scale degrees by name or numeral
-   major = c["major"]
-   major["tonic"]       # C4
-   major["dominant"]    # G4
-   major["V"]           # G4
+   >>> major = c["major"]
+   >>> major["tonic"]
+   C4
+   >>> major["dominant"]
+   G4
+   >>> major["V"]
+   G4
 
 Keys and Chords
 ---------------
@@ -78,41 +84,42 @@ Keys and Chords
 The :class:`~pytheory.scales.Key` class ties everything together —
 scales, chords, and progressions:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Key
+   >>> from pytheory import Key
 
-   key = Key("G", "major")
-   key.note_names    # ['G', 'A', 'B', 'C', 'D', 'E', 'F#', 'G']
+   >>> key = Key("G", "major")
+   >>> key.note_names
+   ['G', 'A', 'B', 'C', 'D', 'E', 'F#', 'G']
 
-   # All diatonic triads
-   key.chords
-   # ['G major', 'A minor', 'B minor', 'C major',
-   #  'D major', 'E minor', 'F# diminished']
+   >>> key.chords
+   ['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
 
-   # Build progressions from Roman numerals
-   chords = key.progression("I", "V", "vi", "IV")
-   [c.identify() for c in chords]
-   # ['G major', 'D major', 'E minor', 'C major']
+   >>> chords = key.progression("I", "V", "vi", "IV")
+   >>> [c.identify() for c in chords]
+   ['G major', 'D major', 'E minor', 'C major']
 
-   # Detect the key from notes
-   Key.detect("C", "E", "G", "A", "D")    # <Key C major>
+   >>> Key.detect("C", "E", "G", "A", "D")
+   <Key C major>
 
 Build chords directly:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord
+   >>> from pytheory import Chord
 
-   Chord.from_tones("C", "E", "G")             # <Chord C major>
-   Chord.from_name("Am7")                       # <Chord A minor 7th>
-   Chord.from_intervals("G", 4, 7, 10)          # <Chord G dominant 7th>
+   >>> Chord.from_tones("C", "E", "G")
+   <Chord C major>
+   >>> Chord.from_name("Am7")
+   <Chord A minor 7th>
+   >>> Chord.from_intervals("G", 4, 7, 10)
+   <Chord G dominant 7th>
 
-   # Identify any chord
-   Chord.from_tones("Bb", "D", "F").identify()  # 'Bb major'
+   >>> Chord.from_tones("Bb", "D", "F").identify()
+   'Bb major'
 
-   # Analyze in a key
-   Chord.from_name("G7").analyze("C")           # 'V7'
+   >>> Chord.from_name("G7").analyze("C")
+   'V7'
 
 Guitar Fingerings
 -----------------
@@ -124,7 +131,7 @@ Guitar Fingerings
    >>> fb = Fretboard.guitar()
 
    >>> fb.chord("C")
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
 
    >>> fb.chord("C")['A']
    3
@@ -132,31 +139,27 @@ Guitar Fingerings
    >>> fb.fingering(0, 0, 0, 2, 2, 0).identify()
    'E minor'
 
-   >>> from pytheory import CHARTS
-   >>> print(CHARTS["western"]["Am"].tab(fretboard=fb))
-   Am
-   E|--0--
+   >>> print(fb.tab("Am"))
+   A minor
+   e|--0--
    B|--1--
    G|--2--
    D|--2--
    A|--0--
-   E|--0--
+   E|--x--
 
 Audio Playback
 --------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone, Chord, play, save, Synth
+   >>> from pytheory import Tone, Chord, play, save, Synth
 
-   # Play a tone
-   play(Tone.from_string("A4"), t=1_000)
+   >>> play(Tone.from_string("A4"), t=1_000)
 
-   # Play a chord with a different waveform
-   play(Chord.from_name("Am7"), synth=Synth.TRIANGLE, t=2_000)
+   >>> play(Chord.from_name("Am7"), synth=Synth.TRIANGLE, t=2_000)
 
-   # Save to a WAV file
-   save(Chord.from_name("C"), "c_major.wav", t=2_000)
+   >>> save(Chord.from_name("C"), "c_major.wav", t=2_000)
 
 Command Line
 ------------

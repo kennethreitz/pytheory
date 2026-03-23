@@ -30,18 +30,15 @@ Building Scales
 
 Use :class:`~pytheory.scales.TonedScale` to generate scales in any key:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
-
-   c = TonedScale(tonic="C4")
-
-   major = c["major"]
-   minor = c["minor"]
-   harmonic_minor = c["harmonic minor"]
-
-   print(major.note_names)
-   # ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
+   >>> from pytheory import TonedScale
+   >>> c = TonedScale(tonic="C4")
+   >>> major = c["major"]
+   >>> minor = c["minor"]
+   >>> harmonic_minor = c["harmonic minor"]
+   >>> major.note_names
+   ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
 Major and Minor
 ---------------
@@ -55,13 +52,12 @@ notes but starts from the 6th degree:
 - G major → E minor (both have one sharp: F#)
 - F major → D minor (both have one flat: Bb)
 
-.. code-block:: python
+.. code-block:: pycon
 
-   c_major = TonedScale(tonic="C4")["major"]
-   a_minor = TonedScale(tonic="A4")["minor"]
-
-   # Same notes, different starting point
-   set(c_major.note_names) == set(a_minor.note_names)  # True
+   >>> c_major = TonedScale(tonic="C4")["major"]
+   >>> a_minor = TonedScale(tonic="A4")["minor"]
+   >>> set(c_major.note_names) == set(a_minor.note_names)
+   True
 
 The `harmonic minor <https://en.wikipedia.org/wiki/Harmonic_minor_scale>`_ raises the 7th degree of the natural minor,
 creating an augmented 2nd interval (3 semitones) between the 6th and
@@ -79,44 +75,65 @@ The seven `modes <https://en.wikipedia.org/wiki/Mode_(music)>`_ of the major sca
 pattern, each starting from a different degree. Each mode has a distinct
 emotional character:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   c = TonedScale(tonic="C4")
+   >>> c = TonedScale(tonic="C4")
 
-**Ionian** (I) — the major scale itself. Bright, happy, resolved::
+**Ionian** (I) — the major scale itself. Bright, happy, resolved:
 
-   c["ionian"]    # C D E F G A B C
+.. code-block:: pycon
+
+   >>> c["ionian"].note_names
+   ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
 `Dorian <https://en.wikipedia.org/wiki/Dorian_mode>`_ (ii) — minor with a raised 6th. Jazzy, soulful (So What,
-Scarborough Fair)::
+Scarborough Fair):
 
-   c["dorian"]    # C D Eb F G A Bb C
+.. code-block:: pycon
+
+   >>> c["dorian"].note_names
+   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
 
 `Phrygian <https://en.wikipedia.org/wiki/Phrygian_mode>`_ (iii) — minor with a flat 2nd. Spanish, flamenco, dark
-(White Rabbit)::
+(White Rabbit):
 
-   c["phrygian"]  # C Db Eb F G Ab Bb C
+.. code-block:: pycon
+
+   >>> c["phrygian"].note_names
+   ['C', 'C#', 'D#', 'F', 'G', 'G#', 'A#', 'C']
 
 `Lydian <https://en.wikipedia.org/wiki/Lydian_mode>`_ (IV) — major with a raised 4th. Dreamy, floating, ethereal
-(The Simpsons theme, Flying by ET)::
+(The Simpsons theme, Flying by ET):
 
-   c["lydian"]    # C D E F# G A B C
+.. code-block:: pycon
+
+   >>> c["lydian"].note_names
+   ['C', 'D', 'E', 'F#', 'G', 'A', 'B', 'C']
 
 `Mixolydian <https://en.wikipedia.org/wiki/Mixolydian_mode>`_ (V) — major with a flat 7th. Bluesy, rock, dominant
-(Norwegian Wood, Sweet Home Alabama)::
+(Norwegian Wood, Sweet Home Alabama):
 
-   c["mixolydian"]  # C D E F G A Bb C
+.. code-block:: pycon
+
+   >>> c["mixolydian"].note_names
+   ['C', 'D', 'E', 'F', 'G', 'A', 'A#', 'C']
 
 `Aeolian <https://en.wikipedia.org/wiki/Aeolian_mode>`_ (vi) — the natural minor scale. Sad, dark, introspective
-(Stairway to Heaven, Losing My Religion)::
+(Stairway to Heaven, Losing My Religion):
 
-   c["aeolian"]   # C D Eb F G Ab Bb C
+.. code-block:: pycon
+
+   >>> c["aeolian"].note_names
+   ['C', 'D', 'D#', 'F', 'G', 'G#', 'A#', 'C']
 
 `Locrian <https://en.wikipedia.org/wiki/Locrian_mode>`_ (vii) — minor with flat 2nd and flat 5th. Unstable,
 rarely used as a home key (used in metal and jazz over diminished
-chords)::
+chords):
 
-   c["locrian"]   # C Db Eb F Gb Ab Bb C
+.. code-block:: pycon
+
+   >>> c["locrian"].note_names
+   ['C', 'C#', 'D#', 'F', 'F#', 'G#', 'A#', 'C']
 
 Scale Degrees
 -------------
@@ -137,32 +154,45 @@ Leading Tone  VII     One semitone below tonic — pulls upward
 
 Access degrees by index, Roman numeral, or name:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   major = TonedScale(tonic="C4")["major"]
-
-   major[0]           # C4  (by index)
-   major["I"]         # C4  (by Roman numeral)
-   major["tonic"]     # C4  (by degree name)
-
-   major["V"]         # G4  (dominant)
-   major["dominant"]  # G4
-
-   major[0:3]         # (C4, D4, E4) — slicing works too
+   >>> major = TonedScale(tonic="C4")["major"]
+   >>> major[0]
+   C4
+   >>> major["I"]
+   C4
+   >>> major["tonic"]
+   C4
+   >>> major["V"]
+   G4
+   >>> major["dominant"]
+   G4
+   >>> major[0:3]
+   (<Tone C4>, <Tone D4>, <Tone E4>)
 
 Iteration
 ---------
 
 Scales are iterable and support ``len()`` and ``in``:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   for tone in major:
-       print(f"{tone.name}: {tone.frequency:.1f} Hz")
-
-   len(major)         # 8 (7 notes + octave)
-   "C" in major       # True
-   "C#" in major      # False
+   >>> for tone in major:
+   ...     print(f"{tone.name}: {tone.frequency:.1f} Hz")
+   C: 261.6 Hz
+   D: 293.7 Hz
+   E: 329.6 Hz
+   F: 349.2 Hz
+   G: 392.0 Hz
+   A: 440.0 Hz
+   B: 493.9 Hz
+   C: 523.3 Hz
+   >>> len(major)
+   8
+   >>> "C" in major
+   True
+   >>> "C#" in major
+   False
 
 Building Chords from Scales
 ----------------------------
@@ -185,21 +215,25 @@ Notice the pattern: **major** triads on I, IV, V; **minor** triads on
 ii, iii, vi; **diminished** on vii°. This pattern holds for every major
 key.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   major = TonedScale(tonic="C4")["major"]
-
-   # Build diatonic triads
-   I   = major.triad(0)   # C E G  (C major)
-   ii  = major.triad(1)   # D F A  (D minor)
-   iii = major.triad(2)   # E G B  (E minor)
-   IV  = major.triad(3)   # F A C  (F major)
-   V   = major.triad(4)   # G B D  (G major)
-   vi  = major.triad(5)   # A C E  (A minor)
-
-   # Build seventh chords
-   Imaj7 = major.chord(0, 2, 4, 6)  # C E G B = Cmaj7
-   V7    = major.chord(4, 6, 8, 10) # G B D F = G7 (dominant 7th)
+   >>> major = TonedScale(tonic="C4")["major"]
+   >>> major.triad(0)
+   C major
+   >>> major.triad(1)
+   D minor
+   >>> major.triad(2)
+   E minor
+   >>> major.triad(3)
+   F major
+   >>> major.triad(4)
+   G major
+   >>> major.triad(5)
+   A minor
+   >>> major.chord(0, 2, 4, 6)
+   C major 7th
+   >>> major.chord(4, 6, 8, 10)
+   G dominant 7th
 
 Common Progressions
 ~~~~~~~~~~~~~~~~~~~
@@ -218,31 +252,25 @@ Some of the most-used chord progressions in Western music:
 The :class:`~pytheory.scales.Key` class makes working with progressions
 easy:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Key
-
-   key = Key("G", "major")
-
-   # Build a progression from Roman numerals
-   chords = key.progression("I", "V", "vi", "IV")
-   for c in chords:
-       print(c.identify())
-   # G major, D major, E minor, C major
-
-   # Nashville number system (same thing, with integers)
-   key.nashville(1, 5, 6, 4)
-
-   # All diatonic triads in the key
-   key.chords
-   # ['G major', 'A minor', 'B minor', 'C major', ...]
-
-   # All diatonic seventh chords
-   key.seventh_chords
-   # ['G major 7th', 'A minor 7th', ...]
-
-   # Detect the key from a set of notes
-   Key.detect("C", "E", "G", "A", "D")   # <Key C major>
+   >>> from pytheory import Key
+   >>> key = Key("G", "major")
+   >>> chords = key.progression("I", "V", "vi", "IV")
+   >>> for c in chords:
+   ...     print(c.identify())
+   G major
+   D major
+   E minor
+   C major
+   >>> key.nashville(1, 5, 6, 4)
+   [<Chord G major>, <Chord D major>, <Chord E minor>, <Chord C major>]
+   >>> key.chords
+   ['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
+   >>> key.seventh_chords
+   ['G major 7th', 'A minor 7th', 'B minor 7th', 'C major 7th', 'D dominant 7th', 'E minor 7th', 'F# half-diminished 7th']
+   >>> Key.detect("C", "E", "G", "A", "D")
+   C major
 
 The 12-Bar Blues
 ~~~~~~~~~~~~~~~~
@@ -262,31 +290,26 @@ structure. In the key of A::
     | D  | D  | A  | A  |
     | E  | D  | A  | E  |
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
-
-   a = TonedScale(tonic="A4")["major"]
-   I  = a.triad(0)   # A major
-   IV = a.triad(3)   # D major
-   V  = a.triad(4)   # E major
-
-   # The 12-bar blues progression
-   blues_12 = [I, I, I, I, IV, IV, I, I, V, IV, I, V]
+   >>> from pytheory import TonedScale
+   >>> a = TonedScale(tonic="A4")["major"]
+   >>> I  = a.triad(0)
+   >>> IV = a.triad(3)
+   >>> V  = a.triad(4)
+   >>> blues_12 = [I, I, I, I, IV, IV, I, I, V, IV, I, V]
 
 Key Signatures
 ~~~~~~~~~~~~~~
 
 The ``signature`` property tells you how many sharps or flats a key has:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> Key("G", "major").signature
    {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
-
    >>> Key("F", "major").signature
-   {'sharps': 0, 'flats': 1, 'accidentals': ['Bb']}
-
+   {'sharps': 1, 'flats': 0, 'accidentals': ['A#']}
    >>> Key("C", "major").signature
    {'sharps': 0, 'flats': 0, 'accidentals': []}
 
@@ -297,16 +320,14 @@ Two keys are **relative** if they share the same notes (C major and
 A minor). Two keys are `parallel <https://en.wikipedia.org/wiki/Parallel_key>`_ if they share the same tonic but
 have different notes (C major and C minor):
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> Key("C", "major").relative
-   <Key A minor>
-
+   A minor
    >>> Key("A", "minor").relative
-   <Key C major>
-
+   C major
    >>> Key("C", "major").parallel
-   <Key C minor>
+   C minor
 
 Borrowed Chords
 ~~~~~~~~~~~~~~~
@@ -316,10 +337,10 @@ borrowing chords from the parallel key — is one of the most powerful
 tools in songwriting. The bVI and bVII chords (Ab and Bb in C major)
 are borrowed from C minor and appear constantly in rock and film music:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> Key("C", "major").borrowed_chords
-   # Chords from C minor that aren't in C major
+   ['C minor', 'D diminished', 'D# major', 'F minor', 'G minor', 'G# major', 'A# major']
 
 Secondary Dominants
 ~~~~~~~~~~~~~~~~~~~
@@ -328,15 +349,13 @@ A `secondary dominant <https://en.wikipedia.org/wiki/Secondary_dominant>`_
 is the V chord *of* a non-tonic chord. It creates a momentary pull
 toward that chord, adding harmonic color:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   key = Key("C", "major")
-
-   # V/V — the dominant of the dominant (D7 → G)
-   key.secondary_dominant(5)     # D dominant 7th
-
-   # V/ii — the dominant of the supertonic (A7 → Dm)
-   key.secondary_dominant(2)     # A dominant 7th
+   >>> key = Key("C", "major")
+   >>> key.secondary_dominant(5)
+   D dominant 7th
+   >>> key.secondary_dominant(2)
+   A dominant 7th
 
 Random Progressions
 ~~~~~~~~~~~~~~~~~~~
@@ -344,19 +363,19 @@ Random Progressions
 Need inspiration? Generate weighted random progressions. The weights
 favor common chord functions (I and vi most likely, vii least):
 
-.. code-block:: python
+.. code-block:: pycon
 
-   key = Key("C", "major")
-   chords = key.random_progression(4)    # 4 chords
-   [c.identify() for c in chords]
-   # e.g. ['C major', 'F major', 'A minor', 'G major']
+   >>> key = Key("C", "major")
+   >>> chords = key.random_progression(4)
+   >>> [c.identify() for c in chords]
+   ['C major', 'F major', 'A minor', 'G major']
 
 All Keys
 ~~~~~~~~
 
 Enumerate all 24 major and minor keys:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> Key.all_keys()
    [<Key C major>, <Key C minor>, <Key C# major>, <Key C# minor>, ...]
@@ -366,9 +385,9 @@ Scale Transposition
 
 Transpose an entire scale by a number of semitones:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   c_major = TonedScale(tonic="C4")["major"]
-   d_major = c_major.transpose(2)    # Up a whole step
-   d_major.note_names
-   # ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D']
+   >>> c_major = TonedScale(tonic="C4")["major"]
+   >>> d_major = c_major.transpose(2)
+   >>> d_major.note_names
+   ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D']

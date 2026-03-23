@@ -13,25 +13,25 @@ using basic `waveform <https://en.wikipedia.org/wiki/Waveform>`_ synthesis.
 Playing a Tone
 --------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone, play
+   >>> from pytheory import Tone, play
 
-   a4 = Tone.from_string("A4", system="western")
-   play(a4, t=1_000)   # Play A440 for 1 second
+   >>> a4 = Tone.from_string("A4", system="western")
+   >>> play(a4, t=1_000)   # Play A440 for 1 second
 
 Playing a Chord
 ---------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord, play
+   >>> from pytheory import Chord, play
 
-   # From a chord name
-   play(Chord.from_name("Am7"), t=2_000)
+   >>> # From a chord name
+   >>> play(Chord.from_name("Am7"), t=2_000)
 
-   # From note names
-   play(Chord.from_tones("C", "E", "G"), t=2_000)
+   >>> # From note names
+   >>> play(Chord.from_tones("C", "E", "G"), t=2_000)
 
 Waveform Types
 --------------
@@ -52,26 +52,26 @@ integer multiples of the fundamental frequency.
   1/n². Sounds softer and more mellow than sawtooth — somewhere between
   sine and sawtooth. Often described as "woody" or "hollow."
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import play, Synth, Tone
+   >>> from pytheory import play, Synth, Tone
 
-   tone = Tone.from_string("C4", system="western")
+   >>> tone = Tone.from_string("C4", system="western")
 
-   play(tone, synth=Synth.SINE)      # Pure, clean
-   play(tone, synth=Synth.SAW)       # Bright, buzzy
-   play(tone, synth=Synth.TRIANGLE)  # Mellow, hollow
+   >>> play(tone, synth=Synth.SINE)      # Pure, clean
+   >>> play(tone, synth=Synth.SAW)       # Bright, buzzy
+   >>> play(tone, synth=Synth.TRIANGLE)  # Mellow, hollow
 
 Temperaments
 ------------
 
 Hear the difference between tuning systems:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   play(tone, temperament="equal")        # Modern standard (since ~1917)
-   play(tone, temperament="pythagorean")  # Pure fifths, wolf intervals
-   play(tone, temperament="meantone")     # Pure thirds, Renaissance sound
+   >>> play(tone, temperament="equal")        # Modern standard (since ~1917)
+   >>> play(tone, temperament="pythagorean")  # Pure fifths, wolf intervals
+   >>> play(tone, temperament="meantone")     # Pure thirds, Renaissance sound
 
 Try playing a C major chord in each temperament — you'll hear subtle
 differences in the "color" of the major third. Equal temperament is
@@ -84,16 +84,16 @@ Saving to WAV
 Render tones or chords to a WAV file instead of playing them live.
 This works even without speakers or PortAudio:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import save, Chord, Tone, Synth
+   >>> from pytheory import save, Chord, Tone, Synth
 
-   # Save a single tone
-   save(Tone.from_string("A4"), "a440.wav", t=1_000)
+   >>> # Save a single tone
+   >>> save(Tone.from_string("A4"), "a440.wav", t=1_000)
 
-   # Save a chord
-   save(Chord.from_name("Am7"), "am7.wav", t=2_000)
+   >>> # Save a chord
+   >>> save(Chord.from_name("Am7"), "am7.wav", t=2_000)
 
-   # Choose waveform and temperament
-   save(Chord.from_name("C"), "c_triangle.wav",
-        synth=Synth.TRIANGLE, temperament="meantone", t=3_000)
+   >>> # Choose waveform and temperament
+   >>> save(Chord.from_name("C"), "c_triangle.wav",
+   ...      synth=Synth.TRIANGLE, temperament="meantone", t=3_000)

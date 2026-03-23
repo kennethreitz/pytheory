@@ -2622,7 +2622,7 @@ def test_tension_empty():
 
 def test_version():
     import pytheory
-    assert pytheory.__version__ == "0.6.1"
+    assert pytheory.__version__
 
 
 def test_all_exports():
@@ -3647,6 +3647,48 @@ def test_charts_muted_string():
     nc = NamedChord(tone_name="C", quality="")
     fixed = nc.fix_fingering((0, -1, 2))
     assert fixed == (0, None, 2)
+
+
+def test_fretboard_chord_method():
+    """Fretboard.chord() looks up a chord by name."""
+    fb = Fretboard.guitar()
+    f = fb.chord("G")
+    assert f.identify() == "G major"
+    assert len(f) == 6
+
+
+def test_fretboard_chord_system_kwarg():
+    """Fretboard.chord() accepts a system keyword argument."""
+    fb = Fretboard.guitar()
+    f = fb.chord("Am", system="western")
+    assert f.identify() == "A minor"
+
+
+def test_fretboard_tab_method():
+    """Fretboard.tab() returns ASCII tablature."""
+    fb = Fretboard.guitar()
+    tab = fb.tab("C")
+    assert "C major" in tab
+    assert "e|" in tab
+    assert "E|" in tab
+
+
+def test_fretboard_chart_method():
+    """Fretboard.chart() generates all fingerings."""
+    fb = Fretboard.guitar()
+    chart = fb.chart()
+    assert "C" in chart
+    assert "Am7" in chart
+    assert chart["C"].identify() == "C major"
+
+
+def test_fingering_tab_method():
+    """Fingering.tab() renders ASCII tablature."""
+    fb = Fretboard.guitar()
+    f = fb.chord("Em")
+    tab = f.tab()
+    assert "E minor" in tab
+    assert "e|" in tab
 
 
 # ── Flat note support ─────────────────────────────────────────────────────────

@@ -107,6 +107,33 @@ class Fingering:
         """Identify the chord name from this fingering."""
         return self.to_chord().identify()
 
+    def tab(self) -> str:
+        """Render this fingering as ASCII guitar tablature.
+
+        Requires that the Fingering was created with a fretboard reference.
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> print(fb.chord("C").tab())
+            C
+            e|--0--
+            B|--1--
+            G|--0--
+            D|--2--
+            A|--3--
+            E|--0--
+        """
+        if self._fretboard is None:
+            raise ValueError("Cannot render tab without a fretboard reference.")
+        name = self.identify() or "?"
+        lines = [name]
+        max_name = max(len(n) for n in self.string_names)
+        for sname, fret in zip(self.string_names, self.positions):
+            fret_str = "x" if fret is None else str(fret)
+            lines.append(f"{sname:>{max_name}}|--{fret_str}--")
+        return "\n".join(lines)
+
 CHARTS = {}
 CHARTS["western"] = []
 
@@ -203,11 +230,12 @@ class NamedChord:
 
         fingering = []
         for i, tone in enumerate(fretboard.tones):
-            fingering.append(find_fingerings(tone))
-
-        for i, finger in enumerate(fingering):
-            if finger == ():
-                fingering[i] = (-1,)
+            frets = find_fingerings(tone)
+            # Always allow muting as an option
+            if frets:
+                fingering.append((*frets, -1))
+            else:
+                fingering.append((-1,))
 
         return tuple(fingering)
 
@@ -224,29 +252,76 @@ class NamedChord:
 
     def fingering(self, *, fretboard, multiple=False):
         def fingering_score(fingering):
-            def number_of_fingers(fingering):
-                zeros = 0
-                for finger in fingering:
-                    if finger == 0:
-                        zeros += 1
-                return len(fingering) - zeros
+            score = 0.0
+            fretted = [f for f in fingering if f not in (0, -1)]
+            muted = sum(1 for f in fingering if f == -1)
+            sounding = len(fingering) - muted
 
-            def ascending(fingering):
-                fingering = [f for f in fingering if f != 0]
+            # Must have at least 2 sounding strings
+            if sounding < 2:
+                return -100.0
 
-                return sorted(fingering) == fingering
+            # Check that all chord tones are present in the voicing
+            sounding_names = set()
+            for i, f in enumerate(fingering):
+                if f != -1:
+                    sounding_names.add(fretboard.tones[i].add(f).name)
+            required = set(t.name for t in self.acceptable_tones)
+            missing = required - sounding_names
+            score -= len(missing) * 5.0
 
-            ascending = int(ascending(fingering))
-            finger_count = number_of_fingers(fingering)
-            return ascending + (1 / finger_count)
+            # Reward open strings
+            open_strings = sum(1 for f in fingering if f == 0)
+            score += open_strings * 2.0
+
+            # Penalize muted strings, but only mildly
+            score -= muted * 0.3
+
+            # Penalize fret span (hard to stretch)
+            if fretted:
+                span = max(fretted) - min(fretted)
+                score -= span * 2.0
+
+            # Penalize high fret positions (prefer open position)
+            if fretted:
+                score -= (sum(fretted) / len(fretted)) * 0.8
+
+            # Penalize many fingers needed
+            score -= len(fretted) * 0.3
+
+            # Reward root in bass — the lowest sounding string
+            for i in range(len(fingering) - 1, -1, -1):
+                f = fingering[i]
+                if f == -1:
+                    continue
+                bass_tone = fretboard.tones[i].add(f)
+                if bass_tone.name == self.tone.name:
+                    score += 4.0
+                else:
+                    # Penalize non-root bass notes
+                    score -= 1.5
+                break
+
+            # Prefer muting from the bass side (contiguous muting)
+            # e.g. xx0232 is good, x0x232 is awkward
+            mute_from_bass = 0
+            for i in range(len(fingering) - 1, -1, -1):
+                if fingering[i] == -1:
+                    mute_from_bass += 1
+                else:
+                    break
+            interior_mutes = muted - mute_from_bass
+            score -= interior_mutes * 3.0
+
+            return score
 
         def gen():
             fingerings = self.fingerings(fretboard=fretboard)
-            score_map = tuple(map(fingering_score, fingerings))
-            max_score = max(score_map)
+            scored = [(fingering_score(f), f) for f in fingerings]
+            max_score = max(s for s, _ in scored)
 
-            for possible_fingering in fingerings:
-                if fingering_score(possible_fingering) == max_score:
+            for s, possible_fingering in scored:
+                if s == max_score:
                     yield possible_fingering
 
         string_names = tuple(t.name for t in fretboard.tones)

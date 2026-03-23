@@ -31,42 +31,42 @@ Guitars
 This tuning uses intervals of a perfect 4th (5 semitones) between most
 strings, except between G and B which is a major 3rd (4 semitones).
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Fretboard
+   >>> from pytheory import Fretboard
 
-   guitar  = Fretboard.guitar()                # Standard EADGBE
-   twelve  = Fretboard.twelve_string()          # 12-string (6 doubled courses)
-   bass    = Fretboard.bass()                  # Standard 4-string EADG
-   bass5   = Fretboard.bass(five_string=True)  # 5-string with low B
+   >>> guitar  = Fretboard.guitar()                # Standard EADGBE
+   >>> twelve  = Fretboard.twelve_string()          # 12-string (6 doubled courses)
+   >>> bass    = Fretboard.bass()                  # Standard 4-string EADG
+   >>> bass5   = Fretboard.bass(five_string=True)  # 5-string with low B
 
 **Alternate tunings** — 8 built-in presets:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   Fretboard.guitar("drop d")          # DADGBE — heavy riffs, metal
-   Fretboard.guitar("open g")          # DGDGBD — slide guitar, Keith Richards
-   Fretboard.guitar("open d")          # DADF#AD — slide, folk
-   Fretboard.guitar("open e")          # EBEG#BE — slide blues
-   Fretboard.guitar("open a")          # EAC#EAE
-   Fretboard.guitar("dadgad")          # DADGAD — Celtic, fingerstyle
-   Fretboard.guitar("half step down")  # Eb standard — Hendrix, SRV
+   >>> Fretboard.guitar("drop d")          # DADGBE — heavy riffs, metal
+   >>> Fretboard.guitar("open g")          # DGDGBD — slide guitar, Keith Richards
+   >>> Fretboard.guitar("open d")          # DADF#AD — slide, folk
+   >>> Fretboard.guitar("open e")          # EBEG#BE — slide blues
+   >>> Fretboard.guitar("open a")          # EAC#EAE
+   >>> Fretboard.guitar("dadgad")          # DADGAD — Celtic, fingerstyle
+   >>> Fretboard.guitar("half step down")  # Eb standard — Hendrix, SRV
 
-   # Custom tuning with any notes
-   Fretboard.guitar(("C4", "G3", "C3", "G2", "C2", "G1"))
+   >>> # Custom tuning with any notes
+   >>> Fretboard.guitar(("C4", "G3", "C3", "G2", "C2", "G1"))
 
 **Capo** — a `capo <https://en.wikipedia.org/wiki/Capo>`_ raises all
 strings by a number of frets, letting you play open chord shapes in
 higher keys:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   # Capo on fret 2 — open G shape now sounds as A major
-   fb = Fretboard.guitar(capo=2)
+   >>> # Capo on fret 2 — open G shape now sounds as A major
+   >>> fb = Fretboard.guitar(capo=2)
 
-   # Or apply a capo to an existing fretboard
-   fb = Fretboard.guitar()
-   fb_capo3 = fb.capo(3)
+   >>> # Or apply a capo to an existing fretboard
+   >>> fb = Fretboard.guitar()
+   >>> fb_capo3 = fb.capo(3)
 
 The Mandolin Family
 -------------------
@@ -76,12 +76,12 @@ mirrors the `violin family <https://en.wikipedia.org/wiki/Violin_family>`_
 — all tuned in perfect fifths, with each member a fifth or octave
 lower than the last:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   Fretboard.mandolin()          # E5 A4 D4 G3  — soprano (= violin)
-   Fretboard.mandola()           # A4 D4 G3 C3  — alto (= viola)
-   Fretboard.octave_mandolin()   # E4 A3 D3 G2  — tenor (octave below mandolin)
-   Fretboard.mandocello()        # A3 D3 G2 C2  — bass (= cello)
+   >>> Fretboard.mandolin()          # E5 A4 D4 G3  — soprano (= violin)
+   >>> Fretboard.mandola()           # A4 D4 G3 C3  — alto (= viola)
+   >>> Fretboard.octave_mandolin()   # E4 A3 D3 G2  — tenor (octave below mandolin)
+   >>> Fretboard.mandocello()        # A3 D3 G2 C2  — bass (= cello)
 
 The mandolin's doubled courses (pairs of strings) create a natural
 chorus effect. The `octave mandolin <https://en.wikipedia.org/wiki/Octave_mandolin>`_
@@ -93,12 +93,12 @@ The Bowed String Family
 The orchestral `string family <https://en.wikipedia.org/wiki/String_section>`_
 is tuned in perfect fifths (except the double bass, which uses fourths):
 
-.. code-block:: python
+.. code-block:: pycon
 
-   Fretboard.violin()       # E5 A4 D4 G3  — soprano
-   Fretboard.viola()        # A4 D4 G3 C3  — alto (5th below violin)
-   Fretboard.cello()        # A3 D3 G2 C2  — tenor/bass (octave below viola)
-   Fretboard.double_bass()  # G2 D2 A1 E1  — bass (tuned in 4ths!)
+   >>> Fretboard.violin()       # E5 A4 D4 G3  — soprano
+   >>> Fretboard.viola()        # A4 D4 G3 C3  — alto (5th below violin)
+   >>> Fretboard.cello()        # A3 D3 G2 C2  — tenor/bass (octave below viola)
+   >>> Fretboard.double_bass()  # G2 D2 A1 E1  — bass (tuned in 4ths!)
 
 Bowed strings have no frets — the player can produce any pitch along
 the fingerboard, enabling continuous
@@ -108,19 +108,19 @@ inflections not possible on fretted instruments.
 The `erhu <https://en.wikipedia.org/wiki/Erhu>`_ — a 2-stringed Chinese
 bowed instrument with a hauntingly vocal quality:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   Fretboard.erhu()         # A4 D4  — tuned a 5th apart, no fingerboard
+   >>> Fretboard.erhu()         # A4 D4  — tuned a 5th apart, no fingerboard
 
 Plucked Strings
 ---------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   Fretboard.ukulele()      # A4 E4 C4 G4  — re-entrant tuning
-   Fretboard.banjo()        # Open G (bluegrass, 5th string is high drone)
-   Fretboard.banjo("open d")  # Open D (clawhammer, old-time)
-   Fretboard.harp()         # 47 strings, C1 to G7 (concert pedal harp)
+   >>> Fretboard.ukulele()      # A4 E4 C4 G4  — re-entrant tuning
+   >>> Fretboard.banjo()        # Open G (bluegrass, 5th string is high drone)
+   >>> Fretboard.banjo("open d")  # Open D (clawhammer, old-time)
+   >>> Fretboard.harp()         # 47 strings, C1 to G7 (concert pedal harp)
 
 The `banjo <https://en.wikipedia.org/wiki/Banjo>`_'s short 5th string
 is a high drone — a defining feature of the instrument's sound.
@@ -132,28 +132,28 @@ by up to two semitones across all octaves simultaneously.
 World Instruments
 -----------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   # Middle Eastern
-   Fretboard.oud()          # C4 G3 D3 A2 G2 C2 — fretless, ancestor of the lute
-   Fretboard.sitar()        # 7 main strings — Indian classical
+   >>> # Middle Eastern
+   >>> Fretboard.oud()          # C4 G3 D3 A2 G2 C2 — fretless, ancestor of the lute
+   >>> Fretboard.sitar()        # 7 main strings — Indian classical
 
-   # East Asian
-   Fretboard.shamisen()     # C4 G3 C3 — 3-string Japanese, honchoshi tuning
-   Fretboard.pipa()         # D4 A3 E3 A2 — 4-string Chinese lute
-   Fretboard.erhu()         # A4 D4 — 2-string Chinese bowed
+   >>> # East Asian
+   >>> Fretboard.shamisen()     # C4 G3 C3 — 3-string Japanese, honchoshi tuning
+   >>> Fretboard.pipa()         # D4 A3 E3 A2 — 4-string Chinese lute
+   >>> Fretboard.erhu()         # A4 D4 — 2-string Chinese bowed
 
-   # European
-   Fretboard.bouzouki()     # D4 A3 D3 G2 — Irish (Celtic music)
-   Fretboard.bouzouki("greek")  # D4 A3 F3 C3 — Greek
-   Fretboard.lute()         # G4 D4 A3 F3 C3 G2 — Renaissance (6 courses)
-   Fretboard.balalaika()    # A4 E4 E4 — Russian (2 unison strings)
+   >>> # European
+   >>> Fretboard.bouzouki()     # D4 A3 D3 G2 — Irish (Celtic music)
+   >>> Fretboard.bouzouki("greek")  # D4 A3 F3 C3 — Greek
+   >>> Fretboard.lute()         # G4 D4 A3 F3 C3 G2 — Renaissance (6 courses)
+   >>> Fretboard.balalaika()    # A4 E4 E4 — Russian (2 unison strings)
 
-   # Latin American
-   Fretboard.charango()     # E5 A4 E5 C5 G4 — Andean (re-entrant tuning)
+   >>> # Latin American
+   >>> Fretboard.charango()     # E5 A4 E5 C5 G4 — Andean (re-entrant tuning)
 
-   # Steel guitar
-   Fretboard.pedal_steel()  # 10 strings, E9 Nashville — country music
+   >>> # Steel guitar
+   >>> Fretboard.pedal_steel()  # 10 strings, E9 Nashville — country music
 
 The `oud <https://en.wikipedia.org/wiki/Oud>`_ is fretless, allowing
 the quarter-tone inflections essential to
@@ -164,12 +164,12 @@ sympathetic strings that resonate in harmony with the played notes.
 Keyboards
 ---------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   Fretboard.keyboard()             # 88-key piano (A0 to C8)
-   Fretboard.keyboard(61, "C2")     # 61-key synth controller
-   Fretboard.keyboard(49, "C2")     # 49-key controller
-   Fretboard.keyboard(25, "C3")     # 25-key mini MIDI controller
+   >>> Fretboard.keyboard()             # 88-key piano (A0 to C8)
+   >>> Fretboard.keyboard(61, "C2")     # 61-key synth controller
+   >>> Fretboard.keyboard(49, "C2")     # 49-key controller
+   >>> Fretboard.keyboard(25, "C3")     # 25-key mini MIDI controller
 
 While keyboards don't have strings or frets, they map naturally to a
 sequence of tones. A full 88-key piano spans over 7 octaves — the
@@ -187,12 +187,12 @@ on any instrument. It scores each possibility by:
 
 .. code-block:: pycon
 
-   >>> from pytheory import Fretboard, CHARTS
+   >>> from pytheory import Fretboard
 
    >>> fb = Fretboard.guitar()
    >>> f = fb.chord("C")
    >>> f
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
 
    >>> f['A']
    3
@@ -205,14 +205,6 @@ on any instrument. It scores each possibility by:
    >>> chord = f.to_chord()
    >>> chord.identify()
    'C major'
-
-   >>> # All equally-scored fingerings via CHARTS
-   >>> CHARTS["western"]["C"].fingering(fretboard=fb, multiple=True)
-   [...]
-
-   >>> # Muted strings appear as None
-   >>> CHARTS["western"]["F"].fingering(fretboard=fb)
-   ...
 
 You can also go from fret positions to chord identification:
 
@@ -238,65 +230,63 @@ low E as ``E``::
     G|--0--    (open — G)
     D|--2--    (fret 2 — E)
     A|--3--    (fret 3 — C)
-    E|--0--    (open — E)
+    E|--x--    (muted)
 
-A value of ``None`` means the string is muted (not played).
+A value of ``x`` (``None``) means the string is muted (not played).
 
 ASCII Tablature
 ~~~~~~~~~~~~~~~
 
 For a more visual representation, use ``tab()``:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   >>> print(CHARTS["western"]["C"].tab(fretboard=fb))
-   C
-   E|--0--
+   >>> print(fb.tab("C"))
+   C major
+   e|--0--
    B|--1--
    G|--0--
    D|--2--
    A|--3--
-   E|--0--
+   E|--x--
 
 Generating Full Charts
 ----------------------
 
 Generate fingerings for every chord at once:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Fretboard, charts_for_fretboard
+   >>> fb = Fretboard.guitar()
+   >>> chart = fb.chart()
 
-   fb = Fretboard.guitar()
-   chart = charts_for_fretboard(fretboard=fb)
+   >>> chart["C"]
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
 
-   for name, fingering in chart.items():
-       print(f"{name:6s} {fingering}")
-
-   # Works with any instrument
-   uke_chart = charts_for_fretboard(fretboard=Fretboard.ukulele())
-   mando_chart = charts_for_fretboard(fretboard=Fretboard.mandolin())
+   >>> # Works with any instrument
+   >>> uke_chart = Fretboard.ukulele().chart()
+   >>> mando_chart = Fretboard.mandolin().chart()
 
 Custom Instruments
 ------------------
 
 Any instrument can be modeled with custom string tunings:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone, Fretboard
+   >>> from pytheory import Tone, Fretboard
 
-   # Baritone ukulele (DGBE — top 4 guitar strings)
-   bari_uke = Fretboard(tones=[
-       Tone.from_string("E4"),
-       Tone.from_string("B3"),
-       Tone.from_string("G3"),
-       Tone.from_string("D3"),
-   ])
+   >>> # Baritone ukulele (DGBE — top 4 guitar strings)
+   >>> bari_uke = Fretboard(tones=[
+   ...     Tone.from_string("E4"),
+   ...     Tone.from_string("B3"),
+   ...     Tone.from_string("G3"),
+   ...     Tone.from_string("D3"),
+   ... ])
 
-   # Tres cubano (Cuban guitar, 3 doubled courses)
-   tres = Fretboard(tones=[
-       Tone.from_string("E4"),
-       Tone.from_string("B3"),
-       Tone.from_string("G3"),
-   ])
+   >>> # Tres cubano (Cuban guitar, 3 doubled courses)
+   >>> tres = Fretboard(tones=[
+   ...     Tone.from_string("E4"),
+   ...     Tone.from_string("B3"),
+   ...     Tone.from_string("G3"),
+   ... ])

@@ -40,33 +40,32 @@ Key reference points:
 Creating Tones
 --------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone
+   >>> from pytheory import Tone
 
-   # From a string (most common) — sharps and flats both work
-   c4 = Tone.from_string("C4")
-   cs4 = Tone.from_string("C#4")
-   db4 = Tone.from_string("Db4")     # Same pitch as C#4
+   >>> c4 = Tone.from_string("C4")
+   >>> cs4 = Tone.from_string("C#4")
+   >>> db4 = Tone.from_string("Db4")
 
-   # Direct construction
-   d = Tone(name="D", octave=3)
+   >>> d = Tone(name="D", octave=3)
 
-   # With a specific system
-   a4 = Tone.from_string("A4", system="western")
+   >>> a4 = Tone.from_string("A4", system="western")
 
-   # From a frequency (finds the nearest note)
-   Tone.from_frequency(440)           # <Tone A4>
-   Tone.from_frequency(261.63)        # <Tone C4>
+   >>> Tone.from_frequency(440)
+   <Tone A4>
+   >>> Tone.from_frequency(261.63)
+   <Tone C4>
 
-   # From a MIDI note number
-   Tone.from_midi(60)                 # <Tone C4> (middle C)
-   Tone.from_midi(69)                 # <Tone A4>
+   >>> Tone.from_midi(60)
+   <Tone C4>
+   >>> Tone.from_midi(69)
+   <Tone A4>
 
 Properties
 ----------
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> c4 = Tone.from_string("C4", system="western")
    >>> c4.name
@@ -75,11 +74,11 @@ Properties
    4
    >>> c4.full_name
    'C4'
-   >>> c4.letter       # Note letter without accidentals
+   >>> c4.letter
    'C'
-   >>> c4.midi         # MIDI note number
+   >>> c4.midi
    60
-   >>> c4.exists       # Is this note in the system?
+   >>> c4.exists
    True
 
 Pitch and Frequency
@@ -90,17 +89,17 @@ cycles per second). The relationship between pitch and frequency is
 **logarithmic**: each octave doubles the frequency, and each semitone
 multiplies by the 12th root of 2 (~1.05946).
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> a4 = Tone.from_string("A4", system="western")
    >>> a4.frequency
    440.0
 
    >>> Tone.from_string("A3", system="western").frequency
-   220.0    # One octave down = half the frequency
+   220.0
 
    >>> Tone.from_string("C4", system="western").frequency
-   261.63   # Middle C
+   261.6255653005986
 
 Temperament
 ~~~~~~~~~~~
@@ -125,18 +124,18 @@ same note name:
   in closely related keys but "wolf intervals" make distant keys
   unusable.
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> a4.pitch(temperament="equal")
    440.0
    >>> a4.pitch(temperament="pythagorean")
-   440.0    # A4 is always 440 (it's the reference)
+   440.0
 
    >>> c5 = Tone.from_string("C5", system="western")
    >>> c5.pitch(temperament="equal")
-   523.25
+   523.2511306011972
    >>> c5.pitch(temperament="pythagorean")
-   521.48   # Slightly different!
+   521.4814814814815
 
 Symbolic Pitch
 ~~~~~~~~~~~~~~
@@ -147,33 +146,29 @@ floating-point approximations. This is useful for mathematical analysis,
 proving tuning relationships, or comparing temperaments with exact
 arithmetic.
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> a4 = Tone.from_string("A4", system="western")
 
-   # Equal temperament: irrational ratios (roots of 2)
    >>> a4.pitch(symbolic=True)
    440
    >>> Tone.from_string("C5", system="western").pitch(symbolic=True)
    440*2**(1/4)
 
-   # Pythagorean: pure rational ratios (powers of 3/2)
    >>> Tone.from_string("G4", system="western").pitch(
    ...     temperament="pythagorean", symbolic=True)
-   660
+   391.111111111111
 
-   # Compare the major third across temperaments
    >>> e4 = Tone.from_string("E4", system="western")
    >>> e4.pitch(temperament="equal", symbolic=True)
-   440*2**(1/3)
+   220.0*2**(7/12)
    >>> e4.pitch(temperament="pythagorean", symbolic=True)
-   12160/27
+   330.000000000000
    >>> e4.pitch(temperament="meantone", symbolic=True)
-   550
+   220.0*5**(1/4)
 
-   # Symbolic expressions can be evaluated to any precision
    >>> e4.pitch(symbolic=True).evalf(50)
-   329.62755691286991583007431157433859631791591649985
+   329.62755691286992973584176104655507518647334182098
 
 The symbolic output reveals *why* temperaments differ: equal temperament
 uses irrational numbers (roots of 2), Pythagorean uses powers of 3/2
@@ -207,26 +202,26 @@ Common intervals::
 
 Tones support ``+`` and ``-`` operators for semitone math:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> c4 = Tone.from_string("C4", system="western")
-   >>> c4 + 4        # Major third up
+   >>> c4 + 4
    <Tone E4>
-   >>> c4 + 7        # Perfect fifth up
+   >>> c4 + 7
    <Tone G4>
-   >>> c4 + 12       # Octave up
+   >>> c4 + 12
    <Tone C5>
 
 Subtracting two tones gives the semitone distance:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> g4 = Tone.from_string("G4", system="western")
-   >>> g4 - c4       # Perfect fifth = 7 semitones
+   >>> g4 - c4
    7
 
    >>> c5 = Tone.from_string("C5", system="western")
-   >>> c5 - c4       # Octave = 12 semitones
+   >>> c5 - c4
    12
 
 Naming Intervals
@@ -236,7 +231,7 @@ The ``interval_to`` method gives the musical name of the interval
 between two tones, including compound intervals that span more than
 one octave:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> c4.interval_to(g4)
    'perfect 5th'
@@ -245,8 +240,7 @@ one octave:
    >>> c4.interval_to(c5)
    'octave'
 
-   # Compound intervals (more than an octave)
-   >>> c4.interval_to(c4 + 19)    # Octave + perfect 5th
+   >>> c4.interval_to(c4 + 19)
    'perfect 5th + 1 octave'
 
 Transposition
@@ -256,11 +250,11 @@ The ``transpose`` method returns a new tone shifted by a number of
 semitones — equivalent to the ``+`` operator but reads more clearly
 in some contexts:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   >>> c4.transpose(7)     # Same as c4 + 7
+   >>> c4.transpose(7)
    <Tone G4>
-   >>> c4.transpose(-2)    # Two semitones down
+   >>> c4.transpose(-2)
    <Tone A#3>
 
 MIDI
@@ -270,14 +264,13 @@ Every tone maps to a `MIDI note number <https://en.wikipedia.org/wiki/MIDI>`_
 (0–127), the standard for communicating with synthesizers, DAWs, and
 digital instruments:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> c4.midi
-   60          # Middle C
+   60
    >>> Tone.from_string("A4", system="western").midi
-   69          # Concert A
+   69
 
-   # Round-trip: MIDI → Tone → MIDI
    >>> Tone.from_midi(60).midi
    60
 
@@ -286,7 +279,7 @@ Comparison and Sorting
 
 Tones can be compared and sorted by pitch frequency:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> c4 < g4
    True
@@ -295,9 +288,9 @@ Tones can be compared and sorted by pitch frequency:
 
 Equality checks note name and octave:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   >>> c4 == "C"      # Compare with string (name only)
+   >>> c4 == "C"
    True
    >>> c4 == Tone(name="C", octave=4)
    True
@@ -309,7 +302,7 @@ Every tone you hear is actually a composite of many frequencies. When
 a string vibrates, it doesn't just vibrate as a whole — it also vibrates
 in halves, thirds, quarters, and so on, producing the `harmonic series <https://en.wikipedia.org/wiki/Harmonic_series_(music)>`_:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> a4 = Tone.from_string("A4", system="western")
    >>> a4.overtones(8)
@@ -353,7 +346,7 @@ F#=Gb and C#=Db.
 PyTheory uses sharps by default (following the tone list ordering), but
 every tone knows its enharmonic spelling:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> Tone.from_string("C#4", system="western").enharmonic
    'Db'
@@ -361,7 +354,6 @@ every tone knows its enharmonic spelling:
    >>> Tone.from_string("A#4", system="western").enharmonic
    'Bb'
 
-   # Natural notes have no enharmonic
    >>> Tone.from_string("C4", system="western").enharmonic is None
    True
 
@@ -373,15 +365,13 @@ theory. Starting from any note and ascending by perfect fifths (7
 semitones), you pass through all 12 chromatic tones before returning
 to the starting note:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> c4 = Tone.from_string("C4", system="western")
 
-   # Clockwise — ascending fifths (adds sharps)
    >>> [t.name for t in c4.circle_of_fifths()]
    ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F']
 
-   # Counter-clockwise — ascending fourths (adds flats)
    >>> [t.name for t in c4.circle_of_fourths()]
    ['C', 'F', 'A#', 'D#', 'G#', 'C#', 'F#', 'B', 'E', 'A', 'D', 'G']
 

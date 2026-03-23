@@ -45,18 +45,20 @@ For seventh chords, there's also **third inversion** (7th in bass):
 
 - G7 in third inversion: F G B D (notated G7/F)
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord, Tone
+   >>> from pytheory import Chord, Tone
 
-   # All three are "C major" — identify() finds the root
-   root     = Chord([Tone.from_string(n, system="western") for n in ["C4", "E4", "G4"]])
-   first    = Chord([Tone.from_string(n, system="western") for n in ["E3", "G3", "C4"]])
-   second   = Chord([Tone.from_string(n, system="western") for n in ["G3", "C4", "E4"]])
+   >>> root   = Chord([Tone.from_string(n, system="western") for n in ["C4", "E4", "G4"]])
+   >>> first  = Chord([Tone.from_string(n, system="western") for n in ["E3", "G3", "C4"]])
+   >>> second = Chord([Tone.from_string(n, system="western") for n in ["G3", "C4", "E4"]])
 
-   root.identify()     # 'C major'
-   first.identify()    # 'C major'
-   second.identify()   # 'C major'
+   >>> root.identify()
+   'C major'
+   >>> first.identify()
+   'C major'
+   >>> second.identify()
+   'C major'
 
 Extended Chords
 ---------------
@@ -72,33 +74,42 @@ A full 13th chord contains all 7 notes of the scale! In practice,
 tones are usually omitted — the 5th is typically dropped first, then
 the 11th (which clashes with the 3rd in dominant chords).
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   scale = TonedScale(tonic="C4")["major"]
+   >>> scale = TonedScale(tonic="C4")["major"]
 
-   # Build a Cmaj9 from the scale: C E G B D
-   cmaj9 = scale.chord(0, 2, 4, 6, 8)
-
-   # Build a full C13 (in theory): C E G B D F A
-   c13 = scale.chord(0, 2, 4, 6, 8, 10, 12)
+   >>> cmaj9 = scale.chord(0, 2, 4, 6, 8)
+   >>> c13 = scale.chord(0, 2, 4, 6, 8, 10, 12)
 
 Using the Chord Chart
 ---------------------
 
 PyTheory includes 144 pre-built chords (12 roots x 12 qualities):
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import CHARTS
+   >>> from pytheory import Fretboard
 
-   chart = CHARTS["western"]
+   >>> fb = Fretboard.guitar()
+   >>> fb.chord("C")
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
+   >>> fb.chord("Am")
+   Fingering(e=0, B=1, G=2, D=2, A=0, E=x)
+   >>> fb.chord("G7")
+   Fingering(e=1, B=0, G=0, D=0, A=2, E=3)
 
-   c_major = chart["C"]     # C major (root position)
-   a_minor = chart["Am"]    # A minor
-   g_seven = chart["G7"]    # G dominant 7th
-   d_dim   = chart["Ddim"]  # D diminished
+You can also build chords directly with ``Chord.from_name()``:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> Chord.from_name("G7").identify()
+   'G dominant 7th'
+   >>> Chord.from_name("Ddim").identify()
+   'D diminished'
 
 Available qualities:
 
@@ -119,52 +130,48 @@ Quality       Intervals         Example tones (from C)
 ``"maj9"``    4, 7, 11, 14      C E G B D (major 9th)
 ============  ================  ================================
 
-.. code-block:: python
+.. code-block:: pycon
+
+   >>> from pytheory import CHARTS
+   >>> chart = CHARTS["western"]
 
    >>> chart["C"].acceptable_tone_names
    ('C', 'E', 'G')
 
    >>> chart["Cm7"].acceptable_tone_names
-   ('C', 'D#', 'G', 'A#')    # Eb and Bb shown as sharps
+   ('C', 'D#', 'G', 'A#')
 
 Building Chords
 ---------------
 
 Several convenience constructors make chord creation concise:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord
+   >>> from pytheory import Chord
 
-   # From note names (simplest)
-   Chord.from_tones("C", "E", "G")           # <Chord C major>
-   Chord.from_tones("A", "C", "E")           # <Chord A minor>
+   >>> Chord.from_tones("C", "E", "G").identify()
+   'C major'
+   >>> Chord.from_tones("A", "C", "E").identify()
+   'A minor'
 
-   # From a chord name (uses the built-in chart)
-   Chord.from_name("Am7")                    # <Chord A minor 7th>
-   Chord.from_name("G7")                     # <Chord G dominant 7th>
+   >>> Chord.from_name("Am7").identify()
+   'A minor 7th'
+   >>> Chord.from_name("G7").identify()
+   'G dominant 7th'
 
-   # From root + semitone intervals
-   Chord.from_intervals("C", 4, 7)           # <Chord C major>
-   Chord.from_intervals("D", 3, 7)           # <Chord D minor>
-   Chord.from_intervals("G", 4, 7, 10)       # <Chord G dominant 7th>
+   >>> Chord.from_intervals("C", 4, 7).identify()
+   'C major'
+   >>> Chord.from_intervals("G", 4, 7, 10).identify()
+   'G dominant 7th'
 
-   # From MIDI note numbers
-   Chord.from_midi_message(60, 64, 67)       # <Chord C major>
+   >>> Chord.from_midi_message(60, 64, 67).identify()
+   'C major'
 
-   # Full manual construction
-   from pytheory import Tone
-   c_major = Chord(tones=[
-       Tone.from_string("C4", system="western"),
-       Tone.from_string("E4", system="western"),
-       Tone.from_string("G4", system="western"),
-   ])
-
-   for tone in c_major:
-       print(tone)
-
-   len(c_major)       # 3
-   "C" in c_major     # True
+   >>> len(Chord.from_name("C"))
+   3
+   >>> "C" in Chord.from_name("C")
+   True
 
 Intervals
 ---------
@@ -172,13 +179,13 @@ Intervals
 The ``intervals`` property returns semitone distances between adjacent
 tones — these are musically meaningful and octave-invariant:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   >>> c_major.intervals
-   [4, 3]    # major 3rd (4) + minor 3rd (3) = major triad
+   >>> Chord.from_tones("C", "E", "G").intervals
+   [4, 3]
 
-   >>> Chord(tones=[C4, Eb4, G4]).intervals
-   [3, 4]    # minor 3rd + major 3rd = minor triad
+   >>> Chord.from_tones("C", "Eb", "G").intervals
+   [3, 4]
 
 Consonance and Dissonance
 -------------------------
@@ -205,13 +212,16 @@ Minor 3rd    6:5    Every 6th wave aligns
 Tritone      45:32  Waves rarely align
 ===========  =====  ====================
 
-.. code-block:: python
+.. code-block:: pycon
 
-   fifth = Chord([C4, G4])
-   tritone = Chord([C4, F_sharp_4])
+   >>> from pytheory import Chord, Tone
+   >>> C4 = Tone.from_string("C4", system="western")
+   >>> G4 = Tone.from_string("G4", system="western")
 
-   fifth.harmony > tritone.harmony     # True
-   # The perfect fifth's 3:2 ratio scores higher
+   >>> fifth = Chord([C4, G4])
+   >>> tritone = Chord([C4, C4 + 6])
+   >>> fifth.harmony > tritone.harmony
+   True
 
 Dissonance Score
 ~~~~~~~~~~~~~~~~
@@ -227,14 +237,13 @@ The roughness depends on the frequency difference relative to the
 that register). Maximum roughness occurs when the difference equals
 the critical bandwidth.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   # Octave: frequencies far apart → low roughness
-   octave = Chord([C4, C5])
-   # Major 3rd: closer frequencies → higher roughness
-   third = Chord([C4, E4])
-
-   octave.dissonance < third.dissonance  # True
+   >>> E4 = Tone.from_string("E4", system="western")
+   >>> octave = Chord([C4, C4 + 12])
+   >>> third = Chord([C4, E4])
+   >>> octave.dissonance < third.dissonance
+   True
 
 Beat Frequencies
 ~~~~~~~~~~~~~~~~
@@ -247,23 +256,23 @@ you hear a pulsing at the **beat frequency**: ``|f1 - f2|`` Hz.
 - **15–30 Hz**: Perceived as buzzing/roughness
 - **> 30 Hz**: No longer beating — becomes part of the timbre
 
-.. code-block:: python
+.. code-block:: pycon
 
-   chord = Chord(tones=[A4, E5, A5])
+   >>> A4 = Tone.from_string("A4", system="western")
+   >>> chord = Chord([A4, A4 + 7, A4 + 12])
 
-   # All pairwise beat frequencies, sorted ascending
-   chord.beat_frequencies
-   # [(A4, E5, 189.6), (E5, A5, 220.0), (A4, A5, 440.0)]
+   >>> chord.beat_frequencies
+   [...]
 
-   # The slowest (most perceptible) beat
-   chord.beat_pulse  # 189.6 Hz
+   >>> round(chord.beat_pulse, 1)
+   219.3
 
 Transposition
 -------------
 
 Shift an entire chord up or down by any number of semitones:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> Chord.from_name("C").transpose(7).identify()
    'G major'
@@ -276,20 +285,20 @@ Chord Manipulation
 
 Add or remove individual tones from a chord:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord, Tone
+   >>> from pytheory import Chord, Tone
 
-   c_major = Chord.from_tones("C", "E", "G")
+   >>> c_major = Chord.from_tones("C", "E", "G")
 
-   # Add a tone to build a seventh chord
-   b4 = Tone.from_string("B4", system="western")
-   cmaj7 = c_major.add_tone(b4)
-   cmaj7.identify()     # 'C major 7th'
+   >>> b4 = Tone.from_string("B4", system="western")
+   >>> cmaj7 = c_major.add_tone(b4)
+   >>> cmaj7.identify()
+   'C major 7th'
 
-   # Remove a tone
-   c_again = cmaj7.remove_tone("B")
-   c_again.identify()   # 'C major'
+   >>> c_again = cmaj7.remove_tone("B")
+   >>> c_again.identify()
+   'C major'
 
 Chord Identification
 --------------------
@@ -298,27 +307,30 @@ Give PyTheory any set of tones and it will tell you what chord it is.
 It tries every tone as a potential root and matches the interval pattern
 against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord
+   >>> from pytheory import Chord
 
-   # From note names
-   Chord.from_tones("A", "C", "E").identify()        # 'A minor'
-   Chord.from_tones("G", "B", "D", "F").identify()   # 'G dominant 7th'
+   >>> Chord.from_tones("A", "C", "E").identify()
+   'A minor'
+   >>> Chord.from_tones("G", "B", "D", "F").identify()
+   'G dominant 7th'
 
-   # Works with any voicing or inversion
-   Chord.from_tones("E", "G", "C").identify()         # 'C major'
+   >>> Chord.from_tones("E", "G", "C").identify()
+   'C major'
 
-   # Flats work too
-   Chord.from_tones("Bb", "D", "F").identify()        # 'Bb major'
+   >>> Chord.from_tones("Bb", "D", "F").identify()
+   'Bb major'
 
 You can also access the root and quality separately:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   chord = Chord.from_name("Am7")
-   chord.root         # <Tone A4>
-   chord.quality       # 'minor 7th'
+   >>> chord = Chord.from_name("Am7")
+   >>> chord.root
+   <Tone A4>
+   >>> chord.quality
+   'minor 7th'
 
 Harmonic Analysis
 -----------------
@@ -328,22 +340,22 @@ key. This is how musicians describe chord progressions independent of
 key — "I-IV-V" means the same thing in C major (C-F-G) as in G major
 (G-C-D).
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord, Tone
+   >>> from pytheory import Chord, Tone
 
-   C4 = Tone.from_string("C4", system="western")
-   D4 = Tone.from_string("D4", system="western")
-   E4 = Tone.from_string("E4", system="western")
-   F4 = Tone.from_string("F4", system="western")
-   G4 = Tone.from_string("G4", system="western")
-   A4 = Tone.from_string("A4", system="western")
-   B4 = Tone.from_string("B4", system="western")
+   >>> C4 = Tone.from_string("C4", system="western")
+   >>> E4 = Tone.from_string("E4", system="western")
+   >>> G4 = Tone.from_string("G4", system="western")
 
-   Chord([C4, E4, G4]).analyze("C")              # 'I'    (tonic)
-   Chord([D4, F4, A4]).analyze("C")              # 'ii'   (supertonic minor)
-   Chord([G4, B4, G4+5]).analyze("C")            # 'V'    (dominant)
-   Chord([G4, B4, G4+5, G4+10]).analyze("C")     # 'V7'   (dominant 7th)
+   >>> Chord([C4, E4, G4]).analyze("C")
+   'I'
+   >>> Chord.from_tones("D", "F", "A").analyze("C")
+   'ii'
+   >>> Chord([G4, G4+4, G4+7]).analyze("C")
+   'V'
+   >>> Chord([G4, G4+4, G4+7, G4+10]).analyze("C")
+   'V7'
 
 Tension and Resolution
 ----------------------
@@ -359,18 +371,21 @@ quantifies this based on:
 - **Dominant function**: the specific combination of a major 3rd and
   minor 7th above the root — the hallmark of the V7 chord.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   # A C major triad is fully resolved — no tension
-   c_major = Chord([C4, E4, G4])
-   c_major.tension['score']               # 0.0
-   c_major.tension['tritones']            # 0
+   >>> c_major = Chord([C4, E4, G4])
+   >>> c_major.tension['score']
+   0.0
+   >>> c_major.tension['tritones']
+   0
 
-   # G7 is loaded with tension — it wants to resolve to C
-   g7 = Chord([G4, B4, G4+5, G4+10])
-   g7.tension['score']                    # 0.6
-   g7.tension['tritones']                 # 1
-   g7.tension['has_dominant_function']     # True
+   >>> g7 = Chord([G4, G4+4, G4+7, G4+10])
+   >>> g7.tension['score']
+   0.6
+   >>> g7.tension['tritones']
+   1
+   >>> g7.tension['has_dominant_function']
+   True
 
 Voice Leading
 -------------
@@ -380,14 +395,16 @@ jumping all voices to new positions, good voice leading moves each note
 the minimum distance to reach the next chord. Bach's chorales are the
 gold standard — every voice moves by step whenever possible.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   c_maj = Chord([C4, E4, G4])
-   f_maj = Chord([F4, A4, C4+12])
+   >>> c_maj = Chord.from_tones("C", "E", "G")
+   >>> f_maj = Chord.from_tones("F", "A", "C")
 
-   for src, dst, motion in c_maj.voice_leading(f_maj):
-       print(f"{src} -> {dst}  ({motion:+d} semitones)")
-   # Each voice moves the minimum distance to reach the target chord
+   >>> for src, dst, motion in c_maj.voice_leading(f_maj):
+   ...     print(f"{src} -> {dst}  ({motion:+d} semitones)")
+   G4 -> A4  (+2 semitones)
+   E4 -> F4  (+1 semitones)
+   C4 -> C4  (+0 semitones)
 
 Tritone Substitution
 --------------------
@@ -400,17 +417,14 @@ tritone interval — the 3rd and 7th simply swap roles.
 
 Common tritone subs: G7 <-> Db7, C7 <-> F#7, D7 <-> Ab7.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord
+   >>> from pytheory import Chord
 
-   g7 = Chord.from_name("G7")
-   sub = g7.tritone_sub()
-   sub.identify()       # 'C# dominant 7th' (enharmonic Db7)
-
-   # Both resolve to C — try them in a ii-V-I:
-   #   Dm7 → G7  → Cmaj7   (standard)
-   #   Dm7 → Db7 → Cmaj7   (with tritone sub — chromatic bass line!)
+   >>> g7 = Chord.from_name("G7")
+   >>> sub = g7.tritone_sub()
+   >>> sub.identify()
+   'C# dominant 7th'
 
 The Overtone Series
 -------------------
@@ -425,12 +439,10 @@ overtones of C already contain G. The two tones share acoustic energy,
 reinforcing each other. A dissonant interval like C and C# shares
 almost no overtones — the waves clash.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone
+   >>> from pytheory import Tone
 
-   a4 = Tone.from_string("A4", system="western")
-   a4.overtones(8)
-   # [440.0, 880.0, 1320.0, 1760.0, 2200.0, 2640.0, 3080.0, 3520.0]
-   #  A4     A5     E6      A6      C#7     E7      ~G7     A7
-   #  fund.  oct.   5th+oct 2oct    3rd     5th     ~7th    3oct
+   >>> a4 = Tone.from_string("A4", system="western")
+   >>> [round(f, 1) for f in a4.overtones(8)]
+   [440.0, 880.0, 1320.0, 1760.0, 2200.0, 2640.0, 3080.0, 3520.0]

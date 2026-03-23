@@ -50,14 +50,13 @@ cycle almost closes. The tiny gap where it doesn't close perfectly is
 the `Pythagorean comma <https://en.wikipedia.org/wiki/Pythagorean_comma>`_
 — the reason we need `temperament <https://en.wikipedia.org/wiki/Musical_temperament>`_.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Tone
+   >>> from pytheory import Tone
 
-   # Walk the circle of fifths — all 12 notes
-   c = Tone.from_string("C4", system="western")
-   [t.name for t in c.circle_of_fifths()]
-   # ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F']
+   >>> c = Tone.from_string("C4", system="western")
+   >>> [t.name for t in c.circle_of_fifths()]
+   ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F']
 
 Other cultures divide the octave differently: Indonesian
 `gamelan <https://en.wikipedia.org/wiki/Gamelan>`_ uses 5 or 7 unequal
@@ -183,17 +182,18 @@ is exactly this pattern. Every "Louie Louie" and every
 `Bach chorale <https://en.wikipedia.org/wiki/Bach_chorale>`_ follows
 this basic tonal gravity.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   scale = TonedScale(tonic="C4")["major"]
+   >>> scale = TonedScale(tonic="C4")["major"]
 
-   # The I-IV-V-I progression
-   I  = scale.triad(0)   # C major — home
-   IV = scale.triad(3)   # F major — departure
-   V  = scale.triad(4)   # G major — tension
-   # I again               # C major — resolution
+   >>> scale.triad(0).identify()
+   'C major'
+   >>> scale.triad(3).identify()
+   'F major'
+   >>> scale.triad(4).identify()
+   'G major'
 
 The Dominant Seventh
 ~~~~~~~~~~~~~~~~~~~~
@@ -210,20 +210,24 @@ This combination creates the strongest possible pull toward
 `resolution <https://en.wikipedia.org/wiki/Resolution_(music)>`_.
 When you hear V7→I, you feel arrival.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord, Tone
+   >>> from pytheory import Chord, Tone
 
-   C4 = Tone.from_string("C4", system="western")
-   G4 = Tone.from_string("G4", system="western")
+   >>> C4 = Tone.from_string("C4", system="western")
+   >>> G4 = Tone.from_string("G4", system="western")
 
-   g7 = Chord([G4, G4+4, G4+7, G4+10])   # G B D F
-   g7.identify()                           # 'G dominant 7th'
-   g7.tension['has_dominant_function']      # True
-   g7.tension['tritones']                  # 1
+   >>> g7 = Chord([G4, G4+4, G4+7, G4+10])
+   >>> g7.identify()
+   'G dominant 7th'
+   >>> g7.tension['has_dominant_function']
+   True
+   >>> g7.tension['tritones']
+   1
 
-   c_major = Chord([C4, C4+4, C4+7])      # C E G
-   c_major.tension['score']                # 0.0 — fully resolved
+   >>> c_major = Chord([C4, C4+4, C4+7])
+   >>> c_major.tension['score']
+   0.0
 
 Rhythm and Meter
 ----------------
@@ -277,43 +281,38 @@ foundation of blues and jazz. Indonesian gamelan embraces
 `beating <https://en.wikipedia.org/wiki/Beat_(acoustics)>`_ between
 paired instruments as a core aesthetic.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Chord, Tone
+   >>> from pytheory import Chord, Tone
 
-   C4 = Tone.from_string("C4", system="western")
-   E4 = Tone.from_string("E4", system="western")
-   G4 = Tone.from_string("G4", system="western")
+   >>> C4 = Tone.from_string("C4", system="western")
+   >>> E4 = Tone.from_string("E4", system="western")
+   >>> G4 = Tone.from_string("G4", system="western")
 
-   # The overtone series — the fifth is "built into" every tone
-   C4.overtones(6)
-   # [261.63, 523.25, 784.88, 1046.50, 1308.13, 1569.75]
-   # 3rd harmonic (784.88) ≈ G5 (783.99) — a perfect fifth
+   >>> [round(f, 2) for f in C4.overtones(6)]
+   [261.63, 523.25, 784.88, 1046.5, 1308.13, 1569.75]
 
-   # Consonance: simple frequency ratios score high
-   fifth = Chord([C4, G4])           # 3:2 ratio
-   tritone = Chord([C4, C4 + 6])     # 45:32 ratio
-   fifth.harmony > tritone.harmony   # True
+   >>> fifth = Chord([C4, G4])
+   >>> tritone = Chord([C4, C4 + 6])
+   >>> fifth.harmony > tritone.harmony
+   True
 
-   # Dissonance: Plomp-Levelt roughness model
-   # An octave has low roughness (frequencies far apart)
-   # A major 3rd has more roughness (closer frequencies)
-   octave = Chord([C4, C4 + 12])
-   third = Chord([C4, E4])
-   octave.dissonance < third.dissonance   # True
+   >>> octave = Chord([C4, C4 + 12])
+   >>> third = Chord([C4, E4])
+   >>> octave.dissonance < third.dissonance
+   True
 
-   # Tension: tritones and dominant function
-   c_major = Chord([C4, E4, G4])
-   c_major.tension['score']              # 0.0 — fully resolved
+   >>> c_major = Chord([C4, E4, G4])
+   >>> c_major.tension['score']
+   0.0
 
-   g7 = Chord([G4, G4+4, G4+7, G4+10])  # G dominant 7th
-   g7.tension['score']                   # 0.6 — wants to resolve
-   g7.tension['tritones']                # 1 (B-F)
-   g7.tension['has_dominant_function']    # True
-
-   # Beat frequencies — the pulsing between close pitches
-   g7.beat_frequencies
-   # [(tone_a, tone_b, hz), ...] sorted by frequency
+   >>> g7 = Chord([G4, G4+4, G4+7, G4+10])
+   >>> g7.tension['score']
+   0.6
+   >>> g7.tension['tritones']
+   1
+   >>> g7.tension['has_dominant_function']
+   True
 
 Further Reading
 ---------------

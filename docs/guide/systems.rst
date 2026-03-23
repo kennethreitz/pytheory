@@ -10,16 +10,16 @@ Western
 The standard 12-tone equal temperament system with major/minor scales
 and all seven modes.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   c = TonedScale(tonic="C4")
-   c["major"].note_names
-   # ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
+   >>> c = TonedScale(tonic="C4")
+   >>> c["major"].note_names
+   ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
 
-   c["dorian"].note_names
-   # ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   >>> c["dorian"].note_names
+   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
 
 **Scales:** major, minor, harmonic minor, ionian, dorian, phrygian,
 lydian, mixolydian, aeolian, locrian, chromatic
@@ -31,20 +31,20 @@ The Hindustani system uses **swaras** (Sa, Re, Ga, Ma, Pa, Dha, Ni) and
 organizes scales into `thaats <https://en.wikipedia.org/wiki/Thaat>`_ — the 10 parent scales from which `ragas <https://en.wikipedia.org/wiki/Raga>`_
 are derived.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   sa = TonedScale(tonic="Sa4", system="indian")
+   >>> sa = TonedScale(tonic="Sa4", system="indian")
 
-   sa["bilawal"].note_names   # = major scale
-   # ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni', 'Sa']
+   >>> sa["bilawal"].note_names   # = major scale
+   ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni', 'Sa']
 
-   sa["bhairav"].note_names   # unique to Indian music
-   # ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
+   >>> sa["bhairav"].note_names   # unique to Indian music
+   ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
 
-   sa["todi"].note_names
-   # ['Sa', 'komal Re', 'komal Ga', 'tivra Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
+   >>> sa["todi"].note_names
+   ['Sa', 'komal Re', 'komal Ga', 'tivra Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
 
 **Thaats:** bilawal, khamaj, kafi, asavari, bhairavi, kalyan, bhairav,
 poorvi, marwa, todi
@@ -67,20 +67,20 @@ and organizes scales into **maqamat** (plural of `maqam <https://en.wikipedia.or
    12-tone equal temperament. These scales are the closest 12-TET
    approximations.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   do = TonedScale(tonic="Do4", system="arabic")
+   >>> do = TonedScale(tonic="Do4", system="arabic")
 
-   do["ajam"].note_names     # = major scale
-   # ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si', 'Do']
+   >>> do["ajam"].note_names     # = major scale
+   ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si', 'Do']
 
-   do["hijaz"].note_names    # characteristic augmented 2nd
-   # ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
+   >>> do["hijaz"].note_names    # characteristic augmented 2nd
+   ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
 
-   do["nikriz"].note_names
-   # ['Do', 'Re', 'Mib', 'Fa#', 'Sol', 'La', 'Sib', 'Do']
+   >>> do["nikriz"].note_names
+   ['Do', 'Re', 'Mib', 'Fa#', 'Sol', 'La', 'Sib', 'Do']
 
 **Maqamat:** ajam, nahawand, kurd, hijaz, nikriz, bayati, rast, saba,
 sikah, jiharkah
@@ -91,23 +91,23 @@ Japanese
 The Japanese system uses Western note names with traditional pentatonic
 and heptatonic scales from Japanese music.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   c = TonedScale(tonic="C4", system="japanese")
+   >>> c = TonedScale(tonic="C4", system="japanese")
 
-   c["hirajoshi"].note_names  # most iconic Japanese scale
-   # ['C', 'D', 'D#', 'G', 'G#', 'C']
+   >>> c["hirajoshi"].note_names  # most iconic Japanese scale
+   ['C', 'D', 'D#', 'G', 'G#', 'C']
 
-   c["in"].note_names         # Miyako-bushi, used in koto music
-   # ['C', 'C#', 'F', 'G', 'G#', 'C']
+   >>> c["in"].note_names         # Miyako-bushi, used in koto music
+   ['C', 'C#', 'F', 'G', 'G#', 'C']
 
-   c["yo"].note_names         # folk music scale
-   # ['C', 'D', 'F', 'G', 'A#', 'C']
+   >>> c["yo"].note_names         # folk music scale
+   ['C', 'D', 'F', 'G', 'A#', 'C']
 
-   c["ritsu"].note_names      # gagaku court music (= Dorian)
-   # ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+   >>> c["ritsu"].note_names      # gagaku court music (= Dorian)
+   ['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
 
 **Pentatonic scales:** hirajoshi, in, yo, iwato, kumoi, insen
 
@@ -125,23 +125,23 @@ The `blues scale <https://en.wikipedia.org/wiki/Blues_scale>`_ adds the "`blue n
 minor pentatonic — this chromatic passing tone is the defining sound
 of the blues.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   c = TonedScale(tonic="C4", system="blues")
+   >>> c = TonedScale(tonic="C4", system="blues")
 
-   c["major pentatonic"].note_names  # the "happy" pentatonic
-   # ['C', 'D', 'E', 'G', 'A', 'C']
+   >>> c["major pentatonic"].note_names  # the "happy" pentatonic
+   ['C', 'D', 'E', 'G', 'A', 'C']
 
-   c["minor pentatonic"].note_names  # the "sad" pentatonic
-   # ['C', 'D#', 'F', 'G', 'A#', 'C']
+   >>> c["minor pentatonic"].note_names  # the "sad" pentatonic
+   ['C', 'D#', 'F', 'G', 'A#', 'C']
 
-   c["blues"].note_names             # minor pentatonic + blue note
-   # ['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
+   >>> c["blues"].note_names             # minor pentatonic + blue note
+   ['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
 
-   c["major blues"].note_names       # major pentatonic + blue note
-   # ['C', 'D', 'D#', 'E', 'G', 'A', 'C']
+   >>> c["major blues"].note_names       # major pentatonic + blue note
+   ['C', 'D', 'D#', 'E', 'G', 'A', 'C']
 
 **Pentatonic:** major pentatonic, minor pentatonic
 
@@ -163,20 +163,20 @@ these are the closest 12-TET approximations.
 an ethereal, floating quality. `Pelog <https://en.wikipedia.org/wiki/Pelog>`_ is a 7-tone scale with unequal
 intervals, typically performed using 5-note subsets called *pathet*.
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale
+   >>> from pytheory import TonedScale
 
-   ji = TonedScale(tonic="ji4", system="gamelan")
+   >>> ji = TonedScale(tonic="ji4", system="gamelan")
 
-   ji["slendro"].note_names      # the 5-tone equidistant scale
-   # ['ji', 'ro', 'pat', 'mo', 'pi', 'ji']
+   >>> ji["slendro"].note_names      # the 5-tone equidistant scale
+   ['ji', 'ro', 'pat', 'mo', 'pi', 'ji']
 
-   ji["pelog"].note_names         # full 7-tone pelog
-   # ['ji', 'ro-', 'lu', 'pat', 'mo', 'nem-', 'barang', 'ji']
+   >>> ji["pelog"].note_names         # full 7-tone pelog
+   ['ji', 'ro-', 'lu', 'pat', 'mo', 'nem-', 'barang', 'ji']
 
-   ji["pelog nem"].note_names     # pathet nem subset
-   # ['ji', 'ro-', 'lu', 'pat', 'mo', 'ji']
+   >>> ji["pelog nem"].note_names     # pathet nem subset
+   ['ji', 'ro-', 'lu', 'pat', 'mo', 'ji']
 
 **Pentatonic:** slendro, pelog nem, pelog barang, pelog lima
 
@@ -195,20 +195,23 @@ Cross-System Comparison
 Since all systems use 12-tone equal temperament, equivalent scales
 produce the same pitches:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import TonedScale, Tone
+   >>> from pytheory import TonedScale, Tone
 
-   # These are all the same scale with different names
-   western = TonedScale(tonic="C4")["major"]
-   indian  = TonedScale(tonic="Sa4", system="indian")["bilawal"]
-   arabic  = TonedScale(tonic="Do4", system="arabic")["ajam"]
+   >>> # These are all the same scale with different names
+   >>> western = TonedScale(tonic="C4")["major"]
+   >>> indian  = TonedScale(tonic="Sa4", system="indian")["bilawal"]
+   >>> arabic  = TonedScale(tonic="Do4", system="arabic")["ajam"]
 
-   # Same pitches
-   c4 = Tone.from_string("C4", system="western")
-   sa4 = Tone.from_string("Sa4", system="indian")
-   do4 = Tone.from_string("Do4", system="arabic")
+   >>> # Same pitches
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> sa4 = Tone.from_string("Sa4", system="indian")
+   >>> do4 = Tone.from_string("Do4", system="arabic")
 
-   c4.frequency   # 261.63
-   sa4.frequency  # 261.63
-   do4.frequency  # 261.63
+   >>> c4.frequency
+   261.6255653005986
+   >>> sa4.frequency
+   261.6255653005986
+   >>> do4.frequency
+   261.6255653005986

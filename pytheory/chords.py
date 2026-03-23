@@ -1270,6 +1270,46 @@ class Fretboard:
         from .charts import CHARTS
         return CHARTS[system][name].fingering(fretboard=self)
 
+    def tab(self, name: str, *, system: str = "western") -> str:
+        """Look up a chord by name and return its ASCII tablature.
+
+        Args:
+            name: Chord name like ``"G"``, ``"Am7"``, ``"Bb"``.
+            system: Tonal system to use (default ``"western"``).
+
+        Returns:
+            A multi-line string showing the chord as tablature.
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> print(fb.tab("Am"))
+            A minor
+            e|--0--
+            B|--1--
+            G|--2--
+            D|--2--
+            A|--0--
+            E|--0--
+        """
+        return self.chord(name, system=system).tab()
+
+    def chart(self, *, system: str = "western") -> dict:
+        """Generate fingerings for every chord in the given system.
+
+        Returns:
+            A dict mapping chord names to :class:`Fingering` objects.
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> chart = fb.chart()
+            >>> chart["Am7"]
+            Fingering(e=0, B=1, G=0, D=2, A=0, E=0)
+        """
+        from .charts import charts_for_fretboard, CHARTS
+        return charts_for_fretboard(chart=CHARTS[system], fretboard=self)
+
     def fingering(self, *positions: int) -> "Fingering":
         """Apply fret positions to each string, returning a Fingering.
 
