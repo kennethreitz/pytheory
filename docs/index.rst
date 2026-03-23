@@ -32,7 +32,8 @@ instruments using a clean, Pythonic API.
    >>> fb.chord("G")
    Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
 
-   >>> print(fb.scale_diagram(Scale(tonic="A4", system="blues")["minor pentatonic"], frets=5))
+   >>> pentatonic = Scale(tonic="A4", system="blues")["minor pentatonic"]
+   >>> print(fb.scale_diagram(pentatonic, frets=5))
      0    1    2    3    4    5
    E| E | - | - | G | - | A |
    B| - | C | - | D | - | E |
