@@ -48,8 +48,8 @@ def explore_key(tonic, mode="major"):
     borrowed = key.borrowed_chords
     if borrowed:
         print(f"  Borrowed from {key.parallel}:")
-        for chord in borrowed[:4]:
-            print(f"    {chord.identify()}")
+        for name in borrowed[:4]:
+            print(f"    {name}")
         print()
 
 
