@@ -9,37 +9,46 @@ instruments using a clean, Pythonic API.
 
    $ pip install pytheory
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Key, Chord, Tone, Fretboard
+   >>> from pytheory import Key, Chord, Tone, Fretboard
 
-   # Explore a key
-   key = Key("C", "major")
-   key.chords
-   # ['C major', 'D minor', 'E minor', 'F major',
-   #  'G major', 'A minor', 'B diminished']
+   >>> key = Key("C", "major")
+   >>> key.chords
+   ['C major', 'D minor', 'E minor', 'F major',
+    'G major', 'A minor', 'B diminished']
 
-   # Build a chord progression
-   [c.identify() for c in key.progression("I", "V", "vi", "IV")]
-   # ['C major', 'G major', 'A minor', 'F major']
+   >>> [c.identify() for c in key.progression("I", "V", "vi", "IV")]
+   ['C major', 'G major', 'A minor', 'F major']
 
-   # Identify any chord
-   Chord.from_tones("Bb", "D", "F").identify()   # 'Bb major'
+   >>> Chord.from_tones("Bb", "D", "F").identify()
+   'Bb major'
 
-   # Name the interval
-   c4 = Tone.from_string("C4", system="western")
-   c4.interval_to(c4 + 7)   # 'perfect 5th'
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> c4.interval_to(c4 + 7)
+   'perfect 5th'
 
-   # Guitar fingerings with labeled strings
-   fb = Fretboard.guitar()
-   fb.fingering(0, 1, 0, 2, 3, 0)
-   # Fingering(e=0, B=1, G=0, D=2, A=3, E=0)  →  C major
+   >>> fb = Fretboard.guitar()
+   >>> fb.fingering(0, 1, 0, 2, 3, 0)
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
 
 It also works from the command line::
 
    $ pytheory key G major
+     Key: G major
+     Signature: 1 sharps, 0 flats (F#)
+     Scale: G A B C D E F# G
+     ...
+
    $ pytheory chord C E G
+     Chord:     C major
+     Tones:     C4 E4 G4
+     Intervals: [4, 3]
+     ...
+
    $ pytheory play Am7 --synth triangle
+     Playing: A minor 7th (A4 C4 E4 G4)
+     Synth:   triangle
 
 Highlights
 ----------
