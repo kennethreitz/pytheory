@@ -1251,6 +1251,25 @@ class Fretboard:
 
         return "\n".join(lines)
 
+    def chord(self, name: str, *, system: str = "western") -> "Fingering":
+        """Look up a chord by name and return its best fingering.
+
+        Args:
+            name: Chord name like ``"G"``, ``"Am7"``, ``"Bb"``, ``"Dm"``.
+            system: Tonal system to use (default ``"western"``).
+
+        Returns:
+            A :class:`Fingering` for that chord on this fretboard.
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> fb.chord("G")
+            Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
+        """
+        from .charts import CHARTS
+        return CHARTS[system][name].fingering(fretboard=self)
+
     def fingering(self, *positions: int) -> "Fingering":
         """Apply fret positions to each string, returning a Fingering.
 

@@ -29,8 +29,8 @@ instruments using a clean, Pythonic API.
    'perfect 5th'
 
    >>> fb = Fretboard.guitar()
-   >>> fb.fingering(0, 1, 0, 2, 3, 0)
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
+   >>> fb.chord("G")
+   Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
 
 It also works from the command line::
 

@@ -117,29 +117,30 @@ Build chords directly:
 Guitar Fingerings
 -----------------
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Fretboard, CHARTS
+   >>> from pytheory import Fretboard
 
-   fb = Fretboard.guitar()
+   >>> fb = Fretboard.guitar()
 
-   # Get a labeled fingering from the chord chart
-   f = CHARTS["western"]["C"].fingering(fretboard=fb)
-   f            # Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
-   f['A']       # 3
+   >>> fb.chord("C")
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
 
-   # Identify a chord from fret positions
-   fb.fingering(0, 0, 0, 2, 2, 0).identify()   # 'E minor'
+   >>> fb.chord("C")['A']
+   3
 
-   # ASCII tablature
-   print(CHARTS["western"]["Am"].tab(fretboard=fb))
-   # Am
-   # E|--0--
-   # B|--1--
-   # G|--2--
-   # D|--2--
-   # A|--0--
-   # E|--0--
+   >>> fb.fingering(0, 0, 0, 2, 2, 0).identify()
+   'E minor'
+
+   >>> from pytheory import CHARTS
+   >>> print(CHARTS["western"]["Am"].tab(fretboard=fb))
+   Am
+   E|--0--
+   B|--1--
+   G|--2--
+   D|--2--
+   A|--0--
+   E|--0--
 
 Audio Playback
 --------------

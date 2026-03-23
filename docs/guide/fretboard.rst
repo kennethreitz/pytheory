@@ -185,46 +185,46 @@ on any instrument. It scores each possibility by:
 2. Preferring **ascending** fret patterns — easier hand position
 3. Minimizing the number of **fingers needed**
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Fretboard, CHARTS
+   >>> from pytheory import Fretboard, CHARTS
 
-   fb = Fretboard.guitar()
-   c = CHARTS["western"]["C"]
+   >>> fb = Fretboard.guitar()
+   >>> f = fb.chord("C")
+   >>> f
+   Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
 
-   # Fingerings return a Fingering object with labeled strings
-   f = c.fingering(fretboard=fb)
-   print(f)
-   # Fingering(e=0, B=1, G=0, D=2, A=3, E=0)
+   >>> f['A']
+   3
+   >>> f[1]
+   1
 
-   # Access by string name or index
-   f['A']     # 3
-   f[1]       # 1 (B string)
+   >>> f.identify()
+   'C major'
 
-   # Identify the chord directly from a fingering
-   f.identify()   # 'C major'
+   >>> chord = f.to_chord()
+   >>> chord.identify()
+   'C major'
 
-   # Convert to a Chord for further analysis
-   chord = f.to_chord()
-   chord.harmony       # consonance score
-   chord.intervals     # [4, 3] — major triad
+   >>> # All equally-scored fingerings via CHARTS
+   >>> CHARTS["western"]["C"].fingering(fretboard=fb, multiple=True)
+   [...]
 
-   # All equally-scored fingerings
-   all_c = c.fingering(fretboard=fb, multiple=True)
-
-   # Muted strings appear as None
-   f = CHARTS["western"]["F"]
-   print(f.fingering(fretboard=fb))
+   >>> # Muted strings appear as None
+   >>> CHARTS["western"]["F"].fingering(fretboard=fb)
+   ...
 
 You can also go from fret positions to chord identification:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   # "What chord am I playing?"
-   fb = Fretboard.guitar()
-   f = fb.fingering(0, 0, 0, 2, 2, 0)
-   print(f)            # Fingering(e=0, B=0, G=0, D=2, A=2, E=0)
-   print(f.identify()) # E minor
+   >>> # "What chord am I playing?"
+   >>> fb = Fretboard.guitar()
+   >>> f = fb.fingering(0, 0, 0, 2, 2, 0)
+   >>> f
+   Fingering(e=0, B=0, G=0, D=2, A=2, E=0)
+   >>> f.identify()
+   'E minor'
 
 Reading Fingerings
 ~~~~~~~~~~~~~~~~~~
