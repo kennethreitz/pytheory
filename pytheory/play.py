@@ -240,6 +240,355 @@ def play_progression(chords, *, t=1000, synth=Synth.SINE, gap=100,
             time.sleep(gap / 1000.0)
 
 
+# ── Drum synthesis ──────────────────────────────────────────────────────────
+
+def _noise(n_samples):
+    """White noise array."""
+    return numpy.random.uniform(-1.0, 1.0, n_samples).astype(numpy.float32)
+
+
+def _sine_f32(hz, n_samples):
+    """Float32 sine wave, normalized to ±1."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    return numpy.sin(2 * numpy.pi * hz * t)
+
+
+def _exp_decay(n_samples, decay_rate):
+    """Exponential decay envelope from 1→0."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    return numpy.exp(-decay_rate * t)
+
+
+def _synth_kick(n_samples):
+    """Synthesize a kick drum: sine with pitch sweep + sub thump."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Pitch sweeps from 150 Hz down to 50 Hz
+    freq = 50 + 100 * numpy.exp(-30 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    wave = numpy.sin(phase) * _exp_decay(n_samples, 8)
+    # Add a sub click at the start
+    click = _noise(min(200, n_samples)) * _exp_decay(min(200, n_samples), 80)
+    wave[:len(click)] += click * 0.3
+    return wave
+
+
+def _synth_snare(n_samples):
+    """Synthesize a snare: pitched body + noise rattle."""
+    body = _sine_f32(180, n_samples) * _exp_decay(n_samples, 15) * 0.6
+    noise = _noise(n_samples) * _exp_decay(n_samples, 12) * 0.7
+    return body + noise
+
+
+def _synth_hat_closed(n_samples):
+    """Closed hi-hat: filtered noise, very short."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.05))
+    wave = _noise(n) * _exp_decay(n, 60)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_hat_open(n_samples):
+    """Open hi-hat: filtered noise, longer."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.25))
+    wave = _noise(n) * _exp_decay(n, 12)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_clap(n_samples):
+    """Handclap: layered noise bursts."""
+    wave = numpy.zeros(n_samples, dtype=numpy.float32)
+    for offset_ms in [0, 10, 20, 30]:
+        start = int(offset_ms * SAMPLE_RATE / 1000)
+        burst_len = min(int(SAMPLE_RATE * 0.03), n_samples - start)
+        if burst_len > 0:
+            wave[start:start + burst_len] += (
+                _noise(burst_len) * _exp_decay(burst_len, 40) * 0.4)
+    # Tail
+    tail_len = min(int(SAMPLE_RATE * 0.15), n_samples)
+    wave[:tail_len] += _noise(tail_len) * _exp_decay(tail_len, 18) * 0.3
+    return wave
+
+
+def _synth_rimshot(n_samples):
+    """Rimshot: short bright click."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.03))
+    wave = (_sine_f32(800, n) + _noise(n) * 0.5) * _exp_decay(n, 80)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_tom(hz, n_samples):
+    """Generic tom: pitched sine with decay."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    freq = hz + 30 * numpy.exp(-20 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    return numpy.sin(phase) * _exp_decay(n_samples, 6)
+
+
+def _synth_crash(n_samples):
+    """Crash cymbal: long noise decay."""
+    n = min(n_samples, int(SAMPLE_RATE * 1.5))
+    wave = _noise(n) * _exp_decay(n, 3)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_ride(n_samples):
+    """Ride cymbal: metallic ring + noise."""
+    ring = _sine_f32(3500, n_samples) * _exp_decay(n_samples, 6) * 0.3
+    ring += _sine_f32(5100, n_samples) * _exp_decay(n_samples, 8) * 0.2
+    noise = _noise(n_samples) * _exp_decay(n_samples, 10) * 0.2
+    return ring + noise
+
+
+def _synth_ride_bell(n_samples):
+    """Ride bell: brighter, more sustain."""
+    ring = _sine_f32(3000, n_samples) * _exp_decay(n_samples, 4) * 0.5
+    ring += _sine_f32(4200, n_samples) * _exp_decay(n_samples, 5) * 0.3
+    return ring
+
+
+def _synth_cowbell(n_samples):
+    """Cowbell: two detuned tones."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.3))
+    wave = (_sine_f32(545, n) * 0.6 + _sine_f32(815, n) * 0.4) * _exp_decay(n, 12)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_clave(n_samples):
+    """Clave: short high-pitched click."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.025))
+    wave = _sine_f32(2500, n) * _exp_decay(n, 100)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_conga(hz, n_samples):
+    """Conga/bongo: pitched membrane with slap."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    freq = hz + 50 * numpy.exp(-25 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    body = numpy.sin(phase) * _exp_decay(n_samples, 10)
+    slap = _noise(min(500, n_samples)) * _exp_decay(min(500, n_samples), 60)
+    body[:len(slap)] += slap * 0.2
+    return body
+
+
+def _synth_shaker(n_samples):
+    """Shaker/maracas: short noise burst."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.04))
+    wave = _noise(n) * _exp_decay(n, 50)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave * 0.5
+    return out
+
+
+def _synth_tambourine(n_samples):
+    """Tambourine: noise + jingle ring."""
+    noise = _noise(n_samples) * _exp_decay(n_samples, 15) * 0.4
+    jingle = _sine_f32(7000, n_samples) * _exp_decay(n_samples, 20) * 0.2
+    return noise + jingle
+
+
+def _synth_timbale(hz, n_samples):
+    """Timbale: bright metallic ring."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.2))
+    wave = _sine_f32(hz, n) * _exp_decay(n, 15)
+    # Add overtone brightness
+    wave += _sine_f32(hz * 2.3, n) * _exp_decay(n, 25) * 0.3
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_agogo(hz, n_samples):
+    """Agogo bell: pitched metallic ring."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.3))
+    wave = (_sine_f32(hz, n) * 0.7 + _sine_f32(hz * 1.5, n) * 0.3) * _exp_decay(n, 10)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_guiro(n_samples):
+    """Guiro: scraped noise bursts."""
+    wave = numpy.zeros(n_samples, dtype=numpy.float32)
+    scrape_len = min(int(SAMPLE_RATE * 0.01), n_samples)
+    for i in range(0, min(n_samples, int(SAMPLE_RATE * 0.15)), scrape_len * 2):
+        end = min(i + scrape_len, n_samples)
+        wave[i:end] += _noise(end - i) * 0.6
+    wave *= _exp_decay(n_samples, 8)
+    return wave
+
+
+def _render_drum_hit(sound_value, n_samples):
+    """Render a single drum sound to a float32 array.
+
+    Args:
+        sound_value: A DrumSound enum value (MIDI note number).
+        n_samples: Number of samples to render.
+
+    Returns:
+        Float32 numpy array.
+    """
+    from .rhythm import DrumSound
+
+    _dispatch = {
+        DrumSound.KICK.value: lambda n: _synth_kick(n),
+        DrumSound.SNARE.value: lambda n: _synth_snare(n),
+        DrumSound.RIMSHOT.value: lambda n: _synth_rimshot(n),
+        DrumSound.CLAP.value: lambda n: _synth_clap(n),
+        DrumSound.CLOSED_HAT.value: lambda n: _synth_hat_closed(n),
+        DrumSound.OPEN_HAT.value: lambda n: _synth_hat_open(n),
+        DrumSound.PEDAL_HAT.value: lambda n: _synth_hat_closed(n),
+        DrumSound.LOW_TOM.value: lambda n: _synth_tom(100, n),
+        DrumSound.MID_TOM.value: lambda n: _synth_tom(150, n),
+        DrumSound.HIGH_TOM.value: lambda n: _synth_tom(200, n),
+        DrumSound.CRASH.value: lambda n: _synth_crash(n),
+        DrumSound.RIDE.value: lambda n: _synth_ride(n),
+        DrumSound.RIDE_BELL.value: lambda n: _synth_ride_bell(n),
+        DrumSound.COWBELL.value: lambda n: _synth_cowbell(n),
+        DrumSound.CLAVE.value: lambda n: _synth_clave(n),
+        DrumSound.SHAKER.value: lambda n: _synth_shaker(n),
+        DrumSound.TAMBOURINE.value: lambda n: _synth_tambourine(n),
+        DrumSound.CONGA_HIGH.value: lambda n: _synth_conga(300, n),
+        DrumSound.CONGA_LOW.value: lambda n: _synth_conga(200, n),
+        DrumSound.BONGO_HIGH.value: lambda n: _synth_conga(450, n),
+        DrumSound.BONGO_LOW.value: lambda n: _synth_conga(350, n),
+        DrumSound.TIMBALE_HIGH.value: lambda n: _synth_timbale(800, n),
+        DrumSound.TIMBALE_LOW.value: lambda n: _synth_timbale(600, n),
+        DrumSound.AGOGO_HIGH.value: lambda n: _synth_agogo(900, n),
+        DrumSound.AGOGO_LOW.value: lambda n: _synth_agogo(700, n),
+        DrumSound.GUIRO.value: lambda n: _synth_guiro(n),
+        DrumSound.MARACAS.value: lambda n: _synth_shaker(n),
+    }
+
+    renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
+    return renderer(n_samples)
+
+
+def _render_pattern(pattern, bpm=120):
+    """Render a drum Pattern to a float32 audio buffer.
+
+    Args:
+        pattern: A Pattern object from rhythm module.
+        bpm: Tempo in beats per minute.
+
+    Returns:
+        Float32 numpy array of mixed audio.
+    """
+    samples_per_beat = int(SAMPLE_RATE * 60.0 / bpm)
+    total_samples = int(pattern.beats * samples_per_beat)
+    buf = numpy.zeros(total_samples, dtype=numpy.float32)
+
+    for hit in pattern.hits:
+        start = int(hit.position * samples_per_beat)
+        if start >= total_samples:
+            continue
+        remaining = total_samples - start
+        # Render each hit for up to 0.5 seconds
+        hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
+        wave = _render_drum_hit(hit.sound.value, hit_len)
+        vel_scale = hit.velocity / 127.0
+        buf[start:start + hit_len] += wave * vel_scale
+
+    # Normalize to prevent clipping
+    peak = numpy.max(numpy.abs(buf))
+    if peak > 0:
+        buf = buf / peak * 0.9
+    return buf
+
+
+def play_pattern(pattern, repeats=1, bpm=120):
+    """Play a drum pattern through the speakers.
+
+    Synthesizes each drum sound in real-time and mixes them into a
+    single audio buffer. Every ``DrumSound`` has its own synthesized
+    voice — kicks have pitch sweeps, snares have noise bursts, hats
+    are filtered noise, etc.
+
+    Args:
+        pattern: A :class:`Pattern` object.
+        repeats: Number of times to loop the pattern (default 1).
+        bpm: Tempo in beats per minute (default 120).
+
+    Example::
+
+        >>> from pytheory import Pattern
+        >>> play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
+        >>> play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
+    """
+    rendered = _render_pattern(pattern, bpm=bpm)
+    if repeats > 1:
+        rendered = numpy.tile(rendered, repeats)
+    sd.play(rendered, SAMPLE_RATE)
+    sd.wait()
+
+
+def play_score(score):
+    """Play an entire Score through the speakers.
+
+    Renders both tonal notes (tones/chords) and drum hits, mixed
+    together. This is the function to use when you've built a Score
+    that combines a chord progression with a drum pattern.
+
+    Args:
+        score: A :class:`Score` object with notes and/or drum hits.
+
+    Example::
+
+        >>> from pytheory import Pattern, Key, Duration, Score
+        >>> key = Key("A", "minor")
+        >>> score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
+        >>> for chord in key.progression("i", "iv", "V", "i"):
+        ...     score.add(chord, Duration.WHOLE)
+        >>> play_score(score)
+    """
+    samples_per_beat = int(SAMPLE_RATE * 60.0 / score.bpm)
+    total_beats = score.total_beats
+    total_samples = int(total_beats * samples_per_beat)
+    buf = numpy.zeros(total_samples, dtype=numpy.float32)
+
+    # Render tonal notes
+    beat_pos = 0.0
+    for note in score.notes:
+        if note.tone is not None:
+            start = int(beat_pos * samples_per_beat)
+            dur_ms = note.beats * 60_000 / score.bpm
+            rendered = _render(note.tone, t=dur_ms, envelope=Envelope.PIANO)
+            rendered_f32 = rendered.astype(numpy.float32) / SAMPLE_PEAK
+            end = min(start + len(rendered_f32), total_samples)
+            buf[start:end] += rendered_f32[:end - start] * 0.5
+        beat_pos += note.beats
+
+    # Render drum hits
+    for hit in score._drum_hits:
+        start = int(hit.position * samples_per_beat)
+        if start >= total_samples:
+            continue
+        remaining = total_samples - start
+        hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
+        wave = _render_drum_hit(hit.sound.value, hit_len)
+        vel_scale = hit.velocity / 127.0
+        buf[start:start + hit_len] += wave * vel_scale * 0.7
+
+    # Normalize
+    peak = numpy.max(numpy.abs(buf))
+    if peak > 0:
+        buf = buf / peak * 0.9
+
+    sd.play(buf, SAMPLE_RATE)
+    sd.wait()
+
+
 # ── MIDI export ─────────────────────────────────────────────────────────────
 
 def _vlq(value):

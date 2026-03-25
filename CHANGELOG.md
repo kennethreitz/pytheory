@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.13.0
+
+- Add drum synthesizer with 27 individual instrument voices (kick, snare, hat, conga, timbale, etc.)
+- Add `play_pattern()` for playing drum patterns through the speakers
+- Add `play_score()` for playing mixed drum patterns + chord progressions together
+- Every `DrumSound` has a dedicated synthesis algorithm (pitch sweeps, noise bursts, membrane resonance, metallic rings)
+
 ## 0.12.0
 
 - Add rhythm module: `Duration`, `TimeSignature`, `Note`, `Rest`, `Score`

@@ -5092,3 +5092,46 @@ def test_pattern_repr():
     r = repr(p)
     assert "funk" in r
     assert "4/4" in r
+
+
+# ── Drum synthesis ─────────────────────────────────────────────────────────
+
+@needs_portaudio
+def test_render_drum_hit_all_sounds():
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in DrumSound:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+        assert wave.dtype == numpy.float32
+
+
+@needs_portaudio
+def test_render_pattern_rock():
+    from pytheory.play import _render_pattern
+    from pytheory import Pattern
+    p = Pattern.preset("rock")
+    buf = _render_pattern(p, bpm=120)
+    assert len(buf) > 0
+    assert buf.dtype == numpy.float32
+    assert numpy.max(numpy.abs(buf)) <= 0.91  # normalized
+
+
+@needs_portaudio
+def test_render_pattern_all_presets():
+    from pytheory.play import _render_pattern
+    from pytheory import Pattern
+    for name in Pattern.list_presets():
+        p = Pattern.preset(name)
+        buf = _render_pattern(p, bpm=120)
+        assert len(buf) > 0, f"Empty buffer for {name}"
+
+
+@needs_portaudio
+def test_render_pattern_different_tempos():
+    from pytheory.play import _render_pattern
+    from pytheory import Pattern
+    p = Pattern.preset("jazz")
+    slow = _render_pattern(p, bpm=60)
+    fast = _render_pattern(p, bpm=240)
+    assert len(slow) > len(fast)  # slower = more samples

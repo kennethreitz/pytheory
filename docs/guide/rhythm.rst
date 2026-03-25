@@ -271,3 +271,74 @@ Available sounds: KICK, SNARE, RIMSHOT, CLAP, CLOSED_HAT, OPEN_HAT,
 PEDAL_HAT, LOW_TOM, MID_TOM, HIGH_TOM, CRASH, RIDE, RIDE_BELL, COWBELL,
 CLAVE, SHAKER, TAMBOURINE, CONGA_HIGH, CONGA_LOW, BONGO_HIGH, BONGO_LOW,
 TIMBALE_HIGH, TIMBALE_LOW, AGOGO_HIGH, AGOGO_LOW, GUIRO, MARACAS.
+
+Playing Drum Patterns
+=====================
+
+``play_pattern()`` synthesizes every drum sound in real-time — kicks
+have pitch sweeps, snares have noise rattles, hats are filtered noise,
+congas have membrane resonance, and so on. No samples or external
+files needed.
+
+.. code-block:: pycon
+
+   >>> from pytheory import Pattern
+   >>> from pytheory.play import play_pattern
+
+   >>> play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
+   >>> play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
+   >>> play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
+   >>> play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
+
+Playing Drums with Chords
+--------------------------
+
+``play_score()`` mixes tonal content and drum hits together into
+one audio buffer. Build a Score from a drum pattern, then ``.add()``
+chords on top:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Pattern, Key, Duration
+   >>> from pytheory.play import play_score
+
+   >>> key = Key("A", "minor")
+   >>> score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
+   >>> for chord in key.progression("i", "iv", "V", "i"):
+   ...     score.add(chord, Duration.WHOLE)
+   ...     score.add(chord, Duration.WHOLE)
+   >>> play_score(score)
+
+Another example — salsa with a ii-V-I:
+
+.. code-block:: pycon
+
+   >>> key = Key("C", "major")
+   >>> score = Pattern.preset("salsa").to_score(repeats=4, bpm=180)
+   >>> for chord in key.progression("ii", "V", "I", "I") * 2:
+   ...     score.add(chord, Duration.WHOLE)
+   >>> play_score(score)
+
+Synthesized Drum Sounds
+-----------------------
+
+Each ``DrumSound`` has a dedicated synthesizer:
+
+- **KICK** — sine wave with pitch envelope sweep (150→50 Hz) + sub click
+- **SNARE** — pitched body (180 Hz) + white noise rattle
+- **CLOSED_HAT** — high-frequency noise, 50ms decay
+- **OPEN_HAT** — high-frequency noise, 250ms decay
+- **CLAP** — layered noise bursts with spacers
+- **RIMSHOT** — bright 800 Hz click + noise
+- **TOMS** — pitched sine with sweep (low=100, mid=150, high=200 Hz)
+- **CRASH** — long noise decay (1.5s)
+- **RIDE** — metallic ring (3500+5100 Hz) + noise
+- **RIDE_BELL** — brighter ring, more sustain
+- **COWBELL** — two detuned tones (545+815 Hz)
+- **CLAVE** — short 2500 Hz click
+- **CONGAS/BONGOS** — pitched membrane with slap transient
+- **TIMBALES** — bright metallic ring with overtones
+- **AGOGO** — pitched bell with harmonics
+- **SHAKER/MARACAS** — short noise burst
+- **TAMBOURINE** — noise + 7000 Hz jingle ring
+- **GUIRO** — scraped noise bursts
