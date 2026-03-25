@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.10.0
+
+- Add `Scale.fitness()` to score how well a set of notes fits a scale (0.0–1.0)
+- Add `Key.suggest_next(chord)` for chord progression suggestions based on functional harmony
+- Add `Tone.helmholtz` and `Tone.scientific` properties for alternate pitch notation
+- Add `Chord.slash(bass)` and `Chord.slash_name` for slash chord notation (C/G, Am/E)
+- Add `save_midi()` for exporting tones, chords, and progressions as Standard MIDI Files
+- Add chord tone highlighting in `Fretboard.scale_diagram()` — chord tones uppercase, passing tones lowercase
+- Extend `Chord.analyze()` to recognize borrowed chords (bVI, bVII, bIII, etc.)
+
 ## 0.9.0
 
 - Add ADSR envelope system with 8 presets: `Envelope.PIANO`, `ORGAN`, `PLUCK`, `PAD`, `STRINGS`, `BELL`, `STACCATO`, `NONE`
