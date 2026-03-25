@@ -1360,7 +1360,9 @@ class Part:
                  delay_feedback: float = 0.4,
                  lowpass: float = 0.0, lowpass_q: float = 0.707,
                  distortion: float = 0.0, distortion_drive: float = 3.0,
-                 legato: bool = False, glide: float = 0.0):
+                 legato: bool = False, glide: float = 0.0,
+                 chorus: float = 0.0, chorus_rate: float = 1.5,
+                 chorus_depth: float = 0.003):
         self.name = name
         self.synth = synth
         self.envelope = envelope
@@ -1376,7 +1378,11 @@ class Part:
         self.distortion_drive = distortion_drive
         self.legato = legato
         self.glide = glide
+        self.chorus_mix = chorus
+        self.chorus_rate = chorus_rate
+        self.chorus_depth = chorus_depth
         self.notes: list[Note] = []
+        self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
     def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
         """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
@@ -1392,6 +1398,81 @@ class Part:
             duration = _RawDuration(duration)
         self.notes.append(Note(tone=tone_or_string, duration=duration))
         return self
+
+    def set(self, **params) -> "Part":
+        """Change effect parameters at the current beat position.
+
+        Inserts an automation marker — from this point forward, the
+        specified parameters take new values. Use this to open filters,
+        add reverb, kick in distortion, or change volume mid-song.
+
+        Args:
+            **params: Any Part parameter — ``lowpass``, ``lowpass_q``,
+                ``reverb``, ``reverb_decay``, ``delay``, ``delay_time``,
+                ``delay_feedback``, ``distortion``, ``distortion_drive``,
+                ``volume``, ``chorus``, ``chorus_rate``, ``chorus_depth``.
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> lead = score.part("lead", synth="saw", lowpass=800)
+            >>> lead.add("C5", Duration.WHOLE)            # filtered
+            >>> lead.set(lowpass=3000, reverb=0.4)        # filter opens
+            >>> lead.add("E5", Duration.WHOLE)            # bright + reverb
+            >>> lead.set(distortion=0.6, lowpass=1500)    # grit
+            >>> lead.add("G5", Duration.WHOLE)
+        """
+        beat_pos = sum(n.beats for n in self.notes)
+        # Map shorthand param names to internal attribute names
+        param_map = {
+            "reverb": "reverb_mix", "delay": "delay",
+            "distortion": "distortion", "chorus": "chorus_mix",
+        }
+        mapped = {}
+        for k, v in params.items():
+            attr = param_map.get(k, k)
+            # Handle the special naming conventions
+            if k == "reverb":
+                mapped["reverb_mix"] = v
+            elif k == "delay":
+                mapped["delay_mix"] = v
+            elif k == "distortion":
+                mapped["distortion_mix"] = v
+            elif k == "chorus":
+                mapped["chorus_mix"] = v
+            else:
+                mapped[k] = v
+        self._automation.append((beat_pos, mapped))
+        return self
+
+    def _get_params_at(self, beat: float) -> dict:
+        """Get the effective parameters at a given beat position."""
+        # Start with initial values
+        params = {
+            "volume": self.volume,
+            "reverb_mix": self.reverb_mix, "reverb_decay": self.reverb_decay,
+            "delay_mix": self.delay_mix, "delay_time": self.delay_time,
+            "delay_feedback": self.delay_feedback,
+            "lowpass": self.lowpass, "lowpass_q": self.lowpass_q,
+            "distortion_mix": self.distortion_mix,
+            "distortion_drive": self.distortion_drive,
+            "chorus_mix": self.chorus_mix, "chorus_rate": self.chorus_rate,
+            "chorus_depth": self.chorus_depth,
+        }
+        # Apply automation up to the given beat
+        for auto_beat, changes in sorted(self._automation, key=lambda a: a[0]):
+            if auto_beat <= beat:
+                params.update(changes)
+            else:
+                break
+        return params
+
+    def _get_automation_points(self) -> list[float]:
+        """Return sorted list of beat positions where parameters change."""
+        points = sorted(set(beat for beat, _ in self._automation))
+        return points
 
     def rest(self, duration=Duration.QUARTER) -> "Part":
         """Add a rest. Returns self for chaining."""
@@ -1545,7 +1626,9 @@ class Score:
              delay_feedback: float = 0.4,
              lowpass: float = 0.0, lowpass_q: float = 0.707,
              distortion: float = 0.0, distortion_drive: float = 3.0,
-             legato: bool = False, glide: float = 0.0) -> Part:
+             legato: bool = False, glide: float = 0.0,
+             chorus: float = 0.0, chorus_rate: float = 1.5,
+             chorus_depth: float = 0.003) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1591,7 +1674,9 @@ class Score:
                  delay_feedback=delay_feedback,
                  lowpass=lowpass, lowpass_q=lowpass_q,
                  distortion=distortion, distortion_drive=distortion_drive,
-                 legato=legato, glide=glide)
+                 legato=legato, glide=glide,
+                 chorus=chorus, chorus_rate=chorus_rate,
+                 chorus_depth=chorus_depth)
         self.parts[name] = p
         return p
 

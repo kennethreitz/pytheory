@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.21.0
+
+- Add `Part.set()` for mid-song effect automation (filter sweeps, reverb swells, distortion kicks)
+- Add chorus effect (LFO-modulated delay, Juno-style)
+- Renderer segments audio at automation points for per-section effect processing
+- Updated effect chain: distortion → chorus → lowpass → delay → reverb
+- Document automation, chorus, and updated signal chain
+
 ## 0.20.0
 
 - Add `Part.arpeggio()` — arpeggiator with up/down/updown/downup/random patterns, octave spanning

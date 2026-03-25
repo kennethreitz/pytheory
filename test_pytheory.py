@@ -5581,3 +5581,99 @@ def test_arpeggio_updown_length():
                   division=Duration.EIGHTH)
     # 2 bars of 8ths = 16 notes
     assert len(lead) == 16
+
+
+# ── Part.set() automation ─────────────────────────────────────────────────
+
+def test_part_set_stores_automation():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.add("C5", Duration.WHOLE)
+    lead.set(lowpass=2000)
+    lead.add("E5", Duration.WHOLE)
+    assert len(lead._automation) == 1
+    assert lead._automation[0][0] == 4.0
+
+
+def test_part_set_chaining():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    result = lead.set(lowpass=1000, reverb=0.3)
+    assert result is lead
+
+
+def test_part_get_params_at():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", lowpass=500)
+    lead.add("C5", Duration.WHOLE)
+    lead.set(lowpass=2000, reverb=0.4)
+    lead.add("E5", Duration.WHOLE)
+    p0 = lead._get_params_at(0)
+    assert p0["lowpass"] == 500
+    assert p0["reverb_mix"] == 0
+    p4 = lead._get_params_at(4.0)
+    assert p4["lowpass"] == 2000
+    assert p4["reverb_mix"] == 0.4
+
+
+@needs_portaudio
+def test_automation_changes_output():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    s1 = Score("4/4", bpm=120)
+    s1.part("lead", synth="saw", lowpass=500).add("C5", Duration.WHOLE).add("C5", Duration.WHOLE)
+    buf1 = render_score(s1)
+    s2 = Score("4/4", bpm=120)
+    p2 = s2.part("lead", synth="saw", lowpass=500)
+    p2.add("C5", Duration.WHOLE)
+    p2.set(lowpass=5000)
+    p2.add("C5", Duration.WHOLE)
+    buf2 = render_score(s2)
+    assert not numpy.allclose(buf1, buf2, atol=0.01)
+
+
+def test_part_set_multiple():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", lowpass=400)
+    lead.add("C5", Duration.WHOLE)
+    lead.set(lowpass=1000)
+    lead.add("C5", Duration.WHOLE)
+    lead.set(lowpass=3000, distortion=0.5)
+    lead.add("C5", Duration.WHOLE)
+    assert len(lead._automation) == 2
+    p8 = lead._get_params_at(8.0)
+    assert p8["lowpass"] == 3000
+    assert p8["distortion_mix"] == 0.5
+
+
+# ── Chorus effect ──────────────────────────────────────────────────────────
+
+@needs_portaudio
+def test_chorus_effect():
+    from pytheory.play import _apply_chorus
+    t = numpy.arange(44100, dtype=numpy.float32) / 44100
+    signal = numpy.sin(2 * numpy.pi * 440 * t).astype(numpy.float32)
+    wet = _apply_chorus(signal, mix=0.5)
+    assert not numpy.allclose(signal, wet, atol=0.01)
+
+
+@needs_portaudio
+def test_chorus_zero_mix():
+    from pytheory.play import _apply_chorus
+    dry = numpy.random.uniform(-1, 1, 1000).astype(numpy.float32)
+    result = _apply_chorus(dry, mix=0.0)
+    assert numpy.allclose(result, dry)
+
+
+@needs_portaudio
+def test_part_with_chorus():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    score.part("lead", synth="saw", chorus=0.5).add("C5", Duration.WHOLE)
+    buf = render_score(score)
+    assert len(buf) > 0

@@ -358,6 +358,52 @@ An acid lead with resonant filter and delay:
    ...                   lowpass=1500, lowpass_q=3.0,
    ...                   delay=0.3, delay_time=0.242, delay_feedback=0.4)
 
+Chorus
+~~~~~~
+
+`Chorus <https://en.wikipedia.org/wiki/Chorus_(audio_effect)>`_ —
+a slightly detuned, LFO-modulated delayed copy mixed back in.
+Thickens the sound like two musicians playing the same part:
+
+.. code-block:: pycon
+
+   >>> pad = score.part("pad", synth="supersaw", envelope="pad",
+   ...                  chorus=0.5, chorus_rate=1.5, chorus_depth=0.003)
+
+- ``chorus``: Wet/dry mix 0.0–1.0.
+- ``chorus_rate``: LFO speed in Hz. 0.5–1 = slow shimmer, 2–4 = vibrato.
+- ``chorus_depth``: Modulation depth in seconds (default 0.003).
+
+Effect Automation
+~~~~~~~~~~~~~~~~~
+
+``Part.set()`` changes effect parameters mid-song at the current beat
+position. The renderer splits the audio at automation points and
+processes each section independently:
+
+.. code-block:: pycon
+
+   >>> lead = score.part("lead", synth="saw", lowpass=400, lowpass_q=3.0)
+
+   >>> # Verse: filtered and clean
+   >>> lead.arpeggio("Cm", bars=4, pattern="up", octaves=2)
+
+   >>> # Chorus: filter opens, chorus kicks in
+   >>> lead.set(lowpass=2000, chorus=0.3)
+   >>> lead.arpeggio("Fm", bars=4, pattern="updown", octaves=2)
+
+   >>> # Drop: full send
+   >>> lead.set(lowpass=4000, distortion=0.7, reverb=0.3)
+   >>> lead.arpeggio("Gm", bars=4, pattern="updown", octaves=2)
+
+Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``reverb``,
+``reverb_decay``, ``delay``, ``delay_time``, ``delay_feedback``,
+``distortion``, ``distortion_drive``, ``chorus``, ``volume``.
+
+The updated effect chain::
+
+    Signal → Distortion → Chorus → Lowpass → Delay → Reverb → Mix
+
 MIDI Export
 -----------
 

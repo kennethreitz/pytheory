@@ -838,6 +838,51 @@ def _apply_lowpass(samples, cutoff, q=0.707, sample_rate=SAMPLE_RATE):
     return scipy.signal.lfilter(b, a, samples).astype(numpy.float32)
 
 
+def _apply_chorus(samples, mix=0.5, rate=1.5, depth=0.003,
+                   sample_rate=SAMPLE_RATE):
+    """Apply a chorus effect — slightly detuned delayed copy mixed in.
+
+    Chorus works by duplicating the signal, modulating the copy's delay
+    time with an LFO, and mixing it back. The varying delay creates
+    pitch wobble that thickens the sound — like two musicians playing
+    the same part slightly out of sync.
+
+    This is the classic Roland Juno chorus, the Boss CE-1, and every
+    string ensemble synth ever made.
+
+    Args:
+        samples: Float32 numpy array.
+        mix: Wet/dry ratio 0.0–1.0.
+        rate: LFO speed in Hz (default 1.5). 0.5–1 = slow shimmer,
+            2–4 = fast vibrato, 5+ = Leslie speaker territory.
+        depth: Modulation depth in seconds (default 0.003 = 3ms).
+            Controls how far the pitch wobbles.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array with chorus applied.
+    """
+    if mix <= 0:
+        return samples
+
+    n = len(samples)
+    t = numpy.arange(n, dtype=numpy.float32) / sample_rate
+
+    # LFO modulates the delay time
+    base_delay = 0.007  # 7ms base delay
+    lfo = depth * numpy.sin(2 * numpy.pi * rate * t)
+    delay_samples = ((base_delay + lfo) * sample_rate).astype(numpy.int32)
+
+    # Build the modulated delayed copy
+    wet = numpy.zeros(n, dtype=numpy.float32)
+    for i in range(n):
+        read_pos = i - delay_samples[i]
+        if 0 <= read_pos < n:
+            wet[i] = samples[read_pos]
+
+    return samples * (1 - mix * 0.5) + wet * mix * 0.5
+
+
 def _apply_distortion(samples, drive=1.0, mix=1.0):
     """Apply soft-clip distortion (tanh waveshaping).
 
@@ -867,22 +912,48 @@ def _apply_distortion(samples, drive=1.0, mix=1.0):
     return samples * (1 - mix) + driven * mix
 
 
+def _apply_effects_with_params(samples, params):
+    """Apply effects using a params dict. Used for both static and automated rendering."""
+    # Signal chain: distortion → chorus → lowpass → delay → reverb
+    if params.get("distortion_mix", 0) > 0:
+        samples = _apply_distortion(samples,
+                                    drive=params.get("distortion_drive", 3.0),
+                                    mix=params["distortion_mix"])
+    if params.get("chorus_mix", 0) > 0:
+        samples = _apply_chorus(samples,
+                                mix=params["chorus_mix"],
+                                rate=params.get("chorus_rate", 1.5),
+                                depth=params.get("chorus_depth", 0.003))
+    if params.get("lowpass", 0) > 0:
+        samples = _apply_lowpass(samples, params["lowpass"],
+                                 params.get("lowpass_q", 0.707))
+    if params.get("delay_mix", 0) > 0:
+        samples = _apply_delay(samples, mix=params["delay_mix"],
+                               time=params.get("delay_time", 0.375),
+                               feedback=params.get("delay_feedback", 0.4))
+    if params.get("reverb_mix", 0) > 0:
+        samples = _apply_reverb(samples, mix=params["reverb_mix"],
+                                decay=params.get("reverb_decay", 1.0))
+    return samples
+
+
 def _apply_part_effects(samples, part):
     """Apply all effects configured on a Part to a float32 buffer."""
-    # Distortion first (before filter, like a real signal chain)
-    if part.distortion_mix > 0:
-        samples = _apply_distortion(samples, drive=part.distortion_drive,
-                                    mix=part.distortion_mix)
-    if part.lowpass > 0:
-        samples = _apply_lowpass(samples, part.lowpass, part.lowpass_q)
-    if part.delay_mix > 0:
-        samples = _apply_delay(samples, mix=part.delay_mix,
-                               time=part.delay_time,
-                               feedback=part.delay_feedback)
-    if part.reverb_mix > 0:
-        samples = _apply_reverb(samples, mix=part.reverb_mix,
-                                decay=part.reverb_decay)
-    return samples
+    params = {
+        "distortion_mix": part.distortion_mix,
+        "distortion_drive": part.distortion_drive,
+        "chorus_mix": part.chorus_mix,
+        "chorus_rate": part.chorus_rate,
+        "chorus_depth": part.chorus_depth,
+        "lowpass": part.lowpass,
+        "lowpass_q": part.lowpass_q,
+        "delay_mix": part.delay_mix,
+        "delay_time": part.delay_time,
+        "delay_feedback": part.delay_feedback,
+        "reverb_mix": part.reverb_mix,
+        "reverb_decay": part.reverb_decay,
+    }
+    return _apply_effects_with_params(samples, params)
 
 
 def _resolve_synth(name):
@@ -1053,11 +1124,38 @@ def render_score(score):
                 _render_notes_to_buf(
                     part.notes, part_buf, samples_per_beat, total_samples,
                     synth_fn, env_tuple, part.volume, score.bpm)
-            # Apply per-part effects
-            has_fx = (part.lowpass > 0 or part.delay_mix > 0
-                      or part.reverb_mix > 0 or part.distortion_mix > 0)
-            if has_fx:
-                part_buf = _apply_part_effects(part_buf, part)
+
+            # Apply effects — segmented if automation exists
+            auto_points = part._get_automation_points()
+            if auto_points:
+                # Split buffer at automation boundaries, process each segment
+                boundaries = sorted(set([0.0] + auto_points + [total_beats]))
+                for i in range(len(boundaries) - 1):
+                    seg_start_beat = boundaries[i]
+                    seg_end_beat = boundaries[i + 1]
+                    seg_start = int(seg_start_beat * samples_per_beat)
+                    seg_end = min(int(seg_end_beat * samples_per_beat),
+                                  total_samples)
+                    if seg_end <= seg_start:
+                        continue
+                    params = part._get_params_at(seg_start_beat)
+                    segment = part_buf[seg_start:seg_end].copy()
+                    has_fx = any(params.get(k, 0) > 0 for k in
+                                ["distortion_mix", "chorus_mix", "lowpass",
+                                 "delay_mix", "reverb_mix"])
+                    if has_fx:
+                        segment = _apply_effects_with_params(segment, params)
+                    # Apply volume automation
+                    seg_vol = params.get("volume", part.volume)
+                    if seg_vol != part.volume:
+                        segment = segment * (seg_vol / part.volume) if part.volume > 0 else segment
+                    part_buf[seg_start:seg_end] = segment
+            else:
+                has_fx = (part.lowpass > 0 or part.delay_mix > 0
+                          or part.reverb_mix > 0 or part.distortion_mix > 0
+                          or part.chorus_mix > 0)
+                if has_fx:
+                    part_buf = _apply_part_effects(part_buf, part)
             buf += part_buf
 
     # Drum hits
