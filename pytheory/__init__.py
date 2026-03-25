@@ -8,12 +8,12 @@ from .scales import TonedScale, Key, PROGRESSIONS
 from .chords import Chord, Fretboard, analyze_progression
 from .charts import CHARTS, Fingering, charts_for_fretboard
 
-from .rhythm import Duration, TimeSignature, Rest, Score, DrumSound, Pattern
+from .rhythm import Duration, TimeSignature, Rest, Score, Part, DrumSound, Pattern
 from .rhythm import Note as RhythmNote  # rhythm.Note (tone + duration pairing)
 
 try:
     from .play import (play, save, save_midi, play_progression, play_pattern,
-                       play_score, Synth, Envelope)
+                       play_score, render_score, Synth, Envelope)
 except OSError:
     play = None
     save = None
@@ -34,6 +34,6 @@ __all__ = [
     "System", "SYSTEMS", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "play_pattern",
     "play_score", "Synth", "Envelope",
-    "Duration", "TimeSignature", "RhythmNote", "Rest", "Score",
+    "Duration", "TimeSignature", "RhythmNote", "Rest", "Score", "Part",
     "DrumSound", "Pattern",
 ]

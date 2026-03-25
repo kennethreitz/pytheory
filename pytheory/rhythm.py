@@ -167,12 +167,7 @@ class Pattern:
             A Score containing drum hits as MIDI percussion notes.
         """
         score = Score(self.time_signature_str, bpm=bpm)
-        for r in range(repeats):
-            offset = r * self.beats
-            for hit in self.hits:
-                score._drum_hits.append(
-                    _Hit(hit.sound, hit.position + offset, hit.velocity))
-            score._drum_pattern_beats += self.beats
+        score.add_pattern(self, repeats=repeats)
         return score
 
     # ── Presets ───────────────────────────────────────────────────────
@@ -884,15 +879,87 @@ Pattern._PRESETS["maracatu"] = dict(
 )
 
 
+class Part:
+    """A named voice within a Score, with its own synth and envelope.
+
+    Parts allow layering multiple instruments — lead, bass, pads, etc. —
+    each with independent synth settings, mixed together on playback.
+
+    Don't instantiate directly — use ``Score.part()`` instead.
+
+    Example::
+
+        score = Score("4/4", bpm=140)
+        lead = score.part("lead", synth="saw", envelope="pluck")
+        lead.add("E5", Duration.QUARTER).add("D5", Duration.EIGHTH)
+        bass = score.part("bass", synth="triangle", envelope="pluck")
+        bass.add("A2", Duration.HALF)
+    """
+
+    def __init__(self, name: str, *, synth: str = "sine",
+                 envelope: str = "piano", volume: float = 0.5):
+        self.name = name
+        self.synth = synth
+        self.envelope = envelope
+        self.volume = volume
+        self.notes: list[Note] = []
+
+    def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
+        """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
+
+        Returns self for chaining.
+        """
+        if isinstance(tone_or_string, str):
+            from .tones import Tone
+            tone_or_string = Tone.from_string(tone_or_string, system="western")
+        self.notes.append(Note(tone=tone_or_string, duration=duration))
+        return self
+
+    def rest(self, duration=Duration.QUARTER) -> "Part":
+        """Add a rest. Returns self for chaining."""
+        self.notes.append(Note(tone=None, duration=duration))
+        return self
+
+    @property
+    def total_beats(self) -> float:
+        return sum(n.beats for n in self.notes)
+
+    def __len__(self):
+        return len(self.notes)
+
+    def __iter__(self):
+        return iter(self.notes)
+
+    def __repr__(self):
+        return (f"<Part {self.name!r} synth={self.synth} "
+                f"{len(self.notes)} notes {self.total_beats:.1f} beats>")
+
+
 class Score:
-    """A sequence of notes with a time signature and tempo.
+    """A multi-part arrangement with drums, chords, and instrument voices.
 
-    Usage::
+    A Score combines:
 
-        score = Score("4/4", bpm=120)
-        score.add(Tone.from_string("C4"), Duration.QUARTER)
-        score.add(Tone.from_string("E4"), Duration.QUARTER)
-        score.rest(Duration.HALF)
+    - **Drum patterns** via ``add_pattern()``
+    - **Chord/tone notes** via ``add()`` (backwards-compatible default part)
+    - **Named parts** via ``part()`` — each with its own synth and envelope
+
+    Example::
+
+        score = Score("4/4", bpm=140)
+        score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+
+        chords = score.part("chords", synth="sine", envelope="pad")
+        lead   = score.part("lead",   synth="saw",  envelope="pluck")
+        bass   = score.part("bass",   synth="triangle", envelope="pluck")
+
+        for chord in key.progression("i", "iv", "V", "i"):
+            chords.add(chord, Duration.WHOLE)
+
+        lead.add("E5", Duration.QUARTER).add("D5", Duration.EIGHTH)
+        bass.add("A2", Duration.HALF).add("D2", Duration.HALF)
+
+        play_score(score)
     """
 
     def __init__(self, time_signature="4/4", bpm=120):
@@ -902,23 +969,71 @@ class Score:
             self.time_signature = time_signature
         self.bpm = bpm
         self.notes: list[Note] = []
+        self.parts: dict[str, Part] = {}
         self._drum_hits: list[_Hit] = []
         self._drum_pattern_beats: float = 0.0
 
+    def part(self, name: str, *, synth: str = "sine",
+             envelope: str = "piano", volume: float = 0.5) -> Part:
+        """Create a named part with its own synth voice.
+
+        Args:
+            name: Part name (e.g. ``"lead"``, ``"bass"``, ``"pads"``).
+            synth: Waveform — ``"sine"``, ``"saw"``, or ``"triangle"``.
+            envelope: ADSR preset name — ``"piano"``, ``"pluck"``,
+                ``"pad"``, ``"organ"``, ``"bell"``, ``"strings"``,
+                ``"staccato"``, or ``"none"``.
+            volume: Mix level from 0.0 to 1.0 (default 0.5).
+
+        Returns:
+            A :class:`Part` object. Add notes with ``.add()`` and ``.rest()``.
+
+        Example::
+
+            lead = score.part("lead", synth="saw", envelope="pluck")
+            lead.add("C5", Duration.QUARTER).add("E5", Duration.QUARTER)
+        """
+        p = Part(name, synth=synth, envelope=envelope, volume=volume)
+        self.parts[name] = p
+        return p
+
+    def add_pattern(self, pattern, repeats: int = 1) -> "Score":
+        """Add a drum pattern to this score.
+
+        Args:
+            pattern: A :class:`Pattern` object.
+            repeats: Number of times to repeat.
+
+        Returns:
+            Self for chaining.
+        """
+        for r in range(repeats):
+            offset = self._drum_pattern_beats + r * pattern.beats
+            for hit in pattern.hits:
+                self._drum_hits.append(
+                    _Hit(hit.sound, hit.position + offset, hit.velocity))
+        self._drum_pattern_beats += repeats * pattern.beats
+        return self
+
     def add(self, tone_or_chord, duration=Duration.QUARTER) -> "Score":
-        """Add a note. Returns self for chaining."""
+        """Add a note to the default (unnamed) part.
+
+        For simple scores without named parts. Returns self for chaining.
+        """
         self.notes.append(Note(tone=tone_or_chord, duration=duration))
         return self
 
     def rest(self, duration=Duration.QUARTER) -> "Score":
-        """Add a rest. Returns self for chaining."""
+        """Add a rest to the default part. Returns self for chaining."""
         self.notes.append(Note(tone=None, duration=duration))
         return self
 
     @property
     def total_beats(self) -> float:
-        note_beats = sum(n.beats for n in self.notes)
-        return max(note_beats, self._drum_pattern_beats)
+        beats = [sum(n.beats for n in self.notes), self._drum_pattern_beats]
+        for p in self.parts.values():
+            beats.append(p.total_beats)
+        return max(beats) if beats else 0.0
 
     @property
     def measures(self) -> float:
@@ -932,15 +1047,18 @@ class Score:
         return self.total_beats * ms_per_beat
 
     def __len__(self):
-        return len(self.notes)
+        return len(self.notes) + sum(len(p) for p in self.parts.values())
 
     def __iter__(self):
         return iter(self.notes)
 
     def __repr__(self):
+        part_info = ""
+        if self.parts:
+            part_info = f" {len(self.parts)} parts"
         return (
-            f"<Score {self.time_signature} {self.bpm}bpm "
-            f"{len(self.notes)} notes {self.measures:.1f} measures>"
+            f"<Score {self.time_signature} {self.bpm}bpm"
+            f"{part_info} {self.measures:.1f} measures>"
         )
 
     def save_midi(self, path, velocity=100):

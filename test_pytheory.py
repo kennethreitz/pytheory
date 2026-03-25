@@ -4970,7 +4970,6 @@ def test_score_repr():
     r = repr(score)
     assert "4/4" in r
     assert "120bpm" in r
-    assert "4 notes" in r
     assert "1.0 measures" in r
 
 
@@ -5135,3 +5134,114 @@ def test_render_pattern_different_tempos():
     slow = _render_pattern(p, bpm=60)
     fast = _render_pattern(p, bpm=240)
     assert len(slow) > len(fast)  # slower = more samples
+
+
+# ── Part and multi-part Score ──────────────────────────────────────────────
+
+def test_part_creation():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="saw", envelope="pluck")
+    assert lead.name == "lead"
+    assert lead.synth == "saw"
+    assert lead.envelope == "pluck"
+    assert "lead" in score.parts
+
+
+def test_part_add_string():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.add("C5", Duration.QUARTER)
+    assert len(lead) == 1
+    assert lead.notes[0].tone.name == "C"
+    assert lead.notes[0].tone.octave == 5
+
+
+def test_part_add_chaining():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    result = lead.add("C5", Duration.QUARTER).add("E5", Duration.QUARTER).rest(Duration.HALF)
+    assert result is lead
+    assert len(lead) == 3
+    assert lead.total_beats == 4.0
+
+
+def test_part_total_beats_in_score():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.add("C5", Duration.WHOLE).add("E5", Duration.WHOLE)
+    assert score.total_beats == 8.0
+
+
+def test_multiple_parts():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="saw")
+    bass = score.part("bass", synth="triangle")
+    lead.add("C5", Duration.WHOLE)
+    bass.add("C2", Duration.WHOLE).add("G2", Duration.WHOLE)
+    assert len(score.parts) == 2
+    assert score.total_beats == 8.0  # bass is longer
+
+
+def test_score_add_pattern():
+    from pytheory import Score, Pattern
+    score = Score("4/4", bpm=120)
+    score.add_pattern(Pattern.preset("rock"), repeats=2)
+    assert score._drum_pattern_beats == 8.0
+    assert len(score._drum_hits) > 0
+
+
+def test_score_add_pattern_chaining():
+    from pytheory import Score, Pattern
+    score = Score("4/4", bpm=120)
+    result = score.add_pattern(Pattern.preset("rock"), repeats=1)
+    assert result is score
+
+
+def test_part_repr():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="saw")
+    lead.add("C5", Duration.QUARTER)
+    r = repr(lead)
+    assert "lead" in r
+    assert "saw" in r
+
+
+def test_score_repr_with_parts():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    score.part("lead")
+    score.part("bass")
+    r = repr(score)
+    assert "2 parts" in r
+
+
+@needs_portaudio
+def test_render_score_with_parts():
+    from pytheory import Score, Duration, Pattern, Key
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    score.add_pattern(Pattern.preset("rock"), repeats=2)
+    chords = score.part("chords", synth="sine", envelope="pad")
+    lead = score.part("lead", synth="saw", envelope="pluck")
+    key = Key("C", "major")
+    for chord in key.progression("I", "V", "vi", "IV"):
+        chords.add(chord, Duration.HALF)
+    lead.add("E5", Duration.QUARTER).add("G5", Duration.QUARTER)
+    buf = render_score(score)
+    assert len(buf) > 0
+    assert buf.dtype == numpy.float32
+
+
+def test_backwards_compat_add():
+    """Score.add() still works without named parts."""
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    score.add(Chord.from_symbol("C"), Duration.WHOLE)
+    assert len(score.notes) == 1
+    assert score.total_beats == 4.0

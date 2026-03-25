@@ -533,43 +533,78 @@ def play_pattern(pattern, repeats=1, bpm=120):
     sd.wait()
 
 
-def play_score(score):
-    """Play an entire Score through the speakers.
+def _resolve_synth(name):
+    """Map synth name string to wave function."""
+    return {"sine": sine_wave, "saw": sawtooth_wave,
+            "triangle": triangle_wave}.get(name, sine_wave)
 
-    Renders both tonal notes (tones/chords) and drum hits, mixed
-    together. This is the function to use when you've built a Score
-    that combines a chord progression with a drum pattern.
+
+def _resolve_envelope(name):
+    """Map envelope name string to Envelope enum value tuple."""
+    _map = {e.name.lower(): e.value for e in Envelope}
+    return _map.get(name, Envelope.PIANO.value)
+
+
+def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
+                         synth_fn, envelope_tuple, volume, bpm):
+    """Render a list of Notes into an existing buffer at the correct positions."""
+    a, d, s, r = envelope_tuple
+    beat_pos = 0.0
+    for note in notes:
+        if note.tone is not None:
+            start = int(beat_pos * samples_per_beat)
+            dur_ms = note.beats * 60_000 / bpm
+            n_samples = int(SAMPLE_RATE * dur_ms / 1000)
+            if start + n_samples > total_samples:
+                n_samples = total_samples - start
+            if n_samples > 0:
+                # Get pitches
+                if hasattr(note.tone, 'tones'):
+                    waves = [synth_fn(t.pitch(), n_samples=n_samples)
+                             for t in note.tone.tones]
+                else:
+                    waves = [synth_fn(note.tone.pitch(), n_samples=n_samples)]
+                mixed = sum(w.astype(numpy.float32) for w in waves) / SAMPLE_PEAK
+                if a > 0 or d > 0 or s < 1.0 or r > 0:
+                    mixed = _apply_envelope(mixed, a, d, s, r)
+                end = min(start + len(mixed), total_samples)
+                buf[start:end] += mixed[:end - start] * volume
+        beat_pos += note.beats
+
+
+def render_score(score):
+    """Render a Score to a float32 audio buffer.
+
+    Mixes all parts (named and default), plus drum hits, into a
+    single normalized buffer.
 
     Args:
-        score: A :class:`Score` object with notes and/or drum hits.
+        score: A :class:`Score` object.
 
-    Example::
-
-        >>> from pytheory import Pattern, Key, Duration, Score
-        >>> key = Key("A", "minor")
-        >>> score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
-        >>> for chord in key.progression("i", "iv", "V", "i"):
-        ...     score.add(chord, Duration.WHOLE)
-        >>> play_score(score)
+    Returns:
+        Float32 numpy array of audio samples.
     """
     samples_per_beat = int(SAMPLE_RATE * 60.0 / score.bpm)
     total_beats = score.total_beats
     total_samples = int(total_beats * samples_per_beat)
     buf = numpy.zeros(total_samples, dtype=numpy.float32)
 
-    # Render tonal notes
-    beat_pos = 0.0
-    for note in score.notes:
-        if note.tone is not None:
-            start = int(beat_pos * samples_per_beat)
-            dur_ms = note.beats * 60_000 / score.bpm
-            rendered = _render(note.tone, t=dur_ms, envelope=Envelope.PIANO)
-            rendered_f32 = rendered.astype(numpy.float32) / SAMPLE_PEAK
-            end = min(start + len(rendered_f32), total_samples)
-            buf[start:end] += rendered_f32[:end - start] * 0.5
-        beat_pos += note.beats
+    # Default notes (backwards-compatible .add() calls)
+    if score.notes:
+        _render_notes_to_buf(
+            score.notes, buf, samples_per_beat, total_samples,
+            sine_wave, Envelope.PIANO.value, 0.5, score.bpm)
 
-    # Render drum hits
+    # Named parts
+    for part in score.parts.values():
+        if part.notes:
+            synth_fn = _resolve_synth(part.synth)
+            env_tuple = _resolve_envelope(part.envelope)
+            _render_notes_to_buf(
+                part.notes, buf, samples_per_beat, total_samples,
+                synth_fn, env_tuple, part.volume, score.bpm)
+
+    # Drum hits
     for hit in score._drum_hits:
         start = int(hit.position * samples_per_beat)
         if start >= total_samples:
@@ -585,6 +620,32 @@ def play_score(score):
     if peak > 0:
         buf = buf / peak * 0.9
 
+    return buf
+
+
+def play_score(score):
+    """Play an entire Score through the speakers.
+
+    Renders drums, default notes, and all named parts — each with
+    its own synth voice and envelope — mixed into one audio buffer.
+
+    Args:
+        score: A :class:`Score` object with notes, parts, and/or drum hits.
+
+    Example::
+
+        >>> from pytheory import Pattern, Key, Duration, Score
+        >>> key = Key("A", "minor")
+        >>> score = Score("4/4", bpm=140)
+        >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+        >>> chords = score.part("chords", synth="sine", envelope="pad")
+        >>> lead = score.part("lead", synth="saw", envelope="pluck")
+        >>> for chord in key.progression("i", "iv", "V", "i"):
+        ...     chords.add(chord, Duration.WHOLE)
+        >>> lead.add("E5", Duration.QUARTER).add("D5", Duration.QUARTER)
+        >>> play_score(score)
+    """
+    buf = render_score(score)
     sd.play(buf, SAMPLE_RATE)
     sd.wait()
 
