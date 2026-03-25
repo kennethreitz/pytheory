@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.19.1
+
+- Add `Part.arpeggio()` — arpeggiator with up/down/updown/downup/random patterns, octave spanning, and division control
+- Arpeggiator chains with legato + glide for classic acid/trance sequencer sound
+- Rename rhythm docs to "Sequencing: Rhythm and Scores"
+- Document arpeggiator, legato, and glide in rhythm guide
+
 ## 0.19.0
 
 - Add legato mode for parts — continuous waveform without retriggering envelope per note

@@ -5513,3 +5513,71 @@ def test_part_effects_change_output():
             reverb=0.5, delay=0.3).add("C5", Duration.WHOLE)
     wet = render_score(s2)
     assert not numpy.allclose(dry, wet, atol=0.01)
+
+
+# ── Arpeggiator ───────────────────────────────────────────────────────────
+
+def test_arpeggio_basic():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.arpeggio(Chord.from_symbol("C"), bars=1, pattern="up",
+                  division=Duration.SIXTEENTH)
+    # 1 bar of 16ths = 16 notes
+    assert len(lead) == 16
+
+
+def test_arpeggio_patterns():
+    from pytheory import Score, Duration
+    for pat in ["up", "down", "updown", "downup", "random"]:
+        score = Score("4/4", bpm=120)
+        lead = score.part(f"lead_{pat}")
+        lead.arpeggio(Chord.from_symbol("Am"), bars=1, pattern=pat)
+        assert len(lead) > 0
+
+
+def test_arpeggio_octaves():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.arpeggio(Chord.from_symbol("C"), bars=1, octaves=2,
+                  division=Duration.EIGHTH)
+    # C major = 3 tones, 2 octaves = 6 tones in the cycle
+    assert len(lead) == 8  # 1 bar of 8ths
+
+
+def test_arpeggio_string_chord():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.arpeggio("Dm7", bars=1)
+    assert len(lead) > 0
+
+
+def test_arpeggio_chaining():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    result = lead.arpeggio("C", bars=1).arpeggio("Am", bars=1)
+    assert result is lead
+    assert lead.total_beats == 8.0
+
+
+def test_arpeggio_with_legato():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="saw", legato=True, glide=0.03)
+    lead.arpeggio("Cm", bars=2, pattern="updown", octaves=2)
+    buf = render_score(score)
+    assert len(buf) > 0
+
+
+def test_arpeggio_updown_length():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.arpeggio(Chord.from_symbol("Am"), bars=2, pattern="updown",
+                  division=Duration.EIGHTH)
+    # 2 bars of 8ths = 16 notes
+    assert len(lead) == 16

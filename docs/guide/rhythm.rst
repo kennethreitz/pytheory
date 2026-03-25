@@ -1,5 +1,5 @@
-Rhythm and Scores
-=================
+Sequencing: Rhythm and Scores
+=============================
 
 The rhythm module lets you pair tones and chords with durations,
 organize them into measures, and export measure-aware MIDI files.
@@ -323,6 +323,55 @@ Parameter               Description
 ======================  ================================================
 
 Signal chain: distortion → lowpass → delay → reverb.
+
+Legato and Glide
+~~~~~~~~~~~~~~~~
+
+By default, each note gets its own attack/release envelope. ``legato=True``
+renders the entire part as one continuous waveform — the pitch changes
+at note boundaries but the envelope flows unbroken. Add ``glide`` for
+portamento (pitch slides between notes):
+
+.. code-block:: pycon
+
+   >>> acid = score.part("acid", synth="saw", envelope="pad",
+   ...                   legato=True, glide=0.04)
+   >>> acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
+
+- ``legato``: If True, no envelope retrigger between notes (default False).
+- ``glide``: Portamento time in seconds (default 0, instant).
+  0.03–0.05 = quick 303 slide, 0.1–0.2 = slow glide.
+
+Arpeggiator
+~~~~~~~~~~~
+
+``Part.arpeggio()`` takes a chord and sequences through its notes
+automatically — like a hardware arpeggiator on a synth:
+
+.. code-block:: pycon
+
+   >>> lead = score.part("lead", synth="saw", legato=True, glide=0.03,
+   ...                   distortion=0.8, lowpass=1000, lowpass_q=5.0)
+   >>> lead.arpeggio(Chord.from_symbol("Cm"), bars=2, pattern="up",
+   ...              division=Duration.SIXTEENTH, octaves=2)
+
+Parameters:
+
+- ``chord``: A Chord object or string like ``"Am"``.
+- ``bars``: Number of bars to fill (default 1).
+- ``pattern``: ``"up"``, ``"down"``, ``"updown"``, ``"downup"``, ``"random"``.
+- ``division``: Step length (default ``Duration.SIXTEENTH``).
+- ``octaves``: Octave span (default 1). With 2, pattern repeats one octave up.
+
+Chain arpeggios for chord progressions:
+
+.. code-block:: pycon
+
+   >>> for sym in ["Cm", "Fm", "Abm", "Gm"]:
+   ...     lead.arpeggio(sym, bars=2, pattern="updown", octaves=2)
+
+Combined with legato, glide, distortion, and a resonant lowpass, this
+produces the classic acid/trance arpeggiator sound.
 
 Full Example: Bossa Nova with Effects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

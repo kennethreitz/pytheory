@@ -1400,6 +1400,91 @@ class Part:
         self.notes.append(Note(tone=None, duration=duration))
         return self
 
+    def arpeggio(self, chord, *, bars: float = 1, pattern: str = "up",
+                 division=Duration.SIXTEENTH, octaves: int = 1) -> "Part":
+        """Arpeggiate a chord into a rhythmic pattern.
+
+        Takes a chord and sequences through its notes automatically,
+        like a hardware arpeggiator on a synth. Combined with
+        ``legato=True`` and ``glide``, this produces classic acid
+        and trance arpeggiated lines.
+
+        Args:
+            chord: A Chord object (or string like ``"Am"``).
+            bars: Number of bars to fill (default 1).
+            pattern: Arpeggio pattern:
+                - ``"up"`` — low to high, repeat
+                - ``"down"`` — high to low, repeat
+                - ``"updown"`` — up then down (bounce)
+                - ``"downup"`` — down then up
+                - ``"random"`` — random note order
+            division: Note length for each step (default ``Duration.SIXTEENTH``).
+            octaves: Number of octaves to span (default 1). With 2,
+                the pattern repeats one octave higher before cycling.
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> lead = score.part("lead", synth="saw", legato=True, glide=0.03)
+            >>> lead.arpeggio(Chord.from_symbol("Am"), bars=2, pattern="updown")
+        """
+        from .tones import Tone
+
+        # Parse chord if string
+        if isinstance(chord, str):
+            from .chords import Chord as ChordClass
+            chord = ChordClass.from_symbol(chord)
+
+        # Get the pitches from the chord, sorted low to high
+        tones = sorted(chord.tones, key=lambda t: t.pitch())
+
+        # Expand across octaves
+        all_tones = []
+        for oct in range(octaves):
+            for t in tones:
+                if oct == 0:
+                    all_tones.append(t)
+                else:
+                    all_tones.append(t.add(12 * oct))
+
+        # Build the sequence based on pattern
+        if pattern == "up":
+            seq = list(all_tones)
+        elif pattern == "down":
+            seq = list(reversed(all_tones))
+        elif pattern == "updown":
+            seq = list(all_tones) + list(reversed(all_tones[1:-1]))
+        elif pattern == "downup":
+            seq = list(reversed(all_tones)) + list(all_tones[1:-1])
+        elif pattern == "random":
+            import random
+            seq = list(all_tones)
+            random.shuffle(seq)
+        else:
+            seq = list(all_tones)
+
+        if not seq:
+            return self
+
+        # Calculate how many steps fit in the given bars
+        if hasattr(division, 'value'):
+            step_beats = division.value
+        else:
+            step_beats = float(division)
+
+        # Get beats per bar from score's time signature if available
+        total_beats = bars * 4.0  # default 4/4
+        total_steps = int(total_beats / step_beats)
+
+        # Fill the bars by cycling through the sequence
+        for i in range(total_steps):
+            tone = seq[i % len(seq)]
+            self.add(tone, step_beats)
+
+        return self
+
     @property
     def total_beats(self) -> float:
         return sum(n.beats for n in self.notes)
