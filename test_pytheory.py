@@ -5346,6 +5346,8 @@ def test_fill_presets_exist():
     expected = [
         "rock", "rock crash", "jazz", "jazz brush", "salsa", "samba",
         "funk", "metal", "blast", "buildup", "breakdown",
+        "reggae", "afrobeat", "bossa nova", "house", "trap",
+        "hip hop", "disco", "cumbia", "highlife", "second line",
     ]
     for name in expected:
         p = Pattern.fill(name)
@@ -5403,5 +5405,27 @@ def test_drums_fill_last_bar_only():
 def test_fill_all_presets_valid():
     from pytheory import Pattern
     for name in Pattern.list_fills():
+        p = Pattern.fill(name)
+        assert len(p.hits) > 0, f"Fill {name!r} has no hits"
+
+
+def test_new_groove_presets():
+    from pytheory import Pattern
+    new_grooves = [
+        "country", "ska", "dub", "jungle", "techno",
+        "gospel", "swing", "bolero", "tango", "flamenco",
+    ]
+    for name in new_grooves:
+        p = Pattern.preset(name)
+        assert len(p.hits) > 0, f"Groove {name!r} has no hits"
+
+
+def test_new_fill_presets():
+    from pytheory import Pattern
+    new_fills = [
+        "reggae", "afrobeat", "bossa nova", "house", "trap",
+        "hip hop", "disco", "cumbia", "highlife", "second line",
+    ]
+    for name in new_fills:
         p = Pattern.fill(name)
         assert len(p.hits) > 0, f"Fill {name!r} has no hits"

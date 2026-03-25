@@ -922,6 +922,150 @@ Pattern._PRESETS["maracatu"] = dict(
     ],
 )
 
+Pattern._PRESETS["country"] = dict(
+    name="country",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Train beat variant: kick on 1 and 3, rimshot on 2 and 4, hats on 8ths
+        _h(K, 0.0), _h(CH, 0.0), _h(CH, 0.5),
+        _h(RS, 1.0), _h(CH, 1.0), _h(CH, 1.5),
+        _h(K, 2.0), _h(CH, 2.0), _h(CH, 2.5),
+        _h(RS, 3.0), _h(CH, 3.0), _h(CH, 3.5),
+        # Ghost snare on the "and" of 4
+        _h(S, 3.5, 40),
+    ],
+)
+
+Pattern._PRESETS["ska"] = dict(
+    name="ska",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Offbeat skank: kick on 1 and 3, snare on offbeats, hats on 8ths
+        _h(K, 0.0), _h(CH, 0.0), _h(S, 0.5), _h(CH, 0.5),
+        _h(CH, 1.0), _h(S, 1.5), _h(CH, 1.5),
+        _h(K, 2.0), _h(CH, 2.0), _h(S, 2.5), _h(CH, 2.5),
+        _h(CH, 3.0), _h(S, 3.5), _h(CH, 3.5),
+    ],
+)
+
+Pattern._PRESETS["dub"] = dict(
+    name="dub",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Sparse and heavy
+        _h(K, 0.0),
+        _h(CH, 0.5), _h(CH, 1.5),
+        _h(S, 2.0, 110),
+        _h(OH, 2.5),
+    ],
+)
+
+Pattern._PRESETS["jungle"] = dict(
+    name="jungle",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Chopped breakbeat at double-time feel
+        _h(K, 0.0), _h(K, 1.25), _h(K, 2.5),
+        _h(S, 1.0), _h(S, 2.25), _h(S, 3.0), _h(S, 3.5),
+        _h(RD, 0.0), _h(RD, 0.5), _h(RD, 1.0), _h(RD, 1.5),
+        _h(RD, 2.0), _h(RD, 2.5), _h(RD, 3.0), _h(RD, 3.5),
+    ],
+)
+
+Pattern._PRESETS["techno"] = dict(
+    name="techno",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Minimal four-on-the-floor
+        _h(K, 0.0), _h(K, 1.0), _h(K, 2.0), _h(K, 3.0),
+        _h(CH, 0.0, 70), _h(CH, 0.5, 70), _h(CH, 1.0, 70), _h(CH, 1.5, 70),
+        _h(CH, 2.0, 70), _h(CH, 2.5, 70), _h(CH, 3.0, 70), _h(CH, 3.5, 70),
+        _h(OH, 0.5, 50), _h(OH, 1.5, 50), _h(OH, 2.5, 50), _h(OH, 3.5, 50),
+        _h(DrumSound.CLAP, 1.0), _h(DrumSound.CLAP, 3.0),
+    ],
+)
+
+Pattern._PRESETS["gospel"] = dict(
+    name="gospel",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Shuffle feel with triplet hats
+        _h(K, 0.0), _h(K, 2.67),
+        _h(S, 1.0), _h(S, 3.0),
+        _h(CH, 0.0), _h(CH, 0.67), _h(CH, 1.0), _h(CH, 1.67),
+        _h(CH, 2.0), _h(CH, 2.67), _h(CH, 3.0), _h(CH, 3.67),
+        # Ghost snares
+        _h(S, 1.67, 35), _h(S, 3.67, 35),
+    ],
+)
+
+Pattern._PRESETS["swing"] = dict(
+    name="swing",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Big band swing
+        _h(RD, 0.0), _h(RD, 0.67), _h(RD, 1.0), _h(RD, 1.67),
+        _h(RD, 2.0), _h(RD, 2.67), _h(RD, 3.0),
+        # Hi-hat foot on 2 and 4
+        _h(DrumSound.PEDAL_HAT, 1.0), _h(DrumSound.PEDAL_HAT, 3.0),
+        # Light kick on 1 and 3
+        _h(K, 0.0, 60), _h(K, 2.0, 60),
+        # Snare accent on 4
+        _h(S, 3.0, 80),
+    ],
+)
+
+Pattern._PRESETS["bolero"] = dict(
+    name="bolero",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Slow romantic bolero
+        _h(K, 0.0),
+        _h(RS, 2.5), _h(RS, 3.5),
+        _h(S, 2.0),
+        _h(DrumSound.MARACAS, 0.0, 50), _h(DrumSound.MARACAS, 0.5, 50),
+        _h(DrumSound.MARACAS, 1.0, 50), _h(DrumSound.MARACAS, 1.5, 50),
+        _h(DrumSound.MARACAS, 2.0, 50), _h(DrumSound.MARACAS, 2.5, 50),
+        _h(DrumSound.MARACAS, 3.0, 50), _h(DrumSound.MARACAS, 3.5, 50),
+    ],
+)
+
+Pattern._PRESETS["tango"] = dict(
+    name="tango",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Based on habanera rhythm
+        _h(K, 0.0), _h(K, 1.5), _h(K, 2.0), _h(K, 3.0),
+        _h(S, 1.0, 90), _h(S, 3.0, 90),
+        _h(CH, 0.0), _h(CH, 0.5), _h(CH, 1.0), _h(CH, 1.5),
+        _h(CH, 2.0), _h(CH, 2.5), _h(CH, 3.0), _h(CH, 3.5),
+    ],
+)
+
+Pattern._PRESETS["flamenco"] = dict(
+    name="flamenco",
+    time_signature="12/8",
+    beats=3.0,  # 6 eighth notes = 3 quarter beats
+    hits=[
+        # Palmas (clap) pattern
+        _h(DrumSound.CLAP, 0.0), _h(DrumSound.CLAP, 0.5),
+        _h(DrumSound.CLAP, 1.5), _h(DrumSound.CLAP, 2.0), _h(DrumSound.CLAP, 2.5),
+        # Cajon low (kick) on 0 and 1.5
+        _h(K, 0.0), _h(K, 1.5),
+        # Cajon slap (rimshot) on 1.0 and 2.0
+        _h(RS, 1.0), _h(RS, 2.0),
+    ],
+)
+
 # ── Fill presets ──────────────────────────────────────────────────────────
 
 Pattern._FILLS["rock"] = dict(
@@ -1068,6 +1212,125 @@ Pattern._FILLS["breakdown"] = dict(
         # Sparse: just kick on 1, silence, crash on 4+
         _h(K, 0.0, 110),
         _h(CR, 3.5), _h(K, 3.5),
+    ],
+)
+
+Pattern._FILLS["reggae"] = dict(
+    name="reggae fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Rimshot flams into kick+snare crash
+        _h(RS, 0.0, 70), _h(RS, 0.5, 70), _h(RS, 1.0, 70), _h(RS, 1.5, 70),
+        _h(K, 2.0), _h(S, 2.0),
+        _h(CR, 3.5),
+    ],
+)
+
+Pattern._FILLS["afrobeat"] = dict(
+    name="afrobeat fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Tony Allen style: open hats, descending toms, kick, snare, crash
+        _h(OH, 0.0), _h(OH, 0.5),
+        _h(HT, 1.0), _h(MT, 1.5), _h(LT, 2.0),
+        _h(K, 2.5), _h(S, 3.0), _h(CR, 3.75),
+    ],
+)
+
+Pattern._FILLS["bossa nova"] = dict(
+    name="bossa nova fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Subtle cross-stick fill
+        _h(RS, 0.5, 60), _h(RS, 1.5, 60), _h(RS, 2.5, 60),
+        _h(K, 3.0), _h(RB, 3.5),
+    ],
+)
+
+Pattern._FILLS["house"] = dict(
+    name="house fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare roll into clap with ascending velocity
+        _h(S, 0.0, 40), _h(S, 0.25, 47), _h(S, 0.5, 54), _h(S, 0.75, 61),
+        _h(S, 1.0, 68), _h(S, 1.25, 75), _h(S, 1.5, 82), _h(S, 1.75, 90),
+        _h(DrumSound.CLAP, 2.0), _h(DrumSound.CLAP, 3.0),
+        _h(K, 2.5), _h(K, 3.5),
+    ],
+)
+
+Pattern._FILLS["trap"] = dict(
+    name="trap fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Hi-hat roll accelerating then open hat, kick, clap
+        *[_h(CH, i * 0.25, 50 + i * 4) for i in range(8)],
+        _h(OH, 2.5), _h(K, 3.0), _h(DrumSound.CLAP, 3.5),
+    ],
+)
+
+Pattern._FILLS["hip hop"] = dict(
+    name="hip hop fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare + open hat stutter
+        _h(S, 0.0, 80), _h(S, 0.5, 80),
+        _h(OH, 1.0), _h(OH, 1.5),
+        _h(K, 2.0), _h(S, 2.5),
+        _h(OH, 3.0), _h(CR, 3.75),
+    ],
+)
+
+Pattern._FILLS["disco"] = dict(
+    name="disco fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Tom cascade with open hat
+        _h(OH, 0.0), _h(HT, 0.5), _h(MT, 1.0), _h(LT, 1.5),
+        _h(K, 2.0), _h(K, 2.5),
+        _h(OH, 3.0), _h(CR, 3.75),
+    ],
+)
+
+Pattern._FILLS["cumbia"] = dict(
+    name="cumbia fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Guiro scrape accent
+        _h(DrumSound.GUIRO, 0.0, 70), _h(DrumSound.GUIRO, 0.5, 70),
+        _h(DrumSound.GUIRO, 1.0, 70), _h(DrumSound.GUIRO, 1.5, 70),
+        _h(K, 2.0), _h(K, 2.5),
+        _h(S, 3.0), _h(CR, 3.75),
+    ],
+)
+
+Pattern._FILLS["highlife"] = dict(
+    name="highlife fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Bell pattern variation
+        _h(CB, 0.0), _h(CB, 0.5), _h(CB, 1.5), _h(CB, 2.0),
+        _h(RB, 2.5), _h(RB, 3.0), _h(CR, 3.75),
+    ],
+)
+
+Pattern._FILLS["second line"] = dict(
+    name="second line fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Press roll buzz: snare at 16ths with ascending velocity
+        *[_h(S, i * 0.25, 30 + int(i * 60 / 10)) for i in range(11)],
+        _h(K, 3.0), _h(CR, 3.75),
     ],
 )
 

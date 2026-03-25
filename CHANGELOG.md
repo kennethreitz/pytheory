@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.17.0
+
+- Add 10 new groove presets: country, ska, dub, jungle, techno, gospel, swing, bolero, tango, flamenco (58 total)
+- Add 10 new fill presets: reggae, afrobeat, bossa nova, house, trap, hip hop, disco, cumbia, highlife, second line (21 total)
+- Every major genre family now has matching groove + fill presets
+
 ## 0.16.0
 
 - Add drum fill system with 11 genre-specific presets: rock, rock crash, jazz, jazz brush, salsa, samba, funk, metal, blast, buildup, breakdown
