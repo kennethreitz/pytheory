@@ -205,11 +205,22 @@ class Scale:
         for num in numerals:
             is_seventh = num.endswith("7")
             clean = num.rstrip("7")
+            # Handle flat-degree prefixes: bVI, bVII, bIII, etc.
+            flat_offset = 0
+            if clean.startswith("b") and len(clean) > 1:
+                clean = clean[1:]
+                flat_offset = -1  # one semitone down
+            elif clean.startswith("#") and len(clean) > 1:
+                clean = clean[1:]
+                flat_offset = 1  # one semitone up
             degree = numeral_mod.roman2int(clean.upper()) - 1
             if is_seventh:
-                chords.append(self.seventh(degree))
+                chord = self.seventh(degree)
             else:
-                chords.append(self.triad(degree))
+                chord = self.triad(degree)
+            if flat_offset != 0:
+                chord = chord.transpose(flat_offset)
+            chords.append(chord)
         return chords
 
     def nashville(self, *numbers: Union[int, str]) -> list[Chord]:

@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.20.0
+
+- Add `Part.arpeggio()` — arpeggiator with up/down/updown/downup/random patterns, octave spanning
+- Fix Roman numeral parser to handle flat/sharp degree prefixes (bVI, bVII, bIII, #IV)
+- Add `song_showoff.py` — generative composition that's different every time, uses every feature
+- 4 mood palettes (dark, bright, ethereal, aggressive) with matched keys, progressions, drums, and effects
+
 ## 0.19.1
 
 - Add `Part.arpeggio()` — arpeggiator with up/down/updown/downup/random patterns, octave spanning, and division control
