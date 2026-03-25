@@ -99,17 +99,16 @@ Score Basics
 A ``Score`` is a sequence of notes and rests with a time signature and
 tempo. Use ``.add()`` and ``.rest()`` for fluent chaining:
 
+.. code-block:: python
+
+   from pytheory import Score, Duration, Tone
+
+   score = Score("4/4", bpm=120)
+   score.add(Tone.from_string("C4", system="western"), Duration.QUARTER)
+   score.add(Tone.from_string("E4", system="western"), Duration.QUARTER)
+   score.add(Tone.from_string("G4", system="western"), Duration.HALF)
+
 .. code-block:: pycon
-
-   >>> from pytheory import Score, Duration, Tone
-
-   >>> score = Score("4/4", bpm=120)
-   >>> score.add(Tone.from_string("C4", system="western"), Duration.QUARTER)
-   <Score 4/4 120bpm ...>
-   >>> score.add(Tone.from_string("E4", system="western"), Duration.QUARTER)
-   <Score 4/4 120bpm ...>
-   >>> score.add(Tone.from_string("G4", system="western"), Duration.HALF)
-   <Score 4/4 120bpm ...>
 
    >>> score.total_beats
    4.0
@@ -123,13 +122,14 @@ Rests
 
 Add silence with ``.rest()``:
 
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   score.add(Tone.from_string("C4", system="western"), Duration.HALF)
+   score.rest(Duration.HALF)
+
 .. code-block:: pycon
 
-   >>> score = Score("4/4", bpm=120)
-   >>> score.add(Tone.from_string("C4", system="western"), Duration.HALF)
-   <Score 4/4 120bpm ...>
-   >>> score.rest(Duration.HALF)
-   <Score 4/4 120bpm ...>
    >>> score.measures
    1.0
 
@@ -138,16 +138,18 @@ Chords
 
 Chords work just like tones — pass any ``Chord`` object:
 
+.. code-block:: python
+
+   from pytheory import Score, Duration, Key
+
+   key = Key("C", "major")
+   chords = key.progression("I", "V", "vi", "IV")
+
+   score = Score("4/4", bpm=120)
+   for chord in chords:
+       score.add(chord, Duration.WHOLE)
+
 .. code-block:: pycon
-
-   >>> from pytheory import Score, Duration, Key
-
-   >>> key = Key("C", "major")
-   >>> chords = key.progression("I", "V", "vi", "IV")
-
-   >>> score = Score("4/4", bpm=120)
-   >>> for chord in chords:
-   ...     score.add(chord, Duration.WHOLE)
 
    >>> score.measures
    4.0
@@ -160,17 +162,19 @@ Compound Time
 12/8 is a compound meter — 12 eighth notes per bar grouped in four
 groups of three. Each group feels like one "big beat":
 
+.. code-block:: python
+
+   from pytheory import Score, Duration, Key
+
+   key = Key("A", "minor")
+   chords = key.random_progression(4)
+
+   score = Score("12/8", bpm=120)
+   for c in chords:
+       score.add(c, Duration.DOTTED_HALF)
+       score.add(c, Duration.DOTTED_HALF)
+
 .. code-block:: pycon
-
-   >>> from pytheory import Score, Duration, Key
-
-   >>> key = Key("A", "minor")
-   >>> chords = key.random_progression(4)
-
-   >>> score = Score("12/8", bpm=120)
-   >>> for c in chords:
-   ...     score.add(c, Duration.DOTTED_HALF)
-   ...     score.add(c, Duration.DOTTED_HALF)
 
    >>> score.measures
    4.0
@@ -190,16 +194,16 @@ The ``Part`` class lets you layer multiple instrument voices -- each with
 its own synth waveform, ADSR envelope, and volume level. Create parts
 with ``Score.part()``:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import Score, Key, Duration, Chord
-   >>> from pytheory.play import play_score
+   from pytheory import Score, Key, Duration, Chord
+   from pytheory.play import play_score
 
-   >>> score = Score("4/4", bpm=140)
+   score = Score("4/4", bpm=140)
 
-   >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
-   >>> lead   = score.part("lead",   synth="saw",  envelope="pluck", volume=0.5)
-   >>> bass   = score.part("bass",   synth="triangle", envelope="pluck", volume=0.45)
+   chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
+   lead = score.part("lead", synth="saw", envelope="pluck", volume=0.5)
+   bass = score.part("bass", synth="triangle", envelope="pluck", volume=0.45)
 
 Adding Notes to Parts
 ~~~~~~~~~~~~~~~~~~~~~
@@ -208,27 +212,25 @@ Parts accept note strings directly — no need to wrap in
 ``Tone.from_string()``. ``.add()`` and ``.rest()`` return self for
 fluent chaining:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead.add("E5", Duration.QUARTER).add("D5", Duration.EIGHTH).rest(Duration.EIGHTH)
-   <Part 'lead' ...>
+   lead.add("E5", Duration.QUARTER).add("D5", Duration.EIGHTH).rest(Duration.EIGHTH)
 
 Raw float beats work too — useful for swing and tuplets:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead.add("C5", 0.67).add("B4", 0.33).add("A4", 1.0)
-   <Part 'lead' ...>
+   lead.add("C5", 0.67).add("B4", 0.33).add("A4", 1.0)
 
 Chords and Tone objects work the same way:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> for chord in Key("A", "minor").progression("i", "iv", "V", "i"):
-   ...     chords.add(chord, Duration.WHOLE)
+   for chord in Key("A", "minor").progression("i", "iv", "V", "i"):
+       chords.add(chord, Duration.WHOLE)
 
-   >>> for note in ["A2", "C3", "E3", "A2", "D2", "F2", "A2", "D2"]:
-   ...     bass.add(note, Duration.QUARTER)
+   for note in ["A2", "C3", "E3", "A2", "D2", "F2", "A2", "D2"]:
+       bass.add(note, Duration.QUARTER)
 
 Arpeggiator
 ------------
@@ -244,12 +246,24 @@ three-note chord into a rhythmic, melodic engine.
 ``Part.arpeggio()`` takes a chord and sequences through its notes
 automatically -- like a hardware arpeggiator on a synth:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead = score.part("lead", synth="saw", legato=True, glide=0.03,
-   ...                   distortion=0.8, lowpass=1000, lowpass_q=5.0)
-   >>> lead.arpeggio(Chord.from_symbol("Cm"), bars=2, pattern="up",
-   ...              division=Duration.SIXTEENTH, octaves=2)
+   lead = score.part(
+       "lead",
+       synth="saw",
+       legato=True,
+       glide=0.03,
+       distortion=0.8,
+       lowpass=1000,
+       lowpass_q=5.0,
+   )
+   lead.arpeggio(
+       Chord.from_symbol("Cm"),
+       bars=2,
+       pattern="up",
+       division=Duration.SIXTEENTH,
+       octaves=2,
+   )
 
 Parameters:
 
@@ -261,10 +275,10 @@ Parameters:
 
 Chain arpeggios through a progression:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> for sym in ["Cm", "Fm", "Abm", "Gm"]:
-   ...     lead.arpeggio(sym, bars=2, pattern="updown", octaves=2)
+   for sym in ["Cm", "Fm", "Abm", "Gm"]:
+       lead.arpeggio(sym, bars=2, pattern="updown", octaves=2)
 
 Combined with legato, glide, distortion, and a resonant lowpass, this
 produces the classic acid/trance arpeggiator sound.
@@ -291,11 +305,16 @@ renders the entire part as one continuous waveform -- the pitch changes
 at note boundaries but the envelope flows unbroken. Add ``glide`` for
 portamento (pitch slides between notes):
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> acid = score.part("acid", synth="saw", envelope="pad",
-   ...                   legato=True, glide=0.04)
-   >>> acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
+   acid = score.part(
+       "acid",
+       synth="saw",
+       envelope="pad",
+       legato=True,
+       glide=0.04,
+   )
+   acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
 
 - ``legato``: If True, no envelope retrigger between notes (default False).
 - ``glide``: Portamento time in seconds (default 0, instant).
@@ -307,36 +326,56 @@ Complete Example
 A full multi-part arrangement built from scratch — bossa nova with FM
 rhodes, triangle lead, and filtered bass:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import Score, Pattern, Key, Duration, Chord
-   >>> from pytheory.play import play_score
+   from pytheory import Score, Pattern, Key, Duration, Chord
+   from pytheory.play import play_score
 
-   >>> score = Score("4/4", bpm=140)
-   >>> score.drums("bossa nova", repeats=4)
+   score = Score("4/4", bpm=140)
+   score.drums("bossa nova", repeats=4)
 
-   >>> # FM rhodes with reverb
-   >>> rhodes = score.part("rhodes", synth="fm", envelope="piano",
-   ...                     volume=0.3, reverb=0.4, reverb_decay=1.8)
+   # FM rhodes with reverb
+   rhodes = score.part(
+       "rhodes",
+       synth="fm",
+       envelope="piano",
+       volume=0.3,
+       reverb=0.4,
+       reverb_decay=1.8,
+   )
 
-   >>> # Triangle lead with delay
-   >>> lead = score.part("lead", synth="triangle", envelope="pluck",
-   ...                   volume=0.45, delay=0.25, delay_time=0.32,
-   ...                   delay_feedback=0.35, reverb=0.2)
+   # Triangle lead with delay
+   lead = score.part(
+       "lead",
+       synth="triangle",
+       envelope="pluck",
+       volume=0.45,
+       delay=0.25,
+       delay_time=0.32,
+       delay_feedback=0.35,
+       reverb=0.2,
+   )
 
-   >>> # Filtered bass
-   >>> bass = score.part("bass", synth="sine", envelope="pluck",
-   ...                   volume=0.45, lowpass=600)
+   # Filtered bass
+   bass = score.part(
+       "bass",
+       synth="sine",
+       envelope="pluck",
+       volume=0.45,
+       lowpass=600,
+   )
 
-   >>> for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
-   ...     rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
+   for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
+       rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-   >>> for n, d in [("E5",.67),("D5",.33),("C5",.67),("B4",.33),
-   ...              ("A4",1),("C5",.67),("E5",.33),("D5",.67),("C5",.33),
-   ...              ("A4",1)]:
-   ...     lead.add(n, d)
+   for n, d in [
+       ("E5", 0.67), ("D5", 0.33), ("C5", 0.67), ("B4", 0.33),
+       ("A4", 1), ("C5", 0.67), ("E5", 0.33), ("D5", 0.67), ("C5", 0.33),
+       ("A4", 1),
+   ]:
+       lead.add(n, d)
 
-   >>> for n in ["A2","E2","A2","C3","D2","A2","D2","F2"]:
-   ...     bass.add(n, Duration.QUARTER)
+   for n in ["A2", "E2", "A2", "C3", "D2", "A2", "D2", "F2"]:
+       bass.add(n, Duration.QUARTER)
 
-   >>> play_score(score)
+   play_score(score)

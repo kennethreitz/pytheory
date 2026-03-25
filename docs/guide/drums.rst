@@ -145,15 +145,15 @@ Playing Patterns
 
 ``play_pattern()`` synthesizes every drum sound in real-time:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import Pattern
-   >>> from pytheory.play import play_pattern
+   from pytheory import Pattern
+   from pytheory.play import play_pattern
 
-   >>> play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
-   >>> play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
-   >>> play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
-   >>> play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
+   play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
+   play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
+   play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
+   play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
 Fills
 -----
@@ -185,11 +185,12 @@ Score Integration
 
 The ``score.drums()`` shorthand attaches a drum pattern to a score:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import Score
-   >>> score = Score("4/4", bpm=140)
-   >>> score.drums("bossa nova", repeats=4)
+   from pytheory import Score
+
+   score = Score("4/4", bpm=140)
+   score.drums("bossa nova", repeats=4)
 
 Auto-Fills
 ~~~~~~~~~~
@@ -197,21 +198,21 @@ Auto-Fills
 The ``fill`` and ``fill_every`` parameters automatically insert drum
 fills at regular intervals:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> score = Score("4/4", bpm=120)
-   >>> score.drums("rock", repeats=8, fill="rock", fill_every=4)
+   score = Score("4/4", bpm=120)
+   score.drums("rock", repeats=8, fill="rock", fill_every=4)
 
 This plays the rock pattern for 8 bars, replacing every 4th bar with
 a rock fill. Useful for adding natural phrasing to longer sections.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> # Jazz with brush fills every 8 bars
-   >>> score.drums("bebop", repeats=16, fill="jazz brush", fill_every=8)
+   # Jazz with brush fills every 8 bars
+   score.drums("bebop", repeats=16, fill="jazz brush", fill_every=8)
 
-   >>> # Salsa with fills every 4 bars
-   >>> score.drums("salsa", repeats=8, fill="salsa", fill_every=4)
+   # Salsa with fills every 4 bars
+   score.drums("salsa", repeats=8, fill="salsa", fill_every=4)
 
 Layering Patterns
 -----------------
@@ -219,27 +220,27 @@ Layering Patterns
 Combine drum patterns with melodic parts for full arrangements. The
 drum pattern and all named parts are mixed together by ``play_score()``:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import Score, Key, Duration, Chord
-   >>> from pytheory.play import play_score
+   from pytheory import Score, Key, Duration, Chord
+   from pytheory.play import play_score
 
-   >>> score = Score("4/4", bpm=180)
-   >>> score.drums("salsa", repeats=4, fill="salsa", fill_every=4)
+   score = Score("4/4", bpm=180)
+   score.drums("salsa", repeats=4, fill="salsa", fill_every=4)
 
-   >>> pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
-   >>> lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
-   >>> bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
+   pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
+   lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+   bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
 
-   >>> for chord in Key("D", "minor").progression("ii", "V", "i", "i") * 2:
-   ...     pads.add(chord, Duration.WHOLE)
+   for chord in Key("D", "minor").progression("ii", "V", "i", "i") * 2:
+       pads.add(chord, Duration.WHOLE)
 
-   >>> lead.add("A5", 0.67).add("G5", 0.33).add("F5", 0.67).add("E5", 0.33)
+   lead.add("A5", 0.67).add("G5", 0.33).add("F5", 0.67).add("E5", 0.33)
 
-   >>> for n in ["D2", "A2", "D2", "F2"] * 2:
-   ...     bass.add(n, Duration.QUARTER)
+   for n in ["D2", "A2", "D2", "F2"] * 2:
+       bass.add(n, Duration.QUARTER)
 
-   >>> play_score(score)
+   play_score(score)
 
 MIDI Export
 -----------
@@ -247,10 +248,10 @@ MIDI Export
 Convert any pattern to a Score, then export to MIDI (drums are written
 to channel 10):
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> pattern = Pattern.preset("bossa nova")
-   >>> score = pattern.to_score(repeats=8, bpm=140)
-   >>> score.save_midi("bossa.mid")
+   pattern = Pattern.preset("bossa nova")
+   score = pattern.to_score(repeats=8, bpm=140)
+   score.save_midi("bossa.mid")
 
-   >>> Pattern.preset("afrobeat").to_score(repeats=8, bpm=110).save_midi("afrobeat.mid")
+   Pattern.preset("afrobeat").to_score(repeats=8, bpm=110).save_midi("afrobeat.mid")

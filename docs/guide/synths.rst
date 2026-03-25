@@ -30,11 +30,12 @@ building block of all other waveforms (Fourier's theorem).
 
 **Use for:** sub bass, clean pads, test tones, blending under other voices.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import play, Synth, Tone
-   >>> tone = Tone.from_string("C4", system="western")
-   >>> play(tone, synth=Synth.SINE)
+   from pytheory import play, Synth, Tone
+
+   tone = Tone.from_string("C4", system="western")
+   play(tone, synth=Synth.SINE)
 
 Sawtooth
 ~~~~~~~~
@@ -45,9 +46,9 @@ Named for its ramp shape.
 
 **Use for:** leads, brass, pads, anything that needs presence and bite.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> play(tone, synth=Synth.SAW)
+   play(tone, synth=Synth.SAW)
 
 Triangle
 ~~~~~~~~
@@ -58,9 +59,9 @@ described as "woody" or "hollow."
 
 **Use for:** flute-like leads, mellow bass, gentle pads.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> play(tone, synth=Synth.TRIANGLE)
+   play(tone, synth=Synth.TRIANGLE)
 
 Square
 ~~~~~~
@@ -71,9 +72,9 @@ pulse wave with a 50% duty cycle.
 
 **Use for:** chiptune, 8-bit game music, hollow leads, sub-octave bass.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> play(tone, synth=Synth.SQUARE)
+   play(tone, synth=Synth.SQUARE)
 
 Extended Waveforms
 ------------------
@@ -93,9 +94,9 @@ the classic NES-style buzzy tone.
 
 **Use for:** NES/chiptune sounds, nasal leads, retro textures.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead = score.part("lead", synth="pulse", envelope="pluck")
+   lead = score.part("lead", synth="pulse", envelope="pluck")
 
 FM Synthesis
 ~~~~~~~~~~~~
@@ -110,10 +111,15 @@ pop music in the 80s, you heard FM synthesis.
 
 **Use for:** electric piano (rhodes), bells, metallic leads, jazz chords.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> rhodes = score.part("rhodes", synth="fm", envelope="piano",
-   ...                     volume=0.3, reverb=0.4)
+   rhodes = score.part(
+       "rhodes",
+       synth="fm",
+       envelope="piano",
+       volume=0.3,
+       reverb=0.4,
+   )
 
 Noise
 -----
@@ -126,10 +132,15 @@ Useful as a texture layer, a percussion source, or a wind/ocean effect.
 
 **Use for:** snare layers, hi-hats, wind effects, risers, ambient texture.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> texture = score.part("texture", synth="noise", envelope="pad",
-   ...                      volume=0.1, lowpass=2000)
+   texture = score.part(
+       "texture",
+       synth="noise",
+       envelope="pad",
+       volume=0.1,
+       lowpass=2000,
+   )
 
 Ensemble Waveforms
 ------------------
@@ -152,10 +163,16 @@ supersaw.
 
 **Use for:** trance pads, EDM leads, massive chords, anthem hooks.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> pad = score.part("pad", synth="supersaw", envelope="pad",
-   ...                  volume=0.4, chorus=0.3, reverb=0.5)
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       volume=0.4,
+       chorus=0.3,
+       reverb=0.5,
+   )
 
 PWM Slow
 ~~~~~~~~
@@ -168,10 +185,15 @@ from Boards of Canada to Drake? PWM with a slow LFO.
 
 **Use for:** lush analog pads, slow evolving textures, Juno-style warmth.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> pad = score.part("pad", synth="pwm_slow", envelope="pad",
-   ...                  volume=0.35, reverb=0.4)
+   pad = score.part(
+       "pad",
+       synth="pwm_slow",
+       envelope="pad",
+       volume=0.35,
+       reverb=0.4,
+   )
 
 PWM Fast
 ~~~~~~~~
@@ -181,10 +203,9 @@ produces a natural chorus/vibrato effect built into the waveform itself.
 
 **Use for:** animated leads, vibrato textures, movement without effects.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead = score.part("lead", synth="pwm_fast", envelope="pluck",
-   ...                   volume=0.5)
+   lead = score.part("lead", synth="pwm_fast", envelope="pluck", volume=0.5)
 
 ADSR Envelopes
 --------------
@@ -214,19 +235,20 @@ shapes the amplitude over time for natural-sounding notes:
 
 PyTheory includes 8 presets:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> from pytheory import play, Envelope, Tone
-   >>> tone = Tone.from_string("C4", system="western")
+   from pytheory import play, Envelope, Tone
 
-   >>> play(tone, envelope=Envelope.PIANO)     # Quick attack, natural decay
-   >>> play(tone, envelope=Envelope.PLUCK)     # Sharp attack, fast decay
-   >>> play(tone, envelope=Envelope.PAD)       # Slow fade in, lush sustain
-   >>> play(tone, envelope=Envelope.ORGAN)     # Instant on/off, no shaping
-   >>> play(tone, envelope=Envelope.BELL)      # Instant attack, long ring
-   >>> play(tone, envelope=Envelope.STRINGS)   # Gradual bow attack
-   >>> play(tone, envelope=Envelope.STACCATO)  # Short and punchy
-   >>> play(tone, envelope=Envelope.NONE)      # Raw waveform, no shaping
+   tone = Tone.from_string("C4", system="western")
+
+   play(tone, envelope=Envelope.PIANO)     # Quick attack, natural decay
+   play(tone, envelope=Envelope.PLUCK)     # Sharp attack, fast decay
+   play(tone, envelope=Envelope.PAD)       # Slow fade in, lush sustain
+   play(tone, envelope=Envelope.ORGAN)     # Instant on/off, no shaping
+   play(tone, envelope=Envelope.BELL)      # Instant attack, long ring
+   play(tone, envelope=Envelope.STRINGS)   # Gradual bow attack
+   play(tone, envelope=Envelope.STACCATO)  # Short and punchy
+   play(tone, envelope=Envelope.NONE)      # Raw waveform, no shaping
 
 Envelope Descriptions
 ~~~~~~~~~~~~~~~~~~~~~

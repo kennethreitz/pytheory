@@ -63,15 +63,25 @@ Parameters:
   - 3--8 = overdrive (cranked amp)
   - 10+ = fuzz
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> # Warm tube saturation on a bass
-   >>> bass = score.part("bass", synth="sine", envelope="pluck",
-   ...                   distortion=0.3, distortion_drive=2.0)
+   # Warm tube saturation on a bass
+   bass = score.part(
+       "bass",
+       synth="sine",
+       envelope="pluck",
+       distortion=0.3,
+       distortion_drive=2.0,
+   )
 
-   >>> # Heavy fuzz on a lead
-   >>> lead = score.part("lead", synth="saw", envelope="staccato",
-   ...                   distortion=0.8, distortion_drive=10.0)
+   # Heavy fuzz on a lead
+   lead = score.part(
+       "lead",
+       synth="saw",
+       envelope="staccato",
+       distortion=0.8,
+       distortion_drive=10.0,
+   )
 
 Chorus
 ------
@@ -93,15 +103,26 @@ Parameters:
 - ``chorus_rate``: LFO speed in Hz. 0.5--1 = slow shimmer, 2--4 = vibrato.
 - ``chorus_depth``: Modulation depth in seconds (default 0.003).
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> # Juno-style pad chorus
-   >>> pad = score.part("pad", synth="supersaw", envelope="pad",
-   ...                  chorus=0.5, chorus_rate=1.5, chorus_depth=0.003)
+   # Juno-style pad chorus
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       chorus=0.5,
+       chorus_rate=1.5,
+       chorus_depth=0.003,
+   )
 
-   >>> # Subtle thickening on a clean lead
-   >>> lead = score.part("lead", synth="triangle", envelope="pluck",
-   ...                   chorus=0.2, chorus_rate=0.8)
+   # Subtle thickening on a clean lead
+   lead = score.part(
+       "lead",
+       synth="triangle",
+       envelope="pluck",
+       chorus=0.2,
+       chorus_rate=0.8,
+   )
 
 Lowpass Filter
 --------------
@@ -134,15 +155,27 @@ Parameters:
   - 2.0 = pronounced
   - 5.0+ = aggressive acid squelch
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> # Round bass with gentle filtering
-   >>> bass = score.part("bass", synth="sine", envelope="pluck",
-   ...                   lowpass=400, lowpass_q=1.5)
+   # Round bass with gentle filtering
+   bass = score.part(
+       "bass",
+       synth="sine",
+       envelope="pluck",
+       lowpass=400,
+       lowpass_q=1.5,
+   )
 
-   >>> # Acid squelch on a saw lead
-   >>> acid = score.part("acid", synth="saw", envelope="staccato",
-   ...                   lowpass=1500, lowpass_q=5.0, legato=True, glide=0.03)
+   # Acid squelch on a saw lead
+   acid = score.part(
+       "acid",
+       synth="saw",
+       envelope="staccato",
+       lowpass=1500,
+       lowpass_q=5.0,
+       legato=True,
+       glide=0.03,
+   )
 
 Delay
 -----
@@ -170,15 +203,27 @@ Parameters:
   - 0.5 = many repeats
   - 0.7+ = runaway (dub style)
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> # Dotted-eighth slapback on a lead
-   >>> lead = score.part("lead", synth="triangle", envelope="strings",
-   ...                   delay=0.3, delay_time=0.375, delay_feedback=0.4)
+   # Dotted-eighth slapback on a lead
+   lead = score.part(
+       "lead",
+       synth="triangle",
+       envelope="strings",
+       delay=0.3,
+       delay_time=0.375,
+       delay_feedback=0.4,
+   )
 
-   >>> # Dub-style runaway echoes
-   >>> melodica = score.part("melodica", synth="triangle", envelope="pluck",
-   ...                       delay=0.5, delay_time=0.66, delay_feedback=0.55)
+   # Dub-style runaway echoes
+   melodica = score.part(
+       "melodica",
+       synth="triangle",
+       envelope="pluck",
+       delay=0.5,
+       delay_time=0.66,
+       delay_feedback=0.55,
+   )
 
 Reverb
 ------
@@ -207,15 +252,25 @@ Parameters:
   - 1.5 = hall
   - 3.0+ = cathedral / dub
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> # Jazz club ambience
-   >>> rhodes = score.part("rhodes", synth="fm", envelope="piano",
-   ...                     reverb=0.4, reverb_decay=1.8)
+   # Jazz club ambience
+   rhodes = score.part(
+       "rhodes",
+       synth="fm",
+       envelope="piano",
+       reverb=0.4,
+       reverb_decay=1.8,
+   )
 
-   >>> # Cathedral wash for ambient pads
-   >>> pad = score.part("pad", synth="supersaw", envelope="pad",
-   ...                  reverb=0.7, reverb_decay=4.0)
+   # Cathedral wash for ambient pads
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       reverb=0.7,
+       reverb_decay=4.0,
+   )
 
 Combining Effects
 -----------------
@@ -227,48 +282,79 @@ Dub
 
 Distortion warmth into filtered delay into deep reverb:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> melodica = score.part("melodica", synth="triangle", envelope="pluck",
-   ...                       distortion=0.2, distortion_drive=2.0,
-   ...                       lowpass=2000, lowpass_q=1.2,
-   ...                       delay=0.5, delay_time=0.66, delay_feedback=0.55,
-   ...                       reverb=0.4, reverb_decay=2.5)
+   melodica = score.part(
+       "melodica",
+       synth="triangle",
+       envelope="pluck",
+       distortion=0.2,
+       distortion_drive=2.0,
+       lowpass=2000,
+       lowpass_q=1.2,
+       delay=0.5,
+       delay_time=0.66,
+       delay_feedback=0.55,
+       reverb=0.4,
+       reverb_decay=2.5,
+   )
 
 Acid
 ~~~~
 
 Resonant lowpass with distortion and delay:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> acid = score.part("acid", synth="saw", envelope="staccato",
-   ...                   lowpass=1500, lowpass_q=3.0,
-   ...                   distortion=0.4, distortion_drive=4.0,
-   ...                   delay=0.3, delay_time=0.242, delay_feedback=0.4)
+   acid = score.part(
+       "acid",
+       synth="saw",
+       envelope="staccato",
+       lowpass=1500,
+       lowpass_q=3.0,
+       distortion=0.4,
+       distortion_drive=4.0,
+       delay=0.3,
+       delay_time=0.242,
+       delay_feedback=0.4,
+   )
 
 Ambient
 ~~~~~~~
 
 Wide chorus, long reverb, gentle delay:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> ambient = score.part("ambient", synth="supersaw", envelope="pad",
-   ...                      chorus=0.4, chorus_rate=0.5,
-   ...                      delay=0.3, delay_time=0.5, delay_feedback=0.5,
-   ...                      reverb=0.7, reverb_decay=4.0)
+   ambient = score.part(
+       "ambient",
+       synth="supersaw",
+       envelope="pad",
+       chorus=0.4,
+       chorus_rate=0.5,
+       delay=0.3,
+       delay_time=0.5,
+       delay_feedback=0.5,
+       reverb=0.7,
+       reverb_decay=4.0,
+   )
 
 808 Bass
 ~~~~~~~~
 
 Subtle saturation and deep filtering for hip-hop sub bass:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> bass = score.part("bass", synth="sine", envelope="pluck",
-   ...                   lowpass=200, lowpass_q=1.8,
-   ...                   distortion=0.4, distortion_drive=2.0)
+   bass = score.part(
+       "bass",
+       synth="sine",
+       envelope="pluck",
+       lowpass=200,
+       lowpass_q=1.8,
+       distortion=0.4,
+       distortion_drive=2.0,
+   )
 
 Automation
 ----------
@@ -285,20 +371,20 @@ you're hearing automation at work.
 position. The renderer splits the audio at automation points and
 processes each section independently:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead = score.part("lead", synth="saw", lowpass=400, lowpass_q=3.0)
+   lead = score.part("lead", synth="saw", lowpass=400, lowpass_q=3.0)
 
-   >>> # Verse: filtered and clean
-   >>> lead.arpeggio("Cm", bars=4, pattern="up", octaves=2)
+   # Verse: filtered and clean
+   lead.arpeggio("Cm", bars=4, pattern="up", octaves=2)
 
-   >>> # Chorus: filter opens, chorus kicks in
-   >>> lead.set(lowpass=2000, chorus=0.3)
-   >>> lead.arpeggio("Fm", bars=4, pattern="updown", octaves=2)
+   # Chorus: filter opens, chorus kicks in
+   lead.set(lowpass=2000, chorus=0.3)
+   lead.arpeggio("Fm", bars=4, pattern="updown", octaves=2)
 
-   >>> # Drop: full send
-   >>> lead.set(lowpass=4000, distortion=0.7, reverb=0.3)
-   >>> lead.arpeggio("Gm", bars=4, pattern="updown", octaves=2)
+   # Drop: full send
+   lead.set(lowpass=4000, distortion=0.7, reverb=0.3)
+   lead.arpeggio("Gm", bars=4, pattern="updown", octaves=2)
 
 Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``reverb``,
 ``reverb_decay``, ``delay``, ``delay_time``, ``delay_feedback``,
@@ -320,13 +406,13 @@ huge range of effects.
 generating smooth sweeps over time. This is how filter sweeps, tremolo,
 and auto-wah effects work.
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead = score.part("lead", synth="saw", lowpass=400)
+   lead = score.part("lead", synth="saw", lowpass=400)
 
-   >>> # Slow filter sweep: 400 -> 3000 Hz over 8 bars
-   >>> lead.lfo("lowpass", rate=0.125, min=400, max=3000, bars=8)
-   >>> lead.arpeggio("Cm", bars=8, pattern="up", octaves=2)
+   # Slow filter sweep: 400 -> 3000 Hz over 8 bars
+   lead.lfo("lowpass", rate=0.125, min=400, max=3000, bars=8)
+   lead.arpeggio("Cm", bars=8, pattern="up", octaves=2)
 
 Parameters:
 
@@ -353,15 +439,15 @@ Stacking Multiple LFOs
 Call ``.lfo()`` multiple times to modulate different parameters
 simultaneously:
 
-.. code-block:: pycon
+.. code-block:: python
 
-   >>> lead = score.part("lead", synth="saw", lowpass=800, reverb=0.1)
+   lead = score.part("lead", synth="saw", lowpass=800, reverb=0.1)
 
-   >>> # Filter opens over 8 bars
-   >>> lead.lfo("lowpass", rate=0.125, min=400, max=4000, bars=8)
-   >>> # Reverb swells in and out every 2 bars
-   >>> lead.lfo("reverb", rate=0.5, min=0.1, max=0.6, bars=8, shape="triangle")
-   >>> # Volume tremolo
-   >>> lead.lfo("volume", rate=2, min=0.3, max=0.6, bars=8, shape="sine")
+   # Filter opens over 8 bars
+   lead.lfo("lowpass", rate=0.125, min=400, max=4000, bars=8)
+   # Reverb swells in and out every 2 bars
+   lead.lfo("reverb", rate=0.5, min=0.1, max=0.6, bars=8, shape="triangle")
+   # Volume tremolo
+   lead.lfo("volume", rate=2, min=0.3, max=0.6, bars=8, shape="sine")
 
-   >>> lead.arpeggio("Cm", bars=8, pattern="updown", octaves=2)
+   lead.arpeggio("Cm", bars=8, pattern="updown", octaves=2)
