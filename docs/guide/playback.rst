@@ -1,8 +1,20 @@
 Playback and Export
 ===================
 
+This is the output layer. You've built your theory, composed your
+arrangement, shaped your sounds -- now you need to hear it. PyTheory
+gives you three ways to get your music out: speakers, WAV files, and
+MIDI files.
+
+Use **speakers** for immediate feedback while you're sketching and
+experimenting. Use **WAV export** when you want to share actual audio
+-- post it, send it, drop it into a video. Use **MIDI export** when you
+want to bring your sketch into a real DAW and finish it with
+professional instruments, mixing, and mastering. Each output serves a
+different stage of the creative process.
+
 PyTheory can play audio through your speakers, save to WAV, or export
-to MIDI. Everything is synthesized from waveforms — no samples or
+to MIDI. Everything is synthesized from waveforms -- no samples or
 external audio files needed.
 
 .. note::
@@ -81,6 +93,15 @@ PortAudio:
 
 save_midi() -- MIDI Export
 --------------------------
+
+MIDI export is probably the most useful feature here for working
+musicians. The idea is simple: sketch your ideas in Python -- where
+iteration is fast, where you can use loops and randomness and music
+theory functions -- and then export to MIDI. Open that MIDI file in
+Logic, Ableton, Reaper, FL Studio, or whatever you use, and now you've
+got your chord progressions, melodies, and bass lines on real tracks.
+Swap in your favorite soft synths, add real mixing, finish the track
+properly. Python is the sketchpad; the DAW is the canvas.
 
 Export tones, chords, progressions, or full scores as Standard MIDI
 Files. MIDI files can be opened in any DAW, edited, transposed, and

@@ -5,8 +5,24 @@ The sequencing system lets you compose multi-part arrangements with
 durations, time signatures, and instrument voices. This is where
 PyTheory goes from theory tool to composition tool.
 
+At the center of everything is the ``Score``. Think of it as your
+arrangement, your song, your sketch pad. It holds the tempo, the time
+signature, the drum pattern, and every instrument part you create. If
+you've ever used a DAW, the Score is your session file. If you haven't,
+it's the sheet of paper where the whole piece lives. Everything you
+compose -- melodies, chord progressions, bass lines, arpeggios -- gets
+added to a Score before you can hear it, export it, or do anything
+useful with it.
+
 Duration
 --------
+
+In music, all rhythm boils down to one convention: the quarter note
+equals one beat. Everything else is relative to that. A whole note is
+four beats. An eighth note is half a beat. This is how musicians have
+communicated timing for centuries, and it's how PyTheory works too.
+Once you internalize "quarter note = 1 beat," durations become
+intuitive arithmetic.
 
 A ``Duration`` represents a note length in beats (quarter note = 1 beat):
 
@@ -34,7 +50,25 @@ A ``Duration`` represents a note length in beats (quarter note = 1 beat):
 Time Signatures
 ---------------
 
-A ``TimeSignature`` holds the meter of a piece — how many beats per
+If you're not a musician, time signatures can seem mysterious. They're
+not. The top number tells you how many beats are in a bar. The bottom
+number tells you which note value gets one beat. That's it.
+
+In practice, you only need to know a handful:
+
+- **4/4** -- four beats per bar. This is the default. Almost all pop,
+  rock, hip hop, electronic, and R&B music is in 4/4. If you're not
+  sure, use this.
+- **3/4** -- three beats per bar. The waltz feel. Think "Blue Danube"
+  or Radiohead's "Everything in Its Right Place."
+- **6/8** -- six eighth notes per bar, grouped in two sets of three.
+  Each group feels like one big swaying beat. Folk music, slow jams,
+  ballads.
+- **12/8** -- twelve eighth notes per bar, grouped in four sets of
+  three. The slow blues shuffle, the gospel feel, "At Last" by Etta
+  James. Each "big beat" has a triplet swing baked into it.
+
+A ``TimeSignature`` holds the meter of a piece -- how many beats per
 measure and which note value gets one beat:
 
 .. code-block:: pycon
@@ -144,7 +178,15 @@ groups of three. Each group feels like one "big beat":
 Parts
 -----
 
-The ``Part`` class lets you layer multiple instrument voices — each with
+Parts are like tracks in a DAW. Each one has its own instrument sound
+(synth waveform + envelope), its own volume level, and its own effects
+chain. When you call ``play_score()``, all the parts get mixed together
+into a single audio stream -- just like hitting play in Logic or
+Ableton. You might have a pad part holding down chords, a lead part
+playing a melody, and a bass part holding down the low end. Each one
+is independent: different synth, different envelope, different effects.
+
+The ``Part`` class lets you layer multiple instrument voices -- each with
 its own synth waveform, ADSR envelope, and volume level. Create parts
 with ``Score.part()``:
 
@@ -191,8 +233,16 @@ Chords and Tone objects work the same way:
 Arpeggiator
 ------------
 
+An arpeggiator takes a chord and plays its notes one at a time, in a
+pattern, automatically. You hold down a chord and it ripples through
+the notes -- up, down, up-and-down, random. It's one of the most
+iconic sounds in electronic music. The bubbly bass lines of acid house,
+the cascading runs of 80s synth pop (think "Jump" or "Take On Me"),
+the hypnotic patterns of trance -- all arpeggiators. It turns a simple
+three-note chord into a rhythmic, melodic engine.
+
 ``Part.arpeggio()`` takes a chord and sequences through its notes
-automatically — like a hardware arpeggiator on a synth:
+automatically -- like a hardware arpeggiator on a synth:
 
 .. code-block:: pycon
 
@@ -222,8 +272,22 @@ produces the classic acid/trance arpeggiator sound.
 Legato and Glide
 ----------------
 
+Normally, every note you play has its own life cycle -- the sound
+attacks, sustains, and releases before the next note begins. You hear
+each note as a separate event. Legato changes that. The Italian word
+means "tied together," and that's exactly what it does: the envelope
+flows continuously from one note to the next with no retriggering. The
+pitch changes, but the sound never dies and restarts.
+
+Glide (also called portamento) takes this further. Instead of the pitch
+jumping instantly from one note to the next, it *slides* -- a smooth,
+continuous pitch sweep. This is THE sound of the Roland TB-303, the
+little silver box that accidentally invented acid house. A saw wave
+with legato, glide, a resonant lowpass filter, and some distortion --
+that's the entire genre right there.
+
 By default, each note gets its own attack/release envelope. ``legato=True``
-renders the entire part as one continuous waveform — the pitch changes
+renders the entire part as one continuous waveform -- the pitch changes
 at note boundaries but the envelope flows unbroken. Add ``glide`` for
 portamento (pitch slides between notes):
 

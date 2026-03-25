@@ -1,7 +1,15 @@
 Drums
 =====
 
-PyTheory includes a complete drum system — 27 synthesized percussion
+Drums are the foundation of almost everything. Change the drum pattern
+and you change the genre. The same four chords over a bossa nova
+pattern sound like you're in a cafe in Rio. Put those same chords over
+a rock beat and you're in a garage in Seattle. Over a trap beat, you're
+in Atlanta. Over a dancehall pattern, you're in Kingston. The drums ARE
+the genre -- they tell the listener's body how to move before a single
+melodic note is played.
+
+PyTheory includes a complete drum system -- 27 synthesized percussion
 sounds, 58 pattern presets across dozens of genres, and 21 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
@@ -40,6 +48,16 @@ GUIRO (73), MARACAS (70)
 
 Drum Synthesis
 --------------
+
+Every drum sound here is synthesized from scratch using the same
+techniques that real drum machines use. This isn't a shortcut -- it's
+the real thing. The 808 kick that defined hip hop is literally a sine
+wave with a pitch envelope sweeping from 150 Hz down to 50 Hz. The 909
+snare that powered techno is a sine wave body mixed with white noise
+rattle. The hi-hat is just filtered noise with a short decay. When
+Roland built the TR-808 and TR-909, they weren't sampling real drums;
+they were synthesizing them from basic waveforms. PyTheory does the
+same thing.
 
 Each sound has a dedicated synthesizer:
 
@@ -80,26 +98,47 @@ Load them with ``Pattern.preset()``:
    <Pattern 'rock' 4/4 4.0 beats 12 hits>
 
 **Rock/Pop:** rock, half time, double time, disco, motown, train beat
+-- The backbone of Western popular music. Kick on 1 and 3, snare on 2
+and 4. Simple, effective, universal.
 
-**Jazz:** jazz, bebop, shuffle, swing, linear, paradiddle
+**Jazz:** jazz, bebop, shuffle, swing, linear, paradiddle -- The ride
+cymbal drives everything. The kick and snare comp and converse rather
+than keeping strict time. These patterns swing.
 
 **Latin:** salsa, bossa nova, samba, cumbia, merengue, baiao, maracatu,
-bolero, tango
+bolero, tango -- Rich, layered patterns built on clave rhythms, with
+congas, timbales, and shakers creating interlocking polyrhythmic webs.
+Some of the most sophisticated drumming traditions on the planet.
 
 **Afro-Cuban:** son clave 3-2, son clave 2-3, rumba clave 3-2,
 rumba clave 2-3, cascara, guaguanco, mozambique, nanigo, bembe,
-6/8 afro-cuban, tresillo, habanera
+6/8 afro-cuban, tresillo, habanera -- The clave is the key that
+unlocks all Latin and Afro-Cuban music. It's a five-note rhythmic
+cell that everything else revolves around. If you learn one concept
+from world music, learn the clave.
 
-**African:** afrobeat, highlife
+**African:** afrobeat, highlife -- Born in West Africa. Fela Kuti's
+afrobeat layers multiple percussion voices into hypnotic,
+polyrhythmic grooves that can go on for twenty minutes.
 
-**Caribbean:** reggae, dancehall, ska, dub
+**Caribbean:** reggae, dancehall, ska, dub -- The offbeat is king.
+Reggae flips rock drumming inside out by emphasizing the "and" of each
+beat instead of the beat itself. Ska doubles the tempo, dancehall
+adds syncopation.
 
 **Electronic:** house, techno, trap, drum and bass, breakbeat, jungle
+-- Machine music. The four-on-the-floor kick of house and techno, the
+rattling hi-hats of trap, the breakneck tempo of drum and bass. These
+patterns were born in drum machines and they still live there.
 
-**Metal/Punk:** metal, blast beat, punk
+**Metal/Punk:** metal, blast beat, punk -- Speed and aggression.
+The blast beat is both feet and both hands going as fast as humanly
+possible. Punk strips everything to its essentials.
 
 **Other:** funk, hip hop, bo diddley, second line, new orleans, waltz,
-12/8 blues, country, gospel, flamenco
+12/8 blues, country, gospel, flamenco -- Everything else. The syncopated
+groove of funk, the sampled feel of hip hop, the street-parade swing
+of New Orleans second line.
 
 Playing Patterns
 ----------------
@@ -119,7 +158,14 @@ Playing Patterns
 Fills
 -----
 
-``Pattern.fill()`` loads a 1-bar drum fill — a short break that
+A fill is the drummer's way of saying "something's about to change."
+It's that moment at the end of a verse where the drummer breaks the
+pattern and rolls around the toms before crashing into the chorus. Fills
+signal transitions -- they tell the listener's ear that the section is
+ending and a new one is about to begin. Without fills, a drum pattern
+just loops. With them, it breathes and has structure.
+
+``Pattern.fill()`` loads a 1-bar drum fill -- a short break that
 transitions between sections. 21 fill presets are available:
 
 .. code-block:: pycon

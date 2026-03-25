@@ -1,12 +1,34 @@
 Effects
 =======
 
+Effects are how recorded music gets its character. A guitar without
+reverb sounds like it's being played in a closet. A vocal without
+compression sounds thin and amateur. A synth without filtering sounds
+like a test signal. Effects are the difference between "notes" and
+"music" -- they put the sound in a space, give it texture, and make it
+feel alive.
+
+Every record you've ever loved was shaped by effects. The cavernous
+reverb on a Phil Collins drum hit. The tape delay on a reggae vocal.
+The distortion on a Hendrix guitar. The chorus on an 80s synth pad.
+These aren't decorations added after the fact; they're fundamental to
+the sound itself.
+
 Each part in a Score can have its own effects chain. Effects are set at
 part creation and applied per-part before mixing, so every voice gets
 independent processing.
 
 Signal Chain
 ------------
+
+The order of effects matters -- a lot. Distortion before a lowpass
+filter means you're generating all those rich, crunchy harmonics and
+then sculpting them with the filter. That's warm, controllable,
+musical. Filter before distortion means you're distorting the already-
+filtered signal -- a different, often harsher character. The fixed
+order in PyTheory matches classic analog synth architecture, the same
+signal path used by the Moog, the TB-303, and most hardware synths.
+It's a well-tested order that sounds good by default.
 
 Effects are applied in this fixed order::
 
@@ -22,7 +44,13 @@ Effects are applied in this fixed order::
 Distortion
 ----------
 
-Soft-clip waveshaping using ``tanh`` — models the warm saturation of an
+You know what distortion sounds like -- it's the sound of rock and roll.
+An electric guitar through a cranked amplifier. But at lower levels,
+distortion is subtler: it adds warmth, presence, and harmonic richness.
+This is why producers run clean signals through tape machines and tube
+preamps. A little saturation makes everything sound more "real."
+
+Soft-clip waveshaping using ``tanh`` -- models the warm saturation of an
 overdriven tube amplifier. At low drive levels it adds harmonic warmth;
 at high levels it becomes an aggressive fuzz.
 
@@ -48,8 +76,15 @@ Parameters:
 Chorus
 ------
 
+That shimmery, wide, slightly-out-of-focus sound that defined the
+1980s? That's chorus. Think of the intro to "Come As You Are" by
+Nirvana, or literally any synth pad from 1983 to 1989. It makes one
+instrument sound like two or three playing together, slightly out of
+tune with each other -- which is exactly how a real string section or
+choir sounds rich and full.
+
 A slightly detuned, LFO-modulated delayed copy mixed back in. Thickens
-the sound like two musicians playing the same part — the signature
+the sound like two musicians playing the same part -- the signature
 effect of the Roland Juno synthesizers.
 
 Parameters:
@@ -71,7 +106,15 @@ Parameters:
 Lowpass Filter
 --------------
 
-A 12 dB/octave biquad lowpass filter with resonance — the sound of
+You know that sound when a DJ turns the knob and everything goes
+underwater? That's a lowpass filter closing down. It removes
+high-frequency content, leaving only the warm, round, bassy
+frequencies below the cutoff point. The lowpass filter is arguably the
+most important effect in all of electronic music -- it's the entire
+sound of acid house, the "wah" in auto-wah, and the reason analog
+synths sound warm instead of harsh.
+
+A 12 dB/octave biquad lowpass filter with resonance -- the sound of
 analog synthesizers. Removes frequencies above the cutoff; the resonance
 (Q) parameter adds a peak at the cutoff frequency for that classic
 "acid squelch."
@@ -104,6 +147,13 @@ Parameters:
 Delay
 -----
 
+Delay is echo. Literally. The Edge from U2 built his entire guitar
+sound around dotted-eighth-note delays. Dub reggae producers like Lee
+"Scratch" Perry and King Tubby turned delay into an art form, feeding
+echoes back into themselves until they spiraled into infinity. At short
+times with low feedback, delay adds rhythmic interest. At long times
+with high feedback, it creates cascading, psychedelic soundscapes.
+
 Tempo-synced echoes with feedback. Each repeat feeds back into the
 delay line, creating rhythmic echo trails. High feedback values produce
 the cascading, self-oscillating echoes of dub reggae.
@@ -132,6 +182,13 @@ Parameters:
 
 Reverb
 ------
+
+Everyone knows what reverb sounds like, even if they don't know the
+word -- it's the sound of singing in the shower, or clapping in a
+cathedral. It's the natural echo of a space. Without reverb, sounds
+feel uncomfortably close and dry, like someone whispering directly into
+your ear. With it, sounds feel like they exist in a real place. Reverb
+is the most universally used effect in all of recorded music.
 
 A Schroeder reverb using 4 parallel comb filters and 2 series allpass
 filters. Simulates the natural reflections of a room, hall, or
@@ -216,6 +273,14 @@ Subtle saturation and deep filtering for hip-hop sub bass:
 Automation
 ----------
 
+Static effects are fine for a loop, but music breathes. The filter
+*opens* during the chorus. The reverb *swells* before the drop. The
+distortion *kicks in* when the guitar solo starts. Automation is what
+makes a track feel alive instead of robotic -- it's the difference
+between a static loop and a piece of music that has dynamics, tension,
+and release. If you've ever felt a song "build" toward something,
+you're hearing automation at work.
+
 ``Part.set()`` changes effect parameters mid-song at the current beat
 position. The renderer splits the audio at automation points and
 processes each section independently:
@@ -241,6 +306,15 @@ Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``reverb``,
 
 LFO Automation
 --------------
+
+An LFO -- Low Frequency Oscillator -- is just automation that repeats.
+Instead of manually setting parameter changes, you let a wave shape do
+it for you, cycling back and forth continuously. You already know what
+LFOs sound like, even if you don't know the term. The wobble bass in
+dubstep? That's an LFO on the filter cutoff. Tremolo on a guitar amp?
+LFO on volume. Auto-wah? LFO on filter cutoff with resonance cranked
+up. Vibrato? LFO on pitch. It's one simple concept that produces a
+huge range of effects.
 
 ``Part.lfo()`` automates a parameter with a low-frequency oscillator,
 generating smooth sweeps over time. This is how filter sweeps, tremolo,
