@@ -2,6 +2,25 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.24.0
+
+- Add per-note velocity: `lead.add("C5", Duration.QUARTER, velocity=90)` — dynamics, accents, ghost notes
+- Add swing/groove: `Score("4/4", bpm=120, swing=0.5)` — shuffles every other note for human feel
+- Add tempo changes mid-song: `score.set_tempo(140)` — accelerando, ritardando, tempo drops
+- Add `Part.fade_in(bars)` and `Part.fade_out(bars)` — volume envelopes over sections
+- Arpeggiator supports velocity parameter
+- Per-part swing override (set independently from score swing)
+- Tempo map engine: beat-to-sample conversion handles variable BPM throughout a score
+
+## 0.23.0
+
+- Add convolution reverb with 7 synthetic impulse responses: Taj Mahal, cathedral, plate, spring, cave, parking garage, canyon
+- Each IR models real acoustic properties: early reflections, frequency-dependent absorption, diffusion density, and modulation
+- FFT-based convolution via `scipy.signal.fftconvolve` for fast processing even with long tails (12s Taj Mahal)
+- Select via `reverb_type` parameter on `Score.part()` — drop-in alongside existing algorithmic reverb
+- IR cache for zero-cost reuse across parts
+- Automatable via `Part.set(reverb_type="cathedral")` mid-song
+
 ## 0.22.0
 
 - Add `Part.lfo()` for automated parameter modulation (filter sweeps, tremolo, auto-wah)

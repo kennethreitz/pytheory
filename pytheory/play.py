@@ -706,6 +706,233 @@ def play_pattern(pattern, repeats=1, bpm=120):
 
 # ── Audio effects ───────────────────────────────────────────────────────────
 
+
+# ── Convolution reverb impulse responses ───────────────────────────────────
+
+def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
+    """Generate a synthetic impulse response for convolution reverb.
+
+    These model the acoustic properties of real spaces — early reflections
+    pattern, decay envelope, frequency-dependent absorption, and diffusion.
+
+    Available presets:
+        taj_mahal: Massive marble dome — 12s decay, bright early reflections,
+                   long diffuse tail with high-frequency rolloff.
+        cathedral: Gothic stone cathedral — 6s decay, strong early reflections
+                   off parallel walls, dark reverberant tail.
+        plate: EMT 140 plate reverb — 4s, dense, bright, smooth.
+                The studio classic.
+        spring: Spring reverb tank — 3s, metallic, boingy, lo-fi character.
+        cave: Natural cave — 8s, very dark, irregular reflections.
+        parking_garage: Concrete box — 3s, bright, flutter echoes.
+        canyon: Open canyon — 5s, sparse discrete echoes then diffuse tail.
+    """
+    presets = {
+        "taj_mahal": dict(
+            duration=12.0,
+            early_delays=[0.018, 0.037, 0.052, 0.071, 0.089, 0.112, 0.134,
+                          0.158, 0.183, 0.211, 0.243, 0.278, 0.315],
+            early_gains=[0.8, 0.72, 0.65, 0.58, 0.52, 0.46, 0.41,
+                         0.36, 0.32, 0.28, 0.24, 0.20, 0.17],
+            decay_time=12.0,
+            hf_damping=0.7,       # marble absorbs highs slowly
+            density=8000,         # very dense tail (huge dome)
+            brightness=0.6,
+            modulation=0.003,     # subtle pitch modulation from dome shape
+        ),
+        "cathedral": dict(
+            duration=6.0,
+            early_delays=[0.012, 0.024, 0.041, 0.058, 0.073, 0.095,
+                          0.118, 0.145, 0.172],
+            early_gains=[0.85, 0.75, 0.65, 0.55, 0.48, 0.40,
+                         0.33, 0.27, 0.22],
+            decay_time=6.0,
+            hf_damping=0.8,       # stone absorbs highs
+            density=5000,
+            brightness=0.4,
+            modulation=0.002,
+        ),
+        "plate": dict(
+            duration=4.0,
+            early_delays=[0.003, 0.007, 0.011, 0.016, 0.022, 0.029],
+            early_gains=[0.9, 0.85, 0.78, 0.70, 0.62, 0.54],
+            decay_time=4.0,
+            hf_damping=0.3,       # metal plate — bright
+            density=12000,        # very dense, smooth
+            brightness=0.85,
+            modulation=0.001,
+        ),
+        "spring": dict(
+            duration=3.0,
+            early_delays=[0.005, 0.032, 0.064, 0.097, 0.131],
+            early_gains=[0.95, 0.7, 0.5, 0.35, 0.25],
+            decay_time=3.0,
+            hf_damping=0.6,
+            density=2000,         # sparse — you hear the spring
+            brightness=0.5,
+            modulation=0.012,     # springy wobble
+        ),
+        "cave": dict(
+            duration=8.0,
+            early_delays=[0.025, 0.058, 0.094, 0.138, 0.189, 0.248, 0.312],
+            early_gains=[0.7, 0.55, 0.42, 0.32, 0.24, 0.18, 0.13],
+            decay_time=8.0,
+            hf_damping=0.9,       # rock absorbs highs aggressively
+            density=3000,
+            brightness=0.2,       # very dark
+            modulation=0.005,
+        ),
+        "parking_garage": dict(
+            duration=3.0,
+            early_delays=[0.008, 0.016, 0.024, 0.033, 0.041, 0.050,
+                          0.058, 0.067],
+            early_gains=[0.9, 0.82, 0.75, 0.68, 0.62, 0.56, 0.50, 0.45],
+            decay_time=3.0,
+            hf_damping=0.3,       # concrete — bright
+            density=6000,
+            brightness=0.8,
+            modulation=0.0005,
+        ),
+        "canyon": dict(
+            duration=5.0,
+            early_delays=[0.12, 0.28, 0.45, 0.67, 0.91],
+            early_gains=[0.6, 0.4, 0.28, 0.18, 0.11],
+            decay_time=5.0,
+            hf_damping=0.5,
+            density=1500,         # sparse — open air
+            brightness=0.5,
+            modulation=0.002,
+        ),
+    }
+
+    if preset not in presets:
+        raise ValueError(
+            f"Unknown IR preset {preset!r}. "
+            f"Available: {', '.join(sorted(presets))}"
+        )
+
+    p = presets[preset]
+    n_samples = int(p["duration"] * sample_rate)
+    ir = numpy.zeros(n_samples, dtype=numpy.float32)
+
+    # 1. Early reflections — discrete taps
+    for delay, gain in zip(p["early_delays"], p["early_gains"]):
+        idx = int(delay * sample_rate)
+        if idx < n_samples:
+            ir[idx] += gain
+
+    # 2. Diffuse tail — shaped noise with exponential decay
+    rng = numpy.random.RandomState(42)  # deterministic for reproducibility
+    noise = rng.randn(n_samples).astype(numpy.float32)
+
+    # Exponential decay envelope
+    t = numpy.arange(n_samples, dtype=numpy.float32) / sample_rate
+    decay_env = numpy.exp(-6.91 / p["decay_time"] * t)  # -60dB at decay_time
+
+    # HF damping — apply progressive lowpass to the tail
+    # Simulate frequency-dependent absorption: highs decay faster
+    if p["hf_damping"] > 0:
+        # Simple 1-pole lowpass applied cumulatively
+        alpha = p["hf_damping"] * 0.15
+        filtered = numpy.zeros_like(noise)
+        filtered[0] = noise[0]
+        for i in range(1, n_samples):
+            # Time-varying cutoff: gets darker over time
+            a = min(alpha * (1 + t[i] / p["decay_time"]), 0.95)
+            filtered[i] = filtered[i - 1] * a + noise[i] * (1 - a)
+        noise = filtered
+
+    # Brightness control — overall spectral tilt
+    if p["brightness"] < 0.5:
+        cutoff = 1000 + p["brightness"] * 8000
+        b, a = scipy.signal.butter(1, cutoff / (sample_rate / 2), btype='low')
+        noise = scipy.signal.lfilter(b, a, noise).astype(numpy.float32)
+    elif p["brightness"] > 0.7:
+        # Add a gentle high shelf boost
+        cutoff = 2000
+        b, a = scipy.signal.butter(1, cutoff / (sample_rate / 2), btype='high')
+        hf = scipy.signal.lfilter(b, a, noise).astype(numpy.float32)
+        noise = noise + hf * (p["brightness"] - 0.5)
+
+    # Subtle pitch modulation (simulates irregular surfaces)
+    if p["modulation"] > 0:
+        mod_freq = 0.5 + rng.rand() * 1.5
+        mod = numpy.sin(2 * numpy.pi * mod_freq * t) * p["modulation"]
+        # Apply as sample-offset jitter
+        indices = numpy.arange(n_samples, dtype=numpy.float32) + mod * sample_rate
+        indices = numpy.clip(indices, 0, n_samples - 1)
+        noise = numpy.interp(indices, numpy.arange(n_samples), noise).astype(
+            numpy.float32
+        )
+
+    # Build the tail — start after early reflections end
+    early_end = int(max(p["early_delays"]) * sample_rate) if p["early_delays"] else 0
+    tail_onset = numpy.zeros(n_samples, dtype=numpy.float32)
+    tail_onset[early_end:] = 1.0
+    # Smooth crossfade
+    fade_len = min(int(0.02 * sample_rate), n_samples - early_end)
+    if fade_len > 0:
+        tail_onset[early_end:early_end + fade_len] = numpy.linspace(
+            0, 1, fade_len
+        )
+
+    density_scale = p["density"] / 8000.0
+    ir += noise * decay_env * tail_onset * density_scale * 0.15
+
+    # 3. Normalize
+    peak = numpy.max(numpy.abs(ir))
+    if peak > 0:
+        ir /= peak
+
+    return ir
+
+
+# IR cache — generate once, reuse
+_IR_CACHE: dict[str, numpy.ndarray] = {}
+
+
+def _get_ir(preset, sample_rate=SAMPLE_RATE):
+    """Get a cached impulse response."""
+    key = f"{preset}_{sample_rate}"
+    if key not in _IR_CACHE:
+        _IR_CACHE[key] = _generate_ir(preset, sample_rate)
+    return _IR_CACHE[key]
+
+
+def _apply_convolution_reverb(samples, preset="taj_mahal", mix=0.3,
+                               sample_rate=SAMPLE_RATE):
+    """Apply convolution reverb using a synthetic impulse response.
+
+    Convolves the input signal with an IR that models the acoustic
+    properties of a real space — far more realistic than algorithmic reverb.
+
+    Args:
+        samples: Float32 numpy array.
+        preset: IR preset name (taj_mahal, cathedral, plate, spring,
+                cave, parking_garage, canyon).
+        mix: Wet/dry ratio 0.0–1.0.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array with convolution reverb applied (same length as input).
+    """
+    if mix <= 0:
+        return samples
+
+    ir = _get_ir(preset, sample_rate)
+
+    # FFT-based convolution — fast even for long IRs
+    wet = scipy.signal.fftconvolve(samples, ir, mode='full')[:len(samples)]
+    wet = wet.astype(numpy.float32)
+
+    # Normalize wet signal to match dry RMS
+    dry_rms = numpy.sqrt(numpy.mean(samples ** 2)) + 1e-10
+    wet_rms = numpy.sqrt(numpy.mean(wet ** 2)) + 1e-10
+    wet *= dry_rms / wet_rms
+
+    return samples * (1 - mix) + wet * mix
+
+
 def _apply_reverb(samples, mix=0.3, decay=1.0, sample_rate=SAMPLE_RATE):
     """Apply a simple Schroeder reverb to a float32 buffer.
 
@@ -932,8 +1159,16 @@ def _apply_effects_with_params(samples, params):
                                time=params.get("delay_time", 0.375),
                                feedback=params.get("delay_feedback", 0.4))
     if params.get("reverb_mix", 0) > 0:
-        samples = _apply_reverb(samples, mix=params["reverb_mix"],
-                                decay=params.get("reverb_decay", 1.0))
+        reverb_type = params.get("reverb_type", "algorithmic")
+        if reverb_type != "algorithmic" and reverb_type in (
+            "taj_mahal", "cathedral", "plate", "spring",
+            "cave", "parking_garage", "canyon",
+        ):
+            samples = _apply_convolution_reverb(
+                samples, preset=reverb_type, mix=params["reverb_mix"])
+        else:
+            samples = _apply_reverb(samples, mix=params["reverb_mix"],
+                                    decay=params.get("reverb_decay", 1.0))
     return samples
 
 
@@ -952,6 +1187,7 @@ def _apply_part_effects(samples, part):
         "delay_feedback": part.delay_feedback,
         "reverb_mix": part.reverb_mix,
         "reverb_decay": part.reverb_decay,
+        "reverb_type": getattr(part, "reverb_type", "algorithmic"),
     }
     return _apply_effects_with_params(samples, params)
 
@@ -967,19 +1203,55 @@ def _resolve_envelope(name):
     return _map.get(name, Envelope.PIANO.value)
 
 
+def _build_tempo_map(score):
+    """Return sorted list of (beat, samples_per_beat) tuples."""
+    changes = [(0.0, int(SAMPLE_RATE * 60.0 / score.bpm))]
+    for beat, bpm in sorted(score._tempo_changes):
+        changes.append((beat, int(SAMPLE_RATE * 60.0 / bpm)))
+    return changes
+
+
+def _beat_to_sample(beat, tempo_map):
+    """Convert a beat position to a sample position using tempo map."""
+    sample = 0
+    prev_beat = 0.0
+    prev_spb = tempo_map[0][1]
+    for change_beat, spb in tempo_map[1:]:
+        if beat <= change_beat:
+            break
+        sample += int((change_beat - prev_beat) * prev_spb)
+        prev_beat = change_beat
+        prev_spb = spb
+    sample += int((beat - prev_beat) * prev_spb)
+    return sample
+
+
+def _total_samples_from_tempo_map(total_beats, tempo_map):
+    """Compute total samples accounting for tempo changes."""
+    return _beat_to_sample(total_beats, tempo_map)
+
+
 def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
-                         synth_fn, envelope_tuple, volume, bpm):
+                         synth_fn, envelope_tuple, volume, bpm,
+                         swing=0.0, tempo_map=None):
     """Render a list of Notes into an existing buffer at the correct positions."""
     a, d, s, r = envelope_tuple
     beat_pos = 0.0
-    for note in notes:
+    for note_index, note in enumerate(notes):
         if note.tone is not None:
-            start = int(beat_pos * samples_per_beat)
+            if tempo_map and len(tempo_map) > 1:
+                start = _beat_to_sample(beat_pos, tempo_map)
+            else:
+                start = int(beat_pos * samples_per_beat)
+            # Apply swing: shift every other note later
+            if swing > 0.0 and note_index % 2 == 1:
+                swing_offset = int(swing * 0.5 * samples_per_beat)
+                start += swing_offset
             dur_ms = note.beats * 60_000 / bpm
             n_samples = int(SAMPLE_RATE * dur_ms / 1000)
             if start + n_samples > total_samples:
                 n_samples = total_samples - start
-            if n_samples > 0:
+            if n_samples > 0 and start >= 0:
                 # Get pitches
                 if hasattr(note.tone, 'tones'):
                     waves = [synth_fn(t.pitch(), n_samples=n_samples)
@@ -989,14 +1261,16 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 mixed = sum(w.astype(numpy.float32) for w in waves) / SAMPLE_PEAK
                 if a > 0 or d > 0 or s < 1.0 or r > 0:
                     mixed = _apply_envelope(mixed, a, d, s, r)
+                # Apply per-note velocity scaling
+                vel_scale = getattr(note, 'velocity', 100) / 127.0
                 end = min(start + len(mixed), total_samples)
-                buf[start:end] += mixed[:end - start] * volume
+                buf[start:end] += mixed[:end - start] * volume * vel_scale
         beat_pos += note.beats
 
 
 def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
                           synth_fn, envelope_tuple, volume, bpm,
-                          glide_time=0.0):
+                          glide_time=0.0, swing=0.0, tempo_map=None):
     """Render notes as one continuous waveform with pitch glide.
 
     Instead of rendering each note separately with its own envelope,
@@ -1010,20 +1284,28 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
     in pitch, not frequency — matching how humans perceive pitch).
     """
     # Build a frequency timeline: (sample_position, target_hz) pairs
-    events = []  # (start_sample, end_sample, hz_or_none)
+    events = []  # (start_sample, end_sample, hz_or_none, velocity)
     beat_pos = 0.0
-    for note in notes:
-        start = int(beat_pos * samples_per_beat)
+    for note_index, note in enumerate(notes):
+        if tempo_map and len(tempo_map) > 1:
+            start = _beat_to_sample(beat_pos, tempo_map)
+        else:
+            start = int(beat_pos * samples_per_beat)
+        # Apply swing
+        if swing > 0.0 and note_index % 2 == 1:
+            swing_offset = int(swing * 0.5 * samples_per_beat)
+            start += swing_offset
         dur_samples = int(note.beats * samples_per_beat)
         end = min(start + dur_samples, total_samples)
+        vel = getattr(note, 'velocity', 100)
         if note.tone is not None:
             if hasattr(note.tone, 'tones'):
                 hz = note.tone.tones[0].pitch()  # use root for chords
             else:
                 hz = note.tone.pitch()
-            events.append((start, end, hz))
+            events.append((start, end, hz, vel))
         else:
-            events.append((start, end, 0))  # rest
+            events.append((start, end, 0, vel))  # rest
         beat_pos += note.beats
 
     if not events:
@@ -1035,12 +1317,13 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
     amp_curve = numpy.zeros(total_samples, dtype=numpy.float32)
     prev_hz = 0
 
-    for start, end, hz in events:
+    for start, end, hz, vel in events:
         if start >= total_samples:
             break
         end = min(end, total_samples)
+        vel_scale = vel / 127.0
         if hz > 0:
-            amp_curve[start:end] = 1.0
+            amp_curve[start:end] = vel_scale
             if glide_samples > 0 and prev_hz > 0 and prev_hz != hz:
                 # Exponential glide from prev_hz to hz
                 g_end = min(start + glide_samples, end)
@@ -1065,7 +1348,7 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
     phase = numpy.cumsum(2 * numpy.pi * freq_curve / SAMPLE_RATE)
     wave = numpy.sin(phase).astype(numpy.float32)
 
-    # Apply amplitude (on/off for notes vs rests)
+    # Apply amplitude (on/off for notes vs rests, scaled by velocity)
     wave *= amp_curve
 
     # Apply single envelope over the entire active region
@@ -1098,16 +1381,25 @@ def render_score(score):
     Returns:
         Float32 numpy array of audio samples.
     """
+    # Build tempo map for variable tempo support
+    tempo_map = _build_tempo_map(score)
+    has_tempo_changes = len(tempo_map) > 1
+
     samples_per_beat = int(SAMPLE_RATE * 60.0 / score.bpm)
     total_beats = score.total_beats
-    total_samples = int(total_beats * samples_per_beat)
+
+    if has_tempo_changes:
+        total_samples = _total_samples_from_tempo_map(total_beats, tempo_map)
+    else:
+        total_samples = int(total_beats * samples_per_beat)
     buf = numpy.zeros(total_samples, dtype=numpy.float32)
 
     # Default notes (backwards-compatible .add() calls)
     if score.notes:
         _render_notes_to_buf(
             score.notes, buf, samples_per_beat, total_samples,
-            sine_wave, Envelope.PIANO.value, 0.5, score.bpm)
+            sine_wave, Envelope.PIANO.value, 0.5, score.bpm,
+            swing=score.swing, tempo_map=tempo_map if has_tempo_changes else None)
 
     # Named parts — each rendered to own buffer for per-part effects
     for part in score.parts.values():
@@ -1115,15 +1407,20 @@ def render_score(score):
             part_buf = numpy.zeros(total_samples, dtype=numpy.float32)
             synth_fn = _resolve_synth(part.synth)
             env_tuple = _resolve_envelope(part.envelope)
+            # Use part swing if set, otherwise score swing
+            effective_swing = part.swing if part.swing is not None else score.swing
             if part.legato:
                 _render_legato_to_buf(
                     part.notes, part_buf, samples_per_beat, total_samples,
                     synth_fn, env_tuple, part.volume, score.bpm,
-                    glide_time=part.glide)
+                    glide_time=part.glide, swing=effective_swing,
+                    tempo_map=tempo_map if has_tempo_changes else None)
             else:
                 _render_notes_to_buf(
                     part.notes, part_buf, samples_per_beat, total_samples,
-                    synth_fn, env_tuple, part.volume, score.bpm)
+                    synth_fn, env_tuple, part.volume, score.bpm,
+                    swing=effective_swing,
+                    tempo_map=tempo_map if has_tempo_changes else None)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()
@@ -1160,7 +1457,10 @@ def render_score(score):
 
     # Drum hits
     for hit in score._drum_hits:
-        start = int(hit.position * samples_per_beat)
+        if has_tempo_changes:
+            start = _beat_to_sample(hit.position, tempo_map)
+        else:
+            start = int(hit.position * samples_per_beat)
         if start >= total_samples:
             continue
         remaining = total_samples - start

@@ -5740,3 +5740,123 @@ def test_lfo_renders_correctly():
     lead.add("C4", Duration.WHOLE).add("C4", Duration.WHOLE)
     buf = render_score(score)
     assert len(buf) > 0
+
+
+# ── Per-note velocity tests ─────────────────────────────────────────────────
+
+def test_note_velocity_default():
+    from pytheory.rhythm import Note, Duration
+    n = Note(tone=None, duration=Duration.QUARTER)
+    assert n.velocity == 100
+
+
+def test_note_velocity_custom():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.add("C5", Duration.QUARTER, velocity=60)
+    assert lead.notes[0].velocity == 60
+
+
+def test_arpeggio_velocity():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.arpeggio("Cm", bars=1, velocity=75)
+    for n in lead.notes:
+        assert n.velocity == 75
+
+
+# ── Swing / groove tests ────────────────────────────────────────────────────
+
+def test_score_swing_default():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    assert score.swing == 0.0
+
+
+def test_score_swing_set():
+    from pytheory import Score
+    score = Score("4/4", bpm=120, swing=0.5)
+    assert score.swing == 0.5
+
+
+# ── Tempo change tests ──────────────────────────────────────────────────────
+
+def test_set_tempo():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.add("C4", Duration.WHOLE)
+    score.set_tempo(140)
+    assert len(score._tempo_changes) == 1
+    beat_pos, new_bpm = score._tempo_changes[0]
+    assert new_bpm == 140
+    assert beat_pos == 4.0  # after one WHOLE note
+
+
+# ── Fade in/out tests ───────────────────────────────────────────────────────
+
+def test_fade_in():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", volume=0.8)
+    lead.fade_in(bars=2)
+    # Should generate automation points with ascending volume
+    volumes = [p["volume"] for _, p in lead._automation]
+    assert len(volumes) > 0
+    assert volumes[0] == pytest.approx(0.0)
+    assert volumes[-1] == pytest.approx(0.8)
+    # Check ascending order
+    for i in range(1, len(volumes)):
+        assert volumes[i] >= volumes[i - 1]
+
+
+def test_fade_out():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", volume=0.8)
+    lead.fade_out(bars=2)
+    # Should generate automation points with descending volume
+    volumes = [p["volume"] for _, p in lead._automation]
+    assert len(volumes) > 0
+    assert volumes[0] == pytest.approx(0.8)
+    assert volumes[-1] == pytest.approx(0.0)
+    # Check descending order
+    for i in range(1, len(volumes)):
+        assert volumes[i] <= volumes[i - 1]
+
+
+@needs_portaudio
+def test_velocity_affects_render():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    import numpy as np
+    # Loud note
+    score_loud = Score("4/4", bpm=120)
+    lead_loud = score_loud.part("lead", synth="sine", envelope="none")
+    lead_loud.add("A4", Duration.QUARTER, velocity=127)
+    buf_loud = render_score(score_loud)
+    # Quiet note
+    score_quiet = Score("4/4", bpm=120)
+    lead_quiet = score_quiet.part("lead", synth="sine", envelope="none")
+    lead_quiet.add("A4", Duration.QUARTER, velocity=30)
+    buf_quiet = render_score(score_quiet)
+    # Loud should have greater peak amplitude (both are normalized,
+    # but we compare RMS of the raw rendered parts before normalization)
+    # Actually, render_score normalizes. Let's just check they both render.
+    assert len(buf_loud) > 0
+    assert len(buf_quiet) > 0
+    # The loud note should have higher peak than the quiet note
+    # Since both scores have only one note, normalization makes peaks equal.
+    # Instead, render a score with BOTH loud and quiet notes and check
+    # the loud section is louder.
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="sine", envelope="none")
+    lead.add("A4", Duration.QUARTER, velocity=127)
+    lead.add("A4", Duration.QUARTER, velocity=30)
+    buf = render_score(score)
+    mid = len(buf) // 2
+    rms_first = np.sqrt(np.mean(buf[:mid] ** 2))
+    rms_second = np.sqrt(np.mean(buf[mid:] ** 2))
+    assert rms_first > rms_second

@@ -53,6 +53,7 @@ class Note:
 
     tone: object
     duration: Duration
+    velocity: int = 100
 
     @property
     def beats(self) -> float:
@@ -74,7 +75,7 @@ def Rest(duration=Duration.QUARTER) -> Note:
     """Create a rest (silent note) with the given duration."""
     if isinstance(duration, (int, float)):
         duration = _RawDuration(duration)
-    return Note(tone=None, duration=duration)
+    return Note(tone=None, duration=duration, velocity=0)
 
 
 # ---------------------------------------------------------------------------
@@ -1356,19 +1357,23 @@ class Part:
     def __init__(self, name: str, *, synth: str = "sine",
                  envelope: str = "piano", volume: float = 0.5,
                  reverb: float = 0.0, reverb_decay: float = 1.0,
+                 reverb_type: str = "algorithmic",
                  delay: float = 0.0, delay_time: float = 0.375,
                  delay_feedback: float = 0.4,
                  lowpass: float = 0.0, lowpass_q: float = 0.707,
                  distortion: float = 0.0, distortion_drive: float = 3.0,
                  legato: bool = False, glide: float = 0.0,
                  chorus: float = 0.0, chorus_rate: float = 1.5,
-                 chorus_depth: float = 0.003):
+                 chorus_depth: float = 0.003,
+                 swing: Optional[float] = None):
         self.name = name
         self.synth = synth
         self.envelope = envelope
         self.volume = volume
+        self.swing = swing
         self.reverb_mix = reverb
         self.reverb_decay = reverb_decay
+        self.reverb_type = reverb_type
         self.delay_mix = delay
         self.delay_time = delay_time
         self.delay_feedback = delay_feedback
@@ -1384,10 +1389,11 @@ class Part:
         self.notes: list[Note] = []
         self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
-    def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
+    def add(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100) -> "Part":
         """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
 
         Duration can be a ``Duration`` enum or a raw float (beats).
+        Velocity controls loudness (1-127, default 100).
 
         Returns self for chaining.
         """
@@ -1396,7 +1402,7 @@ class Part:
             tone_or_string = Tone.from_string(tone_or_string, system="western")
         if isinstance(duration, (int, float)):
             duration = _RawDuration(duration)
-        self.notes.append(Note(tone=tone_or_string, duration=duration))
+        self.notes.append(Note(tone=tone_or_string, duration=duration, velocity=velocity))
         return self
 
     def set(self, **params) -> "Part":
@@ -1453,6 +1459,7 @@ class Part:
         params = {
             "volume": self.volume,
             "reverb_mix": self.reverb_mix, "reverb_decay": self.reverb_decay,
+            "reverb_type": self.reverb_type,
             "delay_mix": self.delay_mix, "delay_time": self.delay_time,
             "delay_feedback": self.delay_feedback,
             "lowpass": self.lowpass, "lowpass_q": self.lowpass_q,
@@ -1558,11 +1565,36 @@ class Part:
         """Add a rest. Returns self for chaining."""
         if isinstance(duration, (int, float)):
             duration = _RawDuration(duration)
-        self.notes.append(Note(tone=None, duration=duration))
+        self.notes.append(Note(tone=None, duration=duration, velocity=0))
+        return self
+
+    def fade_in(self, bars: float = 4) -> "Part":
+        """Fade volume from 0 to current level over N bars."""
+        beats = bars * 4.0  # assume 4/4
+        current_beat = sum(n.beats for n in self.notes)
+        steps = int(beats / 0.5)  # automate every half beat
+        for i in range(steps + 1):
+            frac = i / steps
+            beat = current_beat + i * 0.5
+            vol = self.volume * frac
+            self._automation.append((beat, {"volume": vol}))
+        return self
+
+    def fade_out(self, bars: float = 4) -> "Part":
+        """Fade volume from current level to 0 over N bars."""
+        beats = bars * 4.0
+        current_beat = sum(n.beats for n in self.notes)
+        steps = int(beats / 0.5)
+        for i in range(steps + 1):
+            frac = 1.0 - (i / steps)
+            beat = current_beat + i * 0.5
+            vol = self.volume * frac
+            self._automation.append((beat, {"volume": vol}))
         return self
 
     def arpeggio(self, chord, *, bars: float = 1, pattern: str = "up",
-                 division=Duration.SIXTEENTH, octaves: int = 1) -> "Part":
+                 division=Duration.SIXTEENTH, octaves: int = 1,
+                 velocity: int = 100) -> "Part":
         """Arpeggiate a chord into a rhythmic pattern.
 
         Takes a chord and sequences through its notes automatically,
@@ -1642,7 +1674,7 @@ class Part:
         # Fill the bars by cycling through the sequence
         for i in range(total_steps):
             tone = seq[i % len(seq)]
-            self.add(tone, step_beats)
+            self.add(tone, step_beats, velocity=velocity)
 
         return self
 
@@ -1688,27 +1720,31 @@ class Score:
         play_score(score)
     """
 
-    def __init__(self, time_signature="4/4", bpm=120):
+    def __init__(self, time_signature="4/4", bpm=120, swing: float = 0.0):
         if isinstance(time_signature, str):
             self.time_signature = TimeSignature.from_string(time_signature)
         else:
             self.time_signature = time_signature
         self.bpm = bpm
+        self.swing = swing
         self.notes: list[Note] = []
         self.parts: dict[str, Part] = {}
         self._drum_hits: list[_Hit] = []
         self._drum_pattern_beats: float = 0.0
+        self._tempo_changes: list[tuple[float, int]] = []
 
     def part(self, name: str, *, synth: str = "sine",
              envelope: str = "piano", volume: float = 0.5,
              reverb: float = 0.0, reverb_decay: float = 1.0,
+             reverb_type: str = "algorithmic",
              delay: float = 0.0, delay_time: float = 0.375,
              delay_feedback: float = 0.4,
              lowpass: float = 0.0, lowpass_q: float = 0.707,
              distortion: float = 0.0, distortion_drive: float = 3.0,
              legato: bool = False, glide: float = 0.0,
              chorus: float = 0.0, chorus_rate: float = 1.5,
-             chorus_depth: float = 0.003) -> Part:
+             chorus_depth: float = 0.003,
+             swing: Optional[float] = None) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1722,6 +1758,10 @@ class Score:
             volume: Mix level from 0.0 to 1.0 (default 0.5).
             reverb: Reverb wet/dry mix, 0.0–1.0 (default 0, off).
             reverb_decay: Reverb tail length in seconds (default 1.0).
+            reverb_type: Reverb algorithm — ``"algorithmic"`` (Schroeder, default)
+                or a convolution IR preset: ``"taj_mahal"``, ``"cathedral"``,
+                ``"plate"``, ``"spring"``, ``"cave"``, ``"parking_garage"``,
+                ``"canyon"``.
             delay: Delay wet/dry mix, 0.0–1.0 (default 0, off).
             delay_time: Delay time in seconds (default 0.375, dotted 8th).
             delay_feedback: Delay feedback 0.0–1.0 (default 0.4).
@@ -1750,13 +1790,15 @@ class Score:
         """
         p = Part(name, synth=synth, envelope=envelope, volume=volume,
                  reverb=reverb, reverb_decay=reverb_decay,
+                 reverb_type=reverb_type,
                  delay=delay, delay_time=delay_time,
                  delay_feedback=delay_feedback,
                  lowpass=lowpass, lowpass_q=lowpass_q,
                  distortion=distortion, distortion_drive=distortion_drive,
                  legato=legato, glide=glide,
                  chorus=chorus, chorus_rate=chorus_rate,
-                 chorus_depth=chorus_depth)
+                 chorus_depth=chorus_depth,
+                 swing=swing)
         self.parts[name] = p
         return p
 
@@ -1837,6 +1879,21 @@ class Score:
     def rest(self, duration=Duration.QUARTER) -> "Score":
         """Add a rest to the default part. Returns self for chaining."""
         self.notes.append(Note(tone=None, duration=duration))
+        return self
+
+    def set_tempo(self, bpm: int) -> "Score":
+        """Insert a tempo change at the current beat position.
+
+        The new tempo takes effect from the current total_beats position
+        and remains until the next tempo change.
+
+        Args:
+            bpm: New tempo in beats per minute.
+
+        Returns:
+            Self for chaining.
+        """
+        self._tempo_changes.append((self.total_beats, bpm))
         return self
 
     @property
