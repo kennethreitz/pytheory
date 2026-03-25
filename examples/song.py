@@ -1,112 +1,32 @@
-"""Play songs with PyTheory — drums, chords, and synth leads.
+"""Play songs with PyTheory — drums, chords, bass, and synth leads.
 
 Requires PortAudio: brew install portaudio (macOS)
 
-Each song demonstrates a different combination of:
-- Drum pattern presets (48 genres available)
-- Chord progressions (Roman numeral or symbol-based)
-- Monosynth melody lines (sine, saw, triangle waveforms)
-- ADSR envelope shaping (piano, pluck, pad, bell, etc.)
+Each song uses the multi-part Score API:
+- Drum pattern presets (48 genres)
+- Named parts with independent synth voices and envelopes
+- Chord pads, walking bass lines, and melody leads
+
+Usage:
+    python examples/song.py
 """
 
-import numpy
 import sounddevice as sd
 
 from pytheory import (
-    Tone, Chord, Key, Pattern, Duration, Score,
-    Synth, Envelope,
+    Chord, Key, Pattern, Duration, Score,
 )
-from pytheory.play import (
-    _render, _render_drum_hit, _apply_envelope,
-    sawtooth_wave, triangle_wave, sine_wave,
-    SAMPLE_RATE, SAMPLE_PEAK,
-)
+from pytheory.play import play_score, render_score, SAMPLE_RATE
 
 
-# ── Engine ─────────────────────────────────────────────────────────────────
-
-def render_score(score, melody=None, melody_synth=sawtooth_wave,
-                 melody_envelope=(0.003, 0.05, 0.6, 0.08),
-                 melody_volume=0.4, chord_volume=0.35, drum_volume=0.5):
-    """Render a full arrangement to a float32 buffer.
-
-    Args:
-        score: Score with drum hits and chord notes.
-        melody: Optional list of (note_string_or_None, beats) tuples.
-        melody_synth: Wave function for the lead voice.
-        melody_envelope: (attack, decay, sustain, release) for the lead.
-        melody_volume: Lead mix level (0-1).
-        chord_volume: Chord mix level (0-1).
-        drum_volume: Drum mix level (0-1).
-
-    Returns:
-        Float32 numpy array of mixed audio.
-    """
-    samples_per_beat = int(SAMPLE_RATE * 60.0 / score.bpm)
-    total_beats = score.total_beats
-
-    # If melody extends beyond score, expand
-    if melody:
-        melody_beats = sum(b for _, b in melody)
-        total_beats = max(total_beats, melody_beats)
-
-    total_samples = int(total_beats * samples_per_beat)
-    buf = numpy.zeros(total_samples, dtype=numpy.float32)
-
-    # Chords
-    beat_pos = 0.0
-    for note in score.notes:
-        if note.tone is not None:
-            start = int(beat_pos * samples_per_beat)
-            dur_ms = note.beats * 60_000 / score.bpm
-            rendered = _render(note.tone, t=dur_ms, envelope=Envelope.PIANO)
-            rendered_f32 = rendered.astype(numpy.float32) / SAMPLE_PEAK
-            end = min(start + len(rendered_f32), total_samples)
-            buf[start:end] += rendered_f32[:end - start] * chord_volume
-        beat_pos += note.beats
-
-    # Drums
-    for hit in score._drum_hits:
-        start = int(hit.position * samples_per_beat)
-        if start >= total_samples:
-            continue
-        remaining = total_samples - start
-        hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
-        wave = _render_drum_hit(hit.sound.value, hit_len)
-        vel_scale = hit.velocity / 127.0
-        buf[start:start + hit_len] += wave * vel_scale * drum_volume
-
-    # Melody
-    if melody:
-        a, d, s, r = melody_envelope
-        lead_pos = 0.0
-        for note_name, beats in melody:
-            start = int(lead_pos * samples_per_beat)
-            dur_ms = beats * 60_000 / score.bpm
-            n_samples = int(SAMPLE_RATE * dur_ms / 1000)
-
-            if note_name is not None and start + n_samples <= total_samples:
-                tone = Tone.from_string(note_name, system="western")
-                hz = tone.pitch()
-                wave = melody_synth(hz, n_samples=n_samples)
-                wave_f32 = wave.astype(numpy.float32) / SAMPLE_PEAK
-                wave_f32 = _apply_envelope(wave_f32, a, d, s, r)
-                end = min(start + len(wave_f32), total_samples)
-                buf[start:end] += wave_f32[:end - start] * melody_volume
-
-            lead_pos += beats
-
-    # Normalize
-    peak = numpy.max(numpy.abs(buf))
-    if peak > 0:
-        buf = buf / peak * 0.9
-
-    return buf
-
-
-def play_song(buf):
-    """Play a rendered buffer. Ctrl-C to skip."""
+def play_song(score, label=""):
+    """Render and play. Ctrl-C to skip."""
+    if label:
+        print(f"  {label}")
+    print(f"  {score}")
+    print()
     try:
+        buf = render_score(score)
         sd.play(buf, SAMPLE_RATE)
         sd.wait()
     except KeyboardInterrupt:
@@ -117,414 +37,393 @@ def play_song(buf):
 # ── Songs ──────────────────────────────────────────────────────────────────
 
 def bossa_nova_girl():
-    """Bossa nova in A minor — The Girl from Ipanema vibe."""
+    """Bossa nova in A minor — full arrangement."""
     print("  Bossa Nova in A minor")
-    print("  Drums: bossa nova | Chords: i-iv-V7-i | Lead: triangle")
-    print()
+    print("  Drums: bossa nova | Lead: triangle | Bass: triangle")
 
-    score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
+    score = Score("4/4", bpm=140)
+    score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
 
-    # Am → Dm → E7 → Am (x2)
-    changes = ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
+    lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.5)
+    bass = score.part("bass", synth="triangle", envelope="pluck", volume=0.45)
 
-    melody = [
-        # Bar 1-2: floating line over Am
-        ("E5", 0.67), ("D5", 0.33), ("C5", 0.67), ("B4", 0.33),
-        ("A4", 1.0), ("C5", 0.67), ("E5", 0.33),
-        ("D5", 0.67), ("C5", 0.33), ("A4", 1.0), (None, 1.0),
-        # Bar 3-4: reaching up over Dm
-        ("F5", 0.67), ("E5", 0.33), ("D5", 0.67), ("C5", 0.33),
-        ("D5", 1.0), ("F5", 0.67), ("A5", 0.33),
-        ("G5", 0.67), ("F5", 0.33), ("D5", 1.0), (None, 1.0),
-        # Bar 5-6: tension over E7
-        ("G#5", 0.67), ("F5", 0.33), ("E5", 0.67), ("D5", 0.33),
-        ("E5", 1.0), (None, 0.5), ("B4", 0.5),
-        ("D5", 0.67), ("E5", 0.33), ("G#4", 1.0), (None, 1.0),
-        # Bar 7-8: resolve to Am
-        ("A4", 1.0), ("C5", 0.67), ("E5", 0.33),
-        ("A5", 1.5), (None, 0.5),
-        ("G5", 0.67), ("E5", 0.33), ("C5", 0.67), ("A4", 0.33),
-        ("A4", 2.0),
-    ]
+    for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=triangle_wave,
-                       melody_envelope=(0.01, 0.08, 0.7, 0.15),
-                       melody_volume=0.45)
-    play_song(buf)
+    for n, d in [
+        ("E5",.67),("D5",.33),("C5",.67),("B4",.33),("A4",1),("C5",.67),("E5",.33),
+        ("D5",.67),("C5",.33),("A4",1),(None,1),
+        ("F5",.67),("E5",.33),("D5",.67),("C5",.33),("D5",1),("F5",.67),("A5",.33),
+        ("G5",.67),("F5",.33),("D5",1),(None,1),
+        ("G#5",.67),("F5",.33),("E5",.67),("D5",.33),("E5",1),(None,.5),("B4",.5),
+        ("D5",.67),("E5",.33),("G#4",1),(None,1),
+        ("A4",1),("C5",.67),("E5",.33),("A5",1.5),(None,.5),
+        ("G5",.67),("E5",.33),("C5",.67),("A4",.33),("A4",2),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    for n in ["A2","B2","C3","E3","D3","E3","F3","E3",
+              "E3","D3","C3","B2","A2","G2","A2","B2",
+              "A2","B2","C3","E3","D3","E3","F3","E3",
+              "E3","D3","C3","B2","A2","E2","A2","A2"]:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def bebop_in_bb():
-    """Bebop in Bb — rhythm changes with a horn-like lead."""
+    """Bebop in Bb — rhythm changes with horn lead and walking bass."""
     print("  Bebop in Bb major")
-    print("  Drums: bebop | Chords: I-vi-ii-V | Lead: sawtooth")
-    print()
+    print("  Drums: bebop | Lead: sawtooth | Bass: triangle")
 
-    score = Pattern.preset("bebop").to_score(repeats=8, bpm=160)
+    score = Score("4/4", bpm=160)
+    score.add_pattern(Pattern.preset("bebop"), repeats=8)
 
-    changes = ["Bb", "Gm", "Cm", "F7"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="piano", volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.45)
+    bass = score.part("bass", synth="triangle", envelope="pluck", volume=0.4)
 
-    melody = [
-        # Bar 1: Bb — arpeggio up
-        ("Bb4", 0.67), ("D5", 0.33), ("F5", 0.67), ("D5", 0.33),
-        ("Bb4", 0.67), ("C5", 0.33), ("D5", 0.67), ("F5", 0.33),
-        # Bar 2: Gm — descending with chromatic approach
-        ("G5", 0.67), ("F5", 0.33), ("D5", 0.67), ("Bb4", 0.33),
-        ("A4", 0.67), ("Bb4", 0.33), ("D5", 0.67), ("G4", 0.33),
-        # Bar 3: Cm — climbing
-        ("C5", 0.67), ("Eb5", 0.33), ("G5", 0.67), ("Eb5", 0.33),
-        ("C5", 0.67), ("D5", 0.33), ("Eb5", 0.67), ("F5", 0.33),
-        # Bar 4: F7 — dominant tension
-        ("A5", 0.67), ("G5", 0.33), ("F5", 0.67), ("Eb5", 0.33),
-        ("D5", 0.67), ("C5", 0.33), ("A4", 0.5), (None, 0.5),
-        # Bar 5: Bb — variation
-        ("Bb4", 1.0), ("D5", 0.67), ("F5", 0.33),
-        ("G5", 0.67), ("F5", 0.33), ("D5", 0.67), ("Bb4", 0.33),
-        # Bar 6: Gm — bluesy
-        ("Bb5", 0.67), ("A5", 0.33), ("G5", 0.67), ("F5", 0.33),
-        ("Eb5", 0.67), ("D5", 0.33), ("Bb4", 0.67), ("G4", 0.33),
-        # Bar 7: Cm — syncopated
-        ("C5", 0.5), (None, 0.5), ("Eb5", 0.67), ("G5", 0.33),
-        ("F5", 0.67), ("Eb5", 0.33), ("D5", 0.67), ("C5", 0.33),
-        # Bar 8: F7 — turnaround lick
-        ("A4", 0.67), ("C5", 0.33), ("Eb5", 0.67), ("F5", 0.33),
-        ("G5", 0.67), ("A5", 0.33), ("Bb5", 1.0),
-    ]
+    for sym in ["Bb", "Gm", "Cm", "F7"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=sawtooth_wave,
-                       melody_envelope=(0.003, 0.05, 0.6, 0.08),
-                       melody_volume=0.4)
-    play_song(buf)
+    for n, d in [
+        ("Bb4",.67),("D5",.33),("F5",.67),("D5",.33),
+        ("Bb4",.67),("C5",.33),("D5",.67),("F5",.33),
+        ("G5",.67),("F5",.33),("D5",.67),("Bb4",.33),
+        ("A4",.67),("Bb4",.33),("D5",.67),("G4",.33),
+        ("C5",.67),("Eb5",.33),("G5",.67),("Eb5",.33),
+        ("C5",.67),("D5",.33),("Eb5",.67),("F5",.33),
+        ("A5",.67),("G5",.33),("F5",.67),("Eb5",.33),
+        ("D5",.67),("C5",.33),("A4",.5),(None,.5),
+        ("Bb4",1),("D5",.67),("F5",.33),
+        ("G5",.67),("F5",.33),("D5",.67),("Bb4",.33),
+        ("Bb5",.67),("A5",.33),("G5",.67),("F5",.33),
+        ("Eb5",.67),("D5",.33),("Bb4",.67),("G4",.33),
+        ("C5",.5),(None,.5),("Eb5",.67),("G5",.33),
+        ("F5",.67),("Eb5",.33),("D5",.67),("C5",.33),
+        ("A4",.67),("C5",.33),("Eb5",.67),("F5",.33),
+        ("G5",.67),("A5",.33),("Bb5",1),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    for n in ["Bb2","D3","F3","A3","G3","F3","D3","Bb2",
+              "C3","Eb3","G3","Bb3","F3","A3","C4","Eb3",
+              "Bb2","D3","F3","A3","G3","F3","D3","Bb2",
+              "C3","Eb3","G3","Bb3","F3","C3","F2","F3"]:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def salsa_descarga():
     """Salsa descarga in D minor — clave-driven jam."""
     print("  Salsa Descarga in D minor")
-    print("  Drums: salsa | Chords: ii-V-i-bVI | Lead: sawtooth")
-    print()
+    print("  Drums: salsa | Lead: sawtooth | Bass: sine")
 
-    score = Pattern.preset("salsa").to_score(repeats=4, bpm=180)
+    score = Score("4/4", bpm=180)
+    score.add_pattern(Pattern.preset("salsa"), repeats=4)
 
-    changes = ["Em7b5", "A7", "Dm7", "Bbmaj7"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
 
-    melody = [
-        # Bar 1: Em7b5 — angular line
-        ("E5", 0.67), ("G5", 0.33), ("Bb5", 0.67), ("A5", 0.33),
-        ("G5", 0.67), ("F5", 0.33), ("E5", 0.67), ("D5", 0.33),
-        # Bar 2: A7 — chromatic descent
-        ("C#5", 0.67), ("D5", 0.33), ("E5", 0.67), ("G5", 0.33),
-        ("F5", 0.67), ("E5", 0.33), ("C#5", 0.5), (None, 0.5),
-        # Bar 3: Dm7 — syncopated
-        ("D5", 0.5), (None, 0.17), ("F5", 0.67), ("A5", 0.33),
-        ("G5", 0.67), ("F5", 0.33), ("E5", 0.67), ("D5", 0.33),
-        # Bar 4: Bbmaj7 — resolution
-        ("Bb4", 1.0), ("D5", 0.67), ("F5", 0.33),
-        ("A5", 1.0), (None, 1.0),
-        # Bar 5-8: second pass — variation
-        ("E5", 0.5), ("F5", 0.5), ("G5", 0.67), ("A5", 0.33),
-        ("Bb5", 0.67), ("A5", 0.33), ("G5", 0.67), ("E5", 0.33),
-        ("C#5", 0.67), ("E5", 0.33), ("A5", 0.67), ("G5", 0.33),
-        ("F5", 0.67), ("E5", 0.33), ("C#5", 0.67), ("A4", 0.33),
-        ("D5", 1.0), ("F5", 0.67), ("A5", 0.33),
-        ("G5", 0.67), ("F5", 0.33), ("D5", 1.0), (None, 1.0),
-        ("Bb4", 0.67), ("D5", 0.33), ("F5", 0.67), ("Bb5", 0.33),
-        ("A5", 1.5), (None, 0.5),
-    ]
+    for sym in ["Em7b5", "A7", "Dm7", "Bbmaj7"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=sawtooth_wave,
-                       melody_envelope=(0.005, 0.06, 0.5, 0.1),
-                       melody_volume=0.4, drum_volume=0.55)
-    play_song(buf)
+    for n, d in [
+        ("E5",.67),("G5",.33),("Bb5",.67),("A5",.33),
+        ("G5",.67),("F5",.33),("E5",.67),("D5",.33),
+        ("C#5",.67),("D5",.33),("E5",.67),("G5",.33),
+        ("F5",.67),("E5",.33),("C#5",.5),(None,.5),
+        ("D5",.5),(None,.17),("F5",.67),("A5",.33),
+        ("G5",.67),("F5",.33),("E5",.67),("D5",.33),
+        ("Bb4",1),("D5",.67),("F5",.33),("A5",1),(None,1),
+        ("E5",.5),("F5",.5),("G5",.67),("A5",.33),
+        ("Bb5",.67),("A5",.33),("G5",.67),("E5",.33),
+        ("C#5",.67),("E5",.33),("A5",.67),("G5",.33),
+        ("F5",.67),("E5",.33),("C#5",.67),("A4",.33),
+        ("D5",1),("F5",.67),("A5",.33),("G5",.67),("F5",.33),("D5",1),(None,1),
+        ("Bb4",.67),("D5",.33),("F5",.67),("Bb5",.33),("A5",1.5),(None,.5),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    # Salsa bass: tumbao pattern
+    for n in ["E2","E3","A2","A3","D2","D3","Bb2","Bb3"] * 4:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def afrobeat_groove():
-    """Afrobeat in E minor — Fela Kuti-inspired groove."""
+    """Afrobeat in E minor — Fela Kuti-inspired."""
     print("  Afrobeat in E minor")
-    print("  Drums: afrobeat | Chords: i-iv-bVII-bVI | Lead: saw")
-    print()
+    print("  Drums: afrobeat | Lead: sawtooth | Bass: sine")
 
-    score = Pattern.preset("afrobeat").to_score(repeats=8, bpm=115)
+    score = Score("4/4", bpm=115)
+    score.add_pattern(Pattern.preset("afrobeat"), repeats=8)
 
-    # 2 bars per chord, repeat once
-    changes = ["Em", "Am", "D", "C"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
 
-    melody = [
-        # Repetitive, hypnotic pentatonic riff
-        ("E5", 0.5), ("G5", 0.5), ("A5", 0.5), ("G5", 0.5),
-        ("E5", 0.5), ("D5", 0.5), ("E5", 1.0),
-        ("E5", 0.5), ("G5", 0.5), ("A5", 0.5), ("B5", 0.5),
-        ("A5", 0.5), ("G5", 0.5), ("E5", 1.0),
-        # Variation with syncopation
-        (None, 0.5), ("A5", 0.5), ("G5", 0.5), ("E5", 0.5),
-        ("D5", 1.0), ("E5", 0.5), ("G5", 0.5),
-        ("A5", 0.5), ("B5", 0.5), ("A5", 0.5), ("G5", 0.5),
-        ("E5", 1.5), (None, 0.5),
-        # Second half: octave higher accents
-        ("E5", 0.5), ("G5", 0.5), ("A5", 0.5), ("G5", 0.5),
-        ("E5", 0.5), ("D5", 0.5), ("B4", 1.0),
-        ("E5", 0.5), ("G5", 0.5), ("A5", 0.5), ("B5", 0.5),
-        ("A5", 0.5), ("G5", 0.5), ("E5", 1.0),
-        (None, 0.5), ("B5", 0.5), ("A5", 0.5), ("G5", 0.5),
-        ("E5", 1.0), ("D5", 0.5), ("E5", 0.5),
-        ("E5", 2.0), (None, 2.0),
-    ]
+    for sym in ["Em", "Am", "D", "C"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=sawtooth_wave,
-                       melody_envelope=(0.005, 0.08, 0.5, 0.1),
-                       melody_volume=0.35, drum_volume=0.55)
-    play_song(buf)
+    # Hypnotic pentatonic riff
+    riff = [("E5",.5),("G5",.5),("A5",.5),("G5",.5),
+            ("E5",.5),("D5",.5),("E5",1),
+            ("E5",.5),("G5",.5),("A5",.5),("B5",.5),
+            ("A5",.5),("G5",.5),("E5",1),
+            (None,.5),("A5",.5),("G5",.5),("E5",.5),
+            ("D5",1),("E5",.5),("G5",.5),
+            ("A5",.5),("B5",.5),("A5",.5),("G5",.5),
+            ("E5",1.5),(None,.5)]
+    for n, d in riff * 2:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    for n in ["E2","E2","G2","A2","A2","G2","E2","D2",
+              "D2","D2","F#2","A2","C3","C3","B2","G2"] * 2:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def reggae_one_drop():
-    """Reggae one-drop in G major — roots vibes."""
+    """Reggae one-drop in G major."""
     print("  Reggae One-Drop in G major")
-    print("  Drums: reggae | Chords: I-IV-V-IV | Lead: triangle")
-    print()
+    print("  Drums: reggae | Lead: triangle | Bass: sine")
 
-    score = Pattern.preset("reggae").to_score(repeats=8, bpm=80)
+    score = Score("4/4", bpm=80)
+    score.add_pattern(Pattern.preset("reggae"), repeats=8)
 
-    changes = ["G", "C", "D", "C"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="organ", volume=0.35)
+    lead = score.part("lead", synth="triangle", envelope="pad", volume=0.45)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.5)
 
-    melody = [
-        # Laid-back pentatonic melody
-        ("G5", 1.5), (None, 0.5), ("B5", 1.0), ("A5", 1.0),
-        ("G5", 2.0), ("E5", 1.0), ("D5", 1.0),
-        ("C5", 1.5), (None, 0.5), ("E5", 1.0), ("G5", 1.0),
-        ("A5", 1.5), (None, 0.5), ("G5", 2.0),
-        # Second phrase
-        ("D5", 1.5), (None, 0.5), ("E5", 1.0), ("G5", 1.0),
-        ("A5", 2.0), ("B5", 1.0), ("A5", 1.0),
-        ("G5", 1.5), (None, 0.5), ("E5", 1.0), ("D5", 1.0),
-        ("G4", 3.0), (None, 1.0),
-    ]
+    for sym in ["G", "C", "D", "C"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=triangle_wave,
-                       melody_envelope=(0.02, 0.1, 0.7, 0.2),
-                       melody_volume=0.45, drum_volume=0.45)
-    play_song(buf)
+    for n, d in [
+        ("G5",1.5),(None,.5),("B5",1),("A5",1),
+        ("G5",2),("E5",1),("D5",1),
+        ("C5",1.5),(None,.5),("E5",1),("G5",1),
+        ("A5",1.5),(None,.5),("G5",2),
+        ("D5",1.5),(None,.5),("E5",1),("G5",1),
+        ("A5",2),("B5",1),("A5",1),
+        ("G5",1.5),(None,.5),("E5",1),("D5",1),
+        ("G4",3),(None,1),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    for n in ["G2","G2","B2","D3","C3","C3","E3","G3",
+              "D3","D3","F#3","A3","C3","C3","E3","G3",
+              "G2","G2","B2","D3","C3","C3","E3","G3",
+              "D3","D3","F#3","A3","C3","G2","C3","D3"]:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def funk_workout():
-    """Funk in E minor — syncopated 16th note groove."""
+    """Funk in E minor — syncopated groove."""
     print("  Funk Workout in E minor")
-    print("  Drums: funk | Chords: i-iv-bVII-V | Lead: saw")
-    print()
+    print("  Drums: funk | Lead: sawtooth | Bass: sine")
 
-    score = Pattern.preset("funk").to_score(repeats=8, bpm=100)
+    score = Score("4/4", bpm=100)
+    score.add_pattern(Pattern.preset("funk"), repeats=8)
 
-    changes = ["Em", "Am", "D", "B7"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="staccato", volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.5)
 
-    melody = [
-        # Funky 16th-note figure
-        ("E5", 0.25), ("E5", 0.25), (None, 0.25), ("G5", 0.25),
-        (None, 0.25), ("A5", 0.25), ("G5", 0.25), ("E5", 0.25),
-        ("D5", 0.5), ("E5", 0.5), (None, 0.5), ("B4", 0.5),
-        ("E5", 0.25), ("E5", 0.25), (None, 0.25), ("G5", 0.25),
-        (None, 0.25), ("A5", 0.25), ("B5", 0.25), ("A5", 0.25),
-        ("G5", 0.5), ("E5", 0.5), (None, 1.0),
-        # Am phrase
-        ("A4", 0.25), ("C5", 0.25), ("E5", 0.25), ("A5", 0.25),
-        ("G5", 0.5), ("E5", 0.5), (None, 0.5), ("C5", 0.5),
-        ("A4", 0.5), ("C5", 0.5), ("D5", 0.5), ("E5", 0.5),
-        ("E5", 1.0), (None, 1.0),
-        # D resolution
-        ("D5", 0.25), ("F#5", 0.25), ("A5", 0.25), ("D5", 0.25),
-        ("F#5", 0.5), ("D5", 0.5), ("A4", 0.5), ("D5", 0.5),
-        # B7 turnaround
-        ("D#5", 0.5), ("F#5", 0.5), ("B4", 0.5), ("D#5", 0.5),
-        ("F#5", 1.0), (None, 1.0),
-    ]
+    for sym in ["Em", "Am", "D", "B7"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=sawtooth_wave,
-                       melody_envelope=(0.002, 0.03, 0.5, 0.05),
-                       melody_volume=0.4, drum_volume=0.55)
-    play_song(buf)
+    for n, d in [
+        ("E5",.25),("E5",.25),(None,.25),("G5",.25),
+        (None,.25),("A5",.25),("G5",.25),("E5",.25),
+        ("D5",.5),("E5",.5),(None,.5),("B4",.5),
+        ("E5",.25),("E5",.25),(None,.25),("G5",.25),
+        (None,.25),("A5",.25),("B5",.25),("A5",.25),
+        ("G5",.5),("E5",.5),(None,1),
+        ("A4",.25),("C5",.25),("E5",.25),("A5",.25),
+        ("G5",.5),("E5",.5),(None,.5),("C5",.5),
+        ("A4",.5),("C5",.5),("D5",.5),("E5",.5),
+        ("E5",1),(None,1),
+        ("D5",.25),("F#5",.25),("A5",.25),("D5",.25),
+        ("F#5",.5),("D5",.5),("A4",.5),("D5",.5),
+        ("D#5",.5),("F#5",.5),("B4",.5),("D#5",.5),
+        ("F#5",1),(None,1),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    for n in ["E2","E2","G2","E2","A2","A2","C3","A2",
+              "D2","D2","F#2","D2","B1","B1","D#2","F#2"] * 2:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def blues_shuffle():
-    """12/8 blues in A — slow shuffle with a wailing lead."""
+    """12/8 blues in A — slow shuffle."""
     print("  12/8 Blues Shuffle in A")
-    print("  Drums: 12/8 blues | Chords: I-IV-V | Lead: saw (bluesy)")
-    print()
+    print("  Drums: 12/8 blues | Lead: sawtooth | Bass: sine")
 
-    score = Pattern.preset("12/8 blues").to_score(repeats=6, bpm=70)
+    score = Score("12/8", bpm=70)
+    score.add_pattern(Pattern.preset("12/8 blues"), repeats=6)
 
-    # 12 bars: I I I I IV IV I I V IV I V (each bar = 6 beats in 12/8)
-    bars = ["A", "A", "A", "A", "D", "D",
-            "A", "A", "E7", "D", "A", "E7"]
-    for sym in bars:
-        score.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
-        score.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
+    chords = score.part("chords", synth="sine", envelope="piano", volume=0.35)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.45)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
 
-    # Wait, 12 bars * 6 beats = 72 beats, drums = 6 repeats * 6 = 36 beats
-    # Need to match. Let's just do 6 bars of blues (half a chorus)
-    # Actually, 6 repeats * 6 beats = 36 beats. 6 bars * 6 = 36. Perfect.
+    for sym in ["A", "A", "D", "D", "E7", "A"]:
+        chords.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
+        chords.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
 
-    melody = [
-        # Bars 1-2 over A: classic blues opening
-        ("A4", 1.0), ("C5", 0.67), ("A4", 0.33), ("E4", 1.0),
-        (None, 0.5), ("A4", 0.5), ("C5", 0.67), ("D5", 0.33),
-        ("E5", 1.5), ("D5", 0.5), ("C5", 0.5), ("A4", 0.5),
-        ("E4", 1.5), (None, 0.5), ("A4", 1.0),
-        # Bars 3-4 over D: reaching
-        ("D5", 1.0), ("F5", 0.67), ("D5", 0.33), ("A4", 1.0),
-        (None, 1.0), ("D5", 0.67), ("F5", 0.33), ("A5", 1.0),
-        ("G5", 0.67), ("F5", 0.33), ("D5", 1.0), (None, 1.0),
-        # Bars 5-6 over E7/D turnaround
-        ("E5", 0.67), ("G#4", 0.33), ("B4", 0.67), ("E5", 0.33),
-        ("D5", 1.0), ("A4", 1.0), (None, 1.0),
-        ("A4", 0.67), ("C5", 0.33), ("E5", 0.67), ("A5", 0.33),
-        ("A5", 2.0), (None, 1.0),
-    ]
+    for n, d in [
+        ("A4",1),("C5",.67),("A4",.33),("E4",1),
+        (None,.5),("A4",.5),("C5",.67),("D5",.33),
+        ("E5",1.5),("D5",.5),("C5",.5),("A4",.5),
+        ("E4",1.5),(None,.5),("A4",1),
+        ("D5",1),("F5",.67),("D5",.33),("A4",1),
+        (None,1),("D5",.67),("F5",.33),("A5",1),
+        ("G5",.67),("F5",.33),("D5",1),(None,1),
+        ("E5",.67),("G#4",.33),("B4",.67),("E5",.33),
+        ("D5",1),("A4",1),(None,1),
+        ("A4",.67),("C5",.33),("E5",.67),("A5",.33),
+        ("A5",2),(None,1),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
 
-    buf = render_score(score, melody=melody, melody_synth=sawtooth_wave,
-                       melody_envelope=(0.01, 0.1, 0.6, 0.2),
-                       melody_volume=0.45, drum_volume=0.45)
-    play_song(buf)
+    for n in ["A1","A1","E2","A2","A1","A1","E2","A2","A1","A1","E2","A2",
+              "D2","D2","A2","D2","D2","D2","A2","D2",
+              "E2","E2","B2","E2","A1","A1","E2","A2",
+              "E2","E2","B2","E2","A1","A1","E2","A2"]:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def samba_de_janeiro():
     """Samba in G major — carnival energy."""
     print("  Samba in G major")
-    print("  Drums: samba | Chords: I-vi-ii-V | Lead: triangle")
-    print()
+    print("  Drums: samba | Lead: triangle | Bass: sine")
 
-    score = Pattern.preset("samba").to_score(repeats=8, bpm=170)
+    score = Score("4/4", bpm=170)
+    score.add_pattern(Pattern.preset("samba"), repeats=8)
 
-    changes = ["G", "Em", "Am", "D7"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
+    lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.45)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
 
-    melody = [
-        # Fast, rhythmic melody
-        ("B5", 0.33), ("A5", 0.33), ("G5", 0.34), ("F#5", 0.5), ("E5", 0.5),
-        ("D5", 0.5), ("G5", 0.5), ("B5", 0.5), ("A5", 0.5),
-        ("G5", 0.67), ("E5", 0.33), ("D5", 0.67), ("B4", 0.33),
-        ("G4", 1.0), (None, 1.0),
-        # Over Em
-        ("E5", 0.5), ("G5", 0.5), ("B5", 0.5), ("A5", 0.5),
-        ("G5", 0.67), ("F#5", 0.33), ("E5", 0.67), ("D5", 0.33),
-        ("E5", 1.0), (None, 1.0),
-        # Over Am
-        ("A5", 0.5), ("C6", 0.5), ("B5", 0.5), ("A5", 0.5),
-        ("G5", 0.67), ("E5", 0.33), ("C5", 0.67), ("A4", 0.33),
-        ("A4", 1.0), (None, 1.0),
-        # Over D7 — turnaround
-        ("D5", 0.5), ("F#5", 0.5), ("A5", 0.5), ("C5", 0.5),
-        ("B4", 0.67), ("A4", 0.33), ("G4", 0.67), ("F#4", 0.33),
-        ("G4", 2.0), (None, 2.0),
-    ]
+    for sym in ["G", "Em", "Am", "D7"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=triangle_wave,
-                       melody_envelope=(0.005, 0.05, 0.6, 0.1),
-                       melody_volume=0.4, drum_volume=0.5)
-    play_song(buf)
+    for n, d in [
+        ("B5",.33),("A5",.33),("G5",.34),("F#5",.5),("E5",.5),
+        ("D5",.5),("G5",.5),("B5",.5),("A5",.5),
+        ("G5",.67),("E5",.33),("D5",.67),("B4",.33),("G4",1),(None,1),
+        ("E5",.5),("G5",.5),("B5",.5),("A5",.5),
+        ("G5",.67),("F#5",.33),("E5",.67),("D5",.33),("E5",1),(None,1),
+        ("A5",.5),("C6",.5),("B5",.5),("A5",.5),
+        ("G5",.67),("E5",.33),("C5",.67),("A4",.33),("A4",1),(None,1),
+        ("D5",.5),("F#5",.5),("A5",.5),("C5",.5),
+        ("B4",.67),("A4",.33),("G4",.67),("F#4",.33),("G4",2),(None,2),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    for n in ["G2","B2","D3","G2","E2","G2","B2","E2",
+              "A2","C3","E3","A2","D2","F#2","A2","D3"] * 2:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def jazz_waltz():
-    """Jazz waltz in F major — 3/4 time with brushes feel."""
+    """Jazz waltz in F major — 3/4 time."""
     print("  Jazz Waltz in F major")
-    print("  Drums: waltz | Chords: I-ii-V-I | Lead: triangle")
-    print()
+    print("  Drums: waltz | Lead: triangle | Bass: sine")
 
-    score = Pattern.preset("waltz").to_score(repeats=16, bpm=150)
+    score = Score("3/4", bpm=150)
+    score.add_pattern(Pattern.preset("waltz"), repeats=16)
 
-    # 4 bars per change, 3 beats each = 12 beats per chord
+    chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
+    lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.45)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.4)
+
     for _ in range(2):
         for sym in ["Fmaj7", "Gm", "C7", "Fmaj7"]:
-            score.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
-            score.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
-            score.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
-            score.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
+            for _ in range(4):
+                chords.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
 
-    melody = [
-        # 3/4 phrases, lyrical
-        ("A5", 1.5), ("G5", 0.5), ("F5", 1.0),
-        ("E5", 1.0), ("C5", 1.0), ("F5", 1.0),
-        ("A5", 2.0), (None, 1.0),
-        ("G5", 2.0), (None, 1.0),
-        # Over Gm
-        ("Bb5", 1.0), ("A5", 0.5), ("G5", 0.5),
-        ("F5", 1.0), ("D5", 1.0), ("G5", 1.0),
-        ("Bb5", 2.0), (None, 1.0),
-        ("A5", 1.5), ("G5", 0.5), ("F5", 1.0),
-        # Over C7
-        ("E5", 1.0), ("G5", 1.0), ("Bb5", 1.0),
-        ("A5", 1.5), ("G5", 0.5), ("E5", 1.0),
-        ("C5", 2.0), (None, 1.0),
-        ("E5", 1.0), ("G5", 1.0), ("C5", 1.0),
-        # Resolve to F
-        ("F5", 2.0), ("A5", 1.0),
-        ("C6", 2.0), (None, 1.0),
-        ("A5", 1.0), ("F5", 1.0), ("C5", 1.0),
-        ("F5", 3.0),
-    ]
+    for n, d in [
+        ("A5",1.5),("G5",.5),("F5",1),("E5",1),("C5",1),("F5",1),
+        ("A5",2),(None,1),("G5",2),(None,1),
+        ("Bb5",1),("A5",.5),("G5",.5),("F5",1),("D5",1),("G5",1),
+        ("Bb5",2),(None,1),("A5",1.5),("G5",.5),("F5",1),
+        ("E5",1),("G5",1),("Bb5",1),("A5",1.5),("G5",.5),("E5",1),
+        ("C5",2),(None,1),("E5",1),("G5",1),("C5",1),
+        ("F5",2),("A5",1),("C6",2),(None,1),
+        ("A5",1),("F5",1),("C5",1),("F5",3),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
 
-    buf = render_score(score, melody=melody, melody_synth=triangle_wave,
-                       melody_envelope=(0.02, 0.1, 0.7, 0.2),
-                       melody_volume=0.45, drum_volume=0.4)
-    play_song(buf)
+    for n in ["F2","A2","C3","G2","Bb2","D3","C2","E2","G2","F2","A2","C3"] * 4:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 def house_anthem():
-    """House in C minor — four-on-the-floor with pad chords."""
+    """House in C minor — four-on-the-floor with acid lead."""
     print("  House Anthem in C minor")
-    print("  Drums: house | Chords: i-bVI-bVII-i | Lead: saw (acid)")
-    print()
+    print("  Drums: house | Lead: sawtooth (acid) | Bass: sine")
 
-    score = Pattern.preset("house").to_score(repeats=8, bpm=124)
+    score = Score("4/4", bpm=124)
+    score.add_pattern(Pattern.preset("house"), repeats=8)
 
-    changes = ["Cm", "Ab", "Bb", "Cm"] * 2
-    for sym in changes:
-        score.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
+    lead = score.part("lead", synth="saw", envelope="staccato", volume=0.4)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.5)
 
-    melody = [
-        # Acid-style arpeggiated lead
-        ("C5", 0.25), ("Eb5", 0.25), ("G5", 0.25), ("C5", 0.25),
-        ("Eb5", 0.25), ("G5", 0.25), ("C5", 0.25), ("Eb5", 0.25),
-        ("G5", 0.25), ("Eb5", 0.25), ("C5", 0.25), ("G4", 0.25),
-        ("C5", 0.5), (None, 0.5), ("Eb5", 0.5), ("G5", 0.5),
-        # Over Ab
-        ("Ab4", 0.25), ("C5", 0.25), ("Eb5", 0.25), ("Ab4", 0.25),
-        ("C5", 0.25), ("Eb5", 0.25), ("Ab4", 0.25), ("C5", 0.25),
-        ("Eb5", 0.25), ("C5", 0.25), ("Ab4", 0.25), ("Eb4", 0.25),
-        ("Ab4", 0.5), (None, 0.5), ("C5", 0.5), ("Eb5", 0.5),
-        # Over Bb
-        ("Bb4", 0.25), ("D5", 0.25), ("F5", 0.25), ("Bb4", 0.25),
-        ("D5", 0.25), ("F5", 0.25), ("Bb4", 0.25), ("D5", 0.25),
-        ("F5", 0.5), ("D5", 0.5), ("Bb4", 0.5), ("F5", 0.5),
-        # Back to Cm — resolution
-        ("C5", 0.25), ("Eb5", 0.25), ("G5", 0.25), ("C6", 0.25),
-        ("G5", 0.25), ("Eb5", 0.25), ("C5", 0.25), (None, 0.25),
-        ("C5", 1.5), (None, 0.5),
-        # Second half: more intense
-        ("G5", 0.25), ("G5", 0.25), ("Eb5", 0.25), ("C5", 0.25),
-        ("G5", 0.25), ("G5", 0.25), ("Eb5", 0.25), ("C5", 0.25),
-        ("Eb5", 0.5), ("C5", 0.5), ("G4", 0.5), ("C5", 0.5),
-        ("Eb5", 1.0), (None, 1.0),
-        ("Ab4", 0.5), ("C5", 0.5), ("Eb5", 0.5), ("Ab5", 0.5),
-        ("G5", 0.5), ("Eb5", 0.5), ("C5", 1.0),
-        ("Bb4", 0.5), ("D5", 0.5), ("F5", 0.5), ("Bb5", 0.5),
-        ("F5", 0.5), ("D5", 0.5), ("Bb4", 1.0),
-        ("C5", 0.5), ("Eb5", 0.5), ("G5", 0.5), ("C6", 0.5),
-        ("C6", 2.0),
-    ]
+    for sym in ["Cm", "Ab", "Bb", "Cm"] * 2:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    buf = render_score(score, melody=melody, melody_synth=sawtooth_wave,
-                       melody_envelope=(0.001, 0.03, 0.4, 0.05),
-                       melody_volume=0.35, chord_volume=0.4, drum_volume=0.5)
-    play_song(buf)
+    # Acid arpeggios
+    for n, d in [
+        ("C5",.25),("Eb5",.25),("G5",.25),("C5",.25),
+        ("Eb5",.25),("G5",.25),("C5",.25),("Eb5",.25),
+        ("G5",.25),("Eb5",.25),("C5",.25),("G4",.25),
+        ("C5",.5),(None,.5),("Eb5",.5),("G5",.5),
+        ("Ab4",.25),("C5",.25),("Eb5",.25),("Ab4",.25),
+        ("C5",.25),("Eb5",.25),("Ab4",.25),("C5",.25),
+        ("Eb5",.25),("C5",.25),("Ab4",.25),("Eb4",.25),
+        ("Ab4",.5),(None,.5),("C5",.5),("Eb5",.5),
+        ("Bb4",.25),("D5",.25),("F5",.25),("Bb4",.25),
+        ("D5",.25),("F5",.25),("Bb4",.25),("D5",.25),
+        ("F5",.5),("D5",.5),("Bb4",.5),("F5",.5),
+        ("C5",.25),("Eb5",.25),("G5",.25),("C6",.25),
+        ("G5",.25),("Eb5",.25),("C5",.25),(None,.25),
+        ("C5",1.5),(None,.5),
+        ("G5",.25),("G5",.25),("Eb5",.25),("C5",.25),
+        ("G5",.25),("G5",.25),("Eb5",.25),("C5",.25),
+        ("Eb5",.5),("C5",.5),("G4",.5),("C5",.5),
+        ("Eb5",1),(None,1),
+        ("Ab4",.5),("C5",.5),("Eb5",.5),("Ab5",.5),
+        ("G5",.5),("Eb5",.5),("C5",1),
+        ("Bb4",.5),("D5",.5),("F5",.5),("Bb5",.5),
+        ("F5",.5),("D5",.5),("Bb4",1),
+        ("C5",.5),("Eb5",.5),("G5",.5),("C6",.5),("C6",2),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    # Pumping bass
+    for n in ["C2","C2","C2","C2","Ab1","Ab1","Ab1","Ab1",
+              "Bb1","Bb1","Bb1","Bb1","C2","C2","C2","C2"] * 2:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
 
 
 # ── Main ───────────────────────────────────────────────────────────────────

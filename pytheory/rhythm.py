@@ -59,8 +59,21 @@ class Note:
         return self.duration.value
 
 
-def Rest(duration: Duration = Duration.QUARTER) -> Note:
+class _RawDuration:
+    """A duck-typed Duration wrapper for raw float beat values."""
+    __slots__ = ("value",)
+
+    def __init__(self, beats: float):
+        self.value = float(beats)
+
+    def __repr__(self):
+        return f"{self.value} beats"
+
+
+def Rest(duration=Duration.QUARTER) -> Note:
     """Create a rest (silent note) with the given duration."""
+    if isinstance(duration, (int, float)):
+        duration = _RawDuration(duration)
     return Note(tone=None, duration=duration)
 
 
@@ -907,16 +920,22 @@ class Part:
     def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
         """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
 
+        Duration can be a ``Duration`` enum or a raw float (beats).
+
         Returns self for chaining.
         """
         if isinstance(tone_or_string, str):
             from .tones import Tone
             tone_or_string = Tone.from_string(tone_or_string, system="western")
+        if isinstance(duration, (int, float)):
+            duration = _RawDuration(duration)
         self.notes.append(Note(tone=tone_or_string, duration=duration))
         return self
 
     def rest(self, duration=Duration.QUARTER) -> "Part":
         """Add a rest. Returns self for chaining."""
+        if isinstance(duration, (int, float)):
+            duration = _RawDuration(duration)
         self.notes.append(Note(tone=None, duration=duration))
         return self
 
