@@ -727,26 +727,43 @@ class Chord:
         quality = parts[1] if len(parts) > 1 else ""
 
         scale_names = [t.name for t in scale.tones[:-1]]
-        if root_name not in scale_names:
-            return None
-        degree_idx = scale_names.index(root_name)
 
-        numeral_str = numeral_mod.int2roman(degree_idx + 1, only_ascii=True)
+        def _build_numeral(root, quality, degree_idx, prefix=""):
+            numeral_str = numeral_mod.int2roman(degree_idx + 1, only_ascii=True)
+            suffix = ""
+            if "minor" in quality:
+                numeral_str = numeral_str.lower()
+            if "diminished" in quality:
+                numeral_str = numeral_str.lower()
+                suffix = "dim"
+            if "augmented" in quality:
+                suffix = "+"
+            if "7th" in quality:
+                suffix += "7"
+            if "9th" in quality:
+                suffix += "9"
+            return prefix + numeral_str + suffix
 
-        suffix = ""
-        if "minor" in quality:
-            numeral_str = numeral_str.lower()
-        if "diminished" in quality:
-            numeral_str = numeral_str.lower()
-            suffix = "dim"
-        if "augmented" in quality:
-            suffix = "+"
-        if "7th" in quality:
-            suffix += "7"
-        if "9th" in quality:
-            suffix += "9"
+        # Diatonic match
+        if root_name in scale_names:
+            degree_idx = scale_names.index(root_name)
+            return _build_numeral(root_name, quality, degree_idx)
 
-        return numeral_str + suffix
+        # Chromatic / borrowed chord — find by semitone distance from tonic
+        tonic_tone = scale.tones[0]
+        root_tone = Tone.from_string(root_name + "4", system="western")
+        semitones = (root_tone - tonic_tone) % 12
+
+        # Map semitone distances to flat-degree labels
+        chromatic_degrees = {
+            1: ("b", 1), 3: ("b", 2), 6: ("b", 4),
+            8: ("b", 5), 10: ("b", 6),
+        }
+        if semitones in chromatic_degrees:
+            prefix, deg_idx = chromatic_degrees[semitones]
+            return _build_numeral(root_name, quality, deg_idx, prefix=prefix)
+
+        return None
 
     @property
     def tension(self) -> dict:
@@ -810,6 +827,59 @@ class Chord:
             "minor_seconds": minor_seconds,
             "has_dominant_function": has_dominant,
         }
+
+    def slash(self, bass_note: str, *, octave: int = 3) -> Chord:
+        """Return a slash chord — this chord over a different bass note.
+
+        Slash chords (e.g. C/G, Am/E) place a specific note in the
+        bass voice below the rest of the chord. They're written as
+        ``Chord/Bass`` in lead sheets and are used for bass lines that
+        move stepwise beneath held chords.
+
+        Common uses:
+
+        - **C/E** — first inversion, smooth bass line C→D→E
+        - **C/G** — second inversion, strong bass on the fifth
+        - **D/F#** — passing tone in bass, very common in pop
+
+        Args:
+            bass_note: Note name for the bass (e.g. ``"G"``, ``"F#"``).
+            octave: Octave for the bass note (default 3, one below middle).
+
+        Returns:
+            A new Chord with the bass note prepended.
+
+        Example::
+
+            >>> Chord.from_symbol("C").slash("G")
+            <Chord C major>
+        """
+        from .tones import Tone
+        bass = Tone.from_string(f"{bass_note}{octave}", system="western")
+        return Chord(tones=[bass] + list(self.tones))
+
+    @property
+    def slash_name(self) -> Optional[str]:
+        """Slash chord name if the lowest tone isn't the root.
+
+        Returns ``"C/G"`` style notation when the bass differs from
+        the chord root, or the plain symbol otherwise.
+
+        Example::
+
+            >>> Chord.from_symbol("C").slash("E").slash_name
+            'C/E'
+        """
+        sym = self.symbol
+        if not sym:
+            return None
+        root = self.root
+        if root is None:
+            return sym
+        bass = self.tones[0]
+        if bass.name != root.name:
+            return f"{sym}/{bass.name}"
+        return sym
 
     def add_tone(self, tone) -> Chord:
         """Return a new Chord with an additional tone.
@@ -1366,38 +1436,44 @@ class Fretboard:
         ]
         return cls(tones=[Tone.from_string(t, system="western") for t in strings])
 
-    def scale_diagram(self, scale, frets: int = 12) -> str:
+    def scale_diagram(self, scale, frets: int = 12, chord=None) -> str:
         """Render an ASCII diagram showing where scale notes fall on the neck.
 
-        Each string is shown with dots on frets where scale notes appear.
-        Useful for learning scale patterns on guitar, mandolin, etc.
+        Each string is shown with note names on frets where scale notes
+        appear. When a *chord* is provided, its tones are shown in
+        UPPERCASE and scale-only tones in lowercase, making chord
+        tones visually distinct from passing tones.
 
         Args:
             scale: A Scale object (or anything with a ``note_names`` attribute).
             frets: Number of frets to display (default 12).
+            chord: Optional Chord object. Its tones are highlighted in
+                uppercase; other scale tones appear in lowercase.
 
         Returns:
             A multi-line string showing the fretboard diagram.
 
         Example::
 
-            >>> from pytheory import Fretboard, TonedScale
             >>> fb = Fretboard.guitar()
             >>> pentatonic = TonedScale(tonic="A4")["minor"]
             >>> print(fb.scale_diagram(pentatonic, frets=5))
+
+            >>> # Highlight Am chord tones within the scale:
+            >>> am = Chord.from_symbol("Am")
+            >>> print(fb.scale_diagram(pentatonic, frets=5, chord=am))
         """
         scale_notes = set(scale.note_names)
+        chord_notes = set()
+        if chord is not None:
+            chord_notes = {t.name for t in chord.tones}
+
         max_name = max(len(t.name) for t in self.tones)
         lines = []
 
-        # Each cell is " X |" where X is a note name or dash.
-        # Cell content width is 3 chars (space + 2-char note/dash).
-        # Full cell with separator: 4 chars.
-        # Header must align fret numbers to the center of each cell.
         header_parts = []
         for f in range(frets + 1):
             header_parts.append(f"{f:>2} ")
-        # Offset header to align with cell content (after "X|" prefix)
         header = " " * (max_name + 2) + " ".join(header_parts)
         lines.append(header)
 
@@ -1406,7 +1482,12 @@ class Fretboard:
             for f in range(frets + 1):
                 note = tone.add(f)
                 if note.name in scale_notes:
-                    fret_marks.append(f" {note.name:<2s}")
+                    if chord_notes and note.name in chord_notes:
+                        fret_marks.append(f" {note.name.upper():<2s}")
+                    elif chord_notes:
+                        fret_marks.append(f" {note.name.lower():<2s}")
+                    else:
+                        fret_marks.append(f" {note.name:<2s}")
                 else:
                     fret_marks.append(" - ")
             line = f"{tone.name:>{max_name}}|{'|'.join(fret_marks)}|"
