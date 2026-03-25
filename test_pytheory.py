@@ -3923,3 +3923,138 @@ def test_play_save_chord(tmp_path):
     chord = Chord.from_tones("C", "E", "G")
     save(chord, str(path), t=200)
     assert path.exists()
+
+
+# ── Chord.symbol ────────────────────────────────────────────────────────────
+
+def test_chord_symbol_major():
+    c = Chord.from_tones("C", "E", "G")
+    assert c.symbol == "C"
+
+
+def test_chord_symbol_minor():
+    c = Chord.from_tones("A", "C", "E")
+    assert c.symbol == "Am"
+
+
+def test_chord_symbol_dominant_7th():
+    c = Chord.from_intervals("G", 4, 7, 10)
+    assert c.symbol == "G7"
+
+
+def test_chord_symbol_major_7th():
+    c = Chord.from_intervals("C", 4, 7, 11)
+    assert c.symbol == "Cmaj7"
+
+
+def test_chord_symbol_minor_7th():
+    c = Chord.from_intervals("D", 3, 7, 10)
+    assert c.symbol == "Dm7"
+
+
+def test_chord_symbol_diminished():
+    c = Chord.from_intervals("B", 3, 6)
+    assert c.symbol == "Bdim"
+
+
+def test_chord_symbol_augmented():
+    c = Chord.from_intervals("C", 4, 8)
+    assert c.symbol == "Caug"
+
+
+def test_chord_symbol_sus2():
+    c = Chord.from_intervals("C", 2, 7)
+    assert c.symbol == "Csus2"
+
+
+def test_chord_symbol_sus4():
+    c = Chord.from_intervals("C", 5, 7)
+    assert c.symbol == "Csus4"
+
+
+def test_chord_symbol_power():
+    c = Chord.from_intervals("C", 7)
+    assert c.symbol == "C5"
+
+
+def test_chord_symbol_half_diminished():
+    c = Chord.from_intervals("B", 3, 6, 10)
+    assert c.symbol == "Bm7b5"
+
+
+def test_chord_symbol_dim7():
+    c = Chord.from_intervals("B", 3, 6, 9)
+    assert c.symbol == "Bdim7"
+
+
+def test_chord_symbol_unidentifiable():
+    c = Chord.from_intervals("C", 1)
+    assert c.symbol is None
+
+
+# ── Key.common_progressions ─────────────────────────────────────────────────
+
+def test_common_progressions_returns_dict():
+    key = Key("C", "major")
+    progs = key.common_progressions()
+    assert isinstance(progs, dict)
+    assert len(progs) > 0
+
+
+def test_common_progressions_contains_known():
+    key = Key("C", "major")
+    progs = key.common_progressions()
+    assert "I-V-vi-IV" in progs
+    assert "12-bar blues" in progs
+    assert "ii-V-I" in progs
+
+
+def test_common_progressions_chords_are_correct():
+    key = Key("G", "major")
+    progs = key.common_progressions()
+    chords = progs["I-IV-V-I"]
+    symbols = [c.symbol for c in chords]
+    assert symbols == ["G", "C", "D", "G"]
+
+
+def test_common_progressions_i_v_vi_iv():
+    key = Key("C", "major")
+    progs = key.common_progressions()
+    chords = progs["I-V-vi-IV"]
+    symbols = [c.symbol for c in chords]
+    assert symbols == ["C", "G", "Am", "F"]
+
+
+# ── CLI: modes, circle, progressions ────────────────────────────────────────
+
+def test_cli_modes(capsys):
+    from pytheory.cli import cmd_modes
+    import argparse
+    args = argparse.Namespace(tonic="C", system="western")
+    cmd_modes(args)
+    out = capsys.readouterr().out
+    assert "ionian" in out
+    assert "dorian" in out
+    assert "locrian" in out
+
+
+def test_cli_circle(capsys):
+    from pytheory.cli import cmd_circle
+    import argparse
+    args = argparse.Namespace(tonic="C")
+    cmd_circle(args)
+    out = capsys.readouterr().out
+    assert "Circle of fifths" in out
+    assert "Circle of fourths" in out
+    assert "G" in out
+    assert "F" in out
+
+
+def test_cli_progressions(capsys):
+    from pytheory.cli import cmd_progressions
+    import argparse
+    args = argparse.Namespace(tonic="C", mode="major")
+    cmd_progressions(args)
+    out = capsys.readouterr().out
+    assert "I-V-vi-IV" in out
+    assert "C" in out

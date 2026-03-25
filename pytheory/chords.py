@@ -468,6 +468,53 @@ class Chord:
                     return self._identify_cache
         return None
 
+    _SYMBOL_MAP = {
+        "major": "",
+        "minor": "m",
+        "diminished": "dim",
+        "augmented": "aug",
+        "sus2": "sus2",
+        "sus4": "sus4",
+        "power": "5",
+        "dominant 7th": "7",
+        "major 7th": "maj7",
+        "minor 7th": "m7",
+        "diminished 7th": "dim7",
+        "half-diminished 7th": "m7b5",
+        "minor-major 7th": "mMaj7",
+        "augmented 7th": "aug7",
+        "dominant 9th": "9",
+        "major 9th": "maj9",
+        "minor 9th": "m9",
+    }
+
+    @property
+    def symbol(self) -> Optional[str]:
+        """Standard chord symbol (e.g. ``"Cmaj7"``, ``"Dm"``, ``"G7"``).
+
+        Returns the compact notation used in lead sheets and fake books,
+        or ``None`` if the chord can't be identified.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).symbol
+            'C'
+            >>> Chord([C4, E4, G4, B4]).symbol
+            'Cmaj7'
+            >>> Chord([A4, C5, E5]).symbol
+            'Am'
+            >>> Chord([G4, B4, D5, F5]).symbol
+            'G7'
+        """
+        name = self.identify()
+        if not name:
+            return None
+        parts = name.split(" ", 1)
+        root = parts[0]
+        quality = parts[1] if len(parts) > 1 else "major"
+        suffix = self._SYMBOL_MAP.get(quality, quality)
+        return f"{root}{suffix}"
+
     def voice_leading(self, other: Chord) -> list[tuple[Tone, Tone, int]]:
         """Find the smoothest voice leading to another chord.
 

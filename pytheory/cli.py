@@ -127,6 +127,44 @@ def cmd_play(args):
     play(target, temperament=args.temperament, synth=synth, t=duration)
 
 
+def cmd_modes(args):
+    from .scales import TonedScale
+    ts = TonedScale(tonic=f"{args.tonic}4", system=args.system)
+    mode_names = ["ionian", "dorian", "phrygian", "lydian",
+                  "mixolydian", "aeolian", "locrian"]
+    print(f"  Modes of {args.tonic}:\n")
+    for mode in mode_names:
+        try:
+            scale = ts[mode]
+            notes = " ".join(scale.note_names)
+            print(f"    {mode:<12s}  {notes}")
+        except KeyError:
+            continue
+
+
+def cmd_circle(args):
+    from .tones import Tone
+    tone = Tone.from_string(f"{args.tonic}4", system="western")
+    fifths = tone.circle_of_fifths()
+    fourths = tone.circle_of_fourths()
+
+    print(f"  Circle of fifths from {args.tonic}:")
+    print(f"    → {' → '.join(t.name for t in fifths)}")
+    print()
+    print(f"  Circle of fourths from {args.tonic}:")
+    print(f"    → {' → '.join(t.name for t in fourths)}")
+
+
+def cmd_progressions(args):
+    from .scales import Key
+    key = Key(args.tonic, args.mode)
+    progs = key.common_progressions()
+    print(f"  Common progressions in {key}:\n")
+    for name, chords in progs.items():
+        symbols = [c.symbol or str(c) for c in chords]
+        print(f"    {name:<20s}  {' → '.join(symbols)}")
+
+
 def cmd_detect(args):
     from .scales import Key
     key = Key.detect(*args.notes)
@@ -193,6 +231,20 @@ def main():
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
 
+    # modes
+    p = sub.add_parser("modes", help="Show all modes of a note (e.g. pytheory modes C)")
+    p.add_argument("tonic", help="Tonic note (e.g. C, G)")
+    p.add_argument("--system", default="western", help="Musical system (default: western)")
+
+    # circle
+    p = sub.add_parser("circle", help="Circle of fifths/fourths (e.g. pytheory circle C)")
+    p.add_argument("tonic", help="Starting note (e.g. C, G)")
+
+    # progressions
+    p = sub.add_parser("progressions", help="Common progressions in a key (e.g. pytheory progressions C major)")
+    p.add_argument("tonic", help="Tonic note")
+    p.add_argument("mode", nargs="?", default="major", help="Mode (default: major)")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -207,6 +259,9 @@ def main():
         "progression": cmd_progression,
         "play": cmd_play,
         "detect": cmd_detect,
+        "modes": cmd_modes,
+        "circle": cmd_circle,
+        "progressions": cmd_progressions,
     }
     commands[args.command](args)
 

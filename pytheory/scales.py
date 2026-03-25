@@ -465,6 +465,30 @@ class Key:
         root = target.add(7)
         return Chord(tones=[root, root.add(4), root.add(7), root.add(10)])
 
+    def common_progressions(self) -> dict[str, list]:
+        """Named chord progressions realized in this key.
+
+        Returns a dict mapping progression names (from ``PROGRESSIONS``)
+        to lists of Chord objects built in this key.
+
+        Example::
+
+            >>> key = Key("C", "major")
+            >>> for name, chords in key.common_progressions().items():
+            ...     symbols = [c.symbol or str(c) for c in chords]
+            ...     print(f"{name}: {' → '.join(symbols)}")
+            I-IV-V-I: C → F → G → C
+            I-V-vi-IV: C → G → Am → F
+            ...
+        """
+        result = {}
+        for name, numerals in PROGRESSIONS.items():
+            try:
+                result[name] = self.progression(*numerals)
+            except (KeyError, ValueError, IndexError):
+                continue
+        return result
+
     @classmethod
     def all_keys(cls) -> list[Key]:
         """Return all 24 major and minor keys.
