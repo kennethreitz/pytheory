@@ -1359,7 +1359,8 @@ class Part:
                  delay: float = 0.0, delay_time: float = 0.375,
                  delay_feedback: float = 0.4,
                  lowpass: float = 0.0, lowpass_q: float = 0.707,
-                 distortion: float = 0.0, distortion_drive: float = 3.0):
+                 distortion: float = 0.0, distortion_drive: float = 3.0,
+                 legato: bool = False, glide: float = 0.0):
         self.name = name
         self.synth = synth
         self.envelope = envelope
@@ -1373,6 +1374,8 @@ class Part:
         self.lowpass_q = lowpass_q
         self.distortion_mix = distortion
         self.distortion_drive = distortion_drive
+        self.legato = legato
+        self.glide = glide
         self.notes: list[Note] = []
 
     def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
@@ -1456,7 +1459,8 @@ class Score:
              delay: float = 0.0, delay_time: float = 0.375,
              delay_feedback: float = 0.4,
              lowpass: float = 0.0, lowpass_q: float = 0.707,
-             distortion: float = 0.0, distortion_drive: float = 3.0) -> Part:
+             distortion: float = 0.0, distortion_drive: float = 3.0,
+             legato: bool = False, glide: float = 0.0) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1482,6 +1486,11 @@ class Score:
             distortion: Distortion wet/dry mix, 0.0–1.0 (default 0, off).
             distortion_drive: Gain before soft clipping (default 3.0).
                 0.5–2 = subtle warmth, 3–8 = overdrive, 10+ = fuzz.
+            legato: If True, notes share a continuous waveform instead
+                of retriggering the envelope on each note (default False).
+            glide: Portamento time in seconds between consecutive pitches
+                (default 0, instant). 0.03–0.05 = quick 303 slide,
+                0.1–0.2 = slow glide.
 
         Returns:
             A :class:`Part` object. Add notes with ``.add()`` and ``.rest()``.
@@ -1496,7 +1505,8 @@ class Score:
                  delay=delay, delay_time=delay_time,
                  delay_feedback=delay_feedback,
                  lowpass=lowpass, lowpass_q=lowpass_q,
-                 distortion=distortion, distortion_drive=distortion_drive)
+                 distortion=distortion, distortion_drive=distortion_drive,
+                 legato=legato, glide=glide)
         self.parts[name] = p
         return p
 

@@ -923,6 +923,98 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
         beat_pos += note.beats
 
 
+def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
+                          synth_fn, envelope_tuple, volume, bpm,
+                          glide_time=0.0):
+    """Render notes as one continuous waveform with pitch glide.
+
+    Instead of rendering each note separately with its own envelope,
+    legato mode generates a single continuous oscillator whose
+    frequency changes at note boundaries. The envelope is applied
+    once over the entire phrase — attack at the start, release at
+    the end, sustain throughout.
+
+    When glide > 0, the frequency slides smoothly between consecutive
+    pitches using exponential interpolation (so slides sound linear
+    in pitch, not frequency — matching how humans perceive pitch).
+    """
+    # Build a frequency timeline: (sample_position, target_hz) pairs
+    events = []  # (start_sample, end_sample, hz_or_none)
+    beat_pos = 0.0
+    for note in notes:
+        start = int(beat_pos * samples_per_beat)
+        dur_samples = int(note.beats * samples_per_beat)
+        end = min(start + dur_samples, total_samples)
+        if note.tone is not None:
+            if hasattr(note.tone, 'tones'):
+                hz = note.tone.tones[0].pitch()  # use root for chords
+            else:
+                hz = note.tone.pitch()
+            events.append((start, end, hz))
+        else:
+            events.append((start, end, 0))  # rest
+        beat_pos += note.beats
+
+    if not events:
+        return
+
+    # Build the frequency curve with glide
+    glide_samples = int(glide_time * SAMPLE_RATE)
+    freq_curve = numpy.zeros(total_samples, dtype=numpy.float64)
+    amp_curve = numpy.zeros(total_samples, dtype=numpy.float32)
+    prev_hz = 0
+
+    for start, end, hz in events:
+        if start >= total_samples:
+            break
+        end = min(end, total_samples)
+        if hz > 0:
+            amp_curve[start:end] = 1.0
+            if glide_samples > 0 and prev_hz > 0 and prev_hz != hz:
+                # Exponential glide from prev_hz to hz
+                g_end = min(start + glide_samples, end)
+                g_len = g_end - start
+                if g_len > 0:
+                    t = numpy.linspace(0, 1, g_len)
+                    # Log interpolation for perceptually linear pitch slide
+                    freq_curve[start:g_end] = prev_hz * (hz / prev_hz) ** t
+                    freq_curve[g_end:end] = hz
+                else:
+                    freq_curve[start:end] = hz
+            else:
+                freq_curve[start:end] = hz
+            prev_hz = hz
+        else:
+            # Rest: silence but keep prev_hz for next glide
+            amp_curve[start:end] = 0.0
+            freq_curve[start:end] = prev_hz if prev_hz > 0 else 440
+
+    # Generate continuous waveform from frequency curve
+    # Use phase accumulation for smooth frequency changes
+    phase = numpy.cumsum(2 * numpy.pi * freq_curve / SAMPLE_RATE)
+    wave = numpy.sin(phase).astype(numpy.float32)
+
+    # Apply amplitude (on/off for notes vs rests)
+    wave *= amp_curve
+
+    # Apply single envelope over the entire active region
+    # Find first and last non-zero samples
+    active = numpy.nonzero(amp_curve)[0]
+    if len(active) == 0:
+        return
+
+    first = active[0]
+    last = active[-1] + 1
+    a, d, s, r = envelope_tuple
+    if a > 0 or d > 0 or s < 1.0 or r > 0:
+        env_buf = wave[first:last].copy()
+        env_buf = _apply_envelope(env_buf, a, d, s, r)
+        wave[first:last] = env_buf
+
+    end = min(len(wave), total_samples)
+    buf[:end] += wave[:end] * volume
+
+
 def render_score(score):
     """Render a Score to a float32 audio buffer.
 
@@ -952,12 +1044,18 @@ def render_score(score):
             part_buf = numpy.zeros(total_samples, dtype=numpy.float32)
             synth_fn = _resolve_synth(part.synth)
             env_tuple = _resolve_envelope(part.envelope)
-            _render_notes_to_buf(
-                part.notes, part_buf, samples_per_beat, total_samples,
-                synth_fn, env_tuple, part.volume, score.bpm)
+            if part.legato:
+                _render_legato_to_buf(
+                    part.notes, part_buf, samples_per_beat, total_samples,
+                    synth_fn, env_tuple, part.volume, score.bpm,
+                    glide_time=part.glide)
+            else:
+                _render_notes_to_buf(
+                    part.notes, part_buf, samples_per_beat, total_samples,
+                    synth_fn, env_tuple, part.volume, score.bpm)
             # Apply per-part effects
             has_fx = (part.lowpass > 0 or part.delay_mix > 0
-                      or part.reverb_mix > 0)
+                      or part.reverb_mix > 0 or part.distortion_mix > 0)
             if has_fx:
                 part_buf = _apply_part_effects(part_buf, part)
             buf += part_buf

@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.19.0
+
+- Add legato mode for parts — continuous waveform without retriggering envelope per note
+- Add glide/portamento — smooth pitch slides between consecutive notes (303-style)
+- Legato renders entire phrase as one oscillator with phase-accumulating frequency changes
+- Glide uses exponential interpolation for perceptually linear pitch slides
+
 ## 0.18.1
 
 - Add distortion effect (tanh soft-clip waveshaping) with drive and mix controls
