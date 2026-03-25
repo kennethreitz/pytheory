@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.14.0
+
+- Add `Part` class for multi-voice Score arrangements (lead, bass, pads, etc.)
+- `Score.part()` creates named parts with independent synth, envelope, and volume
+- `Score.add_pattern()` for attaching drum patterns
+- `render_score()` exported for headless buffer rendering
+- Parts accept raw float beat values alongside `Duration` enums
+- All 10 example songs rewritten with drums + chords + lead + bass parts
+
 ## 0.13.1
 
 - Fix drum pattern repeats: hits now correctly offset across cycles instead of piling up on the first bar
