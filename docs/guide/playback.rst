@@ -155,6 +155,43 @@ Envelopes work with all functions — ``play()``, ``save()``, and
    >>> chords = Key("C", "major").progression("I", "V", "vi", "IV")
    >>> play_progression(chords, t=2000, envelope=Envelope.PAD)
 
+Playing a Score
+---------------
+
+A ``Score`` combines drum patterns and chord progressions into a single
+playable arrangement. ``play_score()`` renders everything — synthesized
+drums and tonal chords — mixed together in one audio buffer:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Pattern, Key, Duration
+   >>> from pytheory.play import play_score
+
+   >>> key = Key("A", "minor")
+   >>> score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
+   >>> for chord in key.progression("i", "iv", "V", "i"):
+   ...     score.add(chord, Duration.WHOLE)
+   ...     score.add(chord, Duration.WHOLE)
+   >>> play_score(score)
+
+Try different combinations:
+
+.. code-block:: pycon
+
+   >>> # Salsa with a ii-V-I
+   >>> key = Key("C", "major")
+   >>> score = Pattern.preset("salsa").to_score(repeats=4, bpm=180)
+   >>> for chord in key.progression("ii", "V", "I", "I") * 2:
+   ...     score.add(chord, Duration.WHOLE)
+   >>> play_score(score)
+
+   >>> # Jazz ballad
+   >>> key = Key("Bb", "major")
+   >>> score = Pattern.preset("jazz").to_score(repeats=8, bpm=90)
+   >>> for chord in key.progression("I", "vi", "ii", "V") * 2:
+   ...     score.add(chord, Duration.WHOLE)
+   >>> play_score(score)
+
 MIDI Export
 -----------
 
