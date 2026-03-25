@@ -9,10 +9,11 @@ from .chords import Chord, Fretboard, analyze_progression
 from .charts import CHARTS, Fingering, charts_for_fretboard
 
 try:
-    from .play import play, save, play_progression, Synth, Envelope
+    from .play import play, save, save_midi, play_progression, Synth, Envelope
 except OSError:
     play = None
     save = None
+    save_midi = None
     play_progression = None
     Synth = None
     Envelope = None
@@ -25,5 +26,5 @@ __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
     "PROGRESSIONS", "Chord", "Fretboard", "Fingering", "analyze_progression",
     "System", "SYSTEMS", "CHARTS", "charts_for_fretboard",
-    "play", "save", "play_progression", "Synth", "Envelope",
+    "play", "save", "save_midi", "play_progression", "Synth", "Envelope",
 ]

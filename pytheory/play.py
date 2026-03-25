@@ -238,3 +238,110 @@ def play_progression(chords, *, t=1000, synth=Synth.SINE, gap=100,
         play(chord, synth=synth, t=t, envelope=envelope)
         if gap > 0 and i < len(chords) - 1:
             time.sleep(gap / 1000.0)
+
+
+# ── MIDI export ─────────────────────────────────────────────────────────────
+
+def _vlq(value):
+    """Encode an integer as MIDI variable-length quantity bytes."""
+    result = []
+    result.append(value & 0x7F)
+    value >>= 7
+    while value:
+        result.append((value & 0x7F) | 0x80)
+        value >>= 7
+    return bytes(reversed(result))
+
+
+def save_midi(tone_or_chords, path, *, t=500, velocity=100, bpm=120, gap=0):
+    """Save a tone, chord, or progression as a Standard MIDI File.
+
+    Writes a Type 0 (single-track) MIDI file that any DAW, notation
+    software, or MIDI player can open. Far more useful than WAV for
+    musicians — you can edit the notes, change the tempo, transpose,
+    and assign any instrument.
+
+    Args:
+        tone_or_chords: A Tone, Chord, or list of Tones/Chords.
+            A single Tone or Chord is written as one event.
+            A list is written as a sequence (progression).
+        path: Output file path (e.g. ``"progression.mid"``).
+        t: Duration of each note/chord in milliseconds (default 500).
+        velocity: MIDI velocity 1-127 (default 100).
+        bpm: Tempo in beats per minute (default 120).
+        gap: Silence between chords in milliseconds (default 0).
+
+    Example::
+
+        >>> from pytheory import Key, save_midi
+        >>> chords = Key("C", "major").progression("I", "V", "vi", "IV")
+        >>> save_midi(chords, "pop.mid", t=500, bpm=120)
+
+        >>> save_midi(Tone.from_string("C4"), "middle_c.mid", t=1000)
+    """
+    import struct
+
+    ticks_per_beat = 480
+    us_per_beat = int(60_000_000 / bpm)
+    ticks_per_ms = ticks_per_beat * bpm / 60_000
+
+    # Normalize input to a list of items
+    if isinstance(tone_or_chords, list):
+        items = tone_or_chords
+    else:
+        items = [tone_or_chords]
+
+    # Build track events
+    events = bytearray()
+
+    # Tempo meta event: FF 51 03 <3 bytes of microseconds per beat>
+    events += _vlq(0)  # delta time
+    events += b'\xFF\x51\x03'
+    events += struct.pack('>I', us_per_beat)[1:]  # 3 bytes
+
+    duration_ticks = int(t * ticks_per_ms)
+    gap_ticks = int(gap * ticks_per_ms)
+
+    for item in items:
+        # Get MIDI note numbers
+        if hasattr(item, 'tones'):
+            notes = [tone.midi for tone in item.tones if tone.midi is not None]
+        else:
+            midi = item.midi
+            notes = [midi] if midi is not None else []
+
+        if not notes:
+            continue
+
+        # Note On events (delta=0 for all)
+        for note in notes:
+            events += _vlq(0)
+            events += bytes([0x90, note & 0x7F, velocity & 0x7F])
+
+        # Note Off events after duration
+        for i, note in enumerate(notes):
+            delta = duration_ticks if i == 0 else 0
+            events += _vlq(delta)
+            events += bytes([0x80, note & 0x7F, 0])
+
+        # Gap between chords
+        if gap_ticks > 0:
+            events += _vlq(gap_ticks)
+            events += bytes([0x90, 0, 0])  # silent note-on as spacer
+            events += _vlq(0)
+            events += bytes([0x80, 0, 0])
+
+    # End of track
+    events += _vlq(0)
+    events += b'\xFF\x2F\x00'
+
+    # Write MIDI file
+    with open(path, 'wb') as f:
+        # Header: MThd, length=6, format=0, tracks=1, ticks_per_beat
+        f.write(b'MThd')
+        f.write(struct.pack('>I', 6))
+        f.write(struct.pack('>HHH', 0, 1, ticks_per_beat))
+        # Track chunk
+        f.write(b'MTrk')
+        f.write(struct.pack('>I', len(events)))
+        f.write(events)
