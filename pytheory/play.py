@@ -3,9 +3,14 @@ import time
 
 import numpy
 import scipy.signal
-import sounddevice as sd
 
 from .tones import Tone
+
+
+def _get_sd():
+    """Lazy import sounddevice — only needed for actual audio playback."""
+    import sounddevice as sd
+    return sd
 
 SAMPLE_RATE = 44_100   # CD-quality sample rate (Hz)
 SAMPLE_PEAK = 4_096    # Peak amplitude for 16-bit integer samples
@@ -257,8 +262,9 @@ class Envelope(Enum):
 def _play_for(sample_wave, ms):
     """Play the given NumPy sample array through the speakers."""
     normalized_wave = sample_wave.astype(numpy.float32) / SAMPLE_PEAK
-    sd.play(normalized_wave, SAMPLE_RATE)
-    sd.wait()
+    _sd = _get_sd()
+    _sd.play(normalized_wave, SAMPLE_RATE)
+    _sd.wait()
 
 
 class Synth(Enum):
@@ -708,8 +714,9 @@ def play_pattern(pattern, repeats=1, bpm=120):
     rendered = _render_pattern(pattern, bpm=bpm)
     if repeats > 1:
         rendered = numpy.tile(rendered, repeats)
-    sd.play(rendered, SAMPLE_RATE)
-    sd.wait()
+    _sd = _get_sd()
+    _sd.play(rendered, SAMPLE_RATE)
+    _sd.wait()
 
 
 # ── Audio effects ───────────────────────────────────────────────────────────
@@ -1575,8 +1582,9 @@ def play_score(score):
         >>> play_score(score)
     """
     buf = render_score(score)
-    sd.play(buf, SAMPLE_RATE)
-    sd.wait()
+    _sd = _get_sd()
+    _sd.play(buf, SAMPLE_RATE)
+    _sd.wait()
 
 
 # ── MIDI export ─────────────────────────────────────────────────────────────
