@@ -1358,7 +1358,8 @@ class Part:
                  reverb: float = 0.0, reverb_decay: float = 1.0,
                  delay: float = 0.0, delay_time: float = 0.375,
                  delay_feedback: float = 0.4,
-                 lowpass: float = 0.0, lowpass_q: float = 0.707):
+                 lowpass: float = 0.0, lowpass_q: float = 0.707,
+                 distortion: float = 0.0, distortion_drive: float = 3.0):
         self.name = name
         self.synth = synth
         self.envelope = envelope
@@ -1370,6 +1371,8 @@ class Part:
         self.delay_feedback = delay_feedback
         self.lowpass = lowpass
         self.lowpass_q = lowpass_q
+        self.distortion_mix = distortion
+        self.distortion_drive = distortion_drive
         self.notes: list[Note] = []
 
     def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
@@ -1452,7 +1455,8 @@ class Score:
              reverb: float = 0.0, reverb_decay: float = 1.0,
              delay: float = 0.0, delay_time: float = 0.375,
              delay_feedback: float = 0.4,
-             lowpass: float = 0.0, lowpass_q: float = 0.707) -> Part:
+             lowpass: float = 0.0, lowpass_q: float = 0.707,
+             distortion: float = 0.0, distortion_drive: float = 3.0) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1475,6 +1479,9 @@ class Score:
             lowpass_q: Filter resonance/Q factor (default 0.707, flat).
                 Higher values add a resonant peak at the cutoff —
                 1.0 = slight peak, 2.0 = pronounced, 5.0+ = aggressive.
+            distortion: Distortion wet/dry mix, 0.0–1.0 (default 0, off).
+            distortion_drive: Gain before soft clipping (default 3.0).
+                0.5–2 = subtle warmth, 3–8 = overdrive, 10+ = fuzz.
 
         Returns:
             A :class:`Part` object. Add notes with ``.add()`` and ``.rest()``.
@@ -1488,7 +1495,8 @@ class Score:
                  reverb=reverb, reverb_decay=reverb_decay,
                  delay=delay, delay_time=delay_time,
                  delay_feedback=delay_feedback,
-                 lowpass=lowpass, lowpass_q=lowpass_q)
+                 lowpass=lowpass, lowpass_q=lowpass_q,
+                 distortion=distortion, distortion_drive=distortion_drive)
         self.parts[name] = p
         return p
 

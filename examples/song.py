@@ -596,6 +596,164 @@ def gospel_shuffle():
     play_song(score)
 
 
+def dub_delay_madness():
+    """Dub with separate delay snare track — King Tubby style."""
+    print("  Dub Delay Madness in E minor")
+    print("  dub drums + separate snare w/ massive delay + reverb")
+    print("  square skank + reverb | sine sub bass | PWM siren")
+
+    score = Score("4/4", bpm=68)
+    score.drums("dub", repeats=8)
+
+    # Separate snare hits — fed through massive delay and reverb
+    # This is how Tubby did it: mute the snare from the main mix,
+    # then send it to a separate channel drowning in effects
+    from pytheory.rhythm import _Hit, DrumSound
+    for bar in range(8):
+        offset = bar * 4.0
+        # Snare on beat 3 of every bar
+        score._drum_hits.append(_Hit(DrumSound.SNARE, offset + 2.0, 110))
+        # Occasional rimshot ghost that the delay catches
+        if bar % 2 == 1:
+            score._drum_hits.append(_Hit(DrumSound.RIMSHOT, offset + 3.5, 60))
+
+    chords = score.part("skank", synth="square", envelope="staccato",
+                        volume=0.15, reverb=0.7, reverb_decay=3.0,
+                        lowpass=1200)
+    bass = score.part("bass", synth="sine", envelope="pluck",
+                      volume=0.6, lowpass=350, lowpass_q=1.5)
+    siren = score.part("siren", synth="pwm_slow", envelope="pad",
+                       volume=0.12, reverb=0.8, reverb_decay=4.0,
+                       delay=0.4, delay_time=0.88, delay_feedback=0.6,
+                       lowpass=900)
+    # Melodica stabs — sparse, lots of delay
+    melodica = score.part("melodica", synth="triangle", envelope="pluck",
+                          volume=0.35, delay=0.6, delay_time=0.66,
+                          delay_feedback=0.55, reverb=0.5, reverb_decay=2.5)
+
+    for sym in ["Em", "Em", "Am", "Am", "Em", "Em", "Bm", "Em"]:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    for n in ["E1","E1","E1","E1","A1","A1","A1","A1",
+              "E1","E1","E1","E1","B1","B1","E1","E1"]:
+        bass.add(n, Duration.HALF)
+
+    # Melodica: very sparse — let the delay do the work
+    for n, d in [
+        ("E5", 1.5), (None, 6.5),
+        ("G5", 1), ("A5", 1), (None, 6),
+        (None, 4), ("B5", 2), (None, 6),
+        ("E5", 1), (None, 3), ("D5", 1.5), (None, 2.5),
+    ]:
+        melodica.rest(d) if n is None else melodica.add(n, d)
+
+    # Siren: long notes that disappear into the void
+    for n, d in [
+        (None, 12), ("B5", 6), (None, 6),
+        ("E5", 4), (None, 4),
+    ]:
+        siren.rest(d) if n is None else siren.add(n, d)
+
+    play_song(score)
+
+
+def drum_and_bass():
+    """Drum and bass in A minor — 174 bpm liquid rollers."""
+    print("  Liquid DnB in A minor")
+    print("  drum and bass drums + fill | supersaw pads + reverb")
+    print("  triangle lead + delay | sine sub bass + LP 300Hz")
+
+    score = Score("4/4", bpm=174)
+    score.drums("drum and bass", repeats=8, fill="buildup", fill_every=8)
+
+    pads = score.part("pads", synth="supersaw", envelope="pad",
+                      volume=0.25, reverb=0.5, reverb_decay=2.5,
+                      lowpass=4000)
+    lead = score.part("lead", synth="triangle", envelope="strings",
+                      volume=0.4, delay=0.3, delay_time=0.172,
+                      delay_feedback=0.4, reverb=0.25)
+    bass = score.part("bass", synth="sine", envelope="pluck",
+                      volume=0.55, lowpass=300)
+
+    for sym in ["Am", "F", "C", "G"] * 2:
+        pads.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    # Liquid melody — flowing, emotional
+    for n, d in [
+        ("A5", 1), ("G5", .5), ("E5", .5), ("C5", 1), (None, 1),
+        ("D5", .5), ("E5", .5), ("G5", 1), ("A5", 1.5), (None, .5),
+        ("C6", 1), ("B5", .5), ("A5", .5), ("G5", 1), ("E5", 1),
+        ("F5", .5), ("G5", .5), ("A5", 1.5), (None, .5), ("G5", 1),
+        ("A5", 1), ("G5", .5), ("E5", .5), ("C5", 1), (None, 1),
+        ("E5", .5), ("G5", .5), ("B5", 1), ("A5", 2),
+        ("G5", 1), ("E5", .5), ("D5", .5), ("C5", 1.5), (None, .5),
+        ("E5", .5), ("G5", .5), ("A5", 2), (None, 1),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    # Sub bass — half note roots, deep
+    for n in ["A1","A1","F1","F1","C1","C1","G1","G1"] * 2:
+        bass.add(n, Duration.HALF)
+
+    play_song(score)
+
+
+def drake_vibes():
+    """Drake-style moody hip hop — 808s, pads, and melancholy."""
+    print("  Late Night Texts (Drake-style)")
+    print("  trap drums | FM bells + reverb + delay | supersaw pads + LP")
+    print("  sine 808 bass + distortion | PWM slow lead")
+
+    score = Score("4/4", bpm=68)
+    score.drums("trap", repeats=8, fill="trap", fill_every=8)
+
+    pads = score.part("pads", synth="supersaw", envelope="pad",
+                      volume=0.2, reverb=0.5, reverb_decay=3.0,
+                      lowpass=2500)
+    bells = score.part("bells", synth="fm", envelope="bell",
+                       volume=0.3, reverb=0.4, reverb_decay=2.0,
+                       delay=0.25, delay_time=0.44,
+                       delay_feedback=0.35)
+    lead = score.part("lead", synth="pwm_slow", envelope="strings",
+                      volume=0.35, reverb=0.3, lowpass=2000,
+                      delay=0.2, delay_time=0.88, delay_feedback=0.3)
+    bass = score.part("bass", synth="sine", envelope="pluck",
+                      volume=0.6, lowpass=200, lowpass_q=1.8,
+                      distortion=0.4, distortion_drive=2.0)
+
+    for sym in ["Ebm", "B", "Gb", "Db"] * 2:
+        pads.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    # FM bells — sparse, melancholy arpeggios
+    for n, d in [
+        ("Eb5", .5), ("Gb5", .5), ("Bb5", 1), (None, 2),
+        ("Db5", .5), ("F5", .5), ("Ab5", 1), (None, 2),
+        ("Gb5", .5), ("Bb5", .5), ("Db6", 1), (None, 2),
+        ("F5", .5), ("Ab5", .5), ("Db6", 1.5), (None, 1.5),
+        ("Eb5", .5), ("Gb5", .5), ("Bb5", 1), (None, 2),
+        ("B4", .5), ("Eb5", .5), ("Gb5", 1), (None, 2),
+        ("Gb5", 1), ("F5", .5), ("Eb5", .5), ("Db5", 2),
+        (None, 4),
+    ]:
+        bells.rest(d) if n is None else bells.add(n, d)
+
+    # PWM lead — long held notes, moody
+    for n, d in [
+        (None, 4), ("Bb5", 3), (None, 1),
+        (None, 2), ("Ab5", 2), ("Gb5", 2), (None, 2),
+        ("Db6", 4), (None, 4),
+        ("Bb5", 2), ("Ab5", 2), (None, 4),
+    ]:
+        lead.rest(d) if n is None else lead.add(n, d)
+
+    # 808 bass — sustained with distortion warmth
+    for n in ["Eb1","Eb1","Eb1","Eb1","B0","B0","B0","B0",
+              "Gb1","Gb1","Gb1","Gb1","Db1","Db1","Db1","Db1"] * 2:
+        bass.add(n, Duration.QUARTER)
+
+    play_song(score)
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 
 SONGS = {
@@ -612,6 +770,9 @@ SONGS = {
     "11": ("Kingston After Dark (Dub)", dub_kingston),
     "12": ("Minimal Techno in F minor", techno_minimal),
     "13": ("Gospel Shuffle in C major", gospel_shuffle),
+    "14": ("Dub Delay Madness in E minor", dub_delay_madness),
+    "15": ("Liquid DnB in A minor", drum_and_bass),
+    "16": ("Late Night Texts (Drake-style)", drake_vibes),
 }
 
 if __name__ == "__main__":
@@ -625,7 +786,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-13, or 'all'): ").strip()
+        choice = input("  Pick a song (1-16, or 'all'): ").strip()
         print()
 
         if choice == "all":

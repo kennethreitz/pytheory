@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.18.1
+
+- Add distortion effect (tanh soft-clip waveshaping) with drive and mix controls
+- 3 new example songs: Dub Delay Madness (separate delay snare), Liquid DnB (174bpm), Late Night Texts (Drake-style trap)
+- 16 total songs in the song player
+
 ## 0.18.0
 
 - Add per-part audio effects: reverb, delay, and lowpass filter

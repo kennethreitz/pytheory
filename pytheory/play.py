@@ -838,8 +838,41 @@ def _apply_lowpass(samples, cutoff, q=0.707, sample_rate=SAMPLE_RATE):
     return scipy.signal.lfilter(b, a, samples).astype(numpy.float32)
 
 
+def _apply_distortion(samples, drive=1.0, mix=1.0):
+    """Apply soft-clip distortion (tanh waveshaping).
+
+    Models the warm saturation of an overdriven tube amplifier.
+    Low drive values add subtle harmonic warmth; high values
+    produce aggressive fuzz.
+
+    The tanh function is the classic soft clipper — it smoothly
+    compresses peaks rather than hard-clipping them, which is
+    why tube amps sound "warm" when overdriven while digital
+    clipping sounds harsh.
+
+    Args:
+        samples: Float32 numpy array.
+        drive: Gain before clipping, 0.5–20.0.
+            0.5–2 = subtle warmth (tube preamp)
+            3–8 = overdrive (cranked amp)
+            10+ = fuzz/distortion
+        mix: Wet/dry ratio 0.0–1.0.
+
+    Returns:
+        Float32 array with distortion applied.
+    """
+    if mix <= 0 or drive <= 0:
+        return samples
+    driven = numpy.tanh(samples * drive)
+    return samples * (1 - mix) + driven * mix
+
+
 def _apply_part_effects(samples, part):
     """Apply all effects configured on a Part to a float32 buffer."""
+    # Distortion first (before filter, like a real signal chain)
+    if part.distortion_mix > 0:
+        samples = _apply_distortion(samples, drive=part.distortion_drive,
+                                    mix=part.distortion_mix)
     if part.lowpass > 0:
         samples = _apply_lowpass(samples, part.lowpass, part.lowpass_q)
     if part.delay_mix > 0:
