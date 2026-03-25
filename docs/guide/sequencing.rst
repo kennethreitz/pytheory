@@ -379,3 +379,101 @@ rhodes, triangle lead, and filtered bass:
        bass.add(n, Duration.QUARTER)
 
    play_score(score)
+
+Velocity
+--------
+
+Real music has dynamics — accents are louder, ghost notes are barely
+there, phrases crescendo and decrescendo. Every note can have its own
+velocity (1–127, where 100 is the default):
+
+.. code-block:: python
+
+   lead.add("C5", Duration.QUARTER, velocity=120)   # loud accent
+   lead.add("D5", Duration.QUARTER, velocity=40)    # ghost note
+   lead.add("E5", Duration.QUARTER)                 # default (100)
+
+The arpeggiator also accepts velocity:
+
+.. code-block:: python
+
+   lead.arpeggio("Am", bars=2, pattern="up", velocity=80)
+
+Swing and Groove
+----------------
+
+Perfectly quantized music sounds robotic. Swing delays every other
+subdivision by a percentage, giving the rhythm a human, shuffled feel.
+Jazz swings hard. Bossa nova swings gently. Hip hop has its own pocket.
+
+Set swing on the Score (applies to everything) or per-Part:
+
+.. code-block:: python
+
+   # Triplet swing — lazy jazz feel
+   score = Score("4/4", bpm=100, swing=0.55)
+
+   # Per-part override — the lead swings harder than the bass
+   lead = score.part("lead", synth="saw", swing=0.6)
+   bass = score.part("bass", synth="sine", swing=0.4)
+
+Swing values:
+
+- **0.0** = perfectly straight (default)
+- **0.3** = subtle shuffle (pop, R&B)
+- **0.5** = triplet feel (jazz, blues)
+- **0.67** = hard swing (bebop)
+
+Tempo Changes
+-------------
+
+Real music doesn't stay at one tempo. Songs speed up for energy,
+slow down for endings, and sometimes shift abruptly. Use
+``score.set_tempo()`` to change BPM at the current position:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=90)
+
+   # Verse: slow and moody
+   lead.add("D5", Duration.WHOLE)
+   lead.add("F5", Duration.WHOLE)
+
+   # Chorus: speeds up
+   score.set_tempo(110)
+   lead.add("A5", Duration.WHOLE)
+   lead.add("D6", Duration.WHOLE)
+
+   # Outro: slows way down
+   score.set_tempo(70)
+   lead.add("D5", Duration.WHOLE)
+
+The tempo map engine handles the math — beat positions are converted
+to sample positions accounting for every tempo change.
+
+Fades
+-----
+
+``Part.fade_in()`` and ``Part.fade_out()`` ramp the volume over a
+number of bars. They work by generating automation points, so they
+integrate naturally with the rest of the automation system:
+
+.. code-block:: python
+
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       volume=0.3,
+       reverb=0.5,
+   )
+
+   # Fade in over first 4 bars
+   pad.fade_in(bars=4)
+   for chord in chords:
+       pad.add(chord, Duration.WHOLE)
+
+   # Fade out over last 2 bars
+   pad.fade_out(bars=2)
+   pad.rest(Duration.WHOLE)
+   pad.rest(Duration.WHOLE)
