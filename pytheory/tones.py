@@ -141,10 +141,12 @@ class Tone:
         letter = self.name[0]
         accidental = self.name[1:]
         if self.octave <= 2:
-            # Great octave and below: uppercase, repeated for lower octaves
-            repeats = 3 - self.octave  # octave 2→1, 1→2, 0→3
+            # Contra and sub-contra: uppercase repeated
+            # Octave 2 = contra (CC), 1 = sub-contra (CCC), 0 = (CCCC)
+            repeats = 4 - self.octave
             return (letter.upper() * repeats) + accidental
         elif self.octave == 3:
+            # Great octave: single uppercase
             return letter.upper() + accidental
         else:
             # Octave 4+: lowercase with tick marks

@@ -2583,12 +2583,15 @@ def test_analyze_V7():
 
 
 def test_analyze_not_in_key():
+    """F# major in C major is now recognized as a borrowed chord (bV)."""
     chord = Chord(tones=[
         Tone.from_string("F#4", system="western"),
         Tone.from_string("A#4", system="western"),
         Tone.from_string("C#5", system="western"),
     ])
-    assert chord.analyze("C") is None
+    result = chord.analyze("C")
+    assert result is not None
+    assert "b" in result  # borrowed chord with flat prefix
 
 
 # ── Tension ─────────────────────────────────────────────────────────────────
@@ -4288,3 +4291,223 @@ def test_all_envelopes_render():
 def test_c_index_constant():
     from pytheory._statics import C_INDEX
     assert C_INDEX == 3
+
+
+# ── Scale.fitness ──────────────────────────────────────────────────────────
+
+def test_fitness_perfect():
+    c = TonedScale(tonic="C4")["major"]
+    assert c.fitness("C", "D", "E", "F", "G") == 1.0
+
+
+def test_fitness_partial():
+    c = TonedScale(tonic="C4")["major"]
+    assert c.fitness("C", "D", "F#", "G") == 0.75
+
+
+def test_fitness_none():
+    c = TonedScale(tonic="C4")["major"]
+    assert c.fitness("C#", "D#", "F#") == 0.0
+
+
+def test_fitness_empty():
+    c = TonedScale(tonic="C4")["major"]
+    assert c.fitness() == 0.0
+
+
+def test_fitness_single_match():
+    c = TonedScale(tonic="C4")["major"]
+    assert c.fitness("C") == 1.0
+
+
+def test_fitness_single_miss():
+    c = TonedScale(tonic="C4")["major"]
+    assert c.fitness("C#") == 0.0
+
+
+# ── Key.suggest_next ───────────────────────────────────────────────────────
+
+def test_suggest_next_v_resolves_to_i():
+    key = Key("C", "major")
+    g_major = key.triad(4)  # V
+    suggestions = key.suggest_next(g_major)
+    assert len(suggestions) > 0
+    assert suggestions[0].identify() == "C major"  # V → I
+
+
+def test_suggest_next_ii_goes_to_v():
+    key = Key("C", "major")
+    dm = key.triad(1)  # ii
+    suggestions = key.suggest_next(dm)
+    assert suggestions[0].identify() == "G major"  # ii → V
+
+
+def test_suggest_next_iv():
+    key = Key("C", "major")
+    f_major = key.triad(3)  # IV
+    suggestions = key.suggest_next(f_major)
+    assert suggestions[0].identify() == "G major"  # IV → V
+
+
+def test_suggest_next_returns_chords():
+    key = Key("G", "major")
+    for i in range(7):
+        chord = key.triad(i)
+        suggestions = key.suggest_next(chord)
+        assert len(suggestions) > 0
+        for s in suggestions:
+            assert s.identify() is not None
+
+
+# ── Tone.helmholtz ─────────────────────────────────────────────────────────
+
+def test_helmholtz_middle_c():
+    assert Tone.from_string("C4", system="western").helmholtz == "c"
+
+
+def test_helmholtz_c3():
+    assert Tone.from_string("C3", system="western").helmholtz == "C"
+
+
+def test_helmholtz_c5():
+    assert Tone.from_string("C5", system="western").helmholtz == "c'"
+
+
+def test_helmholtz_c6():
+    assert Tone.from_string("C6", system="western").helmholtz == "c''"
+
+
+def test_helmholtz_c2():
+    assert Tone.from_string("C2", system="western").helmholtz == "CC"
+
+
+def test_helmholtz_a2():
+    assert Tone.from_string("A2", system="western").helmholtz == "AA"
+
+
+def test_helmholtz_sharp():
+    assert Tone.from_string("C#4", system="western").helmholtz == "c#"
+
+
+def test_helmholtz_sharp_high():
+    assert Tone.from_string("F#5", system="western").helmholtz == "f#'"
+
+
+def test_scientific_is_full_name():
+    t = Tone.from_string("A4", system="western")
+    assert t.scientific == t.full_name
+
+
+# ── Chord.slash ────────────────────────────────────────────────────────────
+
+def test_slash_chord():
+    c = Chord.from_symbol("C")
+    c_over_g = c.slash("G")
+    assert len(c_over_g.tones) == 4
+    assert c_over_g.tones[0].name == "G"
+
+
+def test_slash_name_different_bass():
+    c = Chord.from_symbol("C")
+    c_over_e = c.slash("E")
+    assert c_over_e.slash_name == "C/E"
+
+
+def test_slash_name_root_bass():
+    c = Chord.from_symbol("C")
+    c_over_c = c.slash("C")
+    assert c_over_c.slash_name == "C"
+
+
+def test_slash_chord_custom_octave():
+    c = Chord.from_symbol("C")
+    c_over_g2 = c.slash("G", octave=2)
+    assert c_over_g2.tones[0].octave == 2
+
+
+# ── Borrowed chord analysis (bVI, bVII, etc.) ─────────────────────────────
+
+def test_analyze_borrowed_bvi():
+    ab = Chord.from_symbol("Ab")
+    result = ab.analyze("C", "major")
+    assert result is not None
+    assert "b" in result.lower() or "VI" in result
+
+
+def test_analyze_borrowed_bvii():
+    bb = Chord.from_symbol("Bb")
+    result = bb.analyze("C", "major")
+    assert result is not None
+    assert "b" in result.lower() or "VII" in result
+
+
+def test_analyze_diatonic_still_works():
+    c = Chord.from_symbol("C")
+    assert c.analyze("C", "major") == "I"
+    g = Chord.from_symbol("G")
+    assert g.analyze("C", "major") == "V"
+    dm = Chord.from_symbol("Dm")
+    assert dm.analyze("C", "major") == "ii"
+
+
+# ── Fretboard.scale_diagram with chord highlighting ───────────────────────
+
+def test_scale_diagram_chord_highlight():
+    fb = Fretboard.guitar()
+    scale = TonedScale(tonic="A4")["minor"]
+    am = Chord.from_symbol("Am")
+    diagram = fb.scale_diagram(scale, frets=5, chord=am)
+    # Chord tones (A, C, E) should be uppercase
+    assert "A " in diagram or "A|" in diagram
+    assert "C " in diagram
+    assert "E " in diagram
+    # Non-chord scale tones should be lowercase
+    assert "d " in diagram or "d|" in diagram
+
+
+def test_scale_diagram_no_chord_unchanged():
+    fb = Fretboard.guitar()
+    scale = TonedScale(tonic="C4")["major"]
+    diagram = fb.scale_diagram(scale, frets=3)
+    # Without chord arg, should have normal case
+    assert "C " in diagram
+    assert "E " in diagram
+
+
+# ── MIDI export ────────────────────────────────────────────────────────────
+
+def test_save_midi_tone(tmp_path):
+    from pytheory.play import save_midi
+    path = tmp_path / "tone.mid"
+    tone = Tone.from_string("C4", system="western")
+    save_midi(tone, str(path))
+    assert path.exists()
+    data = path.read_bytes()
+    assert data[:4] == b'MThd'
+
+
+def test_save_midi_chord(tmp_path):
+    from pytheory.play import save_midi
+    path = tmp_path / "chord.mid"
+    chord = Chord.from_symbol("Am")
+    save_midi(chord, str(path))
+    assert path.exists()
+    data = path.read_bytes()
+    assert data[:4] == b'MThd'
+
+
+def test_save_midi_progression(tmp_path):
+    from pytheory.play import save_midi
+    path = tmp_path / "prog.mid"
+    chords = Key("C", "major").progression("I", "V", "vi", "IV")
+    save_midi(chords, str(path), t=500, bpm=120)
+    assert path.exists()
+    assert path.stat().st_size > 14  # header is 14 bytes
+
+
+def test_save_midi_with_gap(tmp_path):
+    from pytheory.play import save_midi
+    path = tmp_path / "gap.mid"
+    chords = Key("G", "major").progression("I", "IV", "V", "I")
+    save_midi(chords, str(path), gap=100)
+    assert path.exists()
