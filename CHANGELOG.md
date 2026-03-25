@@ -2,6 +2,10 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.13.1
+
+- Fix drum pattern repeats: hits now correctly offset across cycles instead of piling up on the first bar
+
 ## 0.13.0
 
 - Add drum synthesizer with 27 individual instrument voices (kick, snare, hat, conga, timbale, etc.)
