@@ -1233,8 +1233,10 @@ def _total_samples_from_tempo_map(total_beats, tempo_map):
 
 def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          synth_fn, envelope_tuple, volume, bpm,
-                         swing=0.0, tempo_map=None):
+                         swing=0.0, tempo_map=None, humanize=0.0):
     """Render a list of Notes into an existing buffer at the correct positions."""
+    import random as _rnd
+
     a, d, s, r = envelope_tuple
     beat_pos = 0.0
     for note_index, note in enumerate(notes):
@@ -1247,6 +1249,11 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
             if swing > 0.0 and note_index % 2 == 1:
                 swing_offset = int(swing * 0.5 * samples_per_beat)
                 start += swing_offset
+            # Humanize: random timing offset (±fraction of a beat)
+            if humanize > 0.0:
+                max_offset = int(humanize * 0.05 * samples_per_beat)
+                start += _rnd.randint(-max_offset, max_offset)
+                start = max(0, start)
             dur_ms = note.beats * 60_000 / bpm
             n_samples = int(SAMPLE_RATE * dur_ms / 1000)
             if start + n_samples > total_samples:
@@ -1261,8 +1268,12 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 mixed = sum(w.astype(numpy.float32) for w in waves) / SAMPLE_PEAK
                 if a > 0 or d > 0 or s < 1.0 or r > 0:
                     mixed = _apply_envelope(mixed, a, d, s, r)
-                # Apply per-note velocity scaling
-                vel_scale = getattr(note, 'velocity', 100) / 127.0
+                # Apply per-note velocity scaling + humanize velocity
+                vel = getattr(note, 'velocity', 100)
+                if humanize > 0.0:
+                    vel_jitter = int(humanize * 15)
+                    vel = max(1, min(127, vel + _rnd.randint(-vel_jitter, vel_jitter)))
+                vel_scale = vel / 127.0
                 end = min(start + len(mixed), total_samples)
                 buf[start:end] += mixed[:end - start] * volume * vel_scale
         beat_pos += note.beats
@@ -1420,7 +1431,8 @@ def render_score(score):
                     part.notes, part_buf, samples_per_beat, total_samples,
                     synth_fn, env_tuple, part.volume, score.bpm,
                     swing=effective_swing,
-                    tempo_map=tempo_map if has_tempo_changes else None)
+                    tempo_map=tempo_map if has_tempo_changes else None,
+                    humanize=part.humanize)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()

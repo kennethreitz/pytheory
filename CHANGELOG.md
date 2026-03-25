@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.24.1
+
+- Add `humanize` parameter on Parts — random micro-timing and velocity variation
+- Makes programmed parts feel like a real player (0.1 = subtle, 0.3 = natural, 0.5+ = loose)
+
 ## 0.24.0
 
 - Add per-note velocity: `lead.add("C5", Duration.QUARTER, velocity=90)` — dynamics, accents, ghost notes

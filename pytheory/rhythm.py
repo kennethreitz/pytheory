@@ -1365,12 +1365,14 @@ class Part:
                  legato: bool = False, glide: float = 0.0,
                  chorus: float = 0.0, chorus_rate: float = 1.5,
                  chorus_depth: float = 0.003,
-                 swing: Optional[float] = None):
+                 swing: Optional[float] = None,
+                 humanize: float = 0.0):
         self.name = name
         self.synth = synth
         self.envelope = envelope
         self.volume = volume
         self.swing = swing
+        self.humanize = humanize
         self.reverb_mix = reverb
         self.reverb_decay = reverb_decay
         self.reverb_type = reverb_type
@@ -1744,7 +1746,8 @@ class Score:
              legato: bool = False, glide: float = 0.0,
              chorus: float = 0.0, chorus_rate: float = 1.5,
              chorus_depth: float = 0.003,
-             swing: Optional[float] = None) -> Part:
+             swing: Optional[float] = None,
+             humanize: float = 0.0) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1779,6 +1782,10 @@ class Score:
             glide: Portamento time in seconds between consecutive pitches
                 (default 0, instant). 0.03–0.05 = quick 303 slide,
                 0.1–0.2 = slow glide.
+            humanize: Random timing and velocity variation, 0.0–1.0
+                (default 0, off). Adds micro-imperfections that make
+                programmed parts feel like a real player.
+                0.1 = subtle, 0.3 = natural, 0.5+ = loose/drunk.
 
         Returns:
             A :class:`Part` object. Add notes with ``.add()`` and ``.rest()``.
@@ -1798,7 +1805,7 @@ class Score:
                  legato=legato, glide=glide,
                  chorus=chorus, chorus_rate=chorus_rate,
                  chorus_depth=chorus_depth,
-                 swing=swing)
+                 swing=swing, humanize=humanize)
         self.parts[name] = p
         return p
 
