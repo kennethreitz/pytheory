@@ -1474,6 +1474,86 @@ class Part:
         points = sorted(set(beat for beat, _ in self._automation))
         return points
 
+    def lfo(self, param: str, *, rate: float = 0.5, min: float = 0.0,
+            max: float = 1.0, bars: float = 4, shape: str = "sine",
+            resolution: float = 0.25) -> "Part":
+        """Automate a parameter with an LFO (low-frequency oscillator).
+
+        Generates automation points at regular intervals, sweeping a
+        parameter smoothly between min and max values. This is how
+        filter sweeps, tremolo, and auto-wah effects work.
+
+        Args:
+            param: Parameter name to modulate (e.g. ``"lowpass"``,
+                ``"reverb"``, ``"distortion"``, ``"volume"``,
+                ``"chorus"``, ``"delay"``).
+            rate: LFO speed in cycles per bar (default 0.5 = one sweep
+                every 2 bars). 0.25 = very slow, 1 = once per bar,
+                4 = four times per bar.
+            min: Minimum parameter value.
+            max: Maximum parameter value.
+            bars: Number of bars to run the LFO over (default 4).
+            shape: Waveform shape — ``"sine"`` (smooth), ``"triangle"``
+                (linear), ``"saw"`` (ramp up), ``"square"`` (on/off).
+            resolution: How often to insert automation points, in beats
+                (default 0.25 = every 16th note). Lower = smoother.
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> lead = score.part("lead", synth="saw", lowpass=400)
+            >>> # Slow filter sweep: 400→3000 Hz over 8 bars
+            >>> lead.lfo("lowpass", rate=0.125, min=400, max=3000, bars=8)
+            >>> lead.arpeggio("Cm", bars=8, pattern="up", octaves=2)
+        """
+        import math
+
+        current_beat = sum(n.beats for n in self.notes)
+        beats_per_bar = 4.0  # assume 4/4
+        total_beats = bars * beats_per_bar
+        cycles_per_beat = rate / beats_per_bar
+
+        beat = 0.0
+        while beat < total_beats:
+            # Normalized position in the LFO cycle (0-1)
+            phase = (beat * cycles_per_beat) % 1.0
+
+            # Shape the LFO
+            if shape == "sine":
+                # Sine: 0→1→0→-1→0 mapped to min→max→min
+                value = 0.5 + 0.5 * math.sin(2 * math.pi * phase)
+            elif shape == "triangle":
+                # Triangle: linear up then down
+                value = 2 * phase if phase < 0.5 else 2 * (1 - phase)
+            elif shape == "saw":
+                # Sawtooth: ramp up
+                value = phase
+            elif shape == "square":
+                # Square: on/off
+                value = 1.0 if phase < 0.5 else 0.0
+            else:
+                value = 0.5 + 0.5 * math.sin(2 * math.pi * phase)
+
+            # Map 0-1 to min-max
+            param_value = min + value * (max - min)
+
+            # Insert automation point at the absolute beat position
+            abs_beat = current_beat + beat
+
+            # Map param name to internal name
+            param_map = {
+                "reverb": "reverb_mix", "delay": "delay_mix",
+                "distortion": "distortion_mix", "chorus": "chorus_mix",
+            }
+            internal_name = param_map.get(param, param)
+            self._automation.append((abs_beat, {internal_name: param_value}))
+
+            beat += resolution
+
+        return self
+
     def rest(self, duration=Duration.QUARTER) -> "Part":
         """Add a rest. Returns self for chaining."""
         if isinstance(duration, (int, float)):

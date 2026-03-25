@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.22.0
+
+- Add `Part.lfo()` for automated parameter modulation (filter sweeps, tremolo, auto-wah)
+- 4 LFO shapes: sine, triangle, saw, square
+- Configurable rate (cycles per bar), min/max range, duration, and resolution
+- Stack multiple LFOs on different parameters for complex modulation
+
 ## 0.21.0
 
 - Add `Part.set()` for mid-song effect automation (filter sweeps, reverb swells, distortion kicks)

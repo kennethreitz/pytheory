@@ -5677,3 +5677,66 @@ def test_part_with_chorus():
     score.part("lead", synth="saw", chorus=0.5).add("C5", Duration.WHOLE)
     buf = render_score(score)
     assert len(buf) > 0
+
+
+# ── LFO automation ────────────────────────────────────────────────────────
+
+def test_lfo_generates_automation():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.lfo("lowpass", rate=1.0, min=400, max=2000, bars=2)
+    # 2 bars * 4 beats / 0.25 resolution = 32 points
+    assert len(lead._automation) == 32
+
+
+def test_lfo_sine_shape():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", lowpass=500)
+    lead.lfo("lowpass", rate=1.0, min=200, max=1000, bars=1, shape="sine")
+    # Check values stay in range
+    for beat, params in lead._automation:
+        assert 200 <= params["lowpass"] <= 1000
+
+
+def test_lfo_all_shapes():
+    from pytheory import Score
+    for shape in ["sine", "triangle", "saw", "square"]:
+        score = Score("4/4", bpm=120)
+        lead = score.part(f"lead_{shape}")
+        lead.lfo("lowpass", rate=1.0, min=100, max=5000, bars=1, shape=shape)
+        assert len(lead._automation) > 0
+
+
+def test_lfo_chaining():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    result = lead.lfo("lowpass", rate=1.0, min=400, max=2000, bars=1)
+    assert result is lead
+
+
+def test_lfo_multiple_params():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead")
+    lead.lfo("lowpass", rate=1.0, min=400, max=2000, bars=2)
+    lead.lfo("distortion", rate=0.5, min=0.0, max=0.8, bars=2)
+    # Both sets of automation points should exist
+    lp_points = [p for _, p in lead._automation if "lowpass" in p]
+    dist_points = [p for _, p in lead._automation if "distortion_mix" in p]
+    assert len(lp_points) > 0
+    assert len(dist_points) > 0
+
+
+@needs_portaudio
+def test_lfo_renders_correctly():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="saw", lowpass=400, lowpass_q=3.0)
+    lead.lfo("lowpass", rate=1.0, min=300, max=3000, bars=2)
+    lead.add("C4", Duration.WHOLE).add("C4", Duration.WHOLE)
+    buf = render_score(score)
+    assert len(buf) > 0
