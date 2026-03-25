@@ -5004,3 +5004,91 @@ def test_score_save_midi(tmp_path):
     assert b"MTrk" in data
     # File is non-trivial
     assert len(data) > 30
+
+
+# ── DrumSound and Pattern ──────────────────────────────────────────────────
+
+def test_drum_sound_values():
+    from pytheory.rhythm import DrumSound
+    assert DrumSound.KICK.value == 36
+    assert DrumSound.SNARE.value == 38
+    assert DrumSound.CLOSED_HAT.value == 42
+    assert DrumSound.RIDE.value == 51
+
+
+def test_pattern_list_presets():
+    from pytheory import Pattern
+    presets = Pattern.list_presets()
+    assert len(presets) >= 40
+    assert "rock" in presets
+    assert "jazz" in presets
+    assert "salsa" in presets
+    assert "bossa nova" in presets
+    assert "bebop" in presets
+    assert "funk" in presets
+
+
+def test_pattern_preset_rock():
+    from pytheory import Pattern
+    p = Pattern.preset("rock")
+    assert p.name == "rock"
+    assert p.beats == 4.0
+    assert len(p.hits) > 0
+
+
+def test_pattern_preset_salsa():
+    from pytheory import Pattern
+    p = Pattern.preset("salsa")
+    assert p.beats == 8.0  # 2-bar clave cycle
+    assert len(p.hits) > 20
+
+
+def test_pattern_preset_invalid():
+    from pytheory import Pattern
+    with pytest.raises(ValueError, match="Unknown preset"):
+        Pattern.preset("nonexistent")
+
+
+def test_pattern_to_score():
+    from pytheory import Pattern
+    p = Pattern.preset("rock")
+    score = p.to_score(repeats=4, bpm=120)
+    assert score.total_beats == 16.0
+    assert score.measures == 4.0
+
+
+def test_pattern_to_score_waltz():
+    from pytheory import Pattern
+    p = Pattern.preset("waltz")
+    score = p.to_score(repeats=4, bpm=180)
+    assert score.total_beats == 12.0
+    assert score.bpm == 180
+
+
+def test_pattern_midi_export(tmp_path):
+    from pytheory import Pattern
+    p = Pattern.preset("bossa nova")
+    score = p.to_score(repeats=2, bpm=140)
+    path = tmp_path / "bossa.mid"
+    score.save_midi(str(path))
+    data = path.read_bytes()
+    assert data[:4] == b"MThd"
+    assert len(data) > 50
+
+
+def test_pattern_all_presets_valid():
+    from pytheory import Pattern
+    for name in Pattern.list_presets():
+        p = Pattern.preset(name)
+        assert p.beats > 0
+        assert len(p.hits) > 0
+        score = p.to_score(repeats=1, bpm=120)
+        assert score.total_beats == p.beats
+
+
+def test_pattern_repr():
+    from pytheory import Pattern
+    p = Pattern.preset("funk")
+    r = repr(p)
+    assert "funk" in r
+    assert "4/4" in r

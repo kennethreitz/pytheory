@@ -157,3 +157,117 @@ signature and tempo meta events:
 
 The MIDI file can be opened in any DAW (Logic, Ableton, GarageBand,
 Reaper, etc.), notation software (MuseScore, Sibelius), or MIDI player.
+
+Drum Patterns
+=============
+
+PyTheory includes 48 drum pattern presets spanning genres from rock to
+Afro-Cuban to electronic. Each pattern is defined as a set of hits at
+specific beat positions, using General MIDI percussion sounds.
+
+Listing Presets
+---------------
+
+.. code-block:: pycon
+
+   >>> from pytheory import Pattern
+   >>> Pattern.list_presets()
+   ['12/8 blues', '6/8 afro-cuban', 'afrobeat', 'baiao', 'bebop', ...]
+
+Loading a Pattern
+-----------------
+
+.. code-block:: pycon
+
+   >>> rock = Pattern.preset("rock")
+   >>> rock
+   <Pattern 'rock' 4/4 4.0 beats 12 hits>
+
+   >>> salsa = Pattern.preset("salsa")
+   >>> salsa
+   <Pattern 'salsa' 4/4 8.0 beats 29 hits>
+
+   >>> bebop = Pattern.preset("bebop")
+   >>> waltz = Pattern.preset("waltz")
+
+Available Genres
+~~~~~~~~~~~~~~~~
+
+**Rock/Pop**: rock, half time, double time, disco, motown, train beat
+
+**Jazz**: jazz, bebop, shuffle, linear, paradiddle
+
+**Latin**: salsa, bossa nova, samba, cumbia, merengue, baiao, maracatu
+
+**Afro-Cuban**: son clave 3-2, son clave 2-3, rumba clave 3-2, rumba clave 2-3,
+cascara, guaguanco, mozambique, nanigo, bembe, 6/8 afro-cuban, tresillo, habanera
+
+**African**: afrobeat, highlife
+
+**Caribbean**: reggae, dancehall
+
+**Electronic**: house, trap, drum and bass, breakbeat
+
+**Metal/Punk**: metal, blast beat, punk
+
+**Other**: funk, hip hop, bo diddley, second line, new orleans, waltz, 12/8 blues
+
+Exporting to MIDI
+-----------------
+
+Convert any pattern to a Score, then export:
+
+.. code-block:: pycon
+
+   >>> pattern = Pattern.preset("bossa nova")
+   >>> score = pattern.to_score(repeats=8, bpm=140)
+   >>> score.save_midi("bossa.mid")
+
+   >>> Pattern.preset("salsa").to_score(repeats=4, bpm=180).save_midi("salsa.mid")
+   >>> Pattern.preset("afrobeat").to_score(repeats=8, bpm=110).save_midi("afrobeat.mid")
+
+Combining Drums with Chords
+----------------------------
+
+You can layer a drum pattern with a chord progression by adding chord
+notes to the same Score:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Pattern, Key, Duration
+
+   >>> key = Key("A", "minor")
+   >>> chords = key.random_progression(4)
+
+   >>> score = Pattern.preset("bossa nova").to_score(repeats=2, bpm=140)
+   >>> for chord in chords:
+   ...     score.add(chord, Duration.WHOLE)
+   ...     score.add(chord, Duration.WHOLE)
+   >>> score.save_midi("bossa_with_chords.mid")
+
+Drum Sounds
+-----------
+
+The ``DrumSound`` enum maps to General MIDI percussion note numbers:
+
+.. code-block:: pycon
+
+   >>> from pytheory import DrumSound
+
+   >>> DrumSound.KICK.value
+   36
+   >>> DrumSound.SNARE.value
+   38
+   >>> DrumSound.CLOSED_HAT.value
+   42
+   >>> DrumSound.RIDE.value
+   51
+   >>> DrumSound.CLAVE.value
+   75
+   >>> DrumSound.CONGA_HIGH.value
+   63
+
+Available sounds: KICK, SNARE, RIMSHOT, CLAP, CLOSED_HAT, OPEN_HAT,
+PEDAL_HAT, LOW_TOM, MID_TOM, HIGH_TOM, CRASH, RIDE, RIDE_BELL, COWBELL,
+CLAVE, SHAKER, TAMBOURINE, CONGA_HIGH, CONGA_LOW, BONGO_HIGH, BONGO_LOW,
+TIMBALE_HIGH, TIMBALE_LOW, AGOGO_HIGH, AGOGO_LOW, GUIRO, MARACAS.

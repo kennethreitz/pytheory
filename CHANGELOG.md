@@ -9,6 +9,18 @@ All notable changes to PyTheory are documented here.
 - `TimeSignature` with string parsing ("4/4", "3/4", "6/8", "12/8") and beats_per_measure
 - `Score` class with fluent `.add()` / `.rest()` chaining, measure counting, and `save_midi()` export
 - Measure-aware MIDI export with proper time signature and tempo meta events
+- Add `DrumSound` enum with 27 General MIDI percussion sounds
+- Add `Pattern` class with 48 drum pattern presets covering:
+  - **Rock/Pop**: rock, half time, double time, disco, motown, train beat
+  - **Jazz**: jazz, bebop, shuffle, linear, paradiddle
+  - **Latin**: salsa, bossa nova, samba, cumbia, merengue, baiao, maracatu
+  - **Afro-Cuban**: son clave 3-2/2-3, rumba clave 3-2/2-3, cascara, guaguanco, mozambique, nanigo, bembe, 6/8 afro-cuban, tresillo, habanera
+  - **African**: afrobeat, highlife
+  - **Caribbean**: reggae, dancehall
+  - **Electronic**: house, trap, drum and bass, breakbeat
+  - **Metal/Punk**: metal, blast beat, punk
+  - **Other**: funk, hip hop, bo diddley, second line, new orleans, waltz, 12/8 blues
+- `Pattern.to_score()` renders drum patterns to Score for MIDI export
 
 ## 0.11.0
 

@@ -8,7 +8,7 @@ from .scales import TonedScale, Key, PROGRESSIONS
 from .chords import Chord, Fretboard, analyze_progression
 from .charts import CHARTS, Fingering, charts_for_fretboard
 
-from .rhythm import Duration, TimeSignature, Rest, Score
+from .rhythm import Duration, TimeSignature, Rest, Score, DrumSound, Pattern
 from .rhythm import Note as RhythmNote  # rhythm.Note (tone + duration pairing)
 
 try:
@@ -31,4 +31,5 @@ __all__ = [
     "System", "SYSTEMS", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "Synth", "Envelope",
     "Duration", "TimeSignature", "RhythmNote", "Rest", "Score",
+    "DrumSound", "Pattern",
 ]
