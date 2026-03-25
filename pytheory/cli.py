@@ -96,7 +96,11 @@ def cmd_play(args):
     from .chords import Chord
     from .play import play, Synth, Envelope
 
-    synth_map = {"sine": Synth.SINE, "saw": Synth.SAW, "triangle": Synth.TRIANGLE}
+    synth_map = {
+        "sine": Synth.SINE, "saw": Synth.SAW, "triangle": Synth.TRIANGLE,
+        "square": Synth.SQUARE, "pulse": Synth.PULSE, "fm": Synth.FM,
+        "noise": Synth.NOISE, "supersaw": Synth.SUPERSAW,
+    }
     synth = synth_map[args.synth]
     envelope = Envelope[args.envelope.upper()]
     duration = args.duration
@@ -268,7 +272,8 @@ def main():
     p = sub.add_parser("play", help="Play notes or chords (e.g. pytheory play C E G)")
     p.add_argument("notes", nargs="+", help="Note names, with optional octave (e.g. C4, A#3, or just C E G)")
     p.add_argument("--synth", "-s", default="sine",
-                   choices=["sine", "saw", "triangle"],
+                   choices=["sine", "saw", "triangle", "square", "pulse",
+                            "fm", "noise", "supersaw"],
                    help="Waveform (default: sine)")
     p.add_argument("--duration", "-d", type=int, default=1000,
                    help="Duration in milliseconds (default: 1000)")

@@ -2,6 +2,17 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.15.0
+
+- Add 5 new synth waveforms: `Synth.SQUARE`, `Synth.PULSE`, `Synth.FM`, `Synth.NOISE`, `Synth.SUPERSAW`
+- Square wave: classic chiptune / 8-bit sound (odd harmonics at 1/n)
+- Pulse wave: variable duty cycle for NES-style timbres (25%, 12.5%)
+- FM synthesis: DX7-style frequency modulation (electric piano, bells, brass, metallic)
+- Noise: white noise for percussion textures and effects
+- Supersaw: 7 detuned saw oscillators for trance/EDM pads
+- All 8 synths available in both the API (`Synth.FM`) and Part strings (`synth="fm"`)
+- CLI play command supports all 8 waveforms
+
 ## 0.14.0
 
 - Add `Part` class for multi-voice Score arrangements (lead, bass, pads, etc.)

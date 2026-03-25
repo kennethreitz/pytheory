@@ -46,6 +46,108 @@ def triangle_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return numpy.resize(onecycle, (n_samples,))
 
 
+def square_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Compute N samples of a square wave — classic chiptune / 8-bit sound.
+
+    Hollow and buzzy, containing only odd harmonics (1, 3, 5, 7...) each
+    at amplitude 1/n. The building block of NES and Game Boy music.
+    """
+    length = SAMPLE_RATE / float(hz)
+    omega = numpy.pi * 2 / length
+    xvalues = numpy.arange(int(length)) * omega
+    onecycle = peak * numpy.sign(numpy.sin(xvalues))
+    return numpy.resize(onecycle, (n_samples,)).astype(numpy.int16)
+
+
+def pulse_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, duty=0.25):
+    """Compute N samples of a pulse wave with variable duty cycle.
+
+    A generalized square wave. Duty cycle controls the timbre:
+
+    - 50% = square wave (hollow)
+    - 25% = nasal, reedy (NES pulse channel default)
+    - 12.5% = thin, buzzy (NES narrow pulse)
+
+    Width changes dramatically affect the harmonic content — narrower
+    pulses emphasize higher harmonics, producing a brighter, more
+    cutting sound.
+    """
+    length = SAMPLE_RATE / float(hz)
+    omega = numpy.pi * 2 / length
+    xvalues = numpy.arange(int(length)) * omega
+    onecycle = scipy.signal.square(xvalues, duty=duty)
+    onecycle = (peak * onecycle).astype(numpy.int16)
+    return numpy.resize(onecycle, (n_samples,))
+
+
+def fm_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+            mod_ratio=2.0, mod_index=3.0):
+    """Compute N samples of an FM synthesis wave.
+
+    One sine wave (the carrier) has its frequency modulated by another
+    sine wave (the modulator). This is the basis of the Yamaha DX7 —
+    the most commercially successful synthesizer ever made.
+
+    Args:
+        hz: Carrier frequency.
+        mod_ratio: Modulator frequency as a multiple of carrier.
+            Integer ratios (1, 2, 3) produce harmonic timbres (bells,
+            electric piano). Non-integer ratios (1.41, 2.76) produce
+            inharmonic, metallic sounds.
+        mod_index: Modulation depth. Higher = more harmonics = brighter.
+            0 = pure sine. 1-3 = warm. 5+ = harsh/metallic.
+
+    Common presets:
+        - Electric piano: ratio=1, index=1.5
+        - Bell: ratio=3.5, index=5
+        - Brass: ratio=1, index=3
+        - Metallic: ratio=1.41, index=8
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    mod_freq = hz * mod_ratio
+    modulator = mod_index * numpy.sin(2 * numpy.pi * mod_freq * t)
+    carrier = numpy.sin(2 * numpy.pi * hz * t + modulator)
+    return (peak * carrier).astype(numpy.int16)
+
+
+def noise_wave(hz=0, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Compute N samples of white noise.
+
+    Unpitched — the ``hz`` parameter is accepted for API compatibility
+    but ignored. Useful for percussion textures, wind effects, and
+    hi-hat-like sounds in melodic parts.
+    """
+    return (peak * numpy.random.uniform(-1, 1, n_samples)).astype(numpy.int16)
+
+
+def supersaw_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+                  voices=7, detune_cents=15):
+    """Compute N samples of a supersaw — multiple detuned saws summed.
+
+    The signature sound of trance and EDM. Multiple sawtooth oscillators
+    are slightly detuned from each other, creating a fat, shimmering,
+    chorus-like wall of sound. The Roland JP-8000 (1997) popularized
+    this as "SuperSaw."
+
+    Args:
+        voices: Number of saw oscillators (default 7). More = fatter.
+        detune_cents: Maximum detune spread in cents (default 15).
+            Each voice is spread evenly across ±detune_cents.
+    """
+    spread = numpy.linspace(-detune_cents, detune_cents, voices)
+    mixed = numpy.zeros(n_samples, dtype=numpy.float64)
+    for offset in spread:
+        detuned_hz = hz * (2 ** (offset / 1200))
+        length = SAMPLE_RATE / float(detuned_hz)
+        omega = numpy.pi * 2 / length
+        xvalues = numpy.arange(int(length)) * omega
+        onecycle = scipy.signal.sawtooth(xvalues, width=1)
+        wave = numpy.resize(onecycle, (n_samples,))
+        mixed += wave
+    mixed /= voices  # normalize
+    return (peak * mixed).astype(numpy.int16)
+
+
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
     """Apply an ADSR amplitude envelope to a sample array.
 
@@ -123,9 +225,38 @@ def _play_for(sample_wave, ms):
 
 
 class Synth(Enum):
-    SINE = sine_wave
-    SAW = sawtooth_wave
-    TRIANGLE = triangle_wave
+    """Waveform types for synthesis.
+
+    Each waveform has a distinct timbre based on its harmonic content:
+
+    - **SINE** — pure tone, no harmonics. Smooth and clean.
+    - **SAW** — all harmonics at 1/n amplitude. Bright, buzzy, aggressive.
+    - **TRIANGLE** — odd harmonics at 1/n². Mellow, woody, hollow.
+    - **SQUARE** — odd harmonics at 1/n. Hollow, chiptune, 8-bit.
+    - **PULSE** — variable duty cycle square. Nasal, reedy (NES sound).
+    - **FM** — frequency modulation synthesis. Bell-like, metallic, DX7.
+    - **NOISE** — white noise, unpitched. Percussion, wind, texture.
+    - **SUPERSAW** — 7 detuned saws. Fat, shimmery, trance/EDM pads.
+    """
+    SINE = "sine"
+    SAW = "saw"
+    TRIANGLE = "triangle"
+    SQUARE = "square"
+    PULSE = "pulse"
+    FM = "fm"
+    NOISE = "noise"
+    SUPERSAW = "supersaw"
+
+    def __call__(self, hz, **kwargs):
+        """Make Synth members callable — dispatches to the wave function."""
+        return _SYNTH_FUNCTIONS[self.value](hz, **kwargs)
+
+
+_SYNTH_FUNCTIONS = {
+    "sine": sine_wave, "saw": sawtooth_wave, "triangle": triangle_wave,
+    "square": square_wave, "pulse": pulse_wave, "fm": fm_wave,
+    "noise": noise_wave, "supersaw": supersaw_wave,
+}
 
 
 def _render(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
@@ -535,8 +666,7 @@ def play_pattern(pattern, repeats=1, bpm=120):
 
 def _resolve_synth(name):
     """Map synth name string to wave function."""
-    return {"sine": sine_wave, "saw": sawtooth_wave,
-            "triangle": triangle_wave}.get(name, sine_wave)
+    return _SYNTH_FUNCTIONS.get(name, sine_wave)
 
 
 def _resolve_envelope(name):

@@ -652,11 +652,11 @@ def test_all_mode_intervals_sum_to_12():
 
 @needs_portaudio
 def test_synth_enum():
-    from pytheory.play import Synth, sine_wave, sawtooth_wave, triangle_wave
-    # Enum with function values: members are the functions themselves
-    assert Synth.SINE is sine_wave
-    assert Synth.SAW is sawtooth_wave
-    assert Synth.TRIANGLE is triangle_wave
+    from pytheory.play import Synth
+    # Synth members are callable and produce audio
+    assert Synth.SINE.value == "sine"
+    assert Synth.SAW.value == "saw"
+    assert Synth.TRIANGLE.value == "triangle"
     # Should be directly callable
     wave = Synth.SINE(440)
     assert len(wave) > 0
@@ -5245,3 +5245,94 @@ def test_backwards_compat_add():
     score.add(Chord.from_symbol("C"), Duration.WHOLE)
     assert len(score.notes) == 1
     assert score.total_beats == 4.0
+
+
+# ── New synth waveforms ───────────────────────────────────────────────────
+
+@needs_portaudio
+def test_square_wave():
+    from pytheory.play import square_wave, SAMPLE_RATE
+    wave = square_wave(440)
+    assert len(wave) == SAMPLE_RATE
+    # Square wave should only have values at +peak and -peak
+    unique = set(numpy.unique(wave))
+    assert len(unique) <= 3  # +peak, -peak, possibly 0 at zero crossings
+
+
+@needs_portaudio
+def test_pulse_wave():
+    from pytheory.play import pulse_wave, SAMPLE_RATE
+    wave = pulse_wave(440, duty=0.25)
+    assert len(wave) == SAMPLE_RATE
+
+
+@needs_portaudio
+def test_pulse_wave_duty_affects_timbre():
+    from pytheory.play import pulse_wave
+    narrow = pulse_wave(440, duty=0.125, n_samples=1000)
+    wide = pulse_wave(440, duty=0.5, n_samples=1000)
+    # Different duty cycles produce different waveforms
+    assert not numpy.array_equal(narrow, wide)
+
+
+@needs_portaudio
+def test_fm_wave():
+    from pytheory.play import fm_wave, SAMPLE_RATE
+    wave = fm_wave(440)
+    assert len(wave) == SAMPLE_RATE
+    # FM should produce a more complex waveform than sine
+    assert len(numpy.unique(wave)) > 100
+
+
+@needs_portaudio
+def test_fm_wave_params():
+    from pytheory.play import fm_wave
+    bell = fm_wave(440, mod_ratio=3.5, mod_index=5, n_samples=1000)
+    piano = fm_wave(440, mod_ratio=1, mod_index=1.5, n_samples=1000)
+    assert not numpy.array_equal(bell, piano)
+
+
+@needs_portaudio
+def test_noise_wave():
+    from pytheory.play import noise_wave, SAMPLE_RATE
+    wave = noise_wave(n_samples=SAMPLE_RATE)
+    assert len(wave) == SAMPLE_RATE
+    # Noise should be random — two calls produce different results
+    wave2 = noise_wave(n_samples=SAMPLE_RATE)
+    assert not numpy.array_equal(wave, wave2)
+
+
+@needs_portaudio
+def test_supersaw_wave():
+    from pytheory.play import supersaw_wave, sawtooth_wave, SAMPLE_RATE
+    wave = supersaw_wave(440)
+    assert len(wave) == SAMPLE_RATE
+
+
+@needs_portaudio
+def test_all_synths_in_enum():
+    from pytheory.play import Synth
+    assert len(Synth) == 8
+    for s in Synth:
+        wave = s(440, n_samples=1000)
+        assert len(wave) == 1000
+
+
+@needs_portaudio
+def test_resolve_synth_new_names():
+    from pytheory.play import _resolve_synth, square_wave, fm_wave, supersaw_wave
+    assert _resolve_synth("square") is square_wave
+    assert _resolve_synth("fm") is fm_wave
+    assert _resolve_synth("supersaw") is supersaw_wave
+
+
+@needs_portaudio
+def test_part_with_new_synths():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    for synth_name in ["square", "pulse", "fm", "noise", "supersaw"]:
+        p = score.part(synth_name, synth=synth_name, envelope="pluck")
+        p.add("C4", Duration.QUARTER)
+    buf = render_score(score)
+    assert len(buf) > 0

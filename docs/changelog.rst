@@ -3,6 +3,14 @@ Changelog
 
 All notable changes to PyTheory are documented here.
 
+0.15.0
+------
+
+- Add 5 new synth waveforms: ``Synth.SQUARE``, ``Synth.PULSE``, ``Synth.FM``, ``Synth.NOISE``, ``Synth.SUPERSAW``
+- Square wave (chiptune), pulse wave (NES), FM synthesis (DX7), white noise, supersaw (trance pads)
+- All 8 synths available in API and Part strings
+- CLI play command supports all 8 waveforms
+
 0.14.0
 ------
 
