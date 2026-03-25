@@ -167,8 +167,11 @@ class Pattern:
             A Score containing drum hits as MIDI percussion notes.
         """
         score = Score(self.time_signature_str, bpm=bpm)
-        for _ in range(repeats):
-            score._drum_hits.extend(self.hits)
+        for r in range(repeats):
+            offset = r * self.beats
+            for hit in self.hits:
+                score._drum_hits.append(
+                    _Hit(hit.sound, hit.position + offset, hit.velocity))
             score._drum_pattern_beats += self.beats
         return score
 
