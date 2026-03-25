@@ -241,7 +241,7 @@ Create parts with ``Score.part()``:
    >>> from pytheory.play import play_score
 
    >>> score = Score("4/4", bpm=140)
-   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+   >>> score.drums("bossa nova", repeats=4)
 
    >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
    >>> lead   = score.part("lead",   synth="saw",  envelope="pluck", volume=0.5)
@@ -274,13 +274,37 @@ Chords and Tone objects work the same way:
 Available Synths and Envelopes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Synths**: ``"sine"`` (pure, clean), ``"saw"`` (bright, brassy),
-``"triangle"`` (mellow, woody)
+**Synths** (10 waveforms):
 
-**Envelopes**: ``"piano"`` (natural decay), ``"pluck"`` (sharp attack,
-fast decay), ``"pad"`` (slow fade in, lush), ``"organ"`` (instant on/off),
-``"bell"`` (instant attack, long ring), ``"strings"`` (gradual bow),
-``"staccato"`` (short and punchy), ``"none"`` (raw waveform)
+=============  ================================================
+Name           Character
+=============  ================================================
+``"sine"``     Pure tone, no harmonics — clean pads, sub bass
+``"saw"``      All harmonics — bright, buzzy leads and brass
+``"triangle"`` Odd harmonics at 1/n² — mellow, woody, flute-like
+``"square"``   Odd harmonics at 1/n — hollow, chiptune, 8-bit
+``"pulse"``    Variable duty cycle — nasal, NES-style
+``"fm"``       Frequency modulation — bells, e-piano, metallic (DX7)
+``"noise"``    White noise — percussion, wind, texture
+``"supersaw"`` 7 detuned saws — fat, shimmery trance/EDM pads
+``"pwm_slow"`` Pulse width modulation, slow LFO — lush Juno pads
+``"pwm_fast"`` Pulse width modulation, fast LFO — chorus/vibrato
+=============  ================================================
+
+**Envelopes** (8 presets):
+
+===============  ================================================
+Name             Character
+===============  ================================================
+``"piano"``      Quick attack, natural decay
+``"pluck"``      Sharp attack, fast decay
+``"pad"``        Slow fade in, lush sustain
+``"organ"``      Instant on/off
+``"bell"``       Instant attack, long ring
+``"strings"``    Gradual bow attack
+``"staccato"``   Short and punchy
+``"none"``       Raw waveform, no shaping
+===============  ================================================
 
 Full Example: Bossa Nova Arrangement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -396,7 +420,7 @@ Playing Drums with Parts
    >>> from pytheory.play import play_score
 
    >>> score = Score("4/4", bpm=140)
-   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+   >>> score.drums("bossa nova", repeats=4)
 
    >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
    >>> lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.5)
@@ -413,7 +437,7 @@ Another example — salsa with a saw lead and walking bass:
 .. code-block:: pycon
 
    >>> score = Score("4/4", bpm=180)
-   >>> score.add_pattern(Pattern.preset("salsa"), repeats=4)
+   >>> score.drums("salsa", repeats=4)
    >>> pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
    >>> lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
    >>> bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)

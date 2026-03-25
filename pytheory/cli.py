@@ -100,6 +100,7 @@ def cmd_play(args):
         "sine": Synth.SINE, "saw": Synth.SAW, "triangle": Synth.TRIANGLE,
         "square": Synth.SQUARE, "pulse": Synth.PULSE, "fm": Synth.FM,
         "noise": Synth.NOISE, "supersaw": Synth.SUPERSAW,
+        "pwm_slow": Synth.PWM_SLOW, "pwm_fast": Synth.PWM_FAST,
     }
     synth = synth_map[args.synth]
     envelope = Envelope[args.envelope.upper()]
@@ -273,7 +274,7 @@ def main():
     p.add_argument("notes", nargs="+", help="Note names, with optional octave (e.g. C4, A#3, or just C E G)")
     p.add_argument("--synth", "-s", default="sine",
                    choices=["sine", "saw", "triangle", "square", "pulse",
-                            "fm", "noise", "supersaw"],
+                            "fm", "noise", "supersaw", "pwm_slow", "pwm_fast"],
                    help="Waveform (default: sine)")
     p.add_argument("--duration", "-d", type=int, default=1000,
                    help="Duration in milliseconds (default: 1000)")

@@ -148,6 +148,43 @@ def supersaw_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     return (peak * mixed).astype(numpy.int16)
 
 
+def pwm_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lfo_rate=0.3):
+    """Compute N samples of a pulse-width modulated wave.
+
+    A pulse wave whose duty cycle sweeps back and forth via an LFO,
+    creating a rich, evolving timbre. This is the signature sound of
+    the Roland Juno-106 and many classic analog polysynths.
+
+    As the pulse width changes, different harmonics fade in and out,
+    producing a natural chorus-like shimmer without any detuning.
+    At 50% width it's a square wave; at narrow widths it thins to a
+    bright, reedy tone. The constant motion between these extremes
+    is what makes PWM so alive-sounding.
+
+    Args:
+        lfo_rate: Speed of the width sweep in Hz.
+            0.1–0.5 = slow, lush pads.
+            1–5 = faster, more vibrato/chorus-like.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # LFO sweeps duty cycle between 0.15 and 0.85
+    duty = 0.5 + 0.35 * numpy.sin(2 * numpy.pi * lfo_rate * t)
+    # Generate pulse wave sample-by-sample with varying duty
+    phase = (t * hz) % 1.0
+    wave = numpy.where(phase < duty, 1.0, -1.0)
+    return (peak * wave).astype(numpy.int16)
+
+
+def pwm_slow_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """PWM with slow LFO (0.3 Hz) — lush Juno-style pads."""
+    return pwm_wave(hz, peak, n_samples, lfo_rate=0.3)
+
+
+def pwm_fast_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """PWM with fast LFO (3 Hz) — chorused, vibrato-like texture."""
+    return pwm_wave(hz, peak, n_samples, lfo_rate=3.0)
+
+
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
     """Apply an ADSR amplitude envelope to a sample array.
 
@@ -246,6 +283,8 @@ class Synth(Enum):
     FM = "fm"
     NOISE = "noise"
     SUPERSAW = "supersaw"
+    PWM_SLOW = "pwm_slow"
+    PWM_FAST = "pwm_fast"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
@@ -256,6 +295,7 @@ _SYNTH_FUNCTIONS = {
     "sine": sine_wave, "saw": sawtooth_wave, "triangle": triangle_wave,
     "square": square_wave, "pulse": pulse_wave, "fm": fm_wave,
     "noise": noise_wave, "supersaw": supersaw_wave,
+    "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
 }
 
 

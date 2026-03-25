@@ -1034,6 +1034,25 @@ class Score:
         self._drum_pattern_beats += repeats * pattern.beats
         return self
 
+    def drums(self, preset: str, repeats: int = 4) -> "Score":
+        """Add a drum pattern by preset name.
+
+        Shorthand for ``score.add_pattern(Pattern.preset(name), repeats=n)``.
+
+        Args:
+            preset: Pattern preset name (e.g. ``"bossa nova"``, ``"rock"``).
+            repeats: Number of times to repeat (default 4).
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> score = Score("4/4", bpm=140)
+            >>> score.drums("bossa nova", repeats=4)
+        """
+        return self.add_pattern(Pattern.preset(preset), repeats=repeats)
+
     def add(self, tone_or_chord, duration=Duration.QUARTER) -> "Score":
         """Add a note to the default (unnamed) part.
 

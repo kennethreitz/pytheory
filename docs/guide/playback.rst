@@ -30,7 +30,7 @@ The most expressive thing you can do:
    >>> from pytheory import Score, Pattern, Key, Duration, Chord
    >>> from pytheory.play import play_score
    >>> score = Score("4/4", bpm=140)
-   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+   >>> score.drums("bossa nova", repeats=4)
    >>> chords = score.part("chords", synth="sine", envelope="pad")
    >>> lead = score.part("lead", synth="saw", envelope="pluck")
    >>> bass = score.part("bass", synth="triangle", envelope="pluck")
@@ -200,7 +200,7 @@ single playable arrangement.
    >>> from pytheory.play import play_score
 
    >>> score = Score("4/4", bpm=140)
-   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+   >>> score.drums("bossa nova", repeats=4)
 
    >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
    >>> lead   = score.part("lead",   synth="triangle", envelope="pluck", volume=0.5)
@@ -223,7 +223,7 @@ More examples:
 
    >>> # Salsa with a ii-V-I — saw lead over clave
    >>> score = Score("4/4", bpm=180)
-   >>> score.add_pattern(Pattern.preset("salsa"), repeats=4)
+   >>> score.drums("salsa", repeats=4)
    >>> chords = score.part("chords", synth="sine", envelope="pad")
    >>> lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
    >>> for chord in Key("C", "major").progression("ii", "V", "I", "I") * 2:
@@ -233,7 +233,7 @@ More examples:
 
    >>> # Jazz ballad — triangle lead, walking bass
    >>> score = Score("4/4", bpm=90)
-   >>> score.add_pattern(Pattern.preset("jazz"), repeats=8)
+   >>> score.drums("jazz", repeats=8)
    >>> pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
    >>> lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.5)
    >>> bass = score.part("bass", synth="sine", envelope="pluck", volume=0.4)

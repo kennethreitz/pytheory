@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.15.1
+
+- Add `Synth.PWM_SLOW` and `Synth.PWM_FAST` — pulse width modulation with LFO sweep (Juno-style pads)
+- Add `Score.drums()` shorthand for `score.add_pattern(Pattern.preset(...), repeats=...)`
+- Update all docs to use `score.drums()` syntax and document all 10 synth waveforms
+
 ## 0.15.0
 
 - Add 5 new synth waveforms: `Synth.SQUARE`, `Synth.PULSE`, `Synth.FM`, `Synth.NOISE`, `Synth.SUPERSAW`
