@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.1
+
+- Add `pytheory demo` CLI command — plays a randomly generated track, different every time
+- Rewrite README to showcase the full feature set (composition, effects, drums, MIDI export)
+
 ## 0.25.0
 
 - Add sidechain compression — kick ducks pad/bass for the classic EDM pump effect

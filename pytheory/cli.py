@@ -219,6 +219,90 @@ def cmd_progressions(args):
         print(f"    {name:<20s}  {' → '.join(symbols)}")
 
 
+def cmd_demo(args):
+    import random
+    from .rhythm import Score, Pattern, Duration
+    from .chords import Chord
+    from .scales import Key
+    from .play import play_score
+
+    moods = [
+        {"name": "Bossa Nova", "key": ("A", "minor"), "drums": "bossa nova",
+         "bpm": 140, "prog": ("i", "iv", "V", "i"),
+         "lead_synth": "triangle", "pad_synth": "fm"},
+        {"name": "Jazz Club", "key": ("Bb", "major"), "drums": "jazz",
+         "bpm": 105, "prog": ("I", "vi", "ii", "V"),
+         "lead_synth": "saw", "pad_synth": "fm"},
+        {"name": "Afrobeat Groove", "key": ("E", "minor"), "drums": "afrobeat",
+         "bpm": 115, "prog": ("i", "iv", "V", "i"),
+         "lead_synth": "saw", "pad_synth": "supersaw"},
+        {"name": "House Pump", "key": ("C", "minor"), "drums": "house",
+         "bpm": 124, "prog": ("i", "IV", "V", "i"),
+         "lead_synth": "saw", "pad_synth": "supersaw"},
+        {"name": "Reggae One-Drop", "key": ("G", "major"), "drums": "reggae",
+         "bpm": 80, "prog": ("I", "IV", "V", "IV"),
+         "lead_synth": "triangle", "pad_synth": "pwm_slow"},
+        {"name": "Funk Workout", "key": ("E", "minor"), "drums": "funk",
+         "bpm": 100, "prog": ("i", "iv", "V", "i"),
+         "lead_synth": "saw", "pad_synth": "square"},
+    ]
+
+    mood = random.choice(moods)
+    tonic, mode = mood["key"]
+    key = Key(tonic, mode)
+    chords = key.progression(*mood["prog"])
+
+    score = Score("4/4", bpm=mood["bpm"], swing=random.uniform(0.1, 0.4))
+    score.drums(mood["drums"], repeats=4, fill=random.choice(Pattern.list_fills()))
+
+    pad = score.part("pad", synth=mood["pad_synth"], envelope="pad",
+                     volume=0.25, reverb=0.4, reverb_decay=2.0,
+                     chorus=0.2)
+    lead = score.part("lead", synth=mood["lead_synth"], envelope="pluck",
+                      volume=0.4, delay=0.25, delay_time=0.375,
+                      delay_feedback=0.35, reverb=0.2,
+                      lowpass=3000, humanize=0.2)
+    bass = score.part("bass", synth="sine", envelope="pluck",
+                      volume=0.45, lowpass=500)
+
+    for chord in chords * 2:
+        pad.add(chord, Duration.WHOLE)
+
+    # Generate a melody from scale tones
+    scale_tones = [t.name for t in key.scale.tones[:-1]]
+    for chord in chords:
+        chord_tones = [t.name for t in chord.tones]
+        for _ in range(4):
+            if random.random() < 0.2:
+                lead.rest(random.choice([0.5, 1.0]))
+            else:
+                n = random.choice(chord_tones if random.random() < 0.6 else scale_tones)
+                oct = random.choice([4, 5])
+                dur = random.choice([0.5, 0.67, 1.0])
+                lead.add(f"{n}{oct}", dur, velocity=random.randint(60, 120))
+
+    root = chords[0].root
+    if root:
+        for chord in chords * 2:
+            r = chord.root
+            if r:
+                bass.add(f"{r.name}2", Duration.QUARTER, velocity=100)
+                bass.add(f"{r.name}2", Duration.QUARTER, velocity=60)
+                fifth = r.add(7)
+                bass.add(f"{fifth.name}2", Duration.QUARTER, velocity=70)
+                bass.add(f"{r.name}2", Duration.QUARTER, velocity=80)
+
+    prog_str = " → ".join(c.symbol or str(c) for c in chords)
+    print(f"  ♫  {mood['name']}")
+    print(f"     {tonic} {mode} | {mood['bpm']} bpm")
+    print(f"     {prog_str}")
+    print(f"     {mood['drums']} drums | {mood['lead_synth']} lead | {mood['pad_synth']} pad")
+    print()
+
+    play_score(score)
+    print("  ♫")
+
+
 def cmd_detect(args):
     from .scales import Key
     key = Key.detect(*args.notes)
@@ -299,6 +383,9 @@ def main():
     p.add_argument("--bpm", type=int, default=120, help="BPM (default: 120)")
     p.add_argument("--duration", type=int, default=500, help="Duration per chord in ms (default: 500)")
 
+    # demo
+    sub.add_parser("demo", help="Play a randomly generated track (different every time)")
+
     # detect
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
@@ -332,6 +419,7 @@ def main():
         "play": cmd_play,
         "identify": cmd_identify,
         "midi": cmd_midi,
+        "demo": cmd_demo,
         "detect": cmd_detect,
         "modes": cmd_modes,
         "circle": cmd_circle,

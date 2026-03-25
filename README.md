@@ -1,180 +1,153 @@
 # PyTheory: Music Theory for Humans
 
-This library makes exploring music theory approachable and fun, treating Python as a musical instrument.
-
-## Installation
+Explore music theory, compose multi-part arrangements, and export to MIDI — all in Python.
 
 ```
 $ pip install pytheory
 ```
 
-## Tones
+## Sketch Ideas Fast
 
-```pycon
->>> from pytheory import Tone
+```python
+from pytheory import Score, Pattern, Key, Duration, Chord
+from pytheory.play import play_score
 
->>> c4 = Tone.from_string("C4", system="western")
->>> c4.frequency
-261.63
+score = Score("4/4", bpm=140)
+score.drums("bossa nova", repeats=4)
 
->>> c4 + 7                # perfect fifth
-<Tone G4>
+chords = score.part("chords", synth="fm", envelope="pad", reverb=0.4)
+lead = score.part("lead", synth="saw", envelope="pluck", delay=0.3, lowpass=3000)
+bass = score.part("bass", synth="sine", lowpass=500)
 
->>> c4.interval_to(c4 + 7)
-'perfect 5th'
+for sym in ["Am", "Dm", "E7", "Am"]:
+    chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+    chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
->>> c4.midi
-60
+lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
+lead.arpeggio("Dm", bars=2, pattern="updown", octaves=2)
+lead.set(lowpass=5000, reverb=0.4)
+lead.arpeggio("E7", bars=2, pattern="up", octaves=2)
+lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
 
->>> Tone.from_frequency(440)
-<Tone A4>
+for n in ["A2", "E2", "A2", "C3"] * 4:
+    bass.add(n, Duration.QUARTER)
 
->>> Tone.from_midi(69)
-<Tone A4>
+play_score(score)              # hear it now
+score.save_midi("sketch.mid")  # open in your DAW
 ```
 
-## Scales and Modes
+## Hear It Instantly
 
-```pycon
->>> from pytheory import TonedScale
-
->>> c_major = TonedScale(tonic="C4")["major"]
->>> c_major.note_names
-['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
-
->>> TonedScale(tonic="C4")["dorian"].note_names
-['C', 'D', 'D#', 'F', 'G', 'A', 'A#', 'C']
+```
+$ pytheory demo
 ```
 
-## Diatonic Harmony
+## Music Theory
 
 ```pycon
->>> c_major.triad(0).identify()
-'C major'
+>>> from pytheory import Key, Chord, Tone
 
->>> c_major.seventh(4).identify()
-'G dominant 7th'
-
->>> [c.identify() for c in c_major.harmonize()]
+>>> Key("C", "major").chords
 ['C major', 'D minor', 'E minor', 'F major', 'G major', 'A minor', 'B diminished']
 
->>> [c.identify() for c in c_major.progression("I", "V", "vi", "IV")]
-['C major', 'G major', 'A minor', 'F major']
+>>> [c.symbol for c in Key("G", "major").progression("I", "V", "vi", "IV")]
+['G', 'D', 'Em', 'C']
+
+>>> Chord.from_symbol("F#m7b5").identify()
+'F# half-diminished 7th'
+
+>>> Tone.from_string("C4").interval_to(Tone.from_string("G4"))
+'perfect 5th'
+
+>>> Key("C", "major").pivot_chords(Key("G", "major"))
+['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
 ```
 
-## Keys and Progressions
+## Composition
 
-```pycon
->>> from pytheory import Key
+```python
+score = Score("4/4", bpm=124)
+score.drums("house", repeats=16, fill="house", fill_every=8)
 
->>> key = Key("G", "major")
->>> key.chords
-['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
+pad = score.part("pad", synth="supersaw", envelope="pad",
+                 reverb=0.5, chorus=0.3, sidechain=0.85)
+lead = score.part("lead", synth="saw", envelope="pluck",
+                  legato=True, glide=0.03, humanize=0.3)
+bass = score.part("bass", synth="sine", lowpass=300, sidechain=0.7)
 
->>> [c.identify() for c in key.progression("I", "V", "vi", "IV")]
-['G major', 'D major', 'E minor', 'C major']
+# Song structure
+score.section("verse")
+# ... add notes ...
+score.section("chorus")
+lead.set(lowpass=5000, reverb=0.3)
+# ... add notes ...
+score.end_section()
 
->>> Key.detect("C", "E", "G", "A", "D")
-<Key C major>
+score.repeat("verse")
+score.repeat("chorus", times=2)
 ```
 
-## Chord Analysis
+## 10 Synth Waveforms
 
-```pycon
->>> from pytheory import Chord, Tone
+sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM slow, PWM fast
 
->>> C4 = Tone.from_string("C4", system="western")
->>> G4 = Tone.from_string("G4", system="western")
+## 58 Drum Patterns
 
->>> g7 = Chord([G4, G4+4, G4+7, G4+10])
->>> g7.identify()
-'G dominant 7th'
+rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass — and 45 more. Plus 21 fill presets.
 
->>> g7.analyze("C")
-'V7'
+## 6 Effects with Automation
 
->>> g7.tension
-{'score': 0.6, 'tritones': 1, 'minor_seconds': 0, 'has_dominant_function': True}
+```python
+lead = score.part("lead", synth="saw",
+                  distortion=0.7, lowpass=1000, lowpass_q=5.0,
+                  delay=0.3, reverb=0.4, reverb_type="plate",
+                  chorus=0.3)
 
->>> g7.transpose(-7).identify()
-'C dominant 7th'
+# Automate mid-song
+lead.set(lowpass=4000, distortion=0.9)
+
+# LFO modulation
+lead.lfo("lowpass", rate=0.5, min=400, max=3000, bars=8)
 ```
 
-## Six Musical Systems
+Signal chain: distortion → chorus → lowpass → delay → reverb
 
-```pycon
->>> from pytheory import TonedScale
+## Convolution Reverb
 
->>> TonedScale(tonic="Sa4", system="indian")["bhairav"].note_names
-['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
+7 synthetic impulse responses: Taj Mahal (12s), cathedral, plate, spring, cave, parking garage, canyon.
 
->>> TonedScale(tonic="Do4", system="arabic")["hijaz"].note_names
-['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
-
->>> TonedScale(tonic="C4", system="japanese")["hirajoshi"].note_names
-['C', 'D', 'D#', 'G', 'G#', 'C']
-
->>> TonedScale(tonic="C4", system="blues")["blues"].note_names
-['C', 'D#', 'F', 'F#', 'G', 'A#', 'C']
+```python
+pad = score.part("pad", synth="supersaw",
+                 reverb=0.85, reverb_type="taj_mahal")
 ```
+
+## 6 Musical Systems
+
+Western, Indian (Hindustani), Arabic (Maqam), Japanese, Blues/Pentatonic, Javanese Gamelan — 40+ scales.
 
 ## 25 Instrument Presets
 
-```pycon
->>> from pytheory import Fretboard, CHARTS
+Guitar (8 tunings), bass, ukulele, mandolin family, violin family, banjo, harp, oud, sitar, erhu, and more — with chord fingering generation.
 
->>> Fretboard.guitar()                # standard tuning
->>> Fretboard.guitar("drop d")        # 8 alternate tunings
->>> Fretboard.mandolin()              # + mandola, octave mandolin, mandocello
->>> Fretboard.violin()                # + viola, cello, double bass
->>> Fretboard.ukulele()               # + banjo, harp, charango, erhu...
->>> Fretboard.keyboard()              # 88-key piano
->>> Fretboard.keyboard(25, "C3")      # 25-key MIDI controller
-
->>> CHARTS['western']['Am'].fingering(fretboard=Fretboard.guitar())
-Fingering(e=0, B=1, G=2, D=2, A=0, E=0)
-
->>> Fretboard.guitar().fingering(0, 1, 0, 2, 3, 0).identify()
-'C major'
-```
-
-## Audio Playback
-
-```pycon
->>> from pytheory import play, Synth, Tone
-
->>> tone = Tone.from_string("A4", system="western")
->>> play(tone, t=1_000)                   # sine wave, 1 second
->>> play(tone, synth=Synth.SAW, t=1_000)  # sawtooth wave
-
->>> from pytheory import save, Chord
->>> save(Chord.from_name("Am7"), "am7.wav", t=2_000)  # save to WAV
-```
-
-## Command-Line Interface
+## Command Line
 
 ```
-$ pytheory tone A4                          # frequency, MIDI, overtones
-$ pytheory chord C E G                      # identify chord from notes
-$ pytheory key G major                      # explore a key
-$ pytheory scale C dorian                   # show a scale
-$ pytheory fingering Am --capo 2            # guitar fingering
-$ pytheory progression C major I V vi IV    # build a progression
-$ pytheory detect C E G A D                 # detect key from notes
-$ pytheory play Am7 --synth triangle        # play a chord
+$ pytheory demo                            # hear a generated track
+$ pytheory key G major                     # explore a key
+$ pytheory identify Cmaj7                  # analyze a chord symbol
+$ pytheory progression C major I V vi IV   # build a progression
+$ pytheory midi C major I V vi IV -o out.mid
+$ pytheory play Am7 --synth saw --envelope pluck
+$ pytheory modes C                         # show all modes
+$ pytheory circle C                        # circle of fifths
 ```
 
-## Features
+## Why Python?
 
-- **6 musical systems**: Western, Indian (Hindustani), Arabic (Maqam), Japanese, Blues/Pentatonic, Javanese Gamelan
-- **40+ scales**: major, minor, harmonic minor, 7 modes, 10 thaats, 10 maqamat, pentatonic, blues, hirajoshi, pelog, slendro, and more
-- **Chord analysis**: identification (17 types), Roman numeral analysis, tension scoring, voice leading, Plomp-Levelt dissonance, beat frequencies
-- **Diatonic harmony**: triads, seventh chords, harmonize entire scales, build progressions from Roman numerals
-- **25 instrument presets**: guitar (8 tunings), 12-string, bass, mandolin family, violin family, banjo, harp, oud, sitar, shamisen, erhu, charango, pipa, balalaika, lute, pedal steel, keyboard
-- **Pitch tools**: frequency ↔ tone conversion, MIDI ↔ tone, interval naming, circle of fifths, overtone series, transposition
-- **3 temperaments**: equal, Pythagorean, quarter-comma meantone
-- **Audio synthesis**: sine, sawtooth, and triangle wave playback + WAV export
+A DAW is great for tweaking sounds. But when you're *thinking about music* — code is faster than clicking. Sketch ideas, hear them instantly, export MIDI, finish in your DAW.
+
+Tools like [Claude Code](https://claude.ai/code) can use PyTheory to prototype musical ideas from natural language — "write a bossa nova in A minor with a saw lead and reverb" becomes real, playable music.
 
 ## Documentation
 
-Full documentation with music theory guides: **[pytheory.kennethreitz.org](https://pytheory.kennethreitz.org)**
+**[pytheory.kennethreitz.org](https://pytheory.kennethreitz.org)**
