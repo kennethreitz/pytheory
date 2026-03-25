@@ -1,14 +1,46 @@
 Audio Playback
 ==============
 
-PyTheory can synthesize and play tones and chords through your speakers
-using basic `waveform <https://en.wikipedia.org/wiki/Waveform>`_ synthesis.
+PyTheory includes a complete audio engine — synthesize tones, chords,
+drum patterns, and multi-part arrangements, then play them through your
+speakers or save to WAV/MIDI. No samples or external audio files needed;
+everything is generated from waveforms and envelopes.
 
 .. note::
 
    Audio playback requires `PortAudio <http://www.portaudio.com/>`_ to be
    installed on your system. On macOS: ``brew install portaudio``.
    On Ubuntu: ``apt install libportaudio2``.
+
+Quick Start
+-----------
+
+The simplest thing you can do:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Tone, Chord, play
+   >>> play(Tone.from_string("A4"), t=1_000)          # A440 for 1 second
+   >>> play(Chord.from_symbol("Am7"), t=2_000)         # chord for 2 seconds
+
+The most expressive thing you can do:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Score, Pattern, Key, Duration, Chord
+   >>> from pytheory.play import play_score
+   >>> score = Score("4/4", bpm=140)
+   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+   >>> chords = score.part("chords", synth="sine", envelope="pad")
+   >>> lead = score.part("lead", synth="saw", envelope="pluck")
+   >>> bass = score.part("bass", synth="triangle", envelope="pluck")
+   >>> for sym in ["Am", "Dm", "E7", "Am"]:
+   ...     chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+   >>> lead.add("E5", 0.67).add("D5", 0.33).add("C5", 1.0)
+   >>> bass.add("A2", Duration.HALF).add("E2", Duration.HALF)
+   >>> play_score(score)
+
+Everything between those two extremes is documented below.
 
 Playing a Tone
 --------------
@@ -158,38 +190,55 @@ Envelopes work with all functions — ``play()``, ``save()``, and
 Playing a Score
 ---------------
 
-A ``Score`` combines drum patterns and chord progressions into a single
-playable arrangement. ``play_score()`` renders everything — synthesized
-drums and tonal chords — mixed together in one audio buffer:
+A ``Score`` combines drum patterns, chord pads, melody leads, bass lines,
+and any number of named parts — each with its own synth voice — into a
+single playable arrangement.
 
 .. code-block:: pycon
 
-   >>> from pytheory import Pattern, Key, Duration
+   >>> from pytheory import Score, Pattern, Key, Duration, Chord
    >>> from pytheory.play import play_score
 
-   >>> key = Key("A", "minor")
-   >>> score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
-   >>> for chord in key.progression("i", "iv", "V", "i"):
-   ...     score.add(chord, Duration.WHOLE)
-   ...     score.add(chord, Duration.WHOLE)
+   >>> score = Score("4/4", bpm=140)
+   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+
+   >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
+   >>> lead   = score.part("lead",   synth="triangle", envelope="pluck", volume=0.5)
+   >>> bass   = score.part("bass",   synth="sine", envelope="pluck", volume=0.45)
+
+   >>> for sym in ["Am", "Dm", "E7", "Am"]:
+   ...     chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+   ...     chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+   >>> lead.add("E5", 0.67).add("D5", 0.33).add("C5", 1.0).rest(0.5)
+
+   >>> for n in ["A2", "E2", "A2", "C3", "D2", "A2", "D2", "F2"]:
+   ...     bass.add(n, Duration.QUARTER)
+
    >>> play_score(score)
 
-Try different combinations:
+More examples:
 
 .. code-block:: pycon
 
-   >>> # Salsa with a ii-V-I
-   >>> key = Key("C", "major")
-   >>> score = Pattern.preset("salsa").to_score(repeats=4, bpm=180)
-   >>> for chord in key.progression("ii", "V", "I", "I") * 2:
-   ...     score.add(chord, Duration.WHOLE)
+   >>> # Salsa with a ii-V-I — saw lead over clave
+   >>> score = Score("4/4", bpm=180)
+   >>> score.add_pattern(Pattern.preset("salsa"), repeats=4)
+   >>> chords = score.part("chords", synth="sine", envelope="pad")
+   >>> lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+   >>> for chord in Key("C", "major").progression("ii", "V", "I", "I") * 2:
+   ...     chords.add(chord, Duration.WHOLE)
+   >>> lead.add("D5", 0.67).add("F5", 0.33).add("A5", 1.0)
    >>> play_score(score)
 
-   >>> # Jazz ballad
-   >>> key = Key("Bb", "major")
-   >>> score = Pattern.preset("jazz").to_score(repeats=8, bpm=90)
-   >>> for chord in key.progression("I", "vi", "ii", "V") * 2:
-   ...     score.add(chord, Duration.WHOLE)
+   >>> # Jazz ballad — triangle lead, walking bass
+   >>> score = Score("4/4", bpm=90)
+   >>> score.add_pattern(Pattern.preset("jazz"), repeats=8)
+   >>> pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
+   >>> lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.5)
+   >>> bass = score.part("bass", synth="sine", envelope="pluck", volume=0.4)
+   >>> for chord in Key("Bb", "major").progression("I", "vi", "ii", "V") * 2:
+   ...     pads.add(chord, Duration.WHOLE)
    >>> play_score(score)
 
 MIDI Export

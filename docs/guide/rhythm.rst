@@ -226,24 +226,118 @@ Convert any pattern to a Score, then export:
    >>> Pattern.preset("salsa").to_score(repeats=4, bpm=180).save_midi("salsa.mid")
    >>> Pattern.preset("afrobeat").to_score(repeats=8, bpm=110).save_midi("afrobeat.mid")
 
-Combining Drums with Chords
-----------------------------
+Multi-Part Arrangements
+-----------------------
 
-You can layer a drum pattern with a chord progression by adding chord
-notes to the same Score:
+The ``Part`` class lets you layer multiple instrument voices — each with
+its own synth waveform, ADSR envelope, and volume level. This is where
+PyTheory goes from "theory tool" to "composition tool."
+
+Create parts with ``Score.part()``:
 
 .. code-block:: pycon
 
-   >>> from pytheory import Pattern, Key, Duration
+   >>> from pytheory import Score, Pattern, Key, Duration, Chord
+   >>> from pytheory.play import play_score
 
-   >>> key = Key("A", "minor")
-   >>> chords = key.random_progression(4)
+   >>> score = Score("4/4", bpm=140)
+   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
 
-   >>> score = Pattern.preset("bossa nova").to_score(repeats=2, bpm=140)
-   >>> for chord in chords:
-   ...     score.add(chord, Duration.WHOLE)
-   ...     score.add(chord, Duration.WHOLE)
-   >>> score.save_midi("bossa_with_chords.mid")
+   >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.35)
+   >>> lead   = score.part("lead",   synth="saw",  envelope="pluck", volume=0.5)
+   >>> bass   = score.part("bass",   synth="triangle", envelope="pluck", volume=0.45)
+
+Each part has ``.add()`` and ``.rest()`` with fluent chaining. Parts accept
+note strings directly — no need to wrap in ``Tone.from_string()``:
+
+.. code-block:: pycon
+
+   >>> lead.add("E5", Duration.QUARTER).add("D5", Duration.EIGHTH).rest(Duration.EIGHTH)
+   <Part 'lead' ...>
+
+   >>> # Raw float beats work too — useful for swing and tuplets
+   >>> lead.add("C5", 0.67).add("B4", 0.33).add("A4", 1.0)
+   <Part 'lead' ...>
+
+Chords and Tone objects work the same way:
+
+.. code-block:: pycon
+
+   >>> for chord in Key("A", "minor").progression("i", "iv", "V", "i"):
+   ...     chords.add(chord, Duration.WHOLE)
+
+   >>> for note in ["A2", "C3", "E3", "A2", "D2", "F2", "A2", "D2"]:
+   ...     bass.add(note, Duration.QUARTER)
+
+   >>> play_score(score)
+
+Available Synths and Envelopes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Synths**: ``"sine"`` (pure, clean), ``"saw"`` (bright, brassy),
+``"triangle"`` (mellow, woody)
+
+**Envelopes**: ``"piano"`` (natural decay), ``"pluck"`` (sharp attack,
+fast decay), ``"pad"`` (slow fade in, lush), ``"organ"`` (instant on/off),
+``"bell"`` (instant attack, long ring), ``"strings"`` (gradual bow),
+``"staccato"`` (short and punchy), ``"none"`` (raw waveform)
+
+Full Example: Bossa Nova Arrangement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A complete arrangement with drums, chord pads, walking bass, and
+a triangle-wave melody:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Score, Pattern, Key, Duration, Chord
+   >>> from pytheory.play import play_score
+
+   >>> score = Score("4/4", bpm=140)
+   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+
+   >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
+   >>> lead   = score.part("lead", synth="triangle", envelope="pluck", volume=0.55)
+   >>> bass   = score.part("bass", synth="sine", envelope="pluck", volume=0.4)
+
+   >>> # Chords: Am → Dm → E7 → Am (2 bars each)
+   >>> for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
+   ...     chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+   >>> # Lead: a lilting melody with swing 8ths
+   >>> for n, d in [("E5",.67),("D5",.33),("C5",.67),("B4",.33),
+   ...              ("A4",1),("C5",.67),("E5",.33),("D5",.67),("C5",.33),
+   ...              ("A4",1)]:
+   ...     lead.add(n, d)
+
+   >>> # Bass: root-fifth walking pattern
+   >>> for n in ["A2","E2","A2","C3","D2","A2","D2","F2"]:
+   ...     bass.add(n, Duration.QUARTER)
+
+   >>> play_score(score)
+
+Headless Rendering
+~~~~~~~~~~~~~~~~~~
+
+Use ``render_score()`` to get a raw audio buffer without playing it —
+useful for saving to WAV or further processing:
+
+.. code-block:: pycon
+
+   >>> from pytheory.play import render_score
+   >>> buf = render_score(score)   # numpy float32 array
+   >>> len(buf)
+   604800
+
+Combining with MIDI Export
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Scores with parts can also be exported to MIDI (parts are rendered
+to the default channel, drums to channel 10):
+
+.. code-block:: pycon
+
+   >>> score.save_midi("bossa_arrangement.mid")
 
 Drum Sounds
 -----------
@@ -290,33 +384,44 @@ files needed.
    >>> play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
    >>> play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
-Playing Drums with Chords
---------------------------
+Playing Drums with Parts
+-------------------------
 
-``play_score()`` mixes tonal content and drum hits together into
-one audio buffer. Build a Score from a drum pattern, then ``.add()``
-chords on top:
+``play_score()`` mixes drums and all named parts together. Use
+``Score.part()`` to create voices with different timbres:
 
 .. code-block:: pycon
 
-   >>> from pytheory import Pattern, Key, Duration
+   >>> from pytheory import Score, Pattern, Key, Duration, Chord
    >>> from pytheory.play import play_score
 
-   >>> key = Key("A", "minor")
-   >>> score = Pattern.preset("bossa nova").to_score(repeats=4, bpm=140)
-   >>> for chord in key.progression("i", "iv", "V", "i"):
-   ...     score.add(chord, Duration.WHOLE)
-   ...     score.add(chord, Duration.WHOLE)
+   >>> score = Score("4/4", bpm=140)
+   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+
+   >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
+   >>> lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.5)
+
+   >>> for chord in Key("A", "minor").progression("i", "iv", "V", "i"):
+   ...     chords.add(chord, Duration.WHOLE)
+
+   >>> lead.add("E5", 0.67).add("D5", 0.33).add("C5", 1.0).rest(1.0)
+
    >>> play_score(score)
 
-Another example — salsa with a ii-V-I:
+Another example — salsa with a saw lead and walking bass:
 
 .. code-block:: pycon
 
-   >>> key = Key("C", "major")
-   >>> score = Pattern.preset("salsa").to_score(repeats=4, bpm=180)
-   >>> for chord in key.progression("ii", "V", "I", "I") * 2:
-   ...     score.add(chord, Duration.WHOLE)
+   >>> score = Score("4/4", bpm=180)
+   >>> score.add_pattern(Pattern.preset("salsa"), repeats=4)
+   >>> pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
+   >>> lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+   >>> bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
+   >>> for chord in Key("D", "minor").progression("ii", "V", "i", "i") * 2:
+   ...     pads.add(chord, Duration.WHOLE)
+   >>> lead.add("A5", 0.67).add("G5", 0.33).add("F5", 0.67).add("E5", 0.33)
+   >>> for n in ["D2", "A2", "D2", "F2"] * 2:
+   ...     bass.add(n, Duration.QUARTER)
    >>> play_score(score)
 
 Synthesized Drum Sounds
