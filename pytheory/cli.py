@@ -94,22 +94,35 @@ def cmd_progression(args):
 def cmd_play(args):
     from .tones import Tone
     from .chords import Chord
-    from .play import play, Synth
+    from .play import play, Synth, Envelope
 
     synth_map = {"sine": Synth.SINE, "saw": Synth.SAW, "triangle": Synth.TRIANGLE}
     synth = synth_map[args.synth]
+    envelope = Envelope[args.envelope.upper()]
     duration = args.duration
 
-    # Try chord name first (e.g. "Am", "Cmaj7"), then fall back to individual notes.
+    # Try chord symbol first (e.g. "Am", "Cmaj7", "F#m7b5"),
+    # then chart lookup, then fall back to individual notes.
     if len(args.notes) == 1:
         note = args.notes[0]
-        # Try as chord name first (Am, G7, Cmaj7, etc.)
+        target = None
+        # Try as chord symbol first
         try:
-            target = Chord.from_name(note)
+            target = Chord.from_symbol(note)
             name = target.identify() or note
             label = f"{name} ({' '.join(t.full_name for t in target.tones)})"
-        except (ValueError, KeyError):
-            # Fall back to single tone
+        except ValueError:
+            pass
+        # Try chart lookup
+        if target is None:
+            try:
+                target = Chord.from_name(note)
+                name = target.identify() or note
+                label = f"{name} ({' '.join(t.full_name for t in target.tones)})"
+            except (ValueError, KeyError):
+                pass
+        # Fall back to single tone
+        if target is None:
             target = Tone.from_string(
                 note if any(c.isdigit() for c in note) else f"{note}4",
                 system="western")
@@ -123,8 +136,10 @@ def cmd_play(args):
 
     print(f"  Playing: {label}")
     print(f"  Synth:   {args.synth}")
+    print(f"  Envelope: {args.envelope}")
     print(f"  Duration: {duration} ms")
-    play(target, temperament=args.temperament, synth=synth, t=duration)
+    play(target, temperament=args.temperament, synth=synth, t=duration,
+         envelope=envelope)
 
 
 def cmd_modes(args):
@@ -226,6 +241,10 @@ def main():
     p.add_argument("--temperament", "-t", default="equal",
                    choices=["equal", "pythagorean", "meantone"],
                    help="Tuning temperament (default: equal)")
+    p.add_argument("--envelope", "-e", default="piano",
+                   choices=["none", "piano", "organ", "pluck", "pad",
+                            "strings", "bell", "staccato"],
+                   help="ADSR envelope preset (default: piano)")
 
     # detect
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")

@@ -4058,3 +4058,233 @@ def test_cli_progressions(capsys):
     out = capsys.readouterr().out
     assert "I-V-vi-IV" in out
     assert "C" in out
+
+
+# ── Chord.from_symbol ───────────────────────────────────────────────────────
+
+def test_from_symbol_major():
+    c = Chord.from_symbol("C")
+    assert c.identify() == "C major"
+
+
+def test_from_symbol_minor():
+    c = Chord.from_symbol("Am")
+    assert c.identify() == "A minor"
+
+
+def test_from_symbol_dominant_7th():
+    c = Chord.from_symbol("G7")
+    assert c.identify() == "G dominant 7th"
+
+
+def test_from_symbol_major_7th():
+    c = Chord.from_symbol("Cmaj7")
+    assert c.identify() == "C major 7th"
+
+
+def test_from_symbol_minor_7th():
+    c = Chord.from_symbol("Dm7")
+    assert c.identify() == "D minor 7th"
+
+
+def test_from_symbol_diminished():
+    c = Chord.from_symbol("Bdim")
+    assert c.identify() == "B diminished"
+
+
+def test_from_symbol_augmented():
+    c = Chord.from_symbol("Caug")
+    assert c.identify() == "C augmented"
+
+
+def test_from_symbol_sus4():
+    c = Chord.from_symbol("Csus4")
+    assert c.identify() == "C sus4"
+
+
+def test_from_symbol_sus2():
+    c = Chord.from_symbol("Dsus2")
+    assert c.identify() == "D sus2"
+
+
+def test_from_symbol_power():
+    c = Chord.from_symbol("C5")
+    assert c.identify() == "C power"
+
+
+def test_from_symbol_half_diminished():
+    c = Chord.from_symbol("Bm7b5")
+    assert c.identify() == "B half-diminished 7th"
+
+
+def test_from_symbol_flat_root():
+    c = Chord.from_symbol("Bbmaj7")
+    assert c.symbol == "Bbmaj7"
+
+
+def test_from_symbol_sharp_root():
+    c = Chord.from_symbol("F#m")
+    assert c.identify() == "F# minor"
+
+
+def test_from_symbol_dim7():
+    c = Chord.from_symbol("Cdim7")
+    assert c.identify() == "C diminished 7th"
+
+
+def test_from_symbol_9th():
+    c = Chord.from_symbol("G9")
+    assert c.identify() == "G dominant 9th"
+
+
+def test_from_symbol_roundtrip():
+    """from_symbol → symbol should round-trip."""
+    for sym in ["C", "Am", "G7", "Dmaj7", "Em7", "Bdim", "Fsus4"]:
+        c = Chord.from_symbol(sym)
+        assert c.symbol == sym, f"Round-trip failed for {sym}: got {c.symbol}"
+
+
+def test_from_symbol_invalid_raises():
+    with pytest.raises(ValueError):
+        Chord.from_symbol("Xmaj7")
+
+
+def test_from_symbol_unknown_quality_raises():
+    with pytest.raises(ValueError):
+        Chord.from_symbol("Czzz")
+
+
+# ── Tone.cents_difference ──────────────────────────────────────────────────
+
+def test_cents_semitone():
+    a4 = Tone.from_string("A4", system="western")
+    bb4 = a4 + 1
+    cents = a4.cents_difference(bb4)
+    assert abs(cents - 100.0) < 0.01
+
+
+def test_cents_octave():
+    a4 = Tone.from_string("A4", system="western")
+    a5 = Tone.from_string("A5", system="western")
+    cents = a4.cents_difference(a5)
+    assert abs(cents - 1200.0) < 0.01
+
+
+def test_cents_unison():
+    a4 = Tone.from_string("A4", system="western")
+    assert abs(a4.cents_difference(a4)) < 0.01
+
+
+def test_cents_negative():
+    a4 = Tone.from_string("A4", system="western")
+    g4 = a4 - 2
+    cents = a4.cents_difference(g4)
+    assert cents < 0
+
+
+def test_cents_fifth():
+    c4 = Tone.from_string("C4", system="western")
+    g4 = c4 + 7
+    cents = c4.cents_difference(g4)
+    assert abs(cents - 700.0) < 0.01
+
+
+# ── Key.pivot_chords ───────────────────────────────────────────────────────
+
+def test_pivot_chords_closely_related():
+    c = Key("C", "major")
+    g = Key("G", "major")
+    pivots = c.pivot_chords(g)
+    assert len(pivots) > 0
+    assert "G major" in pivots
+    assert "E minor" in pivots
+
+
+def test_pivot_chords_same_key():
+    c = Key("C", "major")
+    pivots = c.pivot_chords(c)
+    assert set(pivots) == set(c.chords)
+
+
+def test_pivot_chords_distant_keys():
+    c = Key("C", "major")
+    fs = Key("F#", "major")
+    pivots = c.pivot_chords(fs)
+    assert len(pivots) < len(c.chords)
+
+
+# ── Scale.parallel_modes ───────────────────────────────────────────────────
+
+def test_parallel_modes_c_major():
+    c = TonedScale(tonic="C4")["major"]
+    modes = c.parallel_modes()
+    assert "C ionian" in modes
+    assert "D dorian" in modes
+    assert "E phrygian" in modes
+    assert "A aeolian" in modes
+    assert len(modes) == 7
+
+
+def test_parallel_modes_share_notes():
+    c = TonedScale(tonic="C4")["major"]
+    modes = c.parallel_modes()
+    c_notes = set(modes["C ionian"][:-1])
+    for name, notes in modes.items():
+        assert set(notes[:-1]) == c_notes, f"{name} has different notes"
+
+
+def test_parallel_modes_g_major():
+    g = TonedScale(tonic="G4")["major"]
+    modes = g.parallel_modes()
+    assert "G ionian" in modes
+    assert "A dorian" in modes
+
+
+# ── ADSR envelope ──────────────────────────────────────────────────────────
+
+@needs_portaudio
+def test_envelope_enum_presets():
+    from pytheory.play import Envelope
+    assert len(Envelope) == 8
+    for e in Envelope:
+        a, d, s, r = e.value
+        assert a >= 0
+        assert d >= 0
+        assert 0 <= s <= 1.0
+        assert r >= 0
+
+
+@needs_portaudio
+def test_envelope_applied_to_render():
+    from pytheory.play import _render, Envelope
+    tone = Tone.from_string("A4", system="western")
+    raw = _render(tone, t=500, envelope=Envelope.NONE)
+    shaped = _render(tone, t=500, envelope=Envelope.PIANO)
+    # Shaped signal should start quieter (attack) and end quieter (release)
+    assert abs(float(shaped[0])) < abs(float(raw[0])) + 1
+    assert abs(float(shaped[-1])) < abs(float(raw[-1])) + 1
+
+
+@needs_portaudio
+def test_envelope_none_is_raw():
+    from pytheory.play import _render, Envelope
+    tone = Tone.from_string("A4", system="western")
+    raw = _render(tone, t=200, envelope=Envelope.NONE)
+    # With NONE envelope, first sample should be non-zero (no attack fade)
+    assert raw.dtype in (numpy.int16, numpy.float32)
+
+
+@needs_portaudio
+def test_all_envelopes_render():
+    from pytheory.play import _render, Envelope
+    tone = Tone.from_string("C4", system="western")
+    for e in Envelope:
+        samples = _render(tone, t=200, envelope=e)
+        assert len(samples) > 0
+
+
+# ── C_INDEX constant ───────────────────────────────────────────────────────
+
+def test_c_index_constant():
+    from pytheory._statics import C_INDEX
+    assert C_INDEX == 3

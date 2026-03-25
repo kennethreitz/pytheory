@@ -1,6 +1,11 @@
 from pytuning import scales
 
 REFERENCE_A = 440
+
+# Index of C in the Western tone list (A=0, A#=1, B=2, C=3, ...).
+# Scientific pitch notation changes octave at C, not A, so this offset
+# is needed for all octave arithmetic.
+C_INDEX = 3
 TEMPERAMENTS = {
     "equal": scales.create_edo_scale,
     "pythagorean": scales.create_pythagorean_scale,

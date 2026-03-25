@@ -235,6 +235,41 @@ class Scale:
         unique = len(self.tones) - 1
         return [self.triad(i) for i in range(unique)]
 
+    def parallel_modes(self) -> dict[str, list[str]]:
+        """All modes that share the same notes as this scale.
+
+        For example, C major shares its notes with D dorian,
+        E phrygian, F lydian, G mixolydian, A aeolian, and
+        B locrian.
+
+        Returns:
+            A dict mapping ``"tonic mode"`` to note name lists.
+
+        Example::
+
+            >>> c_major = TonedScale(tonic="C4")["major"]
+            >>> c_major.parallel_modes()
+            {'C ionian': ['C', 'D', 'E', ...], 'D dorian': ['D', 'E', 'F', ...], ...}
+        """
+        mode_names = ["ionian", "dorian", "phrygian", "lydian",
+                      "mixolydian", "aeolian", "locrian"]
+        unique = len(self.tones) - 1
+        if unique != 7:
+            return {}
+
+        result = {}
+        for i, mode in enumerate(mode_names):
+            if i >= unique:
+                break
+            tonic = self.tones[i]
+            ts = TonedScale(tonic=tonic.full_name)
+            try:
+                scale = ts[mode]
+                result[f"{tonic.name} {mode}"] = scale.note_names
+            except KeyError:
+                continue
+        return result
+
     def degree(self, item: Union[str, int, slice], major: Optional[bool] = None, minor: bool = False) -> Optional[Union[Tone, tuple[Tone, ...]]]:
 
         # Ensure that both major and minor aren't passed.
@@ -637,6 +672,32 @@ class Key:
         elif self.mode in ("minor", "aeolian"):
             return Key(self.tonic_name, "major")
         return None
+
+    def pivot_chords(self, target: Key) -> list[str]:
+        """Find chords common to this key and a target key.
+
+        Pivot chords are the bridge for modulation — they belong to
+        both keys, so a listener accepts them in either context. The
+        more pivot chords two keys share, the smoother the modulation.
+
+        Closely related keys (e.g. C major → G major) share many
+        pivot chords. Distant keys (e.g. C major → F# major) share
+        few or none.
+
+        Args:
+            target: The key to modulate to.
+
+        Returns:
+            A list of chord name strings common to both keys.
+
+        Example::
+
+            >>> Key("C", "major").pivot_chords(Key("G", "major"))
+            ['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor']
+        """
+        own = set(self.chords)
+        other = set(target.chords)
+        return sorted(own & other)
 
 
 class TonedScale:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-from ._statics import REFERENCE_A, TEMPERAMENTS
+from ._statics import REFERENCE_A, TEMPERAMENTS, C_INDEX
 
 
 class Interval:
@@ -168,13 +168,12 @@ class Tone:
             return self.subtract(other)
         # Tone - Tone: semitone distance
         if isinstance(other, Tone):
-            c_index = 3
             try:
                 mod = len(self.system.tones)
             except AttributeError:
                 raise ValueError("Tone math can only be computed with an associated system!")
-            self_from_c0 = ((self._index - c_index) % mod) + ((self.octave or 0) * mod)
-            other_from_c0 = ((other._index - c_index) % mod) + ((other.octave or 0) * mod)
+            self_from_c0 = ((self._index - C_INDEX) % mod) + ((self.octave or 0) * mod)
+            other_from_c0 = ((other._index - C_INDEX) % mod) + ((other.octave or 0) * mod)
             return self_from_c0 - other_from_c0
         return NotImplemented
 
@@ -278,12 +277,11 @@ class Tone:
         semitones = round(semitones_from_a4)
         # A4 is index 0 in the Western system, octave 4
         # Convert to absolute position from C0
-        c_index = 3
-        a4_from_c0 = ((0 - c_index) % 12) + (4 * 12)  # = 57
+        a4_from_c0 = ((0 - C_INDEX) % 12) + (4 * 12)  # = 57
         abs_pos = a4_from_c0 + semitones
         octave = abs_pos // 12
         relative = abs_pos % 12
-        index = (relative + c_index) % 12
+        index = (relative + C_INDEX) % 12
         if isinstance(system, str):
             from .systems import SYSTEMS
             system = SYSTEMS[system]
@@ -302,11 +300,10 @@ class Tone:
             >>> Tone.from_midi(69)
             <Tone A4>
         """
-        c_index = 3
         adjusted = note_number - 12  # MIDI C0=12
         octave = adjusted // 12
         relative = adjusted % 12
-        index = (relative + c_index) % 12
+        index = (relative + C_INDEX) % 12
         if isinstance(system, str):
             from .systems import SYSTEMS
             system = SYSTEMS[system]
@@ -367,17 +364,13 @@ class Tone:
                 "Tone math can only be computed with an associated system!"
             )
 
-        # C is at index 3 in the Western tone list (A=0, A#=1, B=2, C=3, ...)
-        # Scientific pitch notation changes octave at C, not A.
-        c_index = 3
-
         # Convert to absolute semitones from C0
-        note_from_c0 = ((self._index - c_index) % mod) + (octave * mod)
+        note_from_c0 = ((self._index - C_INDEX) % mod) + (octave * mod)
         note_from_c0 += interval
 
         new_octave = note_from_c0 // mod
         relative = note_from_c0 % mod
-        new_index = (relative + c_index) % mod
+        new_index = (relative + C_INDEX) % mod
 
         return (new_index, new_octave)
 
@@ -453,8 +446,7 @@ class Tone:
         """
         if self.octave is None:
             return None
-        c_index = 3
-        semitones_from_c0 = ((self._index - c_index) % 12) + (self.octave * 12)
+        semitones_from_c0 = ((self._index - C_INDEX) % 12) + (self.octave * 12)
         return semitones_from_c0 + 12  # MIDI C0 = 12 (C-1 = 0)
 
     def transpose(self, semitones: int) -> Tone:
@@ -464,6 +456,35 @@ class Tone:
         values transpose up, negative values transpose down.
         """
         return self.add(semitones)
+
+    def cents_difference(self, other: Tone, *, temperament: str = "equal") -> float:
+        """Difference in cents between this tone and another.
+
+        One semitone = 100 cents. Musicians use cents to measure fine
+        pitch differences — e.g. comparing equal temperament to
+        Pythagorean tuning, or checking how far out of tune a note is.
+
+        Args:
+            other: The tone to compare against.
+            temperament: Tuning temperament for both tones.
+
+        Returns:
+            Signed float — positive means *other* is higher.
+
+        Example::
+
+            >>> a4 = Tone.from_string("A4", system="western")
+            >>> a4.cents_difference(a4 + 1)  # one semitone
+            100.0
+            >>> a4_pyth = a4.pitch(temperament="pythagorean")
+            >>> a4_equal = a4.pitch(temperament="equal")
+        """
+        import math
+        f1 = self.pitch(temperament=temperament)
+        f2 = other.pitch(temperament=temperament)
+        if f1 <= 0 or f2 <= 0:
+            raise ValueError("Both tones must have positive frequencies")
+        return 1200 * math.log2(f2 / f1)
 
     def circle_of_fifths(self) -> list[Tone]:
         """The 12 tones of the circle of fifths starting from this tone.
@@ -564,11 +585,8 @@ class Tone:
         pitch_scale = TEMPERAMENTS[temperament](tones)
         octave = self.octave if self.octave is not None else 4
 
-        # C is at index 3; convert to semitones from C0 for both
-        # this note and the reference A4.
-        c_index = 3
-        note_from_c0 = ((self._index - c_index) % tones) + (octave * tones)
-        a4_from_c0 = ((0 - c_index) % tones) + (4 * tones)  # A4
+        note_from_c0 = ((self._index - C_INDEX) % tones) + (octave * tones)
+        a4_from_c0 = ((0 - C_INDEX) % tones) + (4 * tones)  # A4
 
         diff = note_from_c0 - a4_from_c0
         octave_shift = diff // tones

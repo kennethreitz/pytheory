@@ -2,6 +2,17 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.9.0
+
+- Add ADSR envelope system with 8 presets: `Envelope.PIANO`, `ORGAN`, `PLUCK`, `PAD`, `STRINGS`, `BELL`, `STACCATO`, `NONE`
+- Add `Chord.from_symbol()` parser — handles any standard chord symbol (e.g. "F#m7b5", "Bbmaj9", "Gsus4") without lookup tables
+- Add `Key.pivot_chords(target)` for finding modulation pivot chords between two keys
+- Add `Scale.parallel_modes()` to show all modes sharing the same notes (C major → D dorian, E phrygian, etc.)
+- Add `Tone.cents_difference(other)` for measuring fine pitch differences in cents
+- Add `--envelope` flag to CLI play command
+- CLI play command now uses `Chord.from_symbol()` for broader chord parsing
+- Replace hardcoded `c_index = 3` with named `C_INDEX` constant throughout
+
 ## 0.8.3
 
 - Add `Chord.symbol` property for standard shorthand notation (Cmaj7, Dm, G7, m7b5, etc.)

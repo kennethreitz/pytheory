@@ -90,6 +90,115 @@ class Chord:
         from .tones import Tone
         return cls(tones=[Tone.from_midi(n) for n in note_numbers])
 
+    # ── Symbol parsing ────────────────────────────────────────────────
+    # Maps chord suffix patterns to semitone interval tuples from root.
+    _SYMBOL_INTERVALS = {
+        # Triads
+        "maj": (4, 7),
+        "m": (3, 7),
+        "min": (3, 7),
+        "dim": (3, 6),
+        "aug": (4, 8),
+        "+": (4, 8),
+        "sus2": (2, 7),
+        "sus4": (5, 7),
+        "5": (7,),
+        # Seventh chords
+        "maj7": (4, 7, 11),
+        "M7": (4, 7, 11),
+        "m7": (3, 7, 10),
+        "min7": (3, 7, 10),
+        "7": (4, 7, 10),
+        "dom7": (4, 7, 10),
+        "dim7": (3, 6, 9),
+        "m7b5": (3, 6, 10),
+        "mMaj7": (3, 7, 11),
+        "aug7": (4, 8, 10),
+        # Ninth chords
+        "9": (4, 7, 10, 14),
+        "maj9": (4, 7, 11, 14),
+        "m9": (3, 7, 10, 14),
+        "min9": (3, 7, 10, 14),
+        # Sixth chords
+        "6": (4, 7, 9),
+        "m6": (3, 7, 9),
+        # Add chords
+        "add9": (4, 7, 14),
+        "add11": (4, 7, 17),
+        # Eleventh / thirteenth
+        "11": (4, 7, 10, 14, 17),
+        "13": (4, 7, 10, 14, 17, 21),
+    }
+
+    # Root note names — try longest match first (e.g. "C#" before "C").
+    _ROOT_NAMES = [
+        "A#", "Ab", "A", "Bb", "B", "C#", "Cb", "C",
+        "D#", "Db", "D", "Eb", "E", "F#", "Fb", "F",
+        "G#", "Gb", "G",
+    ]
+
+    @classmethod
+    def from_symbol(cls, symbol: str, octave: int = 4) -> Chord:
+        """Create a Chord by parsing a standard chord symbol.
+
+        Parses symbols like ``"Cmaj7"``, ``"F#m7b5"``, ``"Bbdim"``,
+        ``"Gsus4"``, ``"Dadd9"`` — any root note followed by a quality
+        suffix. Unlike ``from_name()``, this doesn't rely on a lookup
+        table and can handle any combination.
+
+        Args:
+            symbol: A chord symbol string (e.g. ``"Am7"``, ``"Ebmaj9"``).
+            octave: The octave for the root note (default 4).
+
+        Returns:
+            A new :class:`Chord` instance.
+
+        Raises:
+            ValueError: If the symbol can't be parsed.
+
+        Example::
+
+            >>> Chord.from_symbol("C").identify()
+            'C major'
+            >>> Chord.from_symbol("F#m7b5").identify()
+            'F# half-diminished 7th'
+            >>> Chord.from_symbol("Bbmaj7").symbol
+            'Bbmaj7'
+        """
+        from .tones import Tone
+
+        # Parse root note
+        root_name = None
+        suffix = symbol
+        for name in cls._ROOT_NAMES:
+            if symbol.startswith(name):
+                root_name = name
+                suffix = symbol[len(name):]
+                break
+
+        if root_name is None:
+            raise ValueError(f"Cannot parse root note from: {symbol!r}")
+
+        # Empty suffix or just "maj" = major triad
+        if suffix == "" or suffix == "M":
+            intervals = (4, 7)
+        else:
+            # Try longest suffix match first
+            intervals = None
+            for length in range(len(suffix), 0, -1):
+                candidate = suffix[:length]
+                if candidate in cls._SYMBOL_INTERVALS:
+                    intervals = cls._SYMBOL_INTERVALS[candidate]
+                    break
+
+            if intervals is None:
+                raise ValueError(
+                    f"Unknown chord quality: {suffix!r} in {symbol!r}")
+
+        root = Tone.from_string(f"{root_name}{octave}", system="western")
+        tones = [root] + [root.add(i) for i in intervals]
+        return cls(tones=tones)
+
     def __repr__(self) -> str:
         name = self.identify()
         if name:
