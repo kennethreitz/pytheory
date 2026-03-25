@@ -100,3 +100,9 @@ It also works from the command line::
    api/charts
    api/play
    api/systems
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Project
+
+   changelog
