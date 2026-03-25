@@ -4843,3 +4843,164 @@ def test_solfege_unknown_returns_name():
     """A non-standard name should be returned unchanged."""
     t = Tone(name="X", system="western")
     assert t.solfege == "X"
+
+
+# ── Rhythm / Duration system ────────────────────────────────────────────────
+
+from pytheory.rhythm import Duration, TimeSignature, Note as RhythmNote, Rest, Score
+
+
+def test_duration_values():
+    assert Duration.WHOLE.value == 4.0
+    assert Duration.HALF.value == 2.0
+    assert Duration.QUARTER.value == 1.0
+    assert Duration.EIGHTH.value == 0.5
+    assert Duration.SIXTEENTH.value == 0.25
+    assert Duration.DOTTED_HALF.value == 3.0
+    assert Duration.DOTTED_QUARTER.value == 1.5
+    assert abs(Duration.TRIPLET_QUARTER.value - 2 / 3) < 1e-9
+
+
+def test_time_signature_from_string_4_4():
+    ts = TimeSignature.from_string("4/4")
+    assert ts.beats == 4
+    assert ts.unit == 4
+    assert ts.beats_per_measure == 4.0
+
+
+def test_time_signature_from_string_3_4():
+    ts = TimeSignature.from_string("3/4")
+    assert ts.beats == 3
+    assert ts.unit == 4
+    assert ts.beats_per_measure == 3.0
+
+
+def test_time_signature_from_string_6_8():
+    ts = TimeSignature.from_string("6/8")
+    assert ts.beats == 6
+    assert ts.unit == 8
+    assert ts.beats_per_measure == 3.0  # 6 * (4/8) = 3
+
+
+def test_time_signature_repr():
+    assert repr(TimeSignature(3, 4)) == "3/4"
+
+
+def test_rhythm_note_creation():
+    t = Tone.from_string("C4")
+    n = RhythmNote(tone=t, duration=Duration.QUARTER)
+    assert n.tone is t
+    assert n.duration is Duration.QUARTER
+    assert n.beats == 1.0
+
+
+def test_rest_creation():
+    r = Rest(Duration.HALF)
+    assert r.tone is None
+    assert r.duration is Duration.HALF
+    assert r.beats == 2.0
+
+
+def test_rest_default_duration():
+    r = Rest()
+    assert r.duration is Duration.QUARTER
+
+
+def test_score_add_chaining():
+    t1 = Tone.from_string("C4")
+    t2 = Tone.from_string("E4")
+    score = Score("4/4", bpm=120)
+    result = score.add(t1, Duration.QUARTER).add(t2, Duration.QUARTER)
+    assert result is score
+    assert len(score) == 2
+
+
+def test_score_total_beats():
+    score = Score("4/4", bpm=120)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.HALF)
+    score.rest(Duration.QUARTER)
+    assert score.total_beats == 4.0
+
+
+def test_score_measures_complete():
+    score = Score("4/4", bpm=120)
+    for _ in range(4):
+        score.add(Tone.from_string("C4"), Duration.QUARTER)
+    assert score.measures == 1.0
+
+
+def test_score_measures_fractional():
+    score = Score("4/4", bpm=120)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.QUARTER)
+    assert score.measures == 0.5
+
+
+def test_score_measures_3_4():
+    score = Score("3/4", bpm=100)
+    for _ in range(3):
+        score.add(Tone.from_string("C4"), Duration.QUARTER)
+    assert score.measures == 1.0
+
+
+def test_score_duration_ms():
+    score = Score("4/4", bpm=120)
+    # At 120 bpm, one beat = 500 ms
+    score.add(Tone.from_string("C4"), Duration.QUARTER)  # 1 beat = 500 ms
+    score.add(Tone.from_string("E4"), Duration.HALF)      # 2 beats = 1000 ms
+    assert score.duration_ms == 1500.0
+
+
+def test_score_iteration():
+    score = Score("4/4", bpm=120)
+    t = Tone.from_string("C4")
+    score.add(t, Duration.QUARTER)
+    score.rest(Duration.QUARTER)
+    notes = list(score)
+    assert len(notes) == 2
+    assert notes[0].tone is t
+    assert notes[1].tone is None
+
+
+def test_score_repr():
+    score = Score("4/4", bpm=120)
+    for _ in range(4):
+        score.add(Tone.from_string("C4"), Duration.QUARTER)
+    r = repr(score)
+    assert "4/4" in r
+    assert "120bpm" in r
+    assert "4 notes" in r
+    assert "1.0 measures" in r
+
+
+def test_score_with_rests():
+    score = Score("4/4", bpm=60)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.rest(Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.QUARTER)
+    score.rest(Duration.QUARTER)
+    assert score.total_beats == 4.0
+    assert score.measures == 1.0
+    # At 60 bpm, 1 beat = 1000 ms, 4 beats = 4000 ms
+    assert score.duration_ms == 4000.0
+
+
+def test_score_save_midi(tmp_path):
+    """save_midi writes a valid MIDI file header."""
+    score = Score("4/4", bpm=120)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.QUARTER)
+    score.rest(Duration.QUARTER)
+    score.add(Tone.from_string("G4"), Duration.QUARTER)
+
+    midi_path = tmp_path / "test.mid"
+    score.save_midi(str(midi_path))
+
+    data = midi_path.read_bytes()
+    # Valid MIDI starts with MThd
+    assert data[:4] == b"MThd"
+    # Contains a track chunk
+    assert b"MTrk" in data
+    # File is non-trivial
+    assert len(data) > 30

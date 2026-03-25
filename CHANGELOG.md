@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.12.0
+
+- Add rhythm module: `Duration`, `TimeSignature`, `Note`, `Rest`, `Score`
+- `Duration` enum with 8 note lengths (whole through sixteenth, dotted, triplet)
+- `TimeSignature` with string parsing ("4/4", "3/4", "6/8", "12/8") and beats_per_measure
+- `Score` class with fluent `.add()` / `.rest()` chaining, measure counting, and `save_midi()` export
+- Measure-aware MIDI export with proper time signature and tempo meta events
+
 ## 0.11.0
 
 - Add drop voicings: `Chord.close_voicing()`, `Chord.open_voicing()`, `Chord.drop2()`, `Chord.drop3()`

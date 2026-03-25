@@ -86,6 +86,7 @@ It also works from the command line::
    guide/chords
    guide/fretboard
    guide/systems
+   guide/rhythm
    guide/playback
    guide/cli
    guide/cookbook
