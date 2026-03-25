@@ -127,3 +127,77 @@ Play individual notes or chords (requires PortAudio)::
     $ pytheory play C E G --synth saw          # Sawtooth wave
     $ pytheory play A4 --duration 2000         # 2 seconds
     $ pytheory play C E G --temperament meantone
+    $ pytheory play Am7 --envelope pad         # With ADSR envelope
+    $ pytheory play C4 --envelope bell         # Bell-like ring
+
+Chord Identification (from symbol)
+-----------------------------------
+
+Parse any chord symbol and get a full analysis::
+
+    $ pytheory identify Cmaj7
+      Chord:      C major 7th
+      Symbol:     Cmaj7
+      Tones:      C4 E4 G4 B4
+      Intervals:  [4, 3, 4]
+      Harmony:    0.5833
+      Dissonance: 1.2345
+      Tension:    score=0.00 tritones=0 minor_2nds=0 dominant=False
+
+    $ pytheory identify F#m7b5
+
+MIDI Export
+-----------
+
+Export a chord progression to a Standard MIDI File::
+
+    $ pytheory midi C major I V vi IV -o pop.mid
+      Key:        C major
+      Progression: I V vi IV
+      BPM:        120
+      Duration:   500 ms
+      Output:     pop.mid
+
+    $ pytheory midi G major ii V I -o jazz.mid --bpm 140 --duration 800
+
+Modes
+-----
+
+Show all 7 modes starting from a note::
+
+    $ pytheory modes C
+      Modes of C:
+
+        ionian        C D E F G A B C
+        dorian        C D Eb F G A Bb C
+        phrygian      C Db Eb F G Ab Bb C
+        lydian        C D E F# G A B C
+        mixolydian    C D E F G A Bb C
+        aeolian       C D Eb F G Ab Bb C
+        locrian       C Db Eb F Gb Ab Bb C
+
+Circle of Fifths
+----------------
+
+Display the circle of fifths and fourths from any note::
+
+    $ pytheory circle C
+      Circle of fifths from C:
+        → C → G → D → A → E → B → F# → C# → G# → D# → A# → F
+
+      Circle of fourths from C:
+        → C → F → A# → D# → G# → C# → F# → B → E → A → D → G
+
+Common Progressions
+-------------------
+
+Show all named progressions realized in a key::
+
+    $ pytheory progressions C major
+      Common progressions in C major:
+
+        I-IV-V-I              C → F → G → C
+        I-V-vi-IV             C → G → Am → F
+        12-bar blues          C → C → C → C → F → F → C → C → G → F → C → G
+        ii-V-I                Dm → G7 → C
+        ...

@@ -377,3 +377,52 @@ to the starting note:
 
 Each step clockwise adds one sharp to the key signature; each step
 counter-clockwise (ascending by fourths = 5 semitones) adds one flat.
+
+Solfege
+-------
+
+The fixed-Do `solfege <https://en.wikipedia.org/wiki/Solf%C3%A8ge>`_ system
+maps each note to a singable syllable. PyTheory uses fixed Do (C is always Do):
+
+.. code-block:: pycon
+
+   >>> Tone.from_string("C4").solfege
+   'Do'
+   >>> Tone.from_string("D4").solfege
+   'Re'
+   >>> Tone.from_string("F#4").solfege
+   'Fi'
+   >>> Tone.from_string("Bb4").solfege
+   'Te'
+
+Helmholtz Notation
+------------------
+
+The older `Helmholtz notation <https://en.wikipedia.org/wiki/Helmholtz_pitch_notation>`_
+uses case and tick marks instead of numbers:
+
+.. code-block:: pycon
+
+   >>> Tone.from_string("C3").helmholtz    # Great octave
+   'C'
+   >>> Tone.from_string("C4").helmholtz    # Middle C
+   'c'
+   >>> Tone.from_string("C5").helmholtz    # One-line octave
+   "c'"
+   >>> Tone.from_string("C2").helmholtz    # Contra octave
+   'CC'
+
+Cents
+-----
+
+A **cent** is 1/100th of a semitone — the standard unit for measuring
+fine pitch differences. Use ``cents_difference`` to compare tones or
+temperaments:
+
+.. code-block:: pycon
+
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> c4.cents_difference(c4 + 1)    # One semitone = 100 cents
+   100.0
+   >>> c4.cents_difference(c4 + 7)    # Perfect fifth
+   700.0

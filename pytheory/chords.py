@@ -295,6 +295,151 @@ class Chord:
         result._identify_cache = None
         return result
 
+    def close_voicing(self) -> Chord:
+        """Rearrange tones so they are packed within one octave ascending from root.
+
+        All tones are brought into the same octave as the root and sorted
+        ascending by pitch class.
+
+        Example::
+
+            >>> Chord.from_symbol("C").inversion(2).close_voicing().identify()
+            'C major'
+        """
+        if not self.tones:
+            return Chord(tones=[])
+        root = self.tones[0]
+        root_octave = root.octave or 4
+        result = [root]
+        for t in self.tones[1:]:
+            # Bring into root octave, above root
+            interval = (t - root) % 12
+            if interval == 0:
+                interval = 12
+            new_tone = root.add(interval)
+            result.append(new_tone)
+        # Sort by interval from root (skip root itself)
+        result = [result[0]] + sorted(result[1:], key=lambda t: (t - root) % 12)
+        return Chord(tones=result)
+
+    def open_voicing(self) -> Chord:
+        """Spread tones across two octaves by moving alternating tones up an octave.
+
+        Starting from close voicing, every other non-root tone (indices 1, 3, ...)
+        is raised by an octave, creating a wider, more open sound.
+
+        Example::
+
+            >>> c = Chord.from_symbol("Cmaj7").open_voicing()
+            >>> len(c.tones)
+            4
+        """
+        closed = self.close_voicing()
+        tones = list(closed.tones)
+        for i in range(1, len(tones)):
+            if i % 2 == 1:
+                tones[i] = tones[i].add(12)
+        return Chord(tones=tones)
+
+    def drop2(self) -> Chord:
+        """Drop-2 voicing: take the second-highest voice and drop it down an octave.
+
+        A standard jazz guitar voicing technique that creates wider spacing
+        between voices while maintaining harmonic function.
+
+        Example::
+
+            >>> Chord.from_symbol("Cmaj7").drop2()
+            <Chord C major 7th>
+        """
+        closed = self.close_voicing()
+        tones = list(closed.tones)
+        if len(tones) < 2:
+            return Chord(tones=tones)
+        # Second-highest is index -2
+        dropped = tones[-2].add(-12)
+        new_tones = [dropped] + tones[:-2] + [tones[-1]]
+        return Chord(tones=new_tones)
+
+    def drop3(self) -> Chord:
+        """Drop-3 voicing: take the third-highest voice and drop it down an octave.
+
+        Creates an even wider voicing than drop-2. Common in big band
+        arranging and guitar chord melody.
+
+        Example::
+
+            >>> Chord.from_symbol("Cmaj7").drop3()
+            <Chord C major 7th>
+        """
+        closed = self.close_voicing()
+        tones = list(closed.tones)
+        if len(tones) < 3:
+            return Chord(tones=tones)
+        # Third-highest is index -3
+        dropped = tones[-3].add(-12)
+        new_tones = [dropped] + tones[:-3] + tones[-2:]
+        return Chord(tones=new_tones)
+
+    def extensions(self, scale=None) -> list:
+        """Suggest available chord extensions (9th, 11th, 13th).
+
+        If a scale is provided, extensions are checked against the scale.
+        Otherwise, extensions are checked to be at least a whole step from
+        existing chord tones (the "avoid note" rule).
+
+        Args:
+            scale: Optional Scale object to check extensions against.
+
+        Returns:
+            A list of Tone objects representing valid extensions.
+
+        Example::
+
+            >>> Chord.from_symbol("C").extensions()
+            [<Tone D5>, <Tone A5>]
+        """
+        from .tones import Tone
+
+        if not self.tones:
+            return []
+
+        root = self.tones[0]
+        # Extension intervals from root in semitones
+        ext_intervals = {
+            "9th": 14,   # major 9th
+            "11th": 17,  # perfect 11th
+            "13th": 21,  # major 13th
+        }
+
+        chord_pcs = set()
+        for t in self.tones:
+            chord_pcs.add((t - root) % 12)
+
+        result = []
+        for name, interval in ext_intervals.items():
+            ext_tone = root.add(interval)
+            ext_pc = interval % 12
+
+            if scale is not None:
+                # Check if the extension is in the scale
+                scale_names = [st.name for st in scale.tones]
+                if ext_tone.name in scale_names:
+                    result.append(ext_tone)
+            else:
+                # "Avoid note" rule: extension must be at least 2 semitones
+                # from every existing chord tone (pitch class)
+                is_available = True
+                for pc in chord_pcs:
+                    diff = min((ext_pc - pc) % 12, (pc - ext_pc) % 12)
+                    if diff < 2:
+                        is_available = False
+                        break
+                if is_available:
+                    result.append(ext_tone)
+
+        return result
+
     @property
     def root(self) -> Optional[Tone]:
         """The root of this chord (if identifiable).

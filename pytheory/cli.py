@@ -142,6 +142,40 @@ def cmd_play(args):
          envelope=envelope)
 
 
+def cmd_identify(args):
+    from .chords import Chord
+    chord = Chord.from_symbol(args.symbol)
+    name = chord.identify() or "Unknown"
+    sym = chord.symbol or args.symbol
+    tones_str = " ".join(t.full_name for t in chord.tones)
+    intervals = chord.intervals
+    harmony = chord.harmony
+    dissonance = chord.dissonance
+    tension = chord.tension
+
+    print(f"  Chord:      {name}")
+    print(f"  Symbol:     {sym}")
+    print(f"  Tones:      {tones_str}")
+    print(f"  Intervals:  {intervals}")
+    print(f"  Harmony:    {harmony:.4f}")
+    print(f"  Dissonance: {dissonance:.4f}")
+    print(f"  Tension:    score={tension['score']:.2f} tritones={tension['tritones']} "
+          f"minor_2nds={tension['minor_seconds']} dominant={tension['has_dominant_function']}")
+
+
+def cmd_midi(args):
+    from .scales import Key
+    from .play import save_midi
+    key = Key(args.tonic, args.mode)
+    chords = key.progression(*args.numerals)
+    save_midi(chords, args.output, t=args.duration, bpm=args.bpm)
+    print(f"  Key:        {key}")
+    print(f"  Progression: {' '.join(args.numerals)}")
+    print(f"  BPM:        {args.bpm}")
+    print(f"  Duration:   {args.duration} ms")
+    print(f"  Output:     {args.output}")
+
+
 def cmd_modes(args):
     from .scales import TonedScale
     ts = TonedScale(tonic=f"{args.tonic}4", system=args.system)
@@ -246,6 +280,19 @@ def main():
                             "strings", "bell", "staccato"],
                    help="ADSR envelope preset (default: piano)")
 
+    # identify
+    p = sub.add_parser("identify", help="Identify a chord symbol (e.g. pytheory identify Cmaj7)")
+    p.add_argument("symbol", help="Chord symbol (e.g. Cmaj7, Am, F#m7b5)")
+
+    # midi
+    p = sub.add_parser("midi", help="Export a progression to MIDI (e.g. pytheory midi C major I V vi IV)")
+    p.add_argument("tonic", help="Tonic note")
+    p.add_argument("mode", help="Mode (e.g. major, minor)")
+    p.add_argument("numerals", nargs="+", help="Roman numerals (e.g. I V vi IV)")
+    p.add_argument("-o", "--output", default="output.mid", help="Output file (default: output.mid)")
+    p.add_argument("--bpm", type=int, default=120, help="BPM (default: 120)")
+    p.add_argument("--duration", type=int, default=500, help="Duration per chord in ms (default: 500)")
+
     # detect
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
@@ -277,6 +324,8 @@ def main():
         "fingering": cmd_fingering,
         "progression": cmd_progression,
         "play": cmd_play,
+        "identify": cmd_identify,
+        "midi": cmd_midi,
         "detect": cmd_detect,
         "modes": cmd_modes,
         "circle": cmd_circle,

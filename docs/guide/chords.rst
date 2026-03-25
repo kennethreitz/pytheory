@@ -446,3 +446,85 @@ almost no overtones — the waves clash.
    >>> a4 = Tone.from_string("A4", system="western")
    >>> [round(f, 1) for f in a4.overtones(8)]
    [440.0, 880.0, 1320.0, 1760.0, 2200.0, 2640.0, 3080.0, 3520.0]
+
+Chord Symbols
+-------------
+
+The ``symbol`` property returns compact lead-sheet notation, while
+``from_symbol()`` parses any standard chord symbol — no lookup table needed:
+
+.. code-block:: pycon
+
+   >>> Chord.from_tones("C", "E", "G").symbol
+   'C'
+   >>> Chord.from_name("Am7").symbol
+   'Am7'
+   >>> Chord.from_symbol("F#m7b5").identify()
+   'F# half-diminished 7th'
+   >>> Chord.from_symbol("Bbmaj9").symbol
+   'Bbmaj9'
+
+Slash Chords
+------------
+
+`Slash chords <https://en.wikipedia.org/wiki/Slash_chord>`_ place a specific
+note in the bass below the chord. They're written as Chord/Bass in lead sheets:
+
+.. code-block:: pycon
+
+   >>> c = Chord.from_symbol("C")
+   >>> c_over_g = c.slash("G")
+   >>> c_over_g.slash_name
+   'C/G'
+   >>> c.slash("E").slash_name
+   'C/E'
+
+Drop Voicings
+-------------
+
+`Drop voicings <https://en.wikipedia.org/wiki/Voicing_(music)#Drop_voicings>`_
+are standard arranging techniques for spreading chord tones across registers:
+
+- **Close voicing** — all tones packed within one octave
+- **Open voicing** — alternating tones raised an octave for wider spacing
+- **Drop 2** — second-highest voice dropped an octave (standard jazz guitar)
+- **Drop 3** — third-highest voice dropped an octave
+
+.. code-block:: pycon
+
+   >>> cmaj7 = Chord.from_symbol("Cmaj7")
+   >>> cmaj7.close_voicing()
+   <Chord C major 7th>
+   >>> cmaj7.drop2()
+   <Chord C major 7th>
+
+Chord Extensions
+----------------
+
+The ``extensions()`` method suggests available extensions (9th, 11th, 13th)
+that don't clash with existing chord tones:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, TonedScale
+   >>> cm = Chord.from_symbol("C")
+   >>> cm.extensions()
+   [...]
+
+   >>> # Filter extensions against a scale for diatonic correctness:
+   >>> scale = TonedScale(tonic="C4")["major"]
+   >>> cm.extensions(scale=scale)
+   [...]
+
+Borrowed Chord Analysis
+-----------------------
+
+``analyze()`` now recognizes chromatic chords from modal interchange,
+labeling them with flat-degree prefixes:
+
+.. code-block:: pycon
+
+   >>> Chord.from_symbol("Ab").analyze("C", "major")
+   'bVI'
+   >>> Chord.from_symbol("Bb").analyze("C", "major")
+   'bVII'

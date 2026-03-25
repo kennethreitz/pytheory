@@ -3,6 +3,18 @@ Changelog
 
 All notable changes to PyTheory are documented here.
 
+0.11.0
+------
+
+- Add drop voicings: ``Chord.close_voicing()``, ``Chord.open_voicing()``, ``Chord.drop2()``, ``Chord.drop3()``
+- Add ``Key.modulation_path(target)`` for chord-by-chord modulation suggestions via pivot chords
+- Add ``Scale.degree_name(n)`` returning traditional names (tonic, dominant, leading tone, etc.)
+- Add ``Chord.extensions()`` to suggest available 9th/11th/13th extensions
+- Add ``Tone.solfege`` property for fixed-Do solfege syllables (Do, Re, Mi, Fi, etc.)
+- Add CLI ``identify`` command for full chord analysis from a symbol
+- Add CLI ``midi`` command for exporting progressions to Standard MIDI Files
+- Expand documentation with all features from v0.9.0–v0.11.0
+
 0.10.0
 ------
 

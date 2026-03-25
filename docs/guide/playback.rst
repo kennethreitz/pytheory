@@ -117,3 +117,61 @@ This works even without speakers or PortAudio:
    >>> # Choose waveform and temperament
    >>> save(Chord.from_name("C"), "c_triangle.wav",
    ...      synth=Synth.TRIANGLE, temperament="meantone", t=3_000)
+
+ADSR Envelopes
+--------------
+
+Raw waveforms click at the start and end of each note. An
+`ADSR envelope <https://en.wikipedia.org/wiki/Envelope_(music)>`_ shapes
+the amplitude over time for natural-sounding notes:
+
+- **Attack** — how quickly the sound reaches full volume
+- **Decay** — how quickly it drops to the sustain level
+- **Sustain** — the held volume while the note is on
+- **Release** — how quickly it fades to silence
+
+PyTheory includes 8 presets:
+
+.. code-block:: pycon
+
+   >>> from pytheory import play, Envelope, Tone
+
+   >>> tone = Tone.from_string("C4", system="western")
+   >>> play(tone, envelope=Envelope.PIANO)     # Quick attack, natural decay
+   >>> play(tone, envelope=Envelope.PAD)       # Slow fade in, lush
+   >>> play(tone, envelope=Envelope.PLUCK)     # Sharp attack, fast decay
+   >>> play(tone, envelope=Envelope.BELL)      # Instant attack, long ring
+   >>> play(tone, envelope=Envelope.STRINGS)   # Gradual bow
+   >>> play(tone, envelope=Envelope.ORGAN)     # Instant on/off
+   >>> play(tone, envelope=Envelope.STACCATO)  # Short and punchy
+   >>> play(tone, envelope=Envelope.NONE)      # Raw waveform (old behavior)
+
+Envelopes work with all functions — ``play()``, ``save()``, and
+``play_progression()``:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key, play_progression, Envelope
+   >>> chords = Key("C", "major").progression("I", "V", "vi", "IV")
+   >>> play_progression(chords, t=2000, envelope=Envelope.PAD)
+
+MIDI Export
+-----------
+
+Export tones, chords, or progressions as Standard MIDI Files. Unlike WAV,
+MIDI files can be opened in any DAW, edited, transposed, and assigned to
+any instrument:
+
+.. code-block:: pycon
+
+   >>> from pytheory import save_midi, Key, Tone, Chord
+
+   >>> # Export a single tone
+   >>> save_midi(Tone.from_string("C4"), "middle_c.mid", t=1000)
+
+   >>> # Export a chord
+   >>> save_midi(Chord.from_symbol("Am7"), "am7.mid")
+
+   >>> # Export a progression
+   >>> chords = Key("C", "major").progression("I", "V", "vi", "IV")
+   >>> save_midi(chords, "pop.mid", t=500, bpm=120)

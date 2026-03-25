@@ -207,6 +207,61 @@ class Tone:
             pass
         return None
 
+    _SOLFEGE_MAP = {
+        "C": "Do", "D": "Re", "E": "Mi", "F": "Fa",
+        "G": "Sol", "A": "La", "B": "Ti",
+    }
+
+    _SOLFEGE_SHARP_MAP = {
+        "C#": "Di", "D#": "Ri", "F#": "Fi", "G#": "Si", "A#": "Li",
+        "E#": "Mi", "B#": "Do",
+    }
+
+    _SOLFEGE_FLAT_MAP = {
+        "Db": "Ra", "Eb": "Me", "Gb": "Se", "Ab": "Le", "Bb": "Te",
+        "Fb": "Mi", "Cb": "Ti",
+    }
+
+    @property
+    def solfege(self) -> str:
+        """Map Western note names to fixed-Do solfege syllables.
+
+        Uses fixed Do system where C is always Do regardless of key.
+
+        - C->Do, D->Re, E->Mi, F->Fa, G->Sol, A->La, B->Ti
+        - Sharps: C#->Di, D#->Ri, F#->Fi, G#->Si, A#->Li
+        - Flats: Db->Ra, Eb->Me, Gb->Se, Ab->Le, Bb->Te
+
+        Returns the note name unchanged if the system isn't western
+        or the name isn't recognized.
+
+        Example::
+
+            >>> Tone.from_string("C4").solfege
+            'Do'
+            >>> Tone.from_string("F#4").solfege
+            'Fi'
+        """
+        # Check system
+        sys_name = self.system_name
+        if sys_name is not None and sys_name != "western":
+            return self.name
+        if self._system is not None:
+            try:
+                if hasattr(self._system, 'name') and self._system.name != "western":
+                    return self.name
+            except (AttributeError, TypeError):
+                pass
+
+        name = self.name
+        if name in self._SOLFEGE_MAP:
+            return self._SOLFEGE_MAP[name]
+        if name in self._SOLFEGE_SHARP_MAP:
+            return self._SOLFEGE_SHARP_MAP[name]
+        if name in self._SOLFEGE_FLAT_MAP:
+            return self._SOLFEGE_FLAT_MAP[name]
+        return name
+
     def __repr__(self) -> str:
         return f"<Tone {self.full_name}>"
 

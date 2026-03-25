@@ -103,6 +103,38 @@ class Scale:
         matches = sum(1 for n in note_names if n in scale_notes)
         return matches / len(note_names)
 
+    _DEGREE_NAMES = [
+        "tonic", "supertonic", "mediant", "subdominant",
+        "dominant", "submediant", "leading tone",
+    ]
+
+    _MINOR_DEGREE_NAMES = [
+        "tonic", "supertonic", "mediant", "subdominant",
+        "dominant", "submediant", "subtonic",
+    ]
+
+    def degree_name(self, n: int, *, minor: bool = False) -> str:
+        """Return the traditional name for the nth scale degree (0-indexed).
+
+        Args:
+            n: The scale degree index (0 = tonic, 1 = supertonic, etc.).
+            minor: If True, use "subtonic" instead of "leading tone" for degree 6.
+
+        Returns:
+            A string like "tonic", "dominant", etc.
+
+        Example::
+
+            >>> TonedScale(tonic="C4")["major"].degree_name(0)
+            'tonic'
+            >>> TonedScale(tonic="C4")["major"].degree_name(4)
+            'dominant'
+        """
+        names = self._MINOR_DEGREE_NAMES if minor else self._DEGREE_NAMES
+        if 0 <= n < len(names):
+            return names[n]
+        return f"degree {n}"
+
     def chord(self, *degrees: int) -> Chord:
         """Build a Chord from scale degrees (0-indexed).
 
@@ -753,6 +785,50 @@ class Key:
         elif self.mode in ("minor", "aeolian"):
             return Key(self.tonic_name, "major")
         return None
+
+    def modulation_path(self, target: Key) -> list:
+        """Suggest a chord-by-chord path from this key to a target key.
+
+        Strategy:
+        - Find pivot chords (common to both keys)
+        - Build: [I of current key, pivot chord, V of target key, I of target key]
+        - If no pivot chord exists, use chromatic approach:
+          [current I, target V, target I]
+
+        Args:
+            target: The target Key to modulate to.
+
+        Returns:
+            A list of Chord objects forming a modulation path.
+
+        Example::
+
+            >>> path = Key("C", "major").modulation_path(Key("G", "major"))
+            >>> len(path)
+            4
+        """
+        from .chords import Chord
+
+        current_I = self.triad(0)
+        target_V = target.triad(4)
+        target_I = target.triad(0)
+
+        # Find pivot chords
+        own_chords = self._scale.harmonize()
+        target_chord_names = set(target.chords)
+
+        pivot = None
+        for c in own_chords:
+            cid = c.identify()
+            if cid and cid in target_chord_names and cid != current_I.identify():
+                pivot = c
+                break
+
+        if pivot is not None:
+            return [current_I, pivot, target_V, target_I]
+        else:
+            # Chromatic approach - no pivot chord
+            return [current_I, target_V, target_I]
 
     def pivot_chords(self, target: Key) -> list[str]:
         """Find chords common to this key and a target key.

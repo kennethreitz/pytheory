@@ -4511,3 +4511,335 @@ def test_save_midi_with_gap(tmp_path):
     chords = Key("G", "major").progression("I", "IV", "V", "I")
     save_midi(chords, str(path), gap=100)
     assert path.exists()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 1: Drop voicings on Chord class
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_close_voicing_c_major():
+    """Close voicing packs tones within one octave."""
+    chord = Chord.from_symbol("C")
+    inv = chord.inversion(1)  # E4, G4, C5
+    closed = inv.close_voicing()
+    # Should be identifiable as C major
+    assert closed.identify() == "C major"
+    # All tones within one octave of root
+    root = closed.tones[0]
+    for t in closed.tones[1:]:
+        diff = abs(t - root)
+        assert diff <= 12
+
+
+def test_close_voicing_seventh():
+    chord = Chord.from_symbol("Cmaj7").inversion(2)
+    closed = chord.close_voicing()
+    assert closed.identify() == "C major 7th"
+
+
+def test_open_voicing_c_major():
+    chord = Chord.from_symbol("Cmaj7")
+    opened = chord.open_voicing()
+    assert len(opened.tones) == 4
+    # The spread should be wider than close voicing for 4+ tones
+    closed = chord.close_voicing()
+    close_span = abs(closed.tones[-1] - closed.tones[0])
+    open_span = max(t.pitch() for t in opened.tones) - min(t.pitch() for t in opened.tones)
+    close_span_hz = max(t.pitch() for t in closed.tones) - min(t.pitch() for t in closed.tones)
+    assert open_span > close_span_hz
+
+
+def test_open_voicing_seventh():
+    chord = Chord.from_symbol("Cmaj7")
+    opened = chord.open_voicing()
+    assert len(opened.tones) == 4
+
+
+def test_drop2_voicing():
+    chord = Chord.from_symbol("Cmaj7")
+    d2 = chord.drop2()
+    assert len(d2.tones) == 4
+    # The lowest tone should be below the original root
+    assert d2.tones[0] < chord.tones[0]
+
+
+def test_drop2_identifies_same():
+    chord = Chord.from_symbol("Cmaj7")
+    d2 = chord.drop2()
+    assert d2.identify() == "C major 7th"
+
+
+def test_drop3_voicing():
+    chord = Chord.from_symbol("Cmaj7")
+    d3 = chord.drop3()
+    assert len(d3.tones) == 4
+    # The lowest tone should be below the original root
+    assert d3.tones[0] < chord.tones[0]
+
+
+def test_drop3_identifies_same():
+    chord = Chord.from_symbol("Cmaj7")
+    d3 = chord.drop3()
+    assert d3.identify() == "C major 7th"
+
+
+def test_drop2_small_chord():
+    """Drop2 on a single-tone chord returns it unchanged."""
+    chord = Chord(tones=[Tone.from_string("C4", system="western")])
+    d2 = chord.drop2()
+    assert len(d2.tones) == 1
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 2: Key.modulation_path(target)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_modulation_path_close_keys():
+    """C major to G major — closely related, should find pivot chord."""
+    path = Key("C", "major").modulation_path(Key("G", "major"))
+    assert len(path) == 4  # I, pivot, V, I
+    assert path[0].identify() == "C major"
+    assert path[-1].identify() == "G major"
+
+
+def test_modulation_path_returns_chords():
+    path = Key("C", "major").modulation_path(Key("F", "major"))
+    for chord in path:
+        assert isinstance(chord, Chord)
+
+
+def test_modulation_path_distant_keys():
+    """C major to F# major — distant, may use chromatic approach."""
+    path = Key("C", "major").modulation_path(Key("F#", "major"))
+    assert len(path) >= 3
+    assert path[0].identify() == "C major"
+    assert path[-1].identify() == "F# major"
+
+
+def test_modulation_path_same_key():
+    """Modulating to the same key should still return a path."""
+    path = Key("C", "major").modulation_path(Key("C", "major"))
+    assert len(path) >= 3
+    assert path[0].identify() == "C major"
+    assert path[-1].identify() == "C major"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 3: Scale.degree_name(n)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_degree_name_tonic():
+    scale = TonedScale(tonic="C4")["major"]
+    assert scale.degree_name(0) == "tonic"
+
+
+def test_degree_name_dominant():
+    scale = TonedScale(tonic="C4")["major"]
+    assert scale.degree_name(4) == "dominant"
+
+
+def test_degree_name_leading_tone():
+    scale = TonedScale(tonic="C4")["major"]
+    assert scale.degree_name(6) == "leading tone"
+
+
+def test_degree_name_subtonic_minor():
+    scale = TonedScale(tonic="C4")["minor"]
+    assert scale.degree_name(6, minor=True) == "subtonic"
+
+
+def test_degree_name_all_major():
+    scale = TonedScale(tonic="C4")["major"]
+    expected = ["tonic", "supertonic", "mediant", "subdominant",
+                "dominant", "submediant", "leading tone"]
+    for i, name in enumerate(expected):
+        assert scale.degree_name(i) == name
+
+
+def test_degree_name_out_of_range():
+    scale = TonedScale(tonic="C4")["major"]
+    assert scale.degree_name(10) == "degree 10"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 4: Chord.extensions()
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_extensions_c_major_triad():
+    chord = Chord.from_symbol("C")
+    exts = chord.extensions()
+    ext_names = [t.name for t in exts]
+    # 9th (D) and 13th (A) should be available; 11th (F) is avoid note on major
+    assert "D" in ext_names
+    assert "A" in ext_names
+
+
+def test_extensions_returns_tones():
+    chord = Chord.from_symbol("C")
+    exts = chord.extensions()
+    for t in exts:
+        assert isinstance(t, Tone)
+
+
+def test_extensions_with_scale():
+    scale = TonedScale(tonic="C4")["major"]
+    chord = Chord.from_symbol("C")
+    exts = chord.extensions(scale=scale)
+    ext_names = [t.name for t in exts]
+    # D, F, A are all in C major scale
+    assert "D" in ext_names
+    assert "A" in ext_names
+
+
+def test_extensions_minor_chord():
+    chord = Chord.from_symbol("Am")
+    exts = chord.extensions()
+    # Should return some extensions
+    assert len(exts) >= 1
+
+
+def test_extensions_empty_chord():
+    chord = Chord(tones=[])
+    exts = chord.extensions()
+    assert exts == []
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 5: CLI identify command
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_cli_identify_cmaj7(capsys):
+    from pytheory.cli import cmd_identify
+    import argparse
+    args = argparse.Namespace(symbol="Cmaj7")
+    cmd_identify(args)
+    out = capsys.readouterr().out
+    assert "C major 7th" in out
+    assert "Symbol" in out
+    assert "Tones" in out
+    assert "Harmony" in out
+
+
+def test_cli_identify_am(capsys):
+    from pytheory.cli import cmd_identify
+    import argparse
+    args = argparse.Namespace(symbol="Am")
+    cmd_identify(args)
+    out = capsys.readouterr().out
+    assert "A minor" in out
+
+
+def test_cli_identify_g7(capsys):
+    from pytheory.cli import cmd_identify
+    import argparse
+    args = argparse.Namespace(symbol="G7")
+    cmd_identify(args)
+    out = capsys.readouterr().out
+    assert "G dominant 7th" in out
+    assert "Tension" in out
+    assert "Dissonance" in out
+
+
+def test_cli_identify_intervals(capsys):
+    from pytheory.cli import cmd_identify
+    import argparse
+    args = argparse.Namespace(symbol="C")
+    cmd_identify(args)
+    out = capsys.readouterr().out
+    assert "Intervals" in out
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 6: CLI midi command
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_cli_midi_basic(capsys, tmp_path):
+    from pytheory.cli import cmd_midi
+    import argparse
+    outfile = str(tmp_path / "test.mid")
+    args = argparse.Namespace(
+        tonic="C", mode="major", numerals=["I", "V", "vi", "IV"],
+        output=outfile, bpm=120, duration=500
+    )
+    cmd_midi(args)
+    out = capsys.readouterr().out
+    assert "C major" in out
+    assert "Output" in out
+    import os
+    assert os.path.exists(outfile)
+
+
+def test_cli_midi_custom_bpm(capsys, tmp_path):
+    from pytheory.cli import cmd_midi
+    import argparse
+    outfile = str(tmp_path / "test_bpm.mid")
+    args = argparse.Namespace(
+        tonic="G", mode="major", numerals=["I", "IV", "V"],
+        output=outfile, bpm=90, duration=750
+    )
+    cmd_midi(args)
+    out = capsys.readouterr().out
+    assert "90" in out
+
+
+def test_cli_midi_file_content(tmp_path):
+    from pytheory.cli import cmd_midi
+    import argparse
+    outfile = str(tmp_path / "content.mid")
+    args = argparse.Namespace(
+        tonic="C", mode="major", numerals=["I", "V"],
+        output=outfile, bpm=120, duration=500
+    )
+    cmd_midi(args)
+    data = (tmp_path / "content.mid").read_bytes()
+    assert data[:4] == b'MThd'
+
+
+def test_cli_midi_minor(capsys, tmp_path):
+    from pytheory.cli import cmd_midi
+    import argparse
+    outfile = str(tmp_path / "minor.mid")
+    args = argparse.Namespace(
+        tonic="A", mode="minor", numerals=["i", "IV", "V"],
+        output=outfile, bpm=120, duration=500
+    )
+    cmd_midi(args)
+    out = capsys.readouterr().out
+    assert "A minor" in out
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Feature 7: Tone.solfege property
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_solfege_natural_notes():
+    expected = {"C": "Do", "D": "Re", "E": "Mi", "F": "Fa",
+                "G": "Sol", "A": "La", "B": "Ti"}
+    for note, solf in expected.items():
+        t = Tone.from_string(f"{note}4", system="western")
+        assert t.solfege == solf, f"{note} should be {solf}, got {t.solfege}"
+
+
+def test_solfege_sharps():
+    expected = {"C#": "Di", "D#": "Ri", "F#": "Fi", "G#": "Si", "A#": "Li"}
+    for note, solf in expected.items():
+        t = Tone.from_string(f"{note}4", system="western")
+        assert t.solfege == solf, f"{note} should be {solf}, got {t.solfege}"
+
+
+def test_solfege_flats():
+    expected = {"Db": "Ra", "Eb": "Me", "Gb": "Se", "Ab": "Le", "Bb": "Te"}
+    for note, solf in expected.items():
+        t = Tone(name=note, octave=4, system="western")
+        assert t.solfege == solf, f"{note} should be {solf}, got {t.solfege}"
+
+
+def test_solfege_no_octave():
+    t = Tone(name="C", system="western")
+    assert t.solfege == "Do"
+
+
+def test_solfege_unknown_returns_name():
+    """A non-standard name should be returned unchanged."""
+    t = Tone(name="X", system="western")
+    assert t.solfege == "X"

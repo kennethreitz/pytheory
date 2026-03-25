@@ -391,3 +391,97 @@ Transpose an entire scale by a number of semitones:
    >>> d_major = c_major.transpose(2)
    >>> d_major.note_names
    ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D']
+
+Degree Names
+~~~~~~~~~~~~
+
+Get the traditional function name for any scale degree:
+
+.. code-block:: pycon
+
+   >>> major = TonedScale(tonic="C4")["major"]
+   >>> major.degree_name(0)
+   'tonic'
+   >>> major.degree_name(4)
+   'dominant'
+   >>> major.degree_name(6)
+   'leading tone'
+   >>> major.degree_name(6, minor=True)
+   'subtonic'
+
+Scale Fitness
+~~~~~~~~~~~~~
+
+Score how well a set of notes fits a scale (0.0–1.0). Useful for melody
+analysis or detecting which scale a phrase belongs to:
+
+.. code-block:: pycon
+
+   >>> major = TonedScale(tonic="C4")["major"]
+   >>> major.fitness("C", "D", "E", "G")
+   1.0
+   >>> major.fitness("C", "D", "F#", "G")
+   0.75
+
+Parallel Modes
+~~~~~~~~~~~~~~
+
+See all 7 modes that share the same notes as a scale:
+
+.. code-block:: pycon
+
+   >>> major = TonedScale(tonic="C4")["major"]
+   >>> for name, notes in major.parallel_modes().items():
+   ...     print(f"{name}: {' '.join(notes)}")
+   C ionian: C D E F G A B C
+   D dorian: D E F G A B C D
+   E phrygian: E F G A B C D E
+   ...
+
+Common Progressions
+~~~~~~~~~~~~~~~~~~~
+
+Get all named progressions realized in a key with chord symbols:
+
+.. code-block:: pycon
+
+   >>> key = Key("C", "major")
+   >>> progs = key.common_progressions()
+   >>> for name, chords in list(progs.items())[:3]:
+   ...     symbols = [c.symbol for c in chords]
+   ...     print(f"{name}: {' → '.join(symbols)}")
+   I-IV-V-I: C → F → G → C
+   I-V-vi-IV: C → G → Am → F
+   I-vi-IV-V: C → Am → F → G
+
+Chord Suggestions
+~~~~~~~~~~~~~~~~~
+
+Given a chord in a key, ``suggest_next()`` returns likely next chords
+based on functional harmony voice-leading rules:
+
+.. code-block:: pycon
+
+   >>> key = Key("C", "major")
+   >>> g_major = key.triad(4)   # V chord
+   >>> [c.symbol for c in key.suggest_next(g_major)]
+   ['C', 'Am', 'F']
+
+Modulation
+~~~~~~~~~~
+
+``modulation_path()`` suggests a chord-by-chord route from one key to
+another, using pivot chords when available:
+
+.. code-block:: pycon
+
+   >>> path = Key("C", "major").modulation_path(Key("G", "major"))
+   >>> [c.symbol for c in path]
+   ['C', 'Em', 'D', 'G']
+
+``pivot_chords()`` shows which chords are shared between two keys:
+
+.. code-block:: pycon
+
+   >>> Key("C", "major").pivot_chords(Key("G", "major"))
+   ['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
