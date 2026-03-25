@@ -241,6 +241,123 @@ More examples:
    ...     pads.add(chord, Duration.WHOLE)
    >>> play_score(score)
 
+Per-Part Effects
+----------------
+
+Each part can have its own effects chain — reverb, delay, lowpass filter,
+and distortion. Effects are set at part creation and applied per-part
+before mixing, so every voice gets independent processing.
+
+The Effect Chain
+~~~~~~~~~~~~~~~~
+
+Effects are applied in this order, matching a real signal chain::
+
+    Signal → Distortion → Lowpass Filter → Delay → Reverb → Mix
+
+- **Distortion** first: drives the raw signal before filtering (like
+  plugging a guitar into a fuzz pedal before the amp)
+- **Lowpass** second: shapes the tone of the distorted signal (like
+  the tone knob on an amp)
+- **Delay** third: echoes the shaped signal (tap delay / tape echo)
+- **Reverb** last: places everything in a space (room / hall)
+
+Reverb
+~~~~~~
+
+`Schroeder reverb <https://en.wikipedia.org/wiki/Schroeder_reverberator>`_
+using 4 parallel comb filters + 2 series allpass filters:
+
+.. code-block:: pycon
+
+   >>> lead = score.part("lead", synth="saw", envelope="pluck",
+   ...                   reverb=0.3, reverb_decay=1.5)
+
+- ``reverb``: Wet/dry mix, 0.0–1.0. Try 0.2–0.4 for subtle space,
+  0.5–0.8 for ambient/dub.
+- ``reverb_decay``: Tail length in seconds. 0.5 = small room,
+  1.5 = hall, 3.0+ = cathedral/dub.
+
+Delay
+~~~~~
+
+Tempo-synced echoes with feedback:
+
+.. code-block:: pycon
+
+   >>> lead = score.part("lead", synth="triangle", envelope="strings",
+   ...                   delay=0.3, delay_time=0.375, delay_feedback=0.4)
+
+- ``delay``: Wet/dry mix, 0.0–1.0.
+- ``delay_time``: Time between echoes in seconds. Musically useful
+  values at 120 bpm: 0.25 (8th note), 0.375 (dotted 8th),
+  0.5 (quarter note).
+- ``delay_feedback``: How much each echo feeds back (0.0–1.0).
+  0.3 = a few repeats, 0.5 = many, 0.7+ = runaway (dub style).
+
+Lowpass Filter
+~~~~~~~~~~~~~~
+
+12 dB/octave `biquad lowpass <https://en.wikipedia.org/wiki/Low-pass_filter>`_
+with resonance — the sound of analog synthesizers:
+
+.. code-block:: pycon
+
+   >>> bass = score.part("bass", synth="sine", envelope="pluck",
+   ...                   lowpass=400, lowpass_q=1.5)
+
+- ``lowpass``: Cutoff frequency in Hz (0 = off). Reference points:
+  200–400 Hz = deep sub bass, 800–1500 Hz = warm/muffled,
+  2000–4000 Hz = present lead, 5000+ = subtle rolloff.
+- ``lowpass_q``: Resonance / Q factor (default 0.707 = Butterworth flat).
+  1.0 = slight peak, 2.0 = pronounced, 5.0+ = aggressive acid squelch.
+
+Distortion
+~~~~~~~~~~
+
+Soft-clip `waveshaping <https://en.wikipedia.org/wiki/Waveshaper>`_ using
+tanh — models the warm saturation of an overdriven tube amplifier:
+
+.. code-block:: pycon
+
+   >>> bass = score.part("bass", synth="sine", envelope="pluck",
+   ...                   distortion=0.5, distortion_drive=4.0)
+
+- ``distortion``: Wet/dry mix, 0.0–1.0.
+- ``distortion_drive``: Gain before clipping (default 3.0).
+  0.5–2 = subtle warmth (tube preamp), 3–8 = overdrive (cranked amp),
+  10+ = fuzz.
+
+Combining Effects
+~~~~~~~~~~~~~~~~~
+
+Effects stack naturally. A dub-style part might use all four:
+
+.. code-block:: pycon
+
+   >>> # Dub melodica: distortion warmth → filtered → delay echoes → reverb space
+   >>> melodica = score.part("melodica", synth="triangle", envelope="pluck",
+   ...                       distortion=0.2, distortion_drive=2.0,
+   ...                       lowpass=2000, lowpass_q=1.2,
+   ...                       delay=0.5, delay_time=0.66, delay_feedback=0.55,
+   ...                       reverb=0.4, reverb_decay=2.5)
+
+A Drake-style 808 bass with subtle saturation:
+
+.. code-block:: pycon
+
+   >>> bass = score.part("bass", synth="sine", envelope="pluck",
+   ...                   lowpass=200, lowpass_q=1.8,
+   ...                   distortion=0.4, distortion_drive=2.0)
+
+An acid lead with resonant filter and delay:
+
+.. code-block:: pycon
+
+   >>> lead = score.part("lead", synth="saw", envelope="staccato",
+   ...                   lowpass=1500, lowpass_q=3.0,
+   ...                   delay=0.3, delay_time=0.242, delay_feedback=0.4)
+
 MIDI Export
 -----------
 

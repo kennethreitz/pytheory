@@ -306,11 +306,29 @@ Name             Character
 ``"none"``       Raw waveform, no shaping
 ===============  ================================================
 
-Full Example: Bossa Nova Arrangement
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Effects** (per-part, set at creation):
 
-A complete arrangement with drums, chord pads, walking bass, and
-a triangle-wave melody:
+======================  ================================================
+Parameter               Description
+======================  ================================================
+``reverb``              Wet/dry mix 0–1 (default 0, off)
+``reverb_decay``        Tail length in seconds (default 1.0)
+``delay``               Wet/dry mix 0–1 (default 0, off)
+``delay_time``          Echo time in seconds (default 0.375)
+``delay_feedback``      Echo feedback 0–1 (default 0.4)
+``lowpass``             Cutoff in Hz (default 0, off)
+``lowpass_q``           Resonance Q (default 0.707, flat)
+``distortion``          Wet/dry mix 0–1 (default 0, off)
+``distortion_drive``    Gain before clipping (default 3.0)
+======================  ================================================
+
+Signal chain: distortion → lowpass → delay → reverb.
+
+Full Example: Bossa Nova with Effects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A complete arrangement with drums, chord pads, walking bass, melody,
+and per-part effects:
 
 .. code-block:: pycon
 
@@ -318,23 +336,29 @@ a triangle-wave melody:
    >>> from pytheory.play import play_score
 
    >>> score = Score("4/4", bpm=140)
-   >>> score.add_pattern(Pattern.preset("bossa nova"), repeats=4)
+   >>> score.drums("bossa nova", repeats=4)
 
-   >>> chords = score.part("chords", synth="sine", envelope="pad", volume=0.3)
-   >>> lead   = score.part("lead", synth="triangle", envelope="pluck", volume=0.55)
-   >>> bass   = score.part("bass", synth="sine", envelope="pluck", volume=0.4)
+   >>> # FM rhodes with reverb — jazz club warmth
+   >>> rhodes = score.part("rhodes", synth="fm", envelope="piano",
+   ...                     volume=0.3, reverb=0.4, reverb_decay=1.8)
 
-   >>> # Chords: Am → Dm → E7 → Am (2 bars each)
+   >>> # Triangle lead with delay — echoes that bloom
+   >>> lead = score.part("lead", synth="triangle", envelope="pluck",
+   ...                   volume=0.45, delay=0.25, delay_time=0.32,
+   ...                   delay_feedback=0.35, reverb=0.2)
+
+   >>> # Filtered bass — warm and round
+   >>> bass = score.part("bass", synth="sine", envelope="pluck",
+   ...                   volume=0.45, lowpass=600)
+
    >>> for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
-   ...     chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+   ...     rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-   >>> # Lead: a lilting melody with swing 8ths
    >>> for n, d in [("E5",.67),("D5",.33),("C5",.67),("B4",.33),
    ...              ("A4",1),("C5",.67),("E5",.33),("D5",.67),("C5",.33),
    ...              ("A4",1)]:
    ...     lead.add(n, d)
 
-   >>> # Bass: root-fifth walking pattern
    >>> for n in ["A2","E2","A2","C3","D2","A2","D2","F2"]:
    ...     bass.add(n, Duration.QUARTER)
 
