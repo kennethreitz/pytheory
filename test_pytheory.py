@@ -5336,3 +5336,72 @@ def test_part_with_new_synths():
         p.add("C4", Duration.QUARTER)
     buf = render_score(score)
     assert len(buf) > 0
+
+
+# ── Drum fill tests ──────────────────────────────────────────────────────────
+
+
+def test_fill_presets_exist():
+    from pytheory import Pattern
+    expected = [
+        "rock", "rock crash", "jazz", "jazz brush", "salsa", "samba",
+        "funk", "metal", "blast", "buildup", "breakdown",
+    ]
+    for name in expected:
+        p = Pattern.fill(name)
+        assert p is not None
+
+
+def test_fill_is_pattern():
+    from pytheory import Pattern
+    p = Pattern.fill("rock")
+    assert isinstance(p, Pattern)
+
+
+def test_fill_beats():
+    from pytheory import Pattern
+    for name in Pattern.list_fills():
+        p = Pattern.fill(name)
+        assert p.beats == 4.0, f"Fill {name!r} should be 4 beats, got {p.beats}"
+
+
+def test_fill_invalid_raises():
+    from pytheory import Pattern
+    with pytest.raises(ValueError, match="Unknown fill"):
+        Pattern.fill("nonexistent_fill_xyz")
+
+
+def test_score_fill():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    score.fill("rock")
+    assert len(score._drum_hits) > 0
+
+
+def test_drums_with_fill():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=8, fill="rock", fill_every=4)
+    # 8 bars total, each 4 beats = 32 beats
+    assert score._drum_pattern_beats == 32.0
+
+
+def test_drums_fill_last_bar_only():
+    from pytheory import Score, Pattern
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=4, fill="rock")
+    # 4 bars total, each 4 beats = 16 beats
+    assert score._drum_pattern_beats == 16.0
+    # The last bar should be a fill (different hit count than groove)
+    groove = Pattern.preset("rock")
+    fill_pat = Pattern.fill("rock")
+    # Build expected: 3 bars groove + 1 bar fill
+    expected_hits = 3 * len(groove.hits) + len(fill_pat.hits)
+    assert len(score._drum_hits) == expected_hits
+
+
+def test_fill_all_presets_valid():
+    from pytheory import Pattern
+    for name in Pattern.list_fills():
+        p = Pattern.fill(name)
+        assert len(p.hits) > 0, f"Fill {name!r} has no hits"

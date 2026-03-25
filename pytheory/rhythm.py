@@ -183,6 +183,34 @@ class Pattern:
         score.add_pattern(self, repeats=repeats)
         return score
 
+    # ── Fills ─────────────────────────────────────────────────────────
+
+    _FILLS: dict[str, dict] = {}
+
+    @classmethod
+    def fill(cls, name: str) -> "Pattern":
+        """Load a named 1-bar drum fill.
+
+        Available fills: rock, rock crash, jazz, jazz brush, salsa, samba,
+        funk, metal, blast, buildup, breakdown.
+
+        Example::
+
+            >>> Pattern.fill("rock")
+            <Pattern 'rock fill' 4/4 4.0 beats ...>
+        """
+        if name not in cls._FILLS:
+            raise ValueError(
+                f"Unknown fill: {name!r}. "
+                f"Available: {', '.join(cls.list_fills())}")
+        data = cls._FILLS[name]
+        return cls(**data)
+
+    @classmethod
+    def list_fills(cls) -> list[str]:
+        """Return a list of all available fill names."""
+        return sorted(cls._FILLS.keys())
+
     # ── Presets ───────────────────────────────────────────────────────
 
     _PRESETS: dict[str, dict] = {}
@@ -247,6 +275,9 @@ TB = DrumSound.TAMBOURINE
 TBH = DrumSound.TIMBALE_HIGH
 TBL = DrumSound.TIMBALE_LOW
 SH = DrumSound.SHAKER
+HT = DrumSound.HIGH_TOM
+MT = DrumSound.MID_TOM
+LT = DrumSound.LOW_TOM
 
 # ── Pattern presets ───────────────────────────────────────────────────────
 
@@ -891,6 +922,155 @@ Pattern._PRESETS["maracatu"] = dict(
     ],
 )
 
+# ── Fill presets ──────────────────────────────────────────────────────────
+
+Pattern._FILLS["rock"] = dict(
+    name="rock fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Classic descending toms: high tom → mid tom → low tom → crash
+        _h(HT, 0.0), _h(HT, 0.5),
+        _h(MT, 1.0), _h(MT, 1.5),
+        _h(LT, 2.0), _h(LT, 2.5),
+        _h(CR, 3.0), _h(K, 3.0),
+    ],
+)
+
+Pattern._FILLS["rock crash"] = dict(
+    name="rock crash fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare buildup into crash on beat 4
+        _h(S, 0.0), _h(S, 0.5),
+        _h(S, 1.0), _h(S, 1.25), _h(S, 1.5), _h(S, 1.75),
+        _h(S, 2.0), _h(S, 2.25), _h(S, 2.5), _h(S, 2.75),
+        _h(CR, 3.0), _h(K, 3.0),
+    ],
+)
+
+Pattern._FILLS["jazz"] = dict(
+    name="jazz fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare press roll crescendo with ride accent
+        _h(S, 0.0, 40), _h(S, 0.25, 45), _h(S, 0.5, 50), _h(S, 0.75, 55),
+        _h(S, 1.0, 60), _h(S, 1.25, 65), _h(S, 1.5, 70), _h(S, 1.75, 75),
+        _h(S, 2.0, 80), _h(S, 2.25, 85), _h(S, 2.5, 90), _h(S, 2.75, 95),
+        _h(RD, 3.0, 110), _h(S, 3.0, 100),
+    ],
+)
+
+Pattern._FILLS["jazz brush"] = dict(
+    name="jazz brush fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Subtle snare ghost notes leading to ride bell
+        _h(S, 0.0, 30), _h(S, 0.67, 35),
+        _h(S, 1.0, 40), _h(S, 1.67, 45),
+        _h(S, 2.0, 50), _h(S, 2.67, 60),
+        _h(RB, 3.0, 100), _h(S, 3.0, 70),
+    ],
+)
+
+Pattern._FILLS["salsa"] = dict(
+    name="salsa fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Timbale cascade (high to low) with cowbell accent
+        _h(TBH, 0.0), _h(TBH, 0.25), _h(TBH, 0.5), _h(TBH, 0.75),
+        _h(TBH, 1.0), _h(TBL, 1.25), _h(TBL, 1.5), _h(TBL, 1.75),
+        _h(TBL, 2.0), _h(TBL, 2.25), _h(TBL, 2.5), _h(TBL, 2.75),
+        _h(CB, 3.0, 120), _h(CR, 3.5),
+    ],
+)
+
+Pattern._FILLS["samba"] = dict(
+    name="samba fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare rolls with kick accents
+        _h(K, 0.0, 100), _h(S, 0.0, 80), _h(S, 0.25, 60), _h(S, 0.5, 70),
+        _h(K, 1.0, 90), _h(S, 1.0, 80), _h(S, 1.25, 60), _h(S, 1.5, 70), _h(S, 1.75, 80),
+        _h(K, 2.0, 100), _h(S, 2.0, 90), _h(S, 2.25, 70), _h(S, 2.5, 80), _h(S, 2.75, 90),
+        _h(CR, 3.0), _h(K, 3.0),
+    ],
+)
+
+Pattern._FILLS["funk"] = dict(
+    name="funk fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Syncopated 16th-note snare/kick pattern ending on crash
+        _h(S, 0.0), _h(K, 0.25), _h(S, 0.5), _h(S, 0.75),
+        _h(K, 1.0), _h(S, 1.25), _h(K, 1.5), _h(S, 1.75),
+        _h(S, 2.0), _h(K, 2.25), _h(S, 2.5), _h(K, 2.75),
+        _h(S, 3.0), _h(S, 3.25), _h(K, 3.5), _h(CR, 3.75),
+    ],
+)
+
+Pattern._FILLS["metal"] = dict(
+    name="metal fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Double kick 16ths with descending tom pattern
+        *[_h(K, i * 0.25) for i in range(16)],
+        _h(HT, 0.0), _h(HT, 0.5),
+        _h(MT, 1.0), _h(MT, 1.5),
+        _h(LT, 2.0), _h(LT, 2.5),
+        _h(CR, 3.0), _h(LT, 3.0), _h(LT, 3.5),
+    ],
+)
+
+Pattern._FILLS["blast"] = dict(
+    name="blast fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # All drums 16th notes building to crash
+        *[_h(K, i * 0.25, 80 + i) for i in range(14)],
+        *[_h(S, i * 0.25, 80 + i) for i in range(14)],
+        *[_h(CH, i * 0.25, 70 + i) for i in range(14)],
+        _h(CR, 3.5), _h(K, 3.5), _h(S, 3.5),
+        _h(CR, 3.75), _h(K, 3.75), _h(S, 3.75),
+    ],
+)
+
+Pattern._FILLS["buildup"] = dict(
+    name="buildup fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare hits accelerating: quarter → eighth → 16th → crash
+        # Quarter notes (beat 0)
+        _h(S, 0.0),
+        # Eighth notes (beat 1)
+        _h(S, 1.0), _h(S, 1.5),
+        # 16th notes (beats 2-3)
+        _h(S, 2.0), _h(S, 2.25), _h(S, 2.5), _h(S, 2.75),
+        _h(S, 3.0), _h(S, 3.25), _h(S, 3.5),
+        _h(CR, 3.75), _h(K, 3.75),
+    ],
+)
+
+Pattern._FILLS["breakdown"] = dict(
+    name="breakdown fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Sparse: just kick on 1, silence, crash on 4+
+        _h(K, 0.0, 110),
+        _h(CR, 3.5), _h(K, 3.5),
+    ],
+)
+
 
 class Part:
     """A named voice within a Score, with its own synth and envelope.
@@ -1034,14 +1214,28 @@ class Score:
         self._drum_pattern_beats += repeats * pattern.beats
         return self
 
-    def drums(self, preset: str, repeats: int = 4) -> "Score":
-        """Add a drum pattern by preset name.
+    def fill(self, name: str = "rock") -> "Score":
+        """Insert a 1-bar drum fill at the current position.
+
+        Replaces what would be the next bar of drums with a genre-appropriate fill.
+        """
+        fill_pattern = Pattern.fill(name)
+        return self.add_pattern(fill_pattern, repeats=1)
+
+    def drums(self, preset: str, repeats: int = 4, fill: str = None,
+              fill_every: int = None) -> "Score":
+        """Add a drum pattern by preset name, with optional auto-fills.
 
         Shorthand for ``score.add_pattern(Pattern.preset(name), repeats=n)``.
 
         Args:
             preset: Pattern preset name (e.g. ``"bossa nova"``, ``"rock"``).
             repeats: Number of times to repeat (default 4).
+            fill: Optional fill name. When provided, groove bars are
+                periodically replaced with the named fill pattern.
+            fill_every: Replace every Nth bar with a fill. If *fill* is
+                provided but *fill_every* is not, defaults to filling only
+                the last bar.
 
         Returns:
             Self for chaining.
@@ -1051,7 +1245,22 @@ class Score:
             >>> score = Score("4/4", bpm=140)
             >>> score.drums("bossa nova", repeats=4)
         """
-        return self.add_pattern(Pattern.preset(preset), repeats=repeats)
+        if fill is None:
+            return self.add_pattern(Pattern.preset(preset), repeats=repeats)
+
+        groove = Pattern.preset(preset)
+        fill_pattern = Pattern.fill(fill)
+
+        if fill_every is None:
+            # Fill only the last bar
+            fill_every = repeats
+
+        for bar in range(1, repeats + 1):
+            if bar % fill_every == 0:
+                self.add_pattern(fill_pattern, repeats=1)
+            else:
+                self.add_pattern(groove, repeats=1)
+        return self
 
     def add(self, tone_or_chord, duration=Duration.QUARTER) -> "Score":
         """Add a note to the default (unnamed) part.

@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.16.0
+
+- Add drum fill system with 11 genre-specific presets: rock, rock crash, jazz, jazz brush, salsa, samba, funk, metal, blast, buildup, breakdown
+- `Pattern.fill("rock")` returns a 1-bar fill pattern
+- `Score.fill("rock")` inserts a fill at the current position
+- `Score.drums("rock", repeats=8, fill="rock", fill_every=4)` auto-fills every Nth bar
+- Without `fill_every`, fill replaces only the last bar
+
 ## 0.15.1
 
 - Add `Synth.PWM_SLOW` and `Synth.PWM_FAST` — pulse width modulation with LFO sweep (Juno-style pads)
