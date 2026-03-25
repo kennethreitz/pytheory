@@ -477,3 +477,48 @@ integrate naturally with the rest of the automation system:
    pad.fade_out(bars=2)
    pad.rest(Duration.WHOLE)
    pad.rest(Duration.WHOLE)
+
+Humanize
+--------
+
+Perfectly quantized music sounds like a machine made it — because it
+did. Real musicians are never exactly on the beat. Their timing drifts
+by a few milliseconds, their velocity varies from note to note. These
+imperfections are what make music feel *alive*.
+
+The ``humanize`` parameter adds random micro-variations in both timing
+and velocity at render time. The score data stays clean and
+deterministic — the randomness is only applied during playback.
+
+.. code-block:: python
+
+   # Subtle — like a very tight session player
+   lead = score.part("lead", synth="saw", humanize=0.1)
+
+   # Natural — like a good live take
+   rhodes = score.part("rhodes", synth="fm", humanize=0.3)
+
+   # Loose — like a late-night jam after a few drinks
+   bass = score.part("bass", synth="sine", humanize=0.5)
+
+Humanize values:
+
+- **0.0** = perfectly quantized (default)
+- **0.1** = subtle, studio-tight
+- **0.2–0.3** = natural, like a real player
+- **0.4–0.5** = loose, relaxed, human
+- **0.6+** = sloppy (sometimes that's what you want)
+
+Combine with swing for the most realistic feel:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=95, swing=0.45)
+   lead = score.part(
+       "lead",
+       synth="saw",
+       envelope="pluck",
+       humanize=0.3,
+       delay=0.2,
+       reverb=0.25,
+   )
