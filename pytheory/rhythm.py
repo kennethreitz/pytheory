@@ -1336,28 +1336,40 @@ Pattern._FILLS["second line"] = dict(
 
 
 class Part:
-    """A named voice within a Score, with its own synth and envelope.
+    """A named voice within a Score, with its own synth, envelope, and effects.
 
     Parts allow layering multiple instruments — lead, bass, pads, etc. —
-    each with independent synth settings, mixed together on playback.
+    each with independent synth settings and effects, mixed together on playback.
 
     Don't instantiate directly — use ``Score.part()`` instead.
 
     Example::
 
         score = Score("4/4", bpm=140)
-        lead = score.part("lead", synth="saw", envelope="pluck")
+        lead = score.part("lead", synth="saw", envelope="pluck",
+                          reverb=0.3, delay=0.25)
         lead.add("E5", Duration.QUARTER).add("D5", Duration.EIGHTH)
         bass = score.part("bass", synth="triangle", envelope="pluck")
         bass.add("A2", Duration.HALF)
     """
 
     def __init__(self, name: str, *, synth: str = "sine",
-                 envelope: str = "piano", volume: float = 0.5):
+                 envelope: str = "piano", volume: float = 0.5,
+                 reverb: float = 0.0, reverb_decay: float = 1.0,
+                 delay: float = 0.0, delay_time: float = 0.375,
+                 delay_feedback: float = 0.4,
+                 lowpass: float = 0.0, lowpass_q: float = 0.707):
         self.name = name
         self.synth = synth
         self.envelope = envelope
         self.volume = volume
+        self.reverb_mix = reverb
+        self.reverb_decay = reverb_decay
+        self.delay_mix = delay
+        self.delay_time = delay_time
+        self.delay_feedback = delay_feedback
+        self.lowpass = lowpass
+        self.lowpass_q = lowpass_q
         self.notes: list[Note] = []
 
     def add(self, tone_or_string, duration=Duration.QUARTER) -> "Part":
@@ -1436,26 +1448,47 @@ class Score:
         self._drum_pattern_beats: float = 0.0
 
     def part(self, name: str, *, synth: str = "sine",
-             envelope: str = "piano", volume: float = 0.5) -> Part:
-        """Create a named part with its own synth voice.
+             envelope: str = "piano", volume: float = 0.5,
+             reverb: float = 0.0, reverb_decay: float = 1.0,
+             delay: float = 0.0, delay_time: float = 0.375,
+             delay_feedback: float = 0.4,
+             lowpass: float = 0.0, lowpass_q: float = 0.707) -> Part:
+        """Create a named part with its own synth voice and effects.
 
         Args:
             name: Part name (e.g. ``"lead"``, ``"bass"``, ``"pads"``).
-            synth: Waveform — ``"sine"``, ``"saw"``, or ``"triangle"``.
+            synth: Waveform — ``"sine"``, ``"saw"``, ``"triangle"``,
+                ``"square"``, ``"pulse"``, ``"fm"``, ``"noise"``,
+                ``"supersaw"``, ``"pwm_slow"``, ``"pwm_fast"``.
             envelope: ADSR preset name — ``"piano"``, ``"pluck"``,
                 ``"pad"``, ``"organ"``, ``"bell"``, ``"strings"``,
                 ``"staccato"``, or ``"none"``.
             volume: Mix level from 0.0 to 1.0 (default 0.5).
+            reverb: Reverb wet/dry mix, 0.0–1.0 (default 0, off).
+            reverb_decay: Reverb tail length in seconds (default 1.0).
+            delay: Delay wet/dry mix, 0.0–1.0 (default 0, off).
+            delay_time: Delay time in seconds (default 0.375, dotted 8th).
+            delay_feedback: Delay feedback 0.0–1.0 (default 0.4).
+            lowpass: Lowpass filter cutoff in Hz (default 0, off).
+                Try 800 for muffled bass, 2000 for warm lead,
+                5000 for subtle brightness rolloff.
+            lowpass_q: Filter resonance/Q factor (default 0.707, flat).
+                Higher values add a resonant peak at the cutoff —
+                1.0 = slight peak, 2.0 = pronounced, 5.0+ = aggressive.
 
         Returns:
             A :class:`Part` object. Add notes with ``.add()`` and ``.rest()``.
 
         Example::
 
-            lead = score.part("lead", synth="saw", envelope="pluck")
-            lead.add("C5", Duration.QUARTER).add("E5", Duration.QUARTER)
+            lead = score.part("lead", synth="saw", envelope="pluck",
+                              reverb=0.3, delay=0.25, lowpass=3000)
         """
-        p = Part(name, synth=synth, envelope=envelope, volume=volume)
+        p = Part(name, synth=synth, envelope=envelope, volume=volume,
+                 reverb=reverb, reverb_decay=reverb_decay,
+                 delay=delay, delay_time=delay_time,
+                 delay_feedback=delay_feedback,
+                 lowpass=lowpass, lowpass_q=lowpass_q)
         self.parts[name] = p
         return p
 

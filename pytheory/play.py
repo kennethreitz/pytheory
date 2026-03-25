@@ -704,6 +704,154 @@ def play_pattern(pattern, repeats=1, bpm=120):
     sd.wait()
 
 
+# ── Audio effects ───────────────────────────────────────────────────────────
+
+def _apply_reverb(samples, mix=0.3, decay=1.0, sample_rate=SAMPLE_RATE):
+    """Apply a simple Schroeder reverb to a float32 buffer.
+
+    Uses 4 parallel comb filters + 2 series allpass filters —
+    the classic algorithmic reverb topology from Manfred Schroeder (1962).
+
+    Args:
+        samples: Float32 numpy array.
+        mix: Wet/dry ratio 0.0–1.0.
+        decay: Tail length in seconds.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array with reverb applied.
+    """
+    if mix <= 0:
+        return samples
+
+    n = len(samples)
+    out = numpy.zeros(n, dtype=numpy.float32)
+
+    # Comb filter delays (in samples) — tuned to avoid coloration
+    comb_delays = [int(d * sample_rate) for d in [0.0297, 0.0371, 0.0411, 0.0437]]
+    # Feedback gains based on decay time
+    comb_gains = [0.001 ** (d / sample_rate / decay) for d in comb_delays]
+
+    for delay, gain in zip(comb_delays, comb_gains):
+        buf = numpy.zeros(n + delay, dtype=numpy.float32)
+        for i in range(n):
+            buf[i + delay] += samples[i] + gain * buf[i]
+        out += buf[:n]
+
+    out /= len(comb_delays)
+
+    # Allpass filters for diffusion
+    for delay_sec in [0.005, 0.0017]:
+        delay = int(delay_sec * sample_rate)
+        gain = 0.7
+        buf = numpy.zeros(n + delay, dtype=numpy.float32)
+        result = numpy.zeros(n, dtype=numpy.float32)
+        for i in range(n):
+            buf[i + delay] = out[i] + gain * buf[i]
+            result[i] = -gain * buf[i + delay] + buf[i]
+        out = result
+
+    return samples * (1 - mix) + out * mix
+
+
+def _apply_delay(samples, mix=0.25, time=0.375, feedback=0.4,
+                 sample_rate=SAMPLE_RATE):
+    """Apply a tempo-synced delay effect.
+
+    Args:
+        samples: Float32 numpy array.
+        mix: Wet/dry ratio 0.0–1.0.
+        time: Delay time in seconds (0.375 = dotted 8th at 120bpm).
+        feedback: How much each echo feeds back (0.0–1.0).
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array with delay applied.
+    """
+    if mix <= 0:
+        return samples
+
+    delay_samples = int(time * sample_rate)
+    if delay_samples <= 0:
+        return samples
+
+    n = len(samples)
+    wet = numpy.zeros(n, dtype=numpy.float32)
+    buf = numpy.zeros(n, dtype=numpy.float32)
+    buf[:] = samples
+
+    # Generate echo taps
+    max_echoes = 8
+    gain = 1.0
+    for _ in range(max_echoes):
+        gain *= feedback
+        if gain < 0.01:
+            break
+        shifted = numpy.zeros(n, dtype=numpy.float32)
+        offset = delay_samples * (_ + 1)
+        if offset >= n:
+            break
+        end = min(n, n - offset)
+        if end > 0:
+            shifted[offset:offset + end] = buf[:end] * gain
+            wet += shifted
+
+    return samples * (1 - mix) + wet * mix
+
+
+def _apply_lowpass(samples, cutoff, q=0.707, sample_rate=SAMPLE_RATE):
+    """Apply a 2nd-order Butterworth lowpass filter (12 dB/octave).
+
+    A resonant lowpass filter — the sound of analog synthesizers.
+    At Q=0.707 (Butterworth), the response is maximally flat. Higher
+    Q values add a resonant peak at the cutoff frequency, emphasizing
+    that frequency range before rolling off.
+
+    Args:
+        samples: Float32 numpy array.
+        cutoff: Cutoff frequency in Hz.
+        q: Resonance / Q factor (default 0.707 = Butterworth flat).
+            1.0 = slight peak, 2.0 = pronounced peak, 5.0+ = aggressive.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array with filter applied.
+    """
+    if cutoff <= 0 or cutoff >= sample_rate / 2:
+        return samples
+
+    # Biquad coefficient calculation
+    w0 = 2 * numpy.pi * cutoff / sample_rate
+    alpha = numpy.sin(w0) / (2 * q)
+
+    b0 = (1 - numpy.cos(w0)) / 2
+    b1 = 1 - numpy.cos(w0)
+    b2 = (1 - numpy.cos(w0)) / 2
+    a0 = 1 + alpha
+    a1 = -2 * numpy.cos(w0)
+    a2 = 1 - alpha
+
+    # Normalize
+    b = numpy.array([b0/a0, b1/a0, b2/a0])
+    a = numpy.array([1.0, a1/a0, a2/a0])
+
+    return scipy.signal.lfilter(b, a, samples).astype(numpy.float32)
+
+
+def _apply_part_effects(samples, part):
+    """Apply all effects configured on a Part to a float32 buffer."""
+    if part.lowpass > 0:
+        samples = _apply_lowpass(samples, part.lowpass, part.lowpass_q)
+    if part.delay_mix > 0:
+        samples = _apply_delay(samples, mix=part.delay_mix,
+                               time=part.delay_time,
+                               feedback=part.delay_feedback)
+    if part.reverb_mix > 0:
+        samples = _apply_reverb(samples, mix=part.reverb_mix,
+                                decay=part.reverb_decay)
+    return samples
+
+
 def _resolve_synth(name):
     """Map synth name string to wave function."""
     return _SYNTH_FUNCTIONS.get(name, sine_wave)
@@ -765,14 +913,21 @@ def render_score(score):
             score.notes, buf, samples_per_beat, total_samples,
             sine_wave, Envelope.PIANO.value, 0.5, score.bpm)
 
-    # Named parts
+    # Named parts — each rendered to own buffer for per-part effects
     for part in score.parts.values():
         if part.notes:
+            part_buf = numpy.zeros(total_samples, dtype=numpy.float32)
             synth_fn = _resolve_synth(part.synth)
             env_tuple = _resolve_envelope(part.envelope)
             _render_notes_to_buf(
-                part.notes, buf, samples_per_beat, total_samples,
+                part.notes, part_buf, samples_per_beat, total_samples,
                 synth_fn, env_tuple, part.volume, score.bpm)
+            # Apply per-part effects
+            has_fx = (part.lowpass > 0 or part.delay_mix > 0
+                      or part.reverb_mix > 0)
+            if has_fx:
+                part_buf = _apply_part_effects(part_buf, part)
+            buf += part_buf
 
     # Drum hits
     for hit in score._drum_hits:

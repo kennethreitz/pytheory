@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.18.0
+
+- Add per-part audio effects: reverb, delay, and lowpass filter
+- Reverb: Schroeder algorithm with configurable mix and decay
+- Delay: tempo-synced echoes with feedback control
+- Lowpass: 12 dB/octave biquad filter with resonance (Q) control
+- All effects set at part creation: `score.part("lead", reverb=0.3, delay=0.25, lowpass=2000, lowpass_q=1.5)`
+- Effects applied per-part before mixing for independent processing
+
 ## 0.17.0
 
 - Add 10 new groove presets: country, ska, dub, jungle, techno, gospel, swing, bolero, tango, flamenco (58 total)

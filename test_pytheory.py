@@ -5429,3 +5429,87 @@ def test_new_fill_presets():
     for name in new_fills:
         p = Pattern.fill(name)
         assert len(p.hits) > 0, f"Fill {name!r} has no hits"
+
+
+# ── Audio effects ──────────────────────────────────────────────────────────
+
+@needs_portaudio
+def test_reverb_effect():
+    from pytheory.play import _apply_reverb
+    dry = numpy.zeros(44100, dtype=numpy.float32)
+    dry[0] = 1.0  # impulse
+    wet = _apply_reverb(dry, mix=1.0, decay=0.5)
+    assert numpy.max(numpy.abs(wet[1000:])) > 0
+
+
+@needs_portaudio
+def test_reverb_zero_mix():
+    from pytheory.play import _apply_reverb
+    dry = numpy.random.uniform(-1, 1, 1000).astype(numpy.float32)
+    result = _apply_reverb(dry, mix=0.0)
+    assert numpy.allclose(result, dry)
+
+
+@needs_portaudio
+def test_delay_effect():
+    from pytheory.play import _apply_delay
+    dry = numpy.zeros(44100, dtype=numpy.float32)
+    dry[:100] = 1.0
+    wet = _apply_delay(dry, mix=0.5, time=0.1, feedback=0.3)
+    echo_start = int(0.1 * 44100)
+    assert numpy.max(numpy.abs(wet[echo_start:echo_start + 200])) > 0
+
+
+@needs_portaudio
+def test_delay_zero_mix():
+    from pytheory.play import _apply_delay
+    dry = numpy.random.uniform(-1, 1, 1000).astype(numpy.float32)
+    result = _apply_delay(dry, mix=0.0)
+    assert numpy.allclose(result, dry)
+
+
+@needs_portaudio
+def test_lowpass_filter():
+    from pytheory.play import _apply_lowpass, SAMPLE_RATE
+    t = numpy.arange(44100, dtype=numpy.float32) / SAMPLE_RATE
+    signal = numpy.sin(2 * numpy.pi * 100 * t) + numpy.sin(2 * numpy.pi * 5000 * t)
+    filtered = _apply_lowpass(signal.astype(numpy.float32), cutoff=500)
+    rms_orig = numpy.sqrt(numpy.mean(signal[22050:] ** 2))
+    rms_filt = numpy.sqrt(numpy.mean(filtered[22050:] ** 2))
+    assert rms_filt < rms_orig
+
+
+@needs_portaudio
+def test_lowpass_with_resonance():
+    from pytheory.play import _apply_lowpass
+    t = numpy.arange(44100, dtype=numpy.float32) / 44100
+    signal = numpy.sin(2 * numpy.pi * 1000 * t).astype(numpy.float32)
+    flat = _apply_lowpass(signal, cutoff=1000, q=0.707)
+    resonant = _apply_lowpass(signal, cutoff=1000, q=5.0)
+    assert numpy.max(numpy.abs(resonant)) > numpy.max(numpy.abs(flat))
+
+
+@needs_portaudio
+def test_part_effects_in_render():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="saw", envelope="pluck",
+                      reverb=0.3, delay=0.2, lowpass=2000)
+    lead.add("C5", Duration.WHOLE)
+    buf = render_score(score)
+    assert len(buf) > 0
+
+
+@needs_portaudio
+def test_part_effects_change_output():
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    s1 = Score("4/4", bpm=120)
+    s1.part("lead", synth="saw", envelope="pluck").add("C5", Duration.WHOLE)
+    dry = render_score(s1)
+    s2 = Score("4/4", bpm=120)
+    s2.part("lead", synth="saw", envelope="pluck",
+            reverb=0.5, delay=0.3).add("C5", Duration.WHOLE)
+    wet = render_score(s2)
+    assert not numpy.allclose(dry, wet, atol=0.01)
