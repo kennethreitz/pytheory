@@ -522,3 +522,55 @@ Combine with swing for the most realistic feel:
        delay=0.2,
        reverb=0.25,
    )
+
+Song Structure
+--------------
+
+Real songs aren't one long stream of notes — they have verses,
+choruses, bridges, drops. The section system lets you name blocks
+of your arrangement, then repeat them without rewriting everything.
+
+This is how actual songwriting works: you write a verse, you write
+a chorus, then you arrange them — verse, verse, chorus, verse,
+chorus, chorus, outro. The sections are the building blocks;
+the arrangement is the order you play them in.
+
+Define sections with ``score.section()`` and repeat them with
+``score.repeat()``:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=124)
+   score.drums("house", repeats=16)
+
+   pad = score.part("pad", synth="supersaw", envelope="pad")
+   lead = score.part("lead", synth="saw", envelope="pluck")
+   bass = score.part("bass", synth="sine", lowpass=300)
+
+   # ── Define the verse ──
+   score.section("verse")
+   for sym in ["Cm", "Ab", "Eb", "Bb"]:
+       pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+   lead.add("C5", 1).add("Eb5", 1).rest(2)
+   for n in ["C1", "C1", "Ab0", "Ab0", "Eb1", "Eb1", "Bb0", "Bb0"]:
+       bass.add(n, Duration.HALF)
+
+   # ── Define the chorus ──
+   score.section("chorus")
+   lead.set(lowpass=5000, reverb=0.3)
+   for sym in ["Cm", "Fm", "Ab", "Gm"]:
+       pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+   lead.add("C6", 1).add("Bb5", 1).add("G5", 1).rest(1)
+   for n in ["C1", "C1", "F1", "F1", "Ab0", "Ab0", "G1", "G1"]:
+       bass.add(n, Duration.HALF)
+   score.end_section()
+
+   # ── Arrange: verse, chorus, verse, chorus, chorus ──
+   score.repeat("verse")
+   score.repeat("chorus")
+   score.repeat("verse")
+   score.repeat("chorus", times=2)
+
+Use any names you want — ``"intro"``, ``"verse"``, ``"chorus"``,
+``"bridge"``, ``"drop"``, ``"breakdown"``, ``"outro"``, or anything
+that makes sense for your song. The names are just labels.

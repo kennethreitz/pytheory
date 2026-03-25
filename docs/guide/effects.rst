@@ -235,9 +235,16 @@ feel uncomfortably close and dry, like someone whispering directly into
 your ear. With it, sounds feel like they exist in a real place. Reverb
 is the most universally used effect in all of recorded music.
 
+PyTheory offers two reverb engines: a fast **algorithmic** reverb for
+general use, and **convolution** reverb for photorealistic acoustic
+spaces.
+
+Algorithmic Reverb
+~~~~~~~~~~~~~~~~~~
+
 A Schroeder reverb using 4 parallel comb filters and 2 series allpass
-filters. Simulates the natural reflections of a room, hall, or
-cathedral.
+filters. Fast, lightweight, and good for general-purpose room
+simulation.
 
 Parameters:
 
@@ -263,14 +270,97 @@ Parameters:
        reverb_decay=1.8,
    )
 
+Convolution Reverb
+~~~~~~~~~~~~~~~~~~
+
+Convolution reverb works by convolving your audio with an *impulse
+response* -- a recording (or simulation) of a real acoustic space.
+Where algorithmic reverb approximates the math of reflections,
+convolution reverb *is* the space. You hear every surface, every
+angle, every material.
+
+PyTheory generates synthetic impulse responses that model the acoustic
+properties of real spaces: early reflection patterns, exponential
+decay envelopes, frequency-dependent absorption (high frequencies die
+faster in stone), diffusion density, and subtle pitch modulation from
+irregular surfaces. The result is dramatically more realistic than
+algorithmic reverb, especially for long tails and large spaces.
+
+Set ``reverb_type`` to any preset name instead of ``"algorithmic"``:
+
+- ``"taj_mahal"`` -- Massive marble dome. 12-second tail, bright early
+  reflections, enormously dense and diffuse. The most dramatic verb
+  you've ever heard.
+- ``"cathedral"`` -- Gothic stone cathedral. 6 seconds, strong early
+  reflections off parallel walls, dark reverberant tail.
+- ``"plate"`` -- EMT 140 plate reverb. 4 seconds, dense, bright, smooth.
+  The studio classic that defined pop records from the 60s onward.
+- ``"spring"`` -- Spring reverb tank. 3 seconds, metallic, boingy, lo-fi.
+  The sound of surf rock and guitar amps.
+- ``"cave"`` -- Natural cave. 8 seconds, very dark, irregular reflections.
+  High frequencies are aggressively absorbed by rock.
+- ``"parking_garage"`` -- Concrete box. 3 seconds, bright, flutter echoes
+  from parallel hard walls.
+- ``"canyon"`` -- Open canyon. 5 seconds, sparse discrete echoes (the
+  walls are far apart) dissolving into a diffuse tail.
+
+Parameters:
+
+- ``reverb``: Wet/dry mix, 0.0--1.0.
+- ``reverb_type``: Preset name (default ``"algorithmic"``).
+
+.. code-block:: python
+
+   # FM flute through the Taj Mahal
+   flute = score.part(
+       "flute",
+       synth="fm",
+       envelope="bell",
+       reverb=0.85,
+       reverb_type="taj_mahal",
+       delay=0.65,
+       delay_time=0.375,
+       delay_feedback=0.55,
+   )
+
    # Cathedral wash for ambient pads
    pad = score.part(
        "pad",
        synth="supersaw",
        envelope="pad",
        reverb=0.7,
-       reverb_decay=4.0,
+       reverb_type="cathedral",
    )
+
+   # Classic plate on a vocal-style lead
+   lead = score.part(
+       "lead",
+       synth="triangle",
+       envelope="strings",
+       reverb=0.5,
+       reverb_type="plate",
+   )
+
+   # Algorithmic reverb still works as before
+   rhodes = score.part(
+       "rhodes",
+       synth="fm",
+       envelope="piano",
+       reverb=0.4,
+       reverb_decay=1.8,
+   )
+
+You can switch reverb types mid-song with automation:
+
+.. code-block:: python
+
+   lead = score.part("lead", synth="fm", envelope="bell",
+                     reverb=0.5, reverb_type="plate")
+   lead.add("C5", Duration.WHOLE)
+
+   # Switch to cathedral for the big section
+   lead.set(reverb_type="cathedral", reverb=0.8)
+   lead.add("E5", Duration.WHOLE)
 
 Combining Effects
 -----------------
@@ -354,6 +444,58 @@ Subtle saturation and deep filtering for hip-hop sub bass:
        lowpass_q=1.8,
        distortion=0.4,
        distortion_drive=2.0,
+   )
+
+Sidechain Compression
+---------------------
+
+If you've ever heard a house track where the pad *breathes* — gets
+quiet every time the kick hits and swells back up between beats —
+that's sidechain compression. It's the pumping effect that defines
+modern electronic music. The kick drum triggers a compressor on
+another part, ducking its volume in rhythm with the beat.
+
+In PyTheory, the drum hits are the trigger. Any part with
+``sidechain > 0`` gets ducked whenever the kick (or any drum) hits:
+
+.. code-block:: python
+
+   # Classic EDM pump — pad ducks hard on every kick
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       sidechain=0.85,
+       sidechain_release=0.15,
+   )
+
+   # Bass breathes with the kick too, but less aggressively
+   bass = score.part(
+       "bass",
+       synth="sine",
+       lowpass=250,
+       sidechain=0.7,
+       sidechain_release=0.1,
+   )
+
+Parameters:
+
+- ``sidechain``: How much to duck, 0.0–1.0 (default 0, off).
+  0.5 = subtle pump, 0.7 = noticeable, 0.85 = classic EDM, 1.0 = full silence on hits.
+- ``sidechain_release``: How fast the volume comes back, in seconds
+  (default 0.1). Shorter = tighter, longer = more dramatic pump.
+
+The lead stays above the pump — don't sidechain everything or the
+whole mix will gasp for air:
+
+.. code-block:: python
+
+   # Lead cuts through — no sidechain
+   lead = score.part(
+       "lead",
+       synth="saw",
+       envelope="pluck",
+       delay=0.2,
    )
 
 Automation
