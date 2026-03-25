@@ -34,6 +34,12 @@ PyTheory lets you:
   fifths, *call* it. Instead of memorizing chord formulas, *build* chords
   from intervals and hear the result.
 
+- **Collaborate with AI**. Tools like `Claude Code <https://claude.ai/code>`_
+  can use PyTheory to prototype musical ideas for you. Ask it to "write a
+  bossa nova in A minor with a saw lead and reverb" and it will build the
+  Score, pick the chords, write a melody, choose effects, and play it —
+  all in real Python you can edit and export.
+
 The workflow: **sketch in Python → hear it instantly → export MIDI → finish in your DAW**.
 
 Quick Example
