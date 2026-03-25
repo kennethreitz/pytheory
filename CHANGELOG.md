@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.0
+
+- Add sidechain compression — kick ducks pad/bass for the classic EDM pump effect
+- Add song structure: `score.section("verse")`, `score.section("chorus")`, `score.repeat("verse")`
+- Punchier kick drum: 808-style with faster pitch sweep (200→45Hz), sub thump, and soft saturation
+- Section repeat copies all part notes, drum hits, and automation with proper offset
+
 ## 0.24.1
 
 - Add `humanize` parameter on Parts — random micro-timing and velocity variation

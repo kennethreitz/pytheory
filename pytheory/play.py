@@ -431,16 +431,24 @@ def _exp_decay(n_samples, decay_rate):
 
 
 def _synth_kick(n_samples):
-    """Synthesize a kick drum: sine with pitch sweep + sub thump."""
+    """Synthesize a kick drum: 808-style sine with pitch sweep + transient punch."""
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Pitch sweeps from 150 Hz down to 50 Hz
-    freq = 50 + 100 * numpy.exp(-30 * t)
+    # Pitch sweeps from 200 Hz down to 45 Hz — fast sweep for punch
+    freq = 45 + 155 * numpy.exp(-50 * t)
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    wave = numpy.sin(phase) * _exp_decay(n_samples, 8)
-    # Add a sub click at the start
-    click = _noise(min(200, n_samples)) * _exp_decay(min(200, n_samples), 80)
-    wave[:len(click)] += click * 0.3
-    return wave
+    # Main body with longer sustain
+    body = numpy.sin(phase) * _exp_decay(n_samples, 6)
+    # Hard transient click — the "beater" hitting the head
+    click_len = min(300, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 100)
+    body[:click_len] += click * 0.5
+    # Sub thump — a brief low sine for chest punch
+    sub_len = min(int(SAMPLE_RATE * 0.08), n_samples)
+    sub = _sine_f32(50, sub_len) * _exp_decay(sub_len, 20)
+    body[:sub_len] += sub * 0.4
+    # Soft saturation for warmth and presence
+    body = numpy.tanh(body * 1.5) / 1.5
+    return body
 
 
 def _synth_snare(n_samples):
@@ -705,6 +713,45 @@ def play_pattern(pattern, repeats=1, bpm=120):
 
 
 # ── Audio effects ───────────────────────────────────────────────────────────
+
+
+def _apply_sidechain(samples, trigger_samples, amount=0.8, attack=0.001, release=0.1, sample_rate=SAMPLE_RATE):
+    """Apply sidechain compression — duck the signal when the trigger is loud.
+
+    Args:
+        samples: The signal to duck (float32 array).
+        trigger_samples: The trigger signal, usually kick drum (float32 array).
+        amount: How much to duck, 0.0-1.0 (1.0 = full duck to silence).
+        attack: How fast the duck kicks in, in seconds.
+        release: How fast the volume comes back, in seconds.
+
+    Returns:
+        Float32 array with sidechain applied.
+    """
+    # Match lengths
+    min_len = min(len(samples), len(trigger_samples))
+    trigger = trigger_samples[:min_len]
+    out = samples.copy()
+
+    # Compute trigger envelope
+    trigger_env = numpy.abs(trigger)
+    # Smooth the envelope
+    alpha_attack = 1.0 - numpy.exp(-1.0 / (attack * sample_rate))
+    alpha_release = 1.0 - numpy.exp(-1.0 / (release * sample_rate))
+    smoothed = numpy.zeros(len(trigger_env), dtype=numpy.float32)
+    for i in range(1, len(trigger_env)):
+        if trigger_env[i] > smoothed[i - 1]:
+            smoothed[i] = alpha_attack * trigger_env[i] + (1 - alpha_attack) * smoothed[i - 1]
+        else:
+            smoothed[i] = alpha_release * trigger_env[i] + (1 - alpha_release) * smoothed[i - 1]
+    # Normalize envelope to 0-1
+    peak = numpy.max(smoothed)
+    if peak > 0:
+        smoothed /= peak
+    # Apply ducking
+    gain = 1.0 - smoothed * amount
+    out[:min_len] = out[:min_len] * gain
+    return out
 
 
 # ── Convolution reverb impulse responses ───────────────────────────────────
@@ -1413,6 +1460,7 @@ def render_score(score):
             swing=score.swing, tempo_map=tempo_map if has_tempo_changes else None)
 
     # Named parts — each rendered to own buffer for per-part effects
+    _pending_sidechain = []
     for part in score.parts.values():
         if part.notes:
             part_buf = numpy.zeros(total_samples, dtype=numpy.float32)
@@ -1465,9 +1513,14 @@ def render_score(score):
                           or part.chorus_mix > 0)
                 if has_fx:
                     part_buf = _apply_part_effects(part_buf, part)
-            buf += part_buf
+            # Apply sidechain compression if enabled
+            if getattr(part, 'sidechain', 0) > 0:
+                _pending_sidechain.append((part, part_buf))
+            else:
+                buf += part_buf
 
-    # Drum hits
+    # Drum hits — render to separate buffer for sidechain trigger
+    drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)
     for hit in score._drum_hits:
         if has_tempo_changes:
             start = _beat_to_sample(hit.position, tempo_map)
@@ -1479,7 +1532,17 @@ def render_score(score):
         hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
         wave = _render_drum_hit(hit.sound.value, hit_len)
         vel_scale = hit.velocity / 127.0
-        buf[start:start + hit_len] += wave * vel_scale * 0.7
+        drum_buf[start:start + hit_len] += wave * vel_scale * 0.7
+
+    # Apply sidechain compression to parts that request it
+    for part, part_buf in _pending_sidechain:
+        part_buf = _apply_sidechain(
+            part_buf, drum_buf,
+            amount=part.sidechain,
+            release=part.sidechain_release)
+        buf += part_buf
+
+    buf += drum_buf
 
     # Normalize
     peak = numpy.max(numpy.abs(buf))

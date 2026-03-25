@@ -5860,3 +5860,118 @@ def test_velocity_affects_render():
     rms_first = np.sqrt(np.mean(buf[:mid] ** 2))
     rms_second = np.sqrt(np.mean(buf[mid:] ** 2))
     assert rms_first > rms_second
+
+
+# ── Sidechain compression tests ─────────────────────────────────────────────
+
+
+def test_sidechain_default():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    pad = score.part("pad", synth="sine", envelope="pad")
+    assert pad.sidechain == 0.0
+    assert pad.sidechain_release == 0.1
+
+
+def test_sidechain_set():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    pad = score.part("pad", synth="sine", envelope="pad", sidechain=0.8,
+                     sidechain_release=0.15)
+    assert pad.sidechain == 0.8
+    assert pad.sidechain_release == 0.15
+
+
+@needs_portaudio
+def test_sidechain_render():
+    from pytheory import Score, Duration, Pattern
+    from pytheory.play import render_score
+    import numpy as np
+
+    # Score without sidechain
+    score1 = Score("4/4", bpm=120)
+    score1.add_pattern(Pattern.preset("rock"), repeats=2)
+    pad1 = score1.part("pad", synth="sine", envelope="pad")
+    pad1.add("C4", Duration.WHOLE).add("C4", Duration.WHOLE)
+    buf1 = render_score(score1)
+
+    # Score with sidechain
+    score2 = Score("4/4", bpm=120)
+    score2.add_pattern(Pattern.preset("rock"), repeats=2)
+    pad2 = score2.part("pad", synth="sine", envelope="pad", sidechain=0.8)
+    pad2.add("C4", Duration.WHOLE).add("C4", Duration.WHOLE)
+    buf2 = render_score(score2)
+
+    # Both should render to non-empty buffers of the same length
+    assert len(buf1) > 0
+    assert len(buf1) == len(buf2)
+    # The buffers should differ (sidechain alters the mix)
+    assert not np.array_equal(buf1, buf2)
+
+
+# ── Song structure / Section tests ───────────────────────────────────────────
+
+
+def test_section_basic():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="sine")
+
+    score.section("verse")
+    lead.add("C5", Duration.WHOLE)
+
+    score.section("chorus")
+    lead.add("E5", Duration.WHOLE)
+    score.end_section()
+
+    assert "verse" in score._sections
+    assert "chorus" in score._sections
+    assert score._sections["verse"]._finalized
+    assert score._sections["chorus"]._finalized
+
+
+def test_section_repeat():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="sine")
+
+    score.section("verse")
+    lead.add("C5", Duration.WHOLE)  # 4 beats
+    score.end_section()
+
+    beats_before = score.total_beats
+    assert beats_before == 4.0
+
+    score.repeat("verse")
+    assert score.total_beats == 8.0
+
+
+def test_section_repeat_parts():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    lead = score.part("lead", synth="sine")
+    bass = score.part("bass", synth="triangle")
+
+    score.section("verse")
+    lead.add("C5", Duration.QUARTER)
+    lead.add("D5", Duration.QUARTER)
+    bass.add("C3", Duration.HALF)
+    score.end_section()
+
+    assert len(lead.notes) == 2
+    assert len(bass.notes) == 1
+
+    score.repeat("verse")
+    assert len(lead.notes) == 4
+    assert len(bass.notes) == 2
+
+    score.repeat("verse", times=2)
+    assert len(lead.notes) == 8
+    assert len(bass.notes) == 4
+
+
+def test_section_unknown_raises():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    with pytest.raises(ValueError, match="Unknown section"):
+        score.repeat("nonexistent")

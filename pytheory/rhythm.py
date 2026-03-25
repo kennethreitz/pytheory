@@ -1366,13 +1366,17 @@ class Part:
                  chorus: float = 0.0, chorus_rate: float = 1.5,
                  chorus_depth: float = 0.003,
                  swing: Optional[float] = None,
-                 humanize: float = 0.0):
+                 humanize: float = 0.0,
+                 sidechain: float = 0.0,
+                 sidechain_release: float = 0.1):
         self.name = name
         self.synth = synth
         self.envelope = envelope
         self.volume = volume
         self.swing = swing
         self.humanize = humanize
+        self.sidechain = sidechain
+        self.sidechain_release = sidechain_release
         self.reverb_mix = reverb
         self.reverb_decay = reverb_decay
         self.reverb_type = reverb_type
@@ -1695,6 +1699,49 @@ class Part:
                 f"{len(self.notes)} notes {self.total_beats:.1f} beats>")
 
 
+class Section:
+    """A named section of a Score (verse, chorus, bridge, etc.)."""
+
+    def __init__(self, name: str, score: "Score"):
+        self.name = name
+        self._score = score
+        self._start_beat = score.total_beats
+        # Snapshot current state
+        self._part_starts: dict[str, int] = {
+            n: len(p.notes) for n, p in score.parts.items()
+        }
+        self._default_start = len(score.notes)
+        self._drum_start = len(score._drum_hits)
+        self._drum_beat_start = score._drum_pattern_beats
+        self._finalized = False
+        self._part_notes: dict[str, list[Note]] = {}
+        self._default_notes: list[Note] = []
+        self._drum_hits: list[_Hit] = []
+        self._drum_beat_duration: float = 0
+        self._duration: float = 0
+
+    @property
+    def beats(self) -> float:
+        if self._finalized:
+            return self._duration
+        return self._score.total_beats - self._start_beat
+
+    def _finalize(self):
+        if self._finalized:
+            return
+        s = self._score
+        # Capture notes added since snapshot
+        for pname, start_idx in self._part_starts.items():
+            if pname in s.parts:
+                self._part_notes[pname] = list(s.parts[pname].notes[start_idx:])
+        self._default_notes = list(s.notes[self._default_start:])
+        # Capture drum hits added since snapshot
+        self._drum_hits = list(s._drum_hits[self._drum_start:])
+        self._drum_beat_duration = s._drum_pattern_beats - self._drum_beat_start
+        self._duration = s.total_beats - self._start_beat
+        self._finalized = True
+
+
 class Score:
     """A multi-part arrangement with drums, chords, and instrument voices.
 
@@ -1734,6 +1781,8 @@ class Score:
         self._drum_hits: list[_Hit] = []
         self._drum_pattern_beats: float = 0.0
         self._tempo_changes: list[tuple[float, int]] = []
+        self._sections: dict[str, Section] = {}
+        self._current_section: Optional[Section] = None
 
     def part(self, name: str, *, synth: str = "sine",
              envelope: str = "piano", volume: float = 0.5,
@@ -1747,7 +1796,9 @@ class Score:
              chorus: float = 0.0, chorus_rate: float = 1.5,
              chorus_depth: float = 0.003,
              swing: Optional[float] = None,
-             humanize: float = 0.0) -> Part:
+             humanize: float = 0.0,
+             sidechain: float = 0.0,
+             sidechain_release: float = 0.1) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1786,6 +1837,11 @@ class Score:
                 (default 0, off). Adds micro-imperfections that make
                 programmed parts feel like a real player.
                 0.1 = subtle, 0.3 = natural, 0.5+ = loose/drunk.
+            sidechain: Sidechain compression amount, 0.0–1.0 (default 0, off).
+                How much the drum hits duck this part's volume.
+                0.8 = typical EDM pumping effect.
+            sidechain_release: How fast the volume comes back after ducking,
+                in seconds (default 0.1).
 
         Returns:
             A :class:`Part` object. Add notes with ``.add()`` and ``.rest()``.
@@ -1805,7 +1861,8 @@ class Score:
                  legato=legato, glide=glide,
                  chorus=chorus, chorus_rate=chorus_rate,
                  chorus_depth=chorus_depth,
-                 swing=swing, humanize=humanize)
+                 swing=swing, humanize=humanize,
+                 sidechain=sidechain, sidechain_release=sidechain_release)
         self.parts[name] = p
         return p
 
@@ -1901,6 +1958,82 @@ class Score:
             Self for chaining.
         """
         self._tempo_changes.append((self.total_beats, bpm))
+        return self
+
+    def section(self, name: str) -> "Section":
+        """Begin a named section. Everything added after this call until
+        the next section() or end_section() belongs to this section.
+
+        Example::
+
+            score.section("verse")
+            chords.add(chord, Duration.WHOLE)
+            lead.add("C5", Duration.QUARTER)
+
+            score.section("chorus")
+            chords.add(chord, Duration.WHOLE)
+
+            score.repeat("verse")
+            score.repeat("chorus", times=2)
+        """
+        # Finalize the previous section if any
+        if self._current_section is not None:
+            self._current_section._finalize()
+        sec = Section(name, self)
+        self._sections[name] = sec
+        self._current_section = sec
+        return sec
+
+    def end_section(self) -> "Score":
+        """Close the current section explicitly.
+
+        Returns:
+            Self for chaining.
+        """
+        if self._current_section is not None:
+            self._current_section._finalize()
+            self._current_section = None
+        return self
+
+    def repeat(self, name: str, times: int = 1) -> "Score":
+        """Repeat a previously defined section.
+
+        Copies all notes, drum hits, and automation from the named section
+        and appends them at the current position.
+
+        Args:
+            name: Name of a section defined with ``section()``.
+            times: Number of times to repeat (default 1).
+
+        Returns:
+            Self for chaining.
+        """
+        if name not in self._sections:
+            raise ValueError(f"Unknown section: {name!r}")
+        sec = self._sections[name]
+        # Ensure section is finalized
+        if not sec._finalized:
+            sec._finalize()
+        for _ in range(times):
+            # Copy notes to each part
+            for pname, notes in sec._part_notes.items():
+                if pname in self.parts:
+                    for note in notes:
+                        self.parts[pname].notes.append(
+                            Note(tone=note.tone, duration=note.duration,
+                                 velocity=note.velocity))
+            # Copy default notes
+            for note in sec._default_notes:
+                self.notes.append(
+                    Note(tone=note.tone, duration=note.duration,
+                         velocity=note.velocity))
+            # Copy drum hits with offset
+            if sec._drum_hits:
+                offset = self._drum_pattern_beats - sec._drum_beat_start
+                for hit in sec._drum_hits:
+                    self._drum_hits.append(
+                        _Hit(hit.sound, hit.position + offset, hit.velocity))
+                self._drum_pattern_beats += sec._drum_beat_duration
         return self
 
     @property
