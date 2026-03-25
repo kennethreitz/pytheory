@@ -101,6 +101,58 @@ class Tone:
         return [self.name] + self.alt_names
 
     @property
+    def scientific(self) -> str:
+        """Scientific pitch notation (e.g. ``'C4'``, ``'A#3'``).
+
+        This is the default notation used throughout PyTheory —
+        note name followed by octave number. Middle C is C4.
+        Same as ``full_name``.
+        """
+        return self.full_name
+
+    @property
+    def helmholtz(self) -> str:
+        """Helmholtz pitch notation.
+
+        The older European convention still used in some contexts:
+
+        - C2 → ``CC``  (sub-contra)
+        - C3 → ``C``   (great octave)
+        - C4 → ``c``   (small octave / middle C)
+        - C5 → ``c'``  (one-line)
+        - C6 → ``c''`` (two-line)
+        - C7 → ``c'''``
+
+        Accidentals are preserved as-is (e.g. ``c#'``).
+
+        Example::
+
+            >>> Tone.from_string("C4").helmholtz
+            'c'
+            >>> Tone.from_string("C3").helmholtz
+            'C'
+            >>> Tone.from_string("C5").helmholtz
+            "c'"
+            >>> Tone.from_string("A2").helmholtz
+            'AA'
+        """
+        if self.octave is None:
+            return self.name
+        letter = self.name[0]
+        accidental = self.name[1:]
+        if self.octave <= 2:
+            # Great octave and below: uppercase, repeated for lower octaves
+            repeats = 3 - self.octave  # octave 2→1, 1→2, 0→3
+            return (letter.upper() * repeats) + accidental
+        elif self.octave == 3:
+            return letter.upper() + accidental
+        else:
+            # Octave 4+: lowercase with tick marks
+            ticks = self.octave - 4
+            tick_str = "'" * ticks if ticks > 0 else ""
+            return letter.lower() + accidental + tick_str
+
+    @property
     def is_natural(self) -> bool:
         """True if this is a natural note (no sharp or flat)."""
         return not self.is_sharp and not self.is_flat

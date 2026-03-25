@@ -74,6 +74,35 @@ class Scale:
         """List of note names in this scale."""
         return [t.name for t in self.tones]
 
+    def fitness(self, *note_names: str) -> float:
+        """Score how well a set of notes fits this scale (0.0–1.0).
+
+        Returns the fraction of the given notes that appear in the
+        scale. Useful for melody analysis — testing whether a phrase
+        belongs to a particular scale or mode.
+
+        Args:
+            *note_names: Note name strings (e.g. ``"C"``, ``"F#"``).
+
+        Returns:
+            A float from 0.0 (no notes match) to 1.0 (all notes match).
+
+        Example::
+
+            >>> c_major = TonedScale(tonic="C4")["major"]
+            >>> c_major.fitness("C", "D", "E", "G")
+            1.0
+            >>> c_major.fitness("C", "D", "F#", "G")
+            0.75
+            >>> c_major.fitness("C#", "D#", "F#")
+            0.0
+        """
+        if not note_names:
+            return 0.0
+        scale_notes = set(self.note_names)
+        matches = sum(1 for n in note_names if n in scale_notes)
+        return matches / len(note_names)
+
     def chord(self, *degrees: int) -> Chord:
         """Build a Chord from scale degrees (0-indexed).
 
@@ -646,6 +675,58 @@ class Key:
             # End on I or V
             chords.append(random.choice([harmonized[0], harmonized[4 % unique]]))
         return chords
+
+    # Common chord movement tendencies in major keys (0-indexed degrees).
+    # Maps each degree to a list of likely next degrees, ordered by frequency.
+    _TENDENCY = {
+        0: [3, 4, 5, 1],       # I  → IV, V, vi, ii
+        1: [4, 0, 6],           # ii → V, I, vii
+        2: [5, 3, 1],           # iii → vi, IV, ii
+        3: [4, 0, 1],           # IV → V, I, ii
+        4: [0, 5, 3],           # V  → I, vi, IV
+        5: [1, 3, 4],           # vi → ii, IV, V
+        6: [0, 5],              # vii° → I, vi
+    }
+
+    def suggest_next(self, chord) -> list:
+        """Suggest likely next chords based on voice-leading tendencies.
+
+        Given a chord in this key, returns a ranked list of chords
+        that commonly follow it, based on standard functional harmony
+        rules (e.g. V → I, ii → V, IV → V).
+
+        Args:
+            chord: A Chord object currently being played.
+
+        Returns:
+            A list of Chord objects, most likely first.
+
+        Example::
+
+            >>> key = Key("C", "major")
+            >>> g = key.triad(4)  # G major (V)
+            >>> [c.symbol for c in key.suggest_next(g)]
+            ['C', 'Am', 'F']
+        """
+        harmonized = self._scale.harmonize()
+        unique = len(harmonized)
+
+        # Find which degree this chord is
+        chord_id = chord.identify()
+        if not chord_id:
+            return harmonized[:3]
+
+        degree = None
+        for i, h in enumerate(harmonized):
+            if h.identify() == chord_id:
+                degree = i
+                break
+
+        if degree is None:
+            return harmonized[:3]
+
+        tendencies = self._TENDENCY.get(degree, [0])
+        return [harmonized[d % unique] for d in tendencies]
 
     @property
     def relative(self) -> Optional[Key]:
