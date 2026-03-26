@@ -101,6 +101,7 @@ What's Inside
    guide/effects
    guide/drums
    guide/playback
+   guide/repl
    guide/cli
    guide/cookbook
 
