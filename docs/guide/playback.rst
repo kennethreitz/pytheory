@@ -170,3 +170,5 @@ Optional synth, envelope, and gap parameters:
 
    play_progression(chords, t=1000, synth=Synth.TRIANGLE, gap=200)
    play_progression(chords, t=2000, envelope=Envelope.PAD)
+
+That's the workflow: hear it, tweak it, hear it again. When it sounds right, export to WAV or MIDI and take it somewhere bigger.

@@ -341,3 +341,5 @@ Further Reading
 - `Gamelan <https://en.wikipedia.org/wiki/Gamelan>`_ — Indonesian ensemble music
 - `Blues <https://en.wikipedia.org/wiki/Blues>`_ — the foundation of American popular music
 - `Twelve-bar blues <https://en.wikipedia.org/wiki/Twelve-bar_blues>`_ — the most common blues form
+
+Theory is just a vocabulary for what you already hear. You don't need it to make music -- but once you have the words, you can talk about what you're doing, understand why it works, and find new places to go.

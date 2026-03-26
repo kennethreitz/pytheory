@@ -598,3 +598,5 @@ of each other in pitch class space.
 
    >>> Chord.from_tones("C", "E", "G#").forte_number
    '3-12'
+
+Chords are the vertical dimension of music -- melody tells you where you're going, but harmony tells you how it feels to be there. Between construction, identification, voice leading, tension analysis, and pitch class sets, you've got tools to look at any chord from every angle. Pick a song you love, grab its chords, and start asking questions.

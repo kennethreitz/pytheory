@@ -214,3 +214,5 @@ Show all named progressions realized in a key::
         12-bar blues          C → C → C → C → F → F → C → C → G → F → C → G
         ii-V-I                Dm → G7 → C
         ...
+
+The CLI is there for quick lookups when you don't want to open a Python session -- just ask your question and get back to playing.

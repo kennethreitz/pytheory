@@ -527,3 +527,5 @@ The whole point — sketch fast, finish in your DAW:
    from pytheory import save_midi
    chords = Key("C", "major").progression("I", "V", "vi", "IV")
    save_midi(chords, "pop.mid", t=500, bpm=120)
+
+These are all starting points. Change the key, swap the chords, layer in your own ideas -- the best way to learn is to take something that works and make it yours.

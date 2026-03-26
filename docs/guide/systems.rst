@@ -270,3 +270,5 @@ produce the same pitches:
    261.6255653005986
    >>> do4.frequency
    261.6255653005986
+
+Music is universal, but every culture hears it differently. These systems are different maps of the same territory -- explore one you've never played in before and see what you find.

@@ -426,3 +426,5 @@ temperaments:
    100.0
    >>> c4.cents_difference(c4 + 7)    # Perfect fifth
    700.0
+
+Tones are the atoms of music -- everything else is built from them. Get comfortable here, and chords, scales, and harmony all start to make intuitive sense.

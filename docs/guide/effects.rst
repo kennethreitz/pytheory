@@ -593,3 +593,5 @@ simultaneously:
    lead.lfo("volume", rate=2, min=0.3, max=0.6, bars=8, shape="sine")
 
    lead.arpeggio("Cm", bars=8, pattern="updown", octaves=2)
+
+Effects are what turn notes into music -- the space, the movement, the character. A dry signal is just information; reverb, delay, and filtering are what make it feel like something. Experiment freely, trust your ears.

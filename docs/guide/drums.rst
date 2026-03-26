@@ -255,3 +255,5 @@ to channel 10):
    score.save_midi("bossa.mid")
 
    Pattern.preset("afrobeat").to_score(repeats=8, bpm=110).save_midi("afrobeat.mid")
+
+Drums are the foundation. The same chords over a bossa nova feel like a different song than over a rock beat -- change the pattern and you change the genre. Try swapping presets under the same progression and hear how much the drums are really doing.

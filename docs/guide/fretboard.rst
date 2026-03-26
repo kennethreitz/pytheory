@@ -317,3 +317,5 @@ Any instrument can be modeled with custom string tunings:
    ...     Tone.from_string("B3"),
    ...     Tone.from_string("G3"),
    ... ])
+
+If it has strings, you can model it. Define the tuning, and PyTheory handles the rest -- fingerings, charts, scale diagrams, all of it. Got a weird instrument or a custom tuning? That's what the ``Fretboard`` constructor is for.

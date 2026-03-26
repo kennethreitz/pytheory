@@ -504,3 +504,5 @@ another, using pivot chords when available:
 
    >>> Key("C", "major").pivot_chords(Key("G", "major"))
    ['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
+
+Scales are the map; the key is the territory. Once you know the landscape, you can wander freely -- and you'll always know how to get home.
