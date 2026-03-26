@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.28.1
+
+- Humanize drum hits — random timing jitter and velocity variation (default 0.3)
+- Control via `Score(drum_humanize=0.5)` — 0.0 = quantized, 0.3 = natural, 0.5+ = loose
+
 ## 0.28.0
 
 - Add figured bass notation: `Chord.figured_bass` and `Chord.analyze_figured()` for classical inversion symbols

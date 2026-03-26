@@ -16,6 +16,20 @@ Every sound is generated from waveforms; no samples needed.
 Drum Sounds
 -----------
 
+Drum hits are **humanized by default** — each hit gets a tiny random
+timing offset and velocity wobble, just like a real drummer who's never
+perfectly on the grid. Control the amount with ``drum_humanize`` on the
+Score:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120, drum_humanize=0.4)   # natural feel
+   score = Score("4/4", bpm=120, drum_humanize=0.0)   # perfectly quantized
+   score = Score("4/4", bpm=120, drum_humanize=0.1)   # studio tight
+
+The default is 0.3 — subtle enough to feel human, tight enough to
+sound professional.
+
 Every drum sound is stereo-panned like a real kit — kick and snare
 center, hi-hat right, crash left, toms spread across the field,
 percussion instruments placed naturally. Put on headphones and you'll
