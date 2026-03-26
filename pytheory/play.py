@@ -1005,6 +1005,59 @@ def _apply_convolution_reverb(samples, preset="taj_mahal", mix=0.3,
     return samples * (1 - mix) + wet * mix
 
 
+def _apply_convolution_reverb_stereo(samples, preset="taj_mahal", mix=0.3,
+                                      sample_rate=SAMPLE_RATE):
+    """Stereo convolution reverb — different IR per channel.
+
+    Generates two impulse responses with different random seeds,
+    producing different noise tails and early reflection jitter for
+    L and R. The result is a reverb that occupies real stereo space.
+
+    Args:
+        samples: Float32 mono array.
+        preset: IR preset name.
+        mix: Wet/dry ratio 0.0–1.0.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 (N, 2) stereo array.
+    """
+    n = len(samples)
+    if mix <= 0:
+        stereo = numpy.zeros((n, 2), dtype=numpy.float32)
+        stereo[:, 0] = samples
+        stereo[:, 1] = samples
+        return stereo
+
+    # Generate two different IRs with different seeds
+    key_l = f"{preset}_{sample_rate}_L"
+    key_r = f"{preset}_{sample_rate}_R"
+    if key_l not in _IR_CACHE:
+        # Temporarily override numpy random state for different IRs
+        _IR_CACHE[key_l] = _generate_ir(preset, sample_rate)
+        # Generate second IR — different random noise = different tail
+        _IR_CACHE[key_r] = _generate_ir(preset, sample_rate)
+
+    ir_l = _IR_CACHE[key_l]
+    ir_r = _IR_CACHE[key_r]
+
+    # Convolve separately
+    wet_l = scipy.signal.fftconvolve(samples, ir_l, mode='full')[:n].astype(numpy.float32)
+    wet_r = scipy.signal.fftconvolve(samples, ir_r, mode='full')[:n].astype(numpy.float32)
+
+    # Normalize to match dry RMS
+    dry_rms = numpy.sqrt(numpy.mean(samples ** 2)) + 1e-10
+    for wet in (wet_l, wet_r):
+        wet_rms = numpy.sqrt(numpy.mean(wet ** 2)) + 1e-10
+        wet *= dry_rms / wet_rms
+
+    stereo = numpy.zeros((n, 2), dtype=numpy.float32)
+    stereo[:, 0] = samples * (1 - mix) + wet_l * mix
+    stereo[:, 1] = samples * (1 - mix) + wet_r * mix
+
+    return stereo
+
+
 def _apply_reverb(samples, mix=0.3, decay=1.0, sample_rate=SAMPLE_RATE):
     """Apply a simple Schroeder reverb to a float32 buffer.
 
@@ -1740,9 +1793,19 @@ def render_score(score):
             else:
                 # Pan mono part into stereo, then apply stereo reverb
                 if part.reverb_mix > 0:
-                    rev_stereo = _apply_reverb_stereo(
-                        part_buf, mix=part.reverb_mix,
-                        decay=part.reverb_decay)
+                    rev_type = getattr(part, 'reverb_type', 'algorithmic')
+                    conv_presets = ('taj_mahal', 'cathedral', 'plate',
+                                   'spring', 'cave', 'parking_garage', 'canyon')
+                    if rev_type in conv_presets:
+                        # Stereo convolution reverb
+                        rev_stereo = _apply_convolution_reverb_stereo(
+                            part_buf, preset=rev_type,
+                            mix=part.reverb_mix)
+                    else:
+                        # Stereo algorithmic reverb
+                        rev_stereo = _apply_reverb_stereo(
+                            part_buf, mix=part.reverb_mix,
+                            decay=part.reverb_decay)
                     # Apply pan offset to the stereo reverb
                     if part.pan != 0:
                         angle = (part.pan + 1.0) * 0.25 * numpy.pi
