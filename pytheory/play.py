@@ -1373,7 +1373,8 @@ def _total_samples_from_tempo_map(total_beats, tempo_map):
 
 def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          synth_fn, envelope_tuple, volume, bpm,
-                         swing=0.0, tempo_map=None, humanize=0.0):
+                         swing=0.0, tempo_map=None, humanize=0.0,
+                         detune=0.0):
     """Render a list of Notes into an existing buffer at the correct positions."""
     import random as _rnd
 
@@ -1401,11 +1402,19 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
             if n_samples > 0 and start >= 0:
                 # Get pitches
                 if hasattr(note.tone, 'tones'):
-                    waves = [synth_fn(t.pitch(), n_samples=n_samples)
-                             for t in note.tone.tones]
+                    pitches = [t.pitch() for t in note.tone.tones]
                 else:
-                    waves = [synth_fn(note.tone.pitch(), n_samples=n_samples)]
-                mixed = sum(w.astype(numpy.float32) for w in waves) / SAMPLE_PEAK
+                    pitches = [note.tone.pitch()]
+                # Render oscillators
+                waves = [synth_fn(hz, n_samples=n_samples) for hz in pitches]
+                # Detune: add a second oscillator shifted by ±cents
+                if detune > 0:
+                    for hz in pitches:
+                        hz_up = hz * (2 ** (detune / 1200))
+                        hz_down = hz * (2 ** (-detune / 1200))
+                        waves.append(synth_fn(hz_up, n_samples=n_samples))
+                        waves.append(synth_fn(hz_down, n_samples=n_samples))
+                mixed = sum(w.astype(numpy.float32) for w in waves) / (SAMPLE_PEAK * (1 + (2 if detune > 0 else 0)))
                 if a > 0 or d > 0 or s < 1.0 or r > 0:
                     mixed = _apply_envelope(mixed, a, d, s, r)
                 # Apply per-note velocity scaling + humanize velocity
@@ -1573,7 +1582,8 @@ def render_score(score):
                     synth_fn, env_tuple, part.volume, score.bpm,
                     swing=effective_swing,
                     tempo_map=tempo_map if has_tempo_changes else None,
-                    humanize=part.humanize)
+                    humanize=part.humanize,
+                    detune=part.detune)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()

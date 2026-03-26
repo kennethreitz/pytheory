@@ -1368,7 +1368,8 @@ class Part:
                  swing: Optional[float] = None,
                  humanize: float = 0.0,
                  sidechain: float = 0.0,
-                 sidechain_release: float = 0.1):
+                 sidechain_release: float = 0.1,
+                 detune: float = 0.0):
         self.name = name
         self.synth = synth
         self.envelope = envelope
@@ -1392,6 +1393,7 @@ class Part:
         self.chorus_mix = chorus
         self.chorus_rate = chorus_rate
         self.chorus_depth = chorus_depth
+        self.detune = detune
         self.notes: list[Note] = []
         self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
@@ -1798,7 +1800,8 @@ class Score:
              swing: Optional[float] = None,
              humanize: float = 0.0,
              sidechain: float = 0.0,
-             sidechain_release: float = 0.1) -> Part:
+             sidechain_release: float = 0.1,
+             detune: float = 0.0) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -1862,7 +1865,8 @@ class Score:
                  chorus=chorus, chorus_rate=chorus_rate,
                  chorus_depth=chorus_depth,
                  swing=swing, humanize=humanize,
-                 sidechain=sidechain, sidechain_release=sidechain_release)
+                 sidechain=sidechain, sidechain_release=sidechain_release,
+                 detune=detune)
         self.parts[name] = p
         return p
 
