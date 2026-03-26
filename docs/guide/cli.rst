@@ -1,7 +1,20 @@
 Command-Line Interface
 ======================
 
-PyTheory includes a CLI for quick music theory lookups from the terminal.
+PyTheory includes a CLI for music theory lookups, composition, and
+playback — all from the terminal.
+
+Demo
+----
+
+The fastest way to hear what PyTheory can do. Generates and plays a
+random multi-part track — different every time::
+
+    $ pytheory demo
+      ♫  Jazz Club
+         Bb major | 105 bpm
+         Bb → Gm → Cm → F
+         jazz drums | saw lead | fm pad
 
 Tone Lookup
 -----------

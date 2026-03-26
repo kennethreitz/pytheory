@@ -364,3 +364,166 @@ the most-played scale in rock:
    D| D | - | E | - | - | G | - | A | - | B | - | - | D |
    A| A | - | B | - | - | D | - | E | - | - | G | - | A |
    E| E | - | - | G | - | A | - | B | - | - | D | - | E |
+
+Composition Recipes
+-------------------
+
+These recipes go beyond theory into actual music-making.
+
+Acid House Track
+~~~~~~~~~~~~~~~~
+
+303-style acid with sidechain pump:
+
+.. code-block:: python
+
+   from pytheory import Score, Pattern, Duration, Chord
+   from pytheory.play import play_score
+
+   score = Score("4/4", bpm=132)
+   score.drums("house", repeats=8, fill="house", fill_every=8)
+
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       reverb=0.4,
+       chorus=0.3,
+       sidechain=0.85,
+   )
+   acid = score.part(
+       "acid",
+       synth="saw",
+       envelope="pad",
+       legato=True,
+       glide=0.03,
+       distortion=0.8,
+       distortion_drive=8.0,
+       lowpass=1000,
+       lowpass_q=5.0,
+   )
+   acid.lfo("lowpass", rate=0.5, min=600, max=2500, bars=8)
+
+   for sym in ["Cm", "Fm", "Abm", "Gm"]:
+       pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+       pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+       acid.arpeggio(sym, bars=2, pattern="up", octaves=2)
+
+   play_score(score)
+
+Dub Reggae with Delay Madness
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sparse notes into infinite echo:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=72)
+   score.drums("dub", repeats=8)
+
+   melodica = score.part(
+       "melodica",
+       synth="triangle",
+       envelope="pluck",
+       delay=0.5,
+       delay_time=0.66,
+       delay_feedback=0.55,
+       reverb=0.4,
+       reverb_type="cathedral",
+   )
+   bass = score.part("bass", synth="sine", lowpass=400, lowpass_q=1.5)
+
+   # Play almost nothing — let the delay do the work
+   melodica.add("A4", 2).rest(6)
+   melodica.add("E5", 1.5).rest(6.5)
+   melodica.add("D5", 1).add("C5", 1).add("A4", 2).rest(4)
+
+   for n in ["A1"] * 16:
+       bass.add(n, Duration.HALF)
+
+   play_score(score)
+
+Jazz Ballad with Humanize
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The difference between a robot and a musician:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=72, swing=0.5)
+   score.drums("jazz", repeats=8)
+
+   rhodes = score.part(
+       "rhodes",
+       synth="fm",
+       envelope="piano",
+       reverb=0.4,
+       reverb_type="plate",
+       humanize=0.3,
+   )
+   lead = score.part(
+       "lead",
+       synth="triangle",
+       envelope="strings",
+       delay=0.25,
+       reverb=0.3,
+       humanize=0.35,
+   )
+
+   key = Key("Bb", "major")
+   for chord in key.progression("I", "vi", "ii", "V") * 2:
+       rhodes.add(chord, Duration.WHOLE)
+
+   for n, d in [("D5", 1.5), ("F5", 0.5), ("Bb5", 2), (None, 4),
+                ("A5", 1), ("G5", 1), ("F5", 2), (None, 4)]:
+       lead.rest(d) if n is None else lead.add(n, d)
+
+   play_score(score)
+
+Song with Sections
+~~~~~~~~~~~~~~~~~~~
+
+Define once, arrange freely:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   score.drums("rock", repeats=16, fill="rock", fill_every=4)
+
+   chords = score.part("chords", synth="saw", envelope="pad")
+   lead = score.part("lead", synth="triangle", envelope="pluck")
+
+   score.section("verse")
+   for sym in ["Am", "F", "C", "G"]:
+       chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+   lead.add("A4", 1).add("C5", 1).add("E5", 1).rest(1)
+   lead.add("F5", 1).add("E5", 1).add("C5", 2)
+
+   score.section("chorus")
+   lead.set(reverb=0.4, lowpass=5000)
+   for sym in ["F", "G", "Am", "C"]:
+       chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+   lead.add("C6", 2).add("A5", 1).add("G5", 1)
+   lead.add("F5", 2).add("E5", 2)
+   score.end_section()
+
+   score.repeat("verse")
+   score.repeat("chorus", times=2)
+
+   play_score(score)
+   score.save_midi("my_song.mid")
+
+Export Everything to MIDI
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The whole point — sketch fast, finish in your DAW:
+
+.. code-block:: python
+
+   # Any Score can be saved as MIDI
+   score.save_midi("track.mid")
+
+   # Simple progressions too
+   from pytheory import save_midi
+   chords = Key("C", "major").progression("I", "V", "vi", "IV")
+   save_midi(chords, "pop.mid", t=500, bpm=120)
