@@ -500,7 +500,14 @@ def main():
     print()
     print("  ♫  PyTheory REPL")
     print("  ════════════════════════════════════════")
-    print("  type 'help' for commands, 'quit' to exit")
+    print()
+    print("  try:  key Am          — set a key")
+    print("        chords          — see its chords")
+    print("        prog I V vi IV  — hear a progression")
+    print("        drums bossa nova")
+    print("        play_score      — hear it all")
+    print()
+    print("  help for all commands, quit to exit")
     print()
 
     while True:
