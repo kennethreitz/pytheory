@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.6
+
+- Swing now applies to drum hits — offbeats shift with the groove, everything locks into the same pocket
+- Improved snare: 220Hz body, transient click, tanh saturation
+- Improved hi-hats: metallic harmonics (6k+8.5k+12k Hz), crisper attack, shorter decay
+
 ## 0.25.5
 
 - Improved snare: 220Hz body, transient click, tanh saturation — snappier and more present
