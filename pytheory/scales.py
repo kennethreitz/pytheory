@@ -293,6 +293,60 @@ class Scale:
             return (best[1], best[2], best[3])
         return None
 
+    @staticmethod
+    def recommend(*note_names: str, top: int = 5) -> list[tuple[str, str, float]]:
+        """Recommend the best-matching scales for a set of notes, ranked by fitness.
+
+        Tests the given notes against every scale in the Western system
+        and returns the top matches. Useful for figuring out what scale
+        a melody or chord progression belongs to, or finding alternative
+        scales to play over a set of changes.
+
+        Args:
+            *note_names: Note name strings (e.g. ``"C"``, ``"E"``, ``"G"``).
+            top: Number of results to return (default 5).
+
+        Returns:
+            A list of ``(tonic, scale_name, fitness)`` tuples sorted
+            by fitness descending. Fitness is 0.0–1.0.
+
+        Example::
+
+            >>> Scale.recommend("C", "D", "E", "G", "A")
+            [('C', 'major', 1.0), ('G', 'major', 1.0), ...]
+            >>> Scale.recommend("C", "Eb", "F", "Gb", "G", "Bb")
+            [('C', 'blues', 1.0), ...]
+        """
+        if not note_names:
+            return []
+
+        results = []
+        chromatic = ["C", "C#", "D", "D#", "E", "F",
+                     "F#", "G", "G#", "A", "A#", "B"]
+
+        for tonic in chromatic:
+            ts = TonedScale(tonic=f"{tonic}4")
+            for scale_name in ts.scales:
+                try:
+                    scale = ts[scale_name]
+                    fit = scale.fitness(*note_names)
+                    if fit > 0:
+                        results.append((tonic, scale_name, fit))
+                except (KeyError, ValueError):
+                    continue
+
+        # Penalize chromatic scale — it matches everything but tells you nothing
+        # Also prefer scales whose length is closer to the input length
+        input_len = len(note_names)
+
+        def _score(r):
+            tonic, name, fit = r
+            penalty = 0.5 if "chromatic" in name else 0
+            return (-fit + penalty, abs(input_len - 7), name, tonic)
+
+        results.sort(key=_score)
+        return results[:top]
+
     def harmonize(self) -> list[Chord]:
         """Build diatonic triads on every scale degree.
 

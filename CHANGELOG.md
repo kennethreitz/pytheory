@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.28.0
+
+- Add figured bass notation: `Chord.figured_bass` and `Chord.analyze_figured()` for classical inversion symbols
+- Add pitch class set theory: `pitch_classes`, `normal_form`, `prime_form`, `forte_number` on Chord
+- Add `Scale.recommend()` — ranked scale suggestions for a set of notes
+- Forte number catalog covers all trichords and tetrachords
+
 ## 0.27.1
 
 - Tab completion in REPL — context-aware for commands, drum presets, synths, envelopes, chords, notes, systems

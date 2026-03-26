@@ -1051,6 +1051,279 @@ class Chord:
         """
         return Chord(tones=[t for t in self.tones if t.name != tone_name])
 
+    # ── Figured Bass ─────────────────────────────────────────────────
+
+    @property
+    def figured_bass(self) -> Optional[str]:
+        """Return figured bass notation for this chord.
+
+        Figured bass describes the intervals above the lowest note.
+        Used in classical music theory and continuo playing.
+
+        Returns:
+            A string like ``"6"``, ``"6/4"``, ``"7"``, ``"6/5"``,
+            ``"4/3"``, ``"2"``, or ``""`` for root position triads.
+            None if the chord can't be identified.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).figured_bass  # root position
+            ''
+            >>> Chord([E4, G4, C5]).figured_bass  # first inversion
+            '6'
+            >>> Chord([G4, C5, E5]).figured_bass  # second inversion
+            '6/4'
+        """
+        chord_id = self.identify()
+        if not chord_id:
+            return None
+
+        # Find root name from identification
+        root_name = chord_id.split(" ", 1)[0]
+        quality = chord_id.split(" ", 1)[1] if " " in chord_id else ""
+        is_seventh = "7th" in quality or "9th" in quality
+
+        # Find the bass note (lowest by pitch)
+        bass = min(self.tones, key=lambda t: t.pitch())
+        bass_name = bass.name
+
+        # Check if bass is the root (handle enharmonics)
+        if bass_name == root_name:
+            # Root position
+            if is_seventh:
+                return "7"
+            return ""
+
+        # Find root tone object
+        root_tone = None
+        for t in self.tones:
+            if t.name == root_name:
+                root_tone = t
+                break
+
+        if root_tone is None:
+            return None
+
+        # Determine which chord degree the bass is
+        bass_interval = (bass - root_tone) % 12
+
+        # Get the pattern for this quality
+        pattern = self._CHORD_PATTERNS.get(quality)
+        if pattern is None:
+            return None
+
+        sorted_pattern = sorted(pattern)
+        if bass_interval not in sorted_pattern:
+            return None
+
+        inversion = sorted_pattern.index(bass_interval)
+
+        if is_seventh:
+            fb_map = {0: "7", 1: "6/5", 2: "4/3", 3: "2"}
+            return fb_map.get(inversion, None)
+        else:
+            fb_map = {0: "", 1: "6", 2: "6/4"}
+            return fb_map.get(inversion, None)
+
+    def analyze_figured(self, key_tonic, mode="major") -> Optional[str]:
+        """Roman numeral analysis with figured bass inversion symbols.
+
+        Combines the Roman numeral from :meth:`analyze` with the
+        figured bass symbol from :attr:`figured_bass`.
+
+        Args:
+            key_tonic: The tonic note name (e.g. ``"C"``) or a Tone.
+            mode: ``"major"`` or ``"minor"`` (default ``"major"``).
+
+        Returns:
+            A string like ``"V7"``, ``"ii6"``, or ``None``.
+
+        Example::
+
+            >>> Chord([G4, B4, D5, F5]).analyze_figured("C")
+            'V7'
+        """
+        roman = self.analyze(key_tonic, mode)
+        if roman is None:
+            return None
+        fb = self.figured_bass
+        if fb is None:
+            return roman
+        # Don't duplicate "7" — if the Roman numeral already ends with "7"
+        # and figured bass is just "7" (root position seventh), skip it.
+        if fb == "7" and roman.endswith("7"):
+            return roman
+        if fb:
+            return f"{roman}{fb}"
+        return roman
+
+    # ── Pitch Class Set Theory ─────────────────────────────────────
+
+    # Forte number catalog for trichords and tetrachords.
+    _FORTE_NUMBERS = {
+        # Trichords (3 notes)
+        (0, 1, 2): "3-1",
+        (0, 1, 3): "3-2",
+        (0, 1, 4): "3-3",
+        (0, 1, 5): "3-4",
+        (0, 1, 6): "3-5",
+        (0, 2, 4): "3-6",
+        (0, 2, 5): "3-7",
+        (0, 2, 6): "3-8",
+        (0, 2, 7): "3-9",
+        (0, 3, 6): "3-10",
+        (0, 3, 7): "3-11",    # major/minor triad
+        (0, 4, 8): "3-12",    # augmented triad
+        # Tetrachords (4 notes)
+        (0, 1, 2, 3): "4-1",
+        (0, 1, 2, 4): "4-2",
+        (0, 1, 3, 4): "4-3",
+        (0, 1, 2, 5): "4-4",
+        (0, 1, 2, 6): "4-5",
+        (0, 1, 2, 7): "4-6",
+        (0, 1, 4, 5): "4-7",
+        (0, 1, 5, 6): "4-8",
+        (0, 1, 6, 7): "4-9",
+        (0, 2, 3, 5): "4-10",
+        (0, 1, 3, 5): "4-11",
+        (0, 2, 3, 6): "4-12",
+        (0, 1, 3, 6): "4-13",
+        (0, 2, 3, 7): "4-14",
+        (0, 1, 4, 6): "4-z15",
+        (0, 1, 5, 7): "4-16",
+        (0, 3, 4, 7): "4-17",
+        (0, 1, 4, 7): "4-18",
+        (0, 1, 4, 8): "4-19",
+        (0, 1, 5, 8): "4-20",
+        (0, 2, 4, 6): "4-21",
+        (0, 2, 4, 7): "4-22",
+        (0, 2, 5, 7): "4-23",
+        (0, 2, 4, 8): "4-24",
+        (0, 2, 6, 8): "4-25",
+        (0, 3, 5, 8): "4-26",
+        (0, 2, 5, 8): "4-27",
+        (0, 3, 6, 9): "4-28",    # diminished 7th
+        (0, 1, 3, 7): "4-z29",
+    }
+
+    @property
+    def pitch_classes(self) -> set:
+        """Return the set of pitch classes (0-11) in this chord.
+
+        Pitch class 0 = C, 1 = C#/Db, 2 = D, ..., 11 = B.
+        Octave information is removed.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).pitch_classes
+            {0, 4, 7}
+        """
+        from ._statics import C_INDEX
+        result = set()
+        for tone in self.tones:
+            pc = (tone._index - C_INDEX) % 12
+            result.add(pc)
+        return result
+
+    @staticmethod
+    def _find_normal_form(pcs_sorted):
+        """Find the normal form of a sorted list of pitch classes."""
+        n = len(pcs_sorted)
+        if n <= 1:
+            return tuple(pcs_sorted)
+
+        best = None
+        best_span = 13
+
+        for start in range(n):
+            rotation = [pcs_sorted[(start + i) % n] for i in range(n)]
+            span = (rotation[-1] - rotation[0]) % 12
+
+            if span < best_span:
+                best_span = span
+                best = rotation
+            elif span == best_span:
+                # Tiebreak: compare intervals from bottom
+                for k in range(1, n):
+                    a = (rotation[k] - rotation[0]) % 12
+                    b = (best[k] - best[0]) % 12
+                    if a < b:
+                        best = rotation
+                        break
+                    elif a > b:
+                        break
+
+        return tuple(best)
+
+    @property
+    def normal_form(self) -> tuple:
+        """Return the normal form -- most compact ascending arrangement.
+
+        The normal form is the rotation of pitch classes that spans
+        the smallest interval. This is used in set theory analysis.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).normal_form
+            (0, 4, 7)
+        """
+        pcs = sorted(self.pitch_classes)
+        return self._find_normal_form(pcs)
+
+    @property
+    def prime_form(self) -> tuple:
+        """Return the prime form -- transposed to start on 0, most compact.
+
+        Prime form is the canonical representation used for Forte number
+        lookup. It compares the normal form of the set and its inversion,
+        picks whichever is more compact, and transposes to start on 0.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).prime_form
+            (0, 4, 7)
+            >>> Chord([A4, C5, E5]).prime_form  # minor triad
+            (0, 3, 7)
+        """
+        nf = self.normal_form
+        if len(nf) <= 1:
+            return (0,) * len(nf) if nf else ()
+
+        # Transpose normal form to start on 0
+        t0 = nf[0]
+        nf_transposed = tuple((pc - t0) % 12 for pc in nf)
+
+        # Compute inversion: 12 - each pc
+        inv_pcs = sorted(set((12 - pc) % 12 for pc in self.pitch_classes))
+        inv_nf = self._find_normal_form(inv_pcs)
+        inv_t0 = inv_nf[0]
+        inv_transposed = tuple((pc - inv_t0) % 12 for pc in inv_nf)
+
+        # Pick whichever is more compact (smaller intervals from bottom)
+        for a, b in zip(nf_transposed, inv_transposed):
+            if a < b:
+                return nf_transposed
+            elif a > b:
+                return inv_transposed
+        return nf_transposed
+
+    @property
+    def forte_number(self) -> Optional[str]:
+        """Return the Forte number for this pitch class set.
+
+        Forte numbers catalog all possible pitch class sets by cardinality
+        and ordering. They are the standard reference in post-tonal theory.
+
+        Example::
+
+            >>> Chord([C4, E4, G4]).forte_number
+            '3-11'
+            >>> Chord([C4, E4, G4, Bb4]).forte_number
+            '4-27'
+        """
+        pf = self.prime_form
+        return self._FORTE_NUMBERS.get(pf, None)
+
     def fingering(self, *positions: int) -> "Fingering":
         """Apply fret positions to each tone, returning a Fingering.
 

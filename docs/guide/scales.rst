@@ -423,6 +423,25 @@ analysis or detecting which scale a phrase belongs to:
    >>> major.fitness("C", "D", "F#", "G")
    0.75
 
+Scale Recommendation
+~~~~~~~~~~~~~~~~~~~~
+
+Given a melody or set of notes, find the best-matching scales ranked
+by fitness. Useful for figuring out what key you're in or finding
+alternative scales to improvise over:
+
+.. code-block:: pycon
+
+   >>> from pytheory.scales import Scale
+
+   >>> Scale.recommend("C", "D", "E", "G", "A", top=3)
+   [('C', 'major', 1.0), ('A', 'aeolian', 1.0), ...]
+
+   >>> Scale.recommend("C", "Eb", "F", "Gb", "G", "Bb", top=3)
+   [('C', 'blues', 1.0), ...]
+
+Chromatic scales are deprioritized since they match everything.
+
 Parallel Modes
 ~~~~~~~~~~~~~~
 

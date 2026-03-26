@@ -6177,3 +6177,150 @@ def test_repl_chords(capsys):
     out = capsys.readouterr().out
     assert "C major" in out
     assert "D minor" in out
+
+
+# ── Figured Bass ──────────────────────────────────────────────────────────────
+
+def test_figured_bass_root_position():
+    chord = Chord.from_tones("C", "E", "G")
+    assert chord.figured_bass == ""
+
+
+def test_figured_bass_first_inversion():
+    # E in bass: first inversion of C major
+    chord = Chord.from_symbol("C").inversion(1)
+    assert chord.figured_bass == "6"
+
+
+def test_figured_bass_second_inversion():
+    # G in bass: second inversion of C major
+    chord = Chord.from_symbol("C").inversion(2)
+    assert chord.figured_bass == "6/4"
+
+
+def test_figured_bass_seventh_root():
+    # G7 in root position: G is the lowest note
+    chord = Chord.from_symbol("G7", octave=4)
+    assert chord.figured_bass == "7"
+
+
+def test_figured_bass_seventh_first_inv():
+    # First inversion of G7: B in bass
+    chord = Chord.from_symbol("G7").inversion(1)
+    assert chord.figured_bass == "6/5"
+
+
+def test_figured_bass_seventh_second_inv():
+    chord = Chord.from_symbol("G7").inversion(2)
+    assert chord.figured_bass == "4/3"
+
+
+def test_figured_bass_seventh_third_inv():
+    chord = Chord.from_symbol("G7").inversion(3)
+    assert chord.figured_bass == "2"
+
+
+def test_analyze_figured():
+    # V7 in root position
+    chord = Chord.from_symbol("G7")
+    result = chord.analyze_figured("C")
+    assert result == "V7"
+
+
+def test_analyze_figured_with_inversion():
+    # V in first inversion
+    chord = Chord.from_symbol("G").inversion(1)
+    result = chord.analyze_figured("C")
+    assert result == "V6"
+
+
+# ── Pitch Class Set Theory ───────────────────────────────────────────────────
+
+def test_pitch_classes():
+    chord = Chord.from_tones("C", "E", "G")
+    assert chord.pitch_classes == {0, 4, 7}
+
+
+def test_pitch_classes_with_sharps():
+    chord = Chord.from_tones("C", "E", "G#")
+    assert chord.pitch_classes == {0, 4, 8}
+
+
+def test_normal_form():
+    chord = Chord.from_tones("C", "E", "G")
+    assert chord.normal_form == (0, 4, 7)
+
+
+def test_prime_form_major():
+    # Major and minor triads share the same prime form (0, 3, 7)
+    # because C major (0,4,7) inverts to (0,5,8) -> normal form (0,3,7)
+    chord = Chord.from_tones("C", "E", "G")
+    assert chord.prime_form == (0, 3, 7)
+
+
+def test_prime_form_minor():
+    # Minor triad: A C E has intervals 0,3,7 which inverts to 0,5,9
+    # Normal form of inversion: best compact = (0,3,7) via inversion check
+    chord = Chord.from_tones("A", "C", "E")
+    assert chord.prime_form == (0, 3, 7)
+
+
+def test_forte_number_triad():
+    chord = Chord.from_tones("C", "E", "G")
+    assert chord.forte_number == "3-11"
+
+
+def test_forte_number_minor_triad():
+    chord = Chord.from_tones("A", "C", "E")
+    assert chord.forte_number == "3-11"
+
+
+def test_forte_number_dom7():
+    chord = Chord.from_symbol("G7")
+    assert chord.forte_number == "4-27"
+
+
+def test_forte_number_augmented():
+    chord = Chord.from_tones("C", "E", "G#")
+    assert chord.forte_number == "3-12"
+
+
+def test_forte_number_diminished7():
+    chord = Chord.from_tones("B", "D", "F", "Ab")
+    assert chord.forte_number == "4-28"
+
+
+# ── Scale.recommend ───────────────────────────────────────────────────────
+
+def test_recommend_c_major_notes():
+    from pytheory.scales import Scale
+    results = Scale.recommend("C", "D", "E", "F", "G", "A", "B")
+    assert len(results) > 0
+    assert results[0][2] == 1.0  # perfect match
+    # Chromatic should NOT be the top result
+    assert "chromatic" not in results[0][1]
+
+
+def test_recommend_pentatonic():
+    from pytheory.scales import Scale
+    results = Scale.recommend("C", "D", "E", "G", "A")
+    assert len(results) > 0
+    assert results[0][2] == 1.0
+
+
+def test_recommend_returns_top():
+    from pytheory.scales import Scale
+    results = Scale.recommend("C", "E", "G", top=3)
+    assert len(results) <= 3
+
+
+def test_recommend_empty():
+    from pytheory.scales import Scale
+    assert Scale.recommend() == []
+
+
+def test_recommend_fitness_descending():
+    from pytheory.scales import Scale
+    results = Scale.recommend("C", "D", "E", "F#", "G")
+    for i in range(len(results) - 1):
+        assert results[i][2] >= results[i + 1][2]

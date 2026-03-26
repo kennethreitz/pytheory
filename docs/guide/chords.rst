@@ -528,3 +528,73 @@ labeling them with flat-degree prefixes:
    'bVI'
    >>> Chord.from_symbol("Bb").analyze("C", "major")
    'bVII'
+
+Figured Bass
+------------
+
+`Figured bass <https://en.wikipedia.org/wiki/Figured_bass>`_ is the
+classical notation for chord inversions — numbers below the bass note
+describing the intervals above it. It's how Bach, Handel, and every
+Baroque composer communicated harmony.
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, Tone
+
+   >>> root = Chord([Tone.from_string("C4"), Tone.from_string("E4"), Tone.from_string("G4")])
+   >>> root.figured_bass
+   ''
+
+   >>> first_inv = Chord([Tone.from_string("E3"), Tone.from_string("G3"), Tone.from_string("C4")])
+   >>> first_inv.figured_bass
+   '6'
+
+   >>> second_inv = Chord([Tone.from_string("G3"), Tone.from_string("C4"), Tone.from_string("E4")])
+   >>> second_inv.figured_bass
+   '6/4'
+
+For seventh chords: root position → ``"7"``, first inversion → ``"6/5"``,
+second inversion → ``"4/3"``, third inversion → ``"2"``.
+
+Combine with Roman numeral analysis using ``analyze_figured()``:
+
+.. code-block:: pycon
+
+   >>> first_inv.analyze_figured("C")
+   'I6'
+
+Pitch Class Sets
+----------------
+
+`Pitch class set theory <https://en.wikipedia.org/wiki/Set_theory_(music)>`_
+is the framework for analyzing atonal and post-tonal music. It reduces
+any collection of notes to abstract pitch classes (0–11, where C=0),
+finds the most compact form, and catalogs it with a Forte number.
+
+If you're studying Schoenberg, Webern, Bartók, or any 20th-century
+music that doesn't follow traditional harmony, this is the tool.
+
+.. code-block:: pycon
+
+   >>> Chord.from_tones("C", "E", "G").pitch_classes
+   {0, 4, 7}
+
+   >>> Chord.from_tones("C", "E", "G").prime_form
+   (0, 3, 7)
+
+   >>> Chord.from_tones("A", "C", "E").prime_form
+   (0, 3, 7)
+
+Major and minor triads share the same prime form — they're inversions
+of each other in pitch class space.
+
+.. code-block:: pycon
+
+   >>> Chord.from_tones("C", "E", "G").forte_number
+   '3-11'
+
+   >>> Chord.from_tones("C", "E", "G", "B").forte_number
+   '4-20'
+
+   >>> Chord.from_tones("C", "E", "G#").forte_number
+   '3-12'
