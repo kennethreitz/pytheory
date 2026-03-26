@@ -464,14 +464,34 @@ COMMANDS = {
 # ── Main ───────────────────────────────────────────────────────────────────
 
 def _prompt(session):
-    """Build a context-aware prompt showing current state."""
-    parts = [f"key={session.key.tonic_name}{('m' if session.key.mode == 'minor' else '')}"]
-    parts.append(f"bpm={session.bpm}")
+    """Build a context-aware multiline prompt."""
+    key_str = f"{session.key.tonic_name}{('m' if session.key.mode == 'minor' else '')}"
+    ctx = [f"key={key_str}", f"bpm={session.bpm}"]
+    if session.swing > 0:
+        ctx.append(f"swing={session.swing}")
     if session._drum_preset:
-        parts.append(f"drums={session._drum_preset}")
+        ctx.append(f"drums={session._drum_preset}")
     if session.current_part is not None:
-        parts.append(f"→{session.current_part.name}")
-    return f"pytheory[{' '.join(parts)}]> "
+        p = session.current_part
+        fx = []
+        if p.reverb_mix > 0: fx.append(f"rev={p.reverb_mix}")
+        if p.delay_mix > 0: fx.append(f"del={p.delay_mix}")
+        if p.lowpass > 0: fx.append(f"lp={int(p.lowpass)}")
+        if p.distortion_mix > 0: fx.append(f"dist={p.distortion_mix}")
+        if p.legato: fx.append("legato")
+        part_str = f"{p.name}({p.synth})"
+        if fx:
+            part_str += f" {' '.join(fx)}"
+        ctx.append(f"→{part_str}")
+
+    # Single line if short, multiline if long
+    oneline = f"pytheory[{' | '.join(ctx)}]> "
+    if len(oneline) <= 60:
+        return oneline
+
+    # Multiline
+    lines = "  " + " | ".join(ctx)
+    return f"{lines}\n♫> "
 
 
 def main():
