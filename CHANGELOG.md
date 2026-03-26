@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.28.3
+
+- Rewrite `pytheory demo` — 8 moods with stereo, effects, humanize, convolution reverb, sidechain
+- Added Dub and Temple moods
+
 ## 0.28.2
 
 - Lower drum_humanize default to 0.15 — tighter, more professional feel
