@@ -4,12 +4,22 @@ PyTheory: Music Theory for Humans
 **PyTheory** is a Python library for exploring music theory, composing
 multi-part arrangements, and exporting them to MIDI for your DAW.
 
+Use it to learn theory by doing — build chords from intervals and hear
+the result. Use it to sketch song ideas faster than clicking through a
+DAW. Use it with `Claude Code <https://claude.ai/code>`_ to prototype
+music from natural language. Or just use it to answer "what chords are
+in G major?" without opening a browser.
+
 ::
 
    $ pip install pytheory
 
 Theory
 ------
+
+The theory layer works everywhere Python runs — no audio setup needed.
+Tones, scales, chords, keys, intervals, harmony, 6 musical systems,
+25 instruments:
 
 .. code-block:: pycon
 
@@ -29,6 +39,10 @@ Theory
 
 Composition
 -----------
+
+When you're ready to make noise, the composition layer adds drums,
+synths, effects, and multi-part arrangements. Sketch an idea, hear
+it through your speakers, export MIDI, finish in your DAW:
 
 .. code-block:: python
 
@@ -50,7 +64,8 @@ Composition
    play_score(score)
    score.save_midi("sketch.mid")
 
-::
+Or hear a randomly generated track from the command line — different
+every time::
 
    $ pytheory demo
 
