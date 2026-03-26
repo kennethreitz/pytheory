@@ -228,75 +228,127 @@ def cmd_demo(args):
 
     moods = [
         {"name": "Bossa Nova", "key": ("A", "minor"), "drums": "bossa nova",
-         "bpm": 140, "prog": ("i", "iv", "V", "i"),
-         "lead_synth": "triangle", "pad_synth": "fm"},
+         "fill": "bossa nova", "bpm": 140,
+         "prog": ("i", "iv", "V", "i"),
+         "lead": ("triangle", "strings", 0.2, -0.1),
+         "pad": ("fm", "pad", -0.2),
+         "bass_lp": 600, "reverb_type": "plate"},
         {"name": "Jazz Club", "key": ("Bb", "major"), "drums": "jazz",
-         "bpm": 105, "prog": ("I", "vi", "ii", "V"),
-         "lead_synth": "saw", "pad_synth": "fm"},
-        {"name": "Afrobeat Groove", "key": ("E", "minor"), "drums": "afrobeat",
-         "bpm": 115, "prog": ("i", "iv", "V", "i"),
-         "lead_synth": "saw", "pad_synth": "supersaw"},
-        {"name": "House Pump", "key": ("C", "minor"), "drums": "house",
-         "bpm": 124, "prog": ("i", "IV", "V", "i"),
-         "lead_synth": "saw", "pad_synth": "supersaw"},
-        {"name": "Reggae One-Drop", "key": ("G", "major"), "drums": "reggae",
-         "bpm": 80, "prog": ("I", "IV", "V", "IV"),
-         "lead_synth": "triangle", "pad_synth": "pwm_slow"},
-        {"name": "Funk Workout", "key": ("E", "minor"), "drums": "funk",
-         "bpm": 100, "prog": ("i", "iv", "V", "i"),
-         "lead_synth": "saw", "pad_synth": "square"},
+         "fill": "jazz", "bpm": 108,
+         "prog": ("I", "vi", "ii", "V"),
+         "lead": ("triangle", "strings", 0.3, 0.2),
+         "pad": ("fm", "piano", -0.3),
+         "bass_lp": 700, "reverb_type": "plate"},
+        {"name": "Afrobeat", "key": ("E", "minor"), "drums": "afrobeat",
+         "fill": "afrobeat", "bpm": 115,
+         "prog": ("i", "iv", "V", "i"),
+         "lead": ("saw", "pluck", 0.15, 0.3),
+         "pad": ("supersaw", "pad", 0.0),
+         "bass_lp": 500, "reverb_type": "cathedral"},
+        {"name": "House", "key": ("C", "minor"), "drums": "house",
+         "fill": "house", "bpm": 124,
+         "prog": ("i", "IV", "V", "i"),
+         "lead": ("saw", "staccato", 0.2, 0.4),
+         "pad": ("supersaw", "pad", 0.0),
+         "bass_lp": 300, "reverb_type": "plate"},
+        {"name": "Reggae", "key": ("G", "major"), "drums": "reggae",
+         "fill": "reggae", "bpm": 80,
+         "prog": ("I", "IV", "V", "IV"),
+         "lead": ("triangle", "strings", 0.25, 0.15),
+         "pad": ("pwm_slow", "pad", -0.3),
+         "bass_lp": 400, "reverb_type": "cathedral"},
+        {"name": "Funk", "key": ("E", "minor"), "drums": "funk",
+         "fill": "funk", "bpm": 100,
+         "prog": ("i", "iv", "V", "i"),
+         "lead": ("saw", "pluck", 0.15, 0.3),
+         "pad": ("square", "staccato", -0.4),
+         "bass_lp": 500, "reverb_type": "plate"},
+        {"name": "Dub", "key": ("A", "minor"), "drums": "dub",
+         "fill": "reggae", "bpm": 72,
+         "prog": ("i", "iv", "i", "V"),
+         "lead": ("triangle", "strings", 0.4, 0.2),
+         "pad": ("pwm_slow", "pad", -0.3),
+         "bass_lp": 350, "reverb_type": "cathedral"},
+        {"name": "Temple", "key": ("E", "minor"), "drums": "bolero",
+         "fill": "bossa nova", "bpm": 65,
+         "prog": ("i", "iv", "V", "i"),
+         "lead": ("triangle", "pluck", 0.3, 0.2),
+         "pad": ("sine", "pad", 0.0),
+         "bass_lp": 200, "reverb_type": "taj_mahal"},
     ]
 
     mood = random.choice(moods)
     tonic, mode = mood["key"]
     key = Key(tonic, mode)
     chords = key.progression(*mood["prog"])
+    lead_synth, lead_env, lead_reverb, lead_pan = mood["lead"]
+    pad_synth, pad_env, pad_pan = mood["pad"]
 
-    score = Score("4/4", bpm=mood["bpm"], swing=random.uniform(0.1, 0.4))
-    score.drums(mood["drums"], repeats=4, fill=random.choice(Pattern.list_fills()))
+    score = Score("4/4", bpm=mood["bpm"], drum_humanize=0.15)
+    score.drums(mood["drums"], repeats=4, fill=mood["fill"])
 
-    pad = score.part("pad", synth=mood["pad_synth"], envelope="pad",
-                     volume=0.25, reverb=0.4, reverb_decay=2.0,
-                     chorus=0.2)
-    lead = score.part("lead", synth=mood["lead_synth"], envelope="pluck",
-                      volume=0.4, delay=0.25, delay_time=0.375,
-                      delay_feedback=0.35, reverb=0.2,
-                      lowpass=3000, humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.45, lowpass=500)
+    pad = score.part(
+        "pad", synth=pad_synth, envelope=pad_env,
+        volume=0.2, pan=pad_pan,
+        detune=10, spread=0.5,
+        reverb=0.4, reverb_type=mood["reverb_type"],
+        chorus=0.2,
+        sidechain=0.4 if mood["bpm"] > 100 else 0.0,
+    )
+    lead = score.part(
+        "lead", synth=lead_synth, envelope=lead_env,
+        volume=0.4, pan=lead_pan,
+        delay=0.2, delay_time=round(30 / mood["bpm"], 3),
+        delay_feedback=0.35,
+        reverb=lead_reverb, reverb_type=mood["reverb_type"],
+        lowpass=3500,
+        humanize=0.2,
+    )
+    bass = score.part(
+        "bass", synth="sine", envelope="pluck",
+        volume=0.45, pan=0.0,
+        lowpass=mood["bass_lp"],
+        humanize=0.15,
+    )
 
     for chord in chords * 2:
         pad.add(chord, Duration.WHOLE)
 
-    # Generate a melody from scale tones
+    # Melody: chord tones with passing tones, rests for breathing
     scale_tones = [t.name for t in key.scale.tones[:-1]]
-    for chord in chords:
+    for i, chord in enumerate(chords):
         chord_tones = [t.name for t in chord.tones]
-        for _ in range(4):
-            if random.random() < 0.2:
-                lead.rest(random.choice([0.5, 1.0]))
+        beats_left = 4.0
+        while beats_left > 0.5:
+            if random.random() < 0.25:
+                r = random.choice([0.5, 1.0, 1.5])
+                r = min(r, beats_left)
+                lead.rest(r)
+                beats_left -= r
             else:
-                n = random.choice(chord_tones if random.random() < 0.6 else scale_tones)
-                oct = random.choice([4, 5])
-                dur = random.choice([0.5, 0.67, 1.0])
-                lead.add(f"{n}{oct}", dur, velocity=random.randint(60, 120))
+                n = random.choice(chord_tones if random.random() < 0.65 else scale_tones)
+                oct = 5 if random.random() < 0.6 else 4
+                dur = random.choice([0.67, 1.0, 1.5, 2.0])
+                dur = min(dur, beats_left)
+                vel = random.randint(65, 105)
+                lead.add(f"{n}{oct}", dur, velocity=vel)
+                beats_left -= dur
 
-    root = chords[0].root
-    if root:
-        for chord in chords * 2:
-            r = chord.root
-            if r:
-                bass.add(f"{r.name}2", Duration.QUARTER, velocity=100)
-                bass.add(f"{r.name}2", Duration.QUARTER, velocity=60)
-                fifth = r.add(7)
-                bass.add(f"{fifth.name}2", Duration.QUARTER, velocity=70)
-                bass.add(f"{r.name}2", Duration.QUARTER, velocity=80)
+    # Bass: root-fifth with velocity accents
+    for chord in chords * 2:
+        r = chord.root
+        if r:
+            fifth = r.add(7)
+            bass.add(f"{r.name}2", Duration.QUARTER, velocity=95)
+            bass.add(f"{r.name}2", Duration.QUARTER, velocity=55)
+            bass.add(f"{fifth.name}2", Duration.QUARTER, velocity=65)
+            bass.add(f"{r.name}2", Duration.QUARTER, velocity=75)
 
     prog_str = " → ".join(c.symbol or str(c) for c in chords)
     print(f"  ♫  {mood['name']}")
     print(f"     {tonic} {mode} | {mood['bpm']} bpm")
     print(f"     {prog_str}")
-    print(f"     {mood['drums']} drums | {mood['lead_synth']} lead | {mood['pad_synth']} pad")
+    print(f"     {mood['drums']} | {lead_synth} lead | {pad_synth} pad | {mood['reverb_type']} reverb")
     print()
 
     play_score(score)
