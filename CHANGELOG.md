@@ -2,6 +2,10 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.28.2
+
+- Lower drum_humanize default to 0.15 — tighter, more professional feel
+
 ## 0.28.1
 
 - Humanize drum hits — random timing jitter and velocity variation (default 0.3)
