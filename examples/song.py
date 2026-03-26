@@ -756,6 +756,109 @@ def drake_vibes():
 
 # ── Main ───────────────────────────────────────────────────────────────────
 
+def neon_grid():
+    """Cyberpunk electronic — stereo acid, wide pads, ping-pong bells."""
+    print("  Neon Grid in F minor")
+    print("  techno drums | dual acid L/R + LFO | supersaw pad spread=1.0")
+    print("  FM stabs | ping-pong bells | sine sub + sidechain")
+
+    score = Score("4/4", bpm=132)
+    score.drums("techno", repeats=8, fill="house", fill_every=8)
+
+    from pytheory.rhythm import _Hit, DrumSound
+    for bar in range(8):
+        for beat in range(4):
+            score._drum_hits.append(_Hit(DrumSound.KICK, bar * 4.0 + beat, 120))
+    score._drum_pattern_beats = max(score._drum_pattern_beats, 32.0)
+
+    sky = score.part(
+        "sky", synth="supersaw", envelope="pad",
+        volume=0.18, pan=0.0,
+        detune=30, spread=1.0,
+        reverb=0.6, reverb_decay=3.5,
+        chorus=0.3, sidechain=0.5,
+    )
+    acid_l = score.part(
+        "acid_l", synth="saw", envelope="pad",
+        volume=0.35, pan=-0.7,
+        legato=True, glide=0.025,
+        distortion=0.9, distortion_drive=12.0,
+        lowpass=800, lowpass_q=6.0,
+        delay=0.2, delay_time=0.227, delay_feedback=0.35,
+    )
+    acid_l.lfo("lowpass", rate=0.5, min=400, max=3000, bars=8, shape="sine")
+
+    acid_r = score.part(
+        "acid_r", synth="saw", envelope="pad",
+        volume=0.3, pan=0.7,
+        legato=True, glide=0.02,
+        distortion=0.85, distortion_drive=10.0,
+        lowpass=1000, lowpass_q=5.0,
+        delay=0.25, delay_time=0.341, delay_feedback=0.4,
+    )
+    acid_r.lfo("lowpass", rate=0.33, min=500, max=2500, bars=8, shape="triangle")
+
+    sub = score.part(
+        "sub", synth="sine", envelope="pluck",
+        volume=0.55, pan=0.0,
+        lowpass=160, sidechain=0.85, sidechain_release=0.08,
+    )
+    stab = score.part(
+        "stab", synth="fm", envelope="staccato",
+        volume=0.2, pan=-0.4,
+        reverb=0.4, reverb_decay=1.5,
+        detune=15, spread=0.7,
+    )
+    bell_l = score.part(
+        "bell_l", synth="fm", envelope="bell",
+        volume=0.1, pan=-1.0,
+        reverb=0.7, reverb_decay=3.0,
+    )
+    bell_r = score.part(
+        "bell_r", synth="fm", envelope="bell",
+        volume=0.1, pan=1.0,
+        reverb=0.7, reverb_decay=3.0,
+        delay=0.2, delay_time=0.8, delay_feedback=0.4,
+    )
+
+    chords = ["Fm", "Dbm", "Abm", "Ebm"]
+
+    for sym in chords * 2:
+        sky.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    for sym in chords:
+        acid_l.arpeggio(Chord.from_symbol(sym, octave=2), bars=2,
+                        pattern="up", octaves=2, division=Duration.SIXTEENTH)
+    for sym in chords:
+        acid_r.arpeggio(Chord.from_symbol(sym, octave=2), bars=2,
+                        pattern="down", octaves=2, division=Duration.SIXTEENTH)
+
+    for n in ["F1"] * 8 + ["Db1"] * 8 + ["Ab1"] * 8 + ["Eb1"] * 8:
+        sub.add(n, Duration.QUARTER)
+
+    for sym in chords * 2:
+        stab.rest(1)
+        stab.add(Chord.from_symbol(sym), 0.5)
+        stab.rest(0.5)
+        stab.add(Chord.from_symbol(sym), 0.5)
+        stab.rest(1.5)
+
+    for n, v, d in [
+        ("F6", 50, 2), (None, 0, 6), ("Ab6", 45, 2), (None, 0, 6),
+        ("Eb7", 55, 3), (None, 0, 13),
+    ]:
+        bell_l.rest(d) if n is None else bell_l.add(n, d, velocity=v)
+
+    for n, v, d in [
+        (None, 0, 4), ("Db7", 45, 2), (None, 0, 6),
+        ("F7", 50, 2), (None, 0, 6),
+        (None, 0, 4), ("Ab6", 40, 4), (None, 0, 8),
+    ]:
+        bell_r.rest(d) if n is None else bell_r.add(n, d, velocity=v)
+
+    play_song(score)
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -773,6 +876,7 @@ SONGS = {
     "14": ("Dub Delay Madness in E minor", dub_delay_madness),
     "15": ("Liquid DnB in A minor", drum_and_bass),
     "16": ("Late Night Texts (Drake-style)", drake_vibes),
+    "17": ("Neon Grid (Stereo Acid)", neon_grid),
 }
 
 if __name__ == "__main__":
@@ -786,7 +890,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-16, or 'all'): ").strip()
+        choice = input("  Pick a song (1-17, or 'all'): ").strip()
         print()
 
         if choice == "all":
