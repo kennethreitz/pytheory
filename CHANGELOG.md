@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.26.1
+
+- Stereo reverb — L and R channels get different early reflection patterns for natural width
+- Effects chain now skips mono reverb in favor of stereo reverb in the mixer
+
 ## 0.26.0
 
 - **Stereo output** — render_score() now returns stereo (N, 2) arrays

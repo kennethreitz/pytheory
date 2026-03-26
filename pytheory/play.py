@@ -1053,6 +1053,75 @@ def _apply_reverb(samples, mix=0.3, decay=1.0, sample_rate=SAMPLE_RATE):
     return samples * (1 - mix) + out * mix
 
 
+def _apply_reverb_stereo(samples, mix=0.3, decay=1.0, width=0.8,
+                         sample_rate=SAMPLE_RATE):
+    """Stereo reverb — different early reflections for L and R channels.
+
+    Creates natural stereo width by using slightly different comb filter
+    delay times for each channel. The result is a reverb tail that
+    occupies space in the stereo field rather than sitting dead center.
+
+    Args:
+        samples: Float32 mono array (the dry signal).
+        mix: Wet/dry ratio 0.0–1.0.
+        decay: Tail length in seconds.
+        width: Stereo width of the reverb 0.0–1.0.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 (N, 2) stereo array.
+    """
+    if mix <= 0:
+        stereo = numpy.zeros((len(samples), 2), dtype=numpy.float32)
+        stereo[:, 0] = samples
+        stereo[:, 1] = samples
+        return stereo
+
+    n = len(samples)
+
+    # Different comb delays for L and R — creates stereo width
+    comb_delays_L = [int(d * sample_rate) for d in [0.0297, 0.0371, 0.0411, 0.0437]]
+    comb_delays_R = [int(d * sample_rate) for d in [0.0313, 0.0389, 0.0427, 0.0453]]
+
+    def _run_reverb(comb_delays):
+        out = numpy.zeros(n, dtype=numpy.float32)
+        comb_gains = [0.001 ** (d / sample_rate / decay) for d in comb_delays]
+        for delay, gain in zip(comb_delays, comb_gains):
+            buf = numpy.zeros(n + delay, dtype=numpy.float32)
+            for i in range(n):
+                buf[i + delay] += samples[i] + gain * buf[i]
+            out += buf[:n]
+        out /= len(comb_delays)
+        # Allpass diffusion
+        for delay_sec in [0.005, 0.0017]:
+            delay = int(delay_sec * sample_rate)
+            gain = 0.7
+            buf = numpy.zeros(n + delay, dtype=numpy.float32)
+            result = numpy.zeros(n, dtype=numpy.float32)
+            for i in range(n):
+                buf[i + delay] = out[i] + gain * buf[i]
+                result[i] = -gain * buf[i + delay] + buf[i]
+            out = result
+        return out
+
+    wet_L = _run_reverb(comb_delays_L)
+    wet_R = _run_reverb(comb_delays_R)
+
+    # Crossfeed based on width (0 = mono, 1 = full stereo)
+    mid = (wet_L + wet_R) * 0.5
+    side_L = wet_L - mid
+    side_R = wet_R - mid
+
+    final_L = mid + side_L * width
+    final_R = mid + side_R * width
+
+    stereo = numpy.zeros((n, 2), dtype=numpy.float32)
+    stereo[:, 0] = samples * (1 - mix) + final_L * mix
+    stereo[:, 1] = samples * (1 - mix) + final_R * mix
+
+    return stereo
+
+
 def _apply_delay(samples, mix=0.25, time=0.375, feedback=0.4,
                  sample_rate=SAMPLE_RATE):
     """Apply a tempo-synced delay effect.
@@ -1211,7 +1280,7 @@ def _apply_distortion(samples, drive=1.0, mix=1.0):
     return samples * (1 - mix) + driven * mix
 
 
-def _apply_effects_with_params(samples, params):
+def _apply_effects_with_params(samples, params, skip_reverb=False):
     """Apply effects using a params dict. Used for both static and automated rendering."""
     # Signal chain: distortion → chorus → lowpass → delay → reverb
     if params.get("distortion_mix", 0) > 0:
@@ -1230,7 +1299,7 @@ def _apply_effects_with_params(samples, params):
         samples = _apply_delay(samples, mix=params["delay_mix"],
                                time=params.get("delay_time", 0.375),
                                feedback=params.get("delay_feedback", 0.4))
-    if params.get("reverb_mix", 0) > 0:
+    if not skip_reverb and params.get("reverb_mix", 0) > 0:
         reverb_type = params.get("reverb_type", "algorithmic")
         if reverb_type != "algorithmic" and reverb_type in (
             "taj_mahal", "cathedral", "plate", "spring",
@@ -1261,7 +1330,8 @@ def _apply_part_effects(samples, part):
         "reverb_decay": part.reverb_decay,
         "reverb_type": getattr(part, "reverb_type", "algorithmic"),
     }
-    return _apply_effects_with_params(samples, params)
+    # Skip mono reverb — stereo reverb is applied in the mixer
+    return _apply_effects_with_params(samples, params, skip_reverb=True)
 
 
 def _pan_to_stereo(mono, pan=0.0):
@@ -1668,8 +1738,19 @@ def render_score(score):
             if getattr(part, 'sidechain', 0) > 0:
                 _pending_sidechain.append((part, part_buf))
             else:
-                # Pan mono part into stereo
-                stereo_buf += _pan_to_stereo(part_buf, part.pan)
+                # Pan mono part into stereo, then apply stereo reverb
+                if part.reverb_mix > 0:
+                    rev_stereo = _apply_reverb_stereo(
+                        part_buf, mix=part.reverb_mix,
+                        decay=part.reverb_decay)
+                    # Apply pan offset to the stereo reverb
+                    if part.pan != 0:
+                        angle = (part.pan + 1.0) * 0.25 * numpy.pi
+                        rev_stereo[:, 0] *= numpy.cos(angle)
+                        rev_stereo[:, 1] *= numpy.sin(angle)
+                    stereo_buf += rev_stereo
+                else:
+                    stereo_buf += _pan_to_stereo(part_buf, part.pan)
 
     # Drum hits — render to separate buffer for sidechain trigger
     drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)
