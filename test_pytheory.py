@@ -5975,3 +5975,205 @@ def test_section_unknown_raises():
     score = Score("4/4", bpm=120)
     with pytest.raises(ValueError, match="Unknown section"):
         score.repeat("nonexistent")
+
+
+# ── REPL ──────────────────────────────────────────────────────────────────
+
+def test_repl_session_defaults():
+    from pytheory.repl import Session
+    s = Session()
+    assert str(s.key) == "C major"
+    assert s.bpm == 120
+    assert s.current_part is None
+    assert s._drum_preset is None
+
+
+def test_repl_cmd_key():
+    from pytheory.repl import Session, cmd_key
+    s = Session()
+    cmd_key(s, ["Am"])
+    assert s.key.tonic_name == "A"
+    assert s.key.mode == "minor"
+
+
+def test_repl_cmd_key_major():
+    from pytheory.repl import Session, cmd_key
+    s = Session()
+    cmd_key(s, ["G", "major"])
+    assert s.key.tonic_name == "G"
+    assert s.key.mode == "major"
+
+
+def test_repl_cmd_bpm():
+    from pytheory.repl import Session, cmd_bpm
+    s = Session()
+    cmd_bpm(s, ["140"])
+    assert s.bpm == 140
+    assert s.score.bpm == 140
+
+
+def test_repl_cmd_swing():
+    from pytheory.repl import Session, cmd_swing
+    s = Session()
+    cmd_swing(s, ["0.5"])
+    assert s.swing == 0.5
+
+
+def test_repl_cmd_drums():
+    from pytheory.repl import Session, cmd_drums
+    s = Session()
+    cmd_drums(s, ["rock"])
+    assert s._drum_preset == "rock"
+    assert len(s.score._drum_hits) > 0
+
+
+def test_repl_cmd_part():
+    from pytheory.repl import Session, cmd_part
+    s = Session()
+    cmd_part(s, ["lead", "saw", "pluck"])
+    assert "lead" in s.parts
+    assert s.current_part is not None
+    assert s.current_part.synth == "saw"
+    assert s.current_part.envelope == "pluck"
+
+
+def test_repl_cmd_add_note():
+    from pytheory.repl import Session, cmd_add
+    s = Session()
+    cmd_add(s, ["C5", "1"])
+    assert s.current_part is not None  # auto-created
+    assert len(s.current_part.notes) == 1
+
+
+def test_repl_cmd_add_chord():
+    from pytheory.repl import Session, cmd_add
+    s = Session()
+    cmd_add(s, ["Am", "4"])
+    assert len(s.current_part.notes) == 1
+
+
+def test_repl_cmd_rest():
+    from pytheory.repl import Session, cmd_rest
+    s = Session()
+    s.ensure_part("lead")
+    s.current_part = s.parts["lead"]
+    cmd_rest(s, ["2"])
+    assert len(s.current_part.notes) == 1
+    assert s.current_part.notes[0].tone is None
+
+
+def test_repl_cmd_arp():
+    from pytheory.repl import Session, cmd_part, cmd_arp
+    s = Session()
+    cmd_part(s, ["lead"])
+    cmd_arp(s, ["Am", "updown", "2", "2"])
+    assert len(s.current_part.notes) > 0
+
+
+def test_repl_cmd_prog():
+    from pytheory.repl import Session, cmd_key, cmd_prog
+    s = Session()
+    cmd_key(s, ["Am"])
+    cmd_prog(s, ["i", "iv", "V", "i"])
+    assert len(s.current_part.notes) == 4
+
+
+def test_repl_cmd_effects():
+    from pytheory.repl import Session, cmd_part, _set_effect
+    s = Session()
+    cmd_part(s, ["lead", "saw"])
+    _set_effect(s, "reverb", ["0.4"])
+    assert s.current_part.reverb_mix == 0.4
+    _set_effect(s, "delay", ["0.3", "0.375"])
+    assert s.current_part.delay_mix == 0.3
+    assert s.current_part.delay_time == 0.375
+    _set_effect(s, "lowpass", ["2000", "3"])
+    assert s.current_part.lowpass == 2000
+    assert s.current_part.lowpass_q == 3.0
+    _set_effect(s, "distortion", ["0.5"])
+    assert s.current_part.distortion_mix == 0.5
+
+
+def test_repl_cmd_legato():
+    from pytheory.repl import Session, cmd_part, cmd_legato
+    s = Session()
+    cmd_part(s, ["lead"])
+    cmd_legato(s, [])
+    assert s.current_part.legato is True
+    cmd_legato(s, ["off"])
+    assert s.current_part.legato is False
+
+
+def test_repl_cmd_set():
+    from pytheory.repl import Session, cmd_part, cmd_add, cmd_set
+    s = Session()
+    cmd_part(s, ["lead"])
+    cmd_add(s, ["C5", "4"])
+    cmd_set(s, ["lowpass", "3000"])
+    assert len(s.current_part._automation) == 1
+
+
+def test_repl_cmd_lfo():
+    from pytheory.repl import Session, cmd_part, cmd_lfo
+    s = Session()
+    cmd_part(s, ["lead"])
+    cmd_lfo(s, ["lowpass", "0.5", "400", "3000", "4"])
+    assert len(s.current_part._automation) > 0
+
+
+def test_repl_save_midi(tmp_path):
+    from pytheory.repl import Session, cmd_key, cmd_prog, cmd_save_midi
+    s = Session()
+    cmd_key(s, ["Am"])
+    cmd_prog(s, ["i", "iv", "V", "i"])
+    path = str(tmp_path / "test.mid")
+    cmd_save_midi(s, [path])
+    assert (tmp_path / "test.mid").exists()
+
+
+def test_repl_prompt_compact():
+    from pytheory.repl import Session, _prompt
+    s = Session()
+    p = _prompt(s)
+    assert "key=C" in p
+    assert "bpm=120" in p
+
+
+def test_repl_prompt_with_part():
+    from pytheory.repl import Session, cmd_part, _prompt
+    s = Session()
+    cmd_part(s, ["lead", "saw"])
+    p = _prompt(s)
+    assert "→lead(saw)" in p
+
+
+def test_repl_prompt_multiline():
+    from pytheory.repl import Session, cmd_part, cmd_drums, _prompt, _set_effect
+    s = Session()
+    cmd_drums(s, ["bossa", "nova"])
+    cmd_part(s, ["lead", "saw"])
+    _set_effect(s, "reverb", ["0.4"])
+    _set_effect(s, "lowpass", ["2000"])
+    _set_effect(s, "distortion", ["0.5"])
+    p = _prompt(s)
+    assert "♫>" in p  # should be multiline
+
+
+def test_repl_clear():
+    from pytheory.repl import Session, cmd_part, cmd_drums, cmd_clear
+    s = Session()
+    cmd_drums(s, ["rock"])
+    cmd_part(s, ["lead"])
+    cmd_clear(s, [])
+    assert len(s.parts) == 0
+    assert s.current_part is None
+
+
+def test_repl_chords(capsys):
+    from pytheory.repl import Session, cmd_key, cmd_chords
+    s = Session()
+    cmd_key(s, ["C"])
+    cmd_chords(s, [])
+    out = capsys.readouterr().out
+    assert "C major" in out
+    assert "D minor" in out

@@ -386,6 +386,9 @@ def main():
     # demo
     sub.add_parser("demo", help="Play a randomly generated track (different every time)")
 
+    # repl
+    sub.add_parser("repl", help="Interactive music theory scratchpad")
+
     # detect
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
@@ -420,6 +423,7 @@ def main():
         "identify": cmd_identify,
         "midi": cmd_midi,
         "demo": cmd_demo,
+        "repl": lambda args: __import__('pytheory.repl', fromlist=['main']).main(),
         "detect": cmd_detect,
         "modes": cmd_modes,
         "circle": cmd_circle,
