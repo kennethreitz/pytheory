@@ -463,19 +463,29 @@ COMMANDS = {
 
 # ── Main ───────────────────────────────────────────────────────────────────
 
+def _prompt(session):
+    """Build a context-aware prompt showing current state."""
+    parts = [f"key={session.key.tonic_name}{('m' if session.key.mode == 'minor' else '')}"]
+    parts.append(f"bpm={session.bpm}")
+    if session._drum_preset:
+        parts.append(f"drums={session._drum_preset}")
+    if session.current_part is not None:
+        parts.append(f"→{session.current_part.name}")
+    return f"pytheory[{' '.join(parts)}]> "
+
+
 def main():
     session = Session()
 
     print()
     print("  ♫  PyTheory REPL")
     print("  ════════════════════════════════════════")
-    print(f"  key={session.key}  bpm={session.bpm}")
     print("  type 'help' for commands, 'quit' to exit")
     print()
 
     while True:
         try:
-            line = input("pytheory> ").strip()
+            line = input(_prompt(session)).strip()
         except (EOFError, KeyboardInterrupt):
             print("\n  ♫")
             break
