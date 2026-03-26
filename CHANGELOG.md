@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.27.0
+
+- Rewrite all 15 drum sounds for higher quality (inharmonic partials, proper transients, multi-mode resonance, saturation)
+- 19 example songs including Dance Party at the Reitz House
+
 ## 0.26.3
 
 - Stereo drum panning — each sound placed in the stereo field (hat right, crash left, toms spread, kick/snare center)

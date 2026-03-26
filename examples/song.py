@@ -925,6 +925,67 @@ def glass_and_silk():
     play_song(score)
 
 
+def dance_party():
+    """Dance party — bouncy, joyful, impossible not to move."""
+    print("  Dance Party at the Reitz House")
+    print("  disco 128bpm | FM sparkle | square chiptune arps | supersaw pump")
+
+    from pytheory.rhythm import _Hit, DrumSound
+
+    score = Score("4/4", bpm=128)
+    score.drums("disco", repeats=8, fill="buildup", fill_every=8)
+
+    for bar in range(8):
+        for beat in range(4):
+            score._drum_hits.append(_Hit(DrumSound.KICK, bar * 4.0 + beat, 120))
+    score._drum_pattern_beats = max(score._drum_pattern_beats, 32.0)
+
+    bass = score.part("bass", synth="square", envelope="pluck",
+                      volume=0.45, lowpass=500, lowpass_q=1.3,
+                      sidechain=0.75, sidechain_release=0.12)
+    sparkle = score.part("sparkle", synth="fm", envelope="bell",
+                         volume=0.3, pan=0.4, reverb=0.3, reverb_decay=1.5,
+                         delay=0.2, delay_time=0.234, delay_feedback=0.3)
+    chords_part = score.part("chords", synth="supersaw", envelope="pad",
+                             volume=0.2, detune=12, spread=0.7,
+                             reverb=0.4, reverb_type="plate", sidechain=0.7)
+    fun = score.part("fun", synth="square", envelope="staccato",
+                     volume=0.2, pan=-0.5, delay=0.15, delay_time=0.117,
+                     delay_feedback=0.25, reverb=0.2)
+
+    for sym in ["C", "Am", "F", "G"] * 2:
+        chords_part.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    for n in ["C2", "C2", "C3", "C2", "A1", "A1", "A2", "A1",
+              "F1", "F1", "F2", "F1", "G1", "G1", "G2", "G1"] * 2:
+        bass.add(n, Duration.QUARTER)
+
+    for n, v, d in [
+        ("E5", 100, 0.5), ("G5", 110, 0.5), ("C6", 120, 1), (None, 0, 0.5),
+        ("B5", 100, 0.5), ("G5", 90, 0.5), ("E5", 100, 0.5),
+        ("C5", 90, 0.5), ("E5", 100, 0.5), ("G5", 110, 1), (None, 0, 0.5),
+        ("A5", 100, 0.5),
+        ("C6", 120, 0.5), ("A5", 100, 0.5), ("F5", 90, 0.5), ("A5", 100, 0.5),
+        ("C6", 110, 1), (None, 0, 1),
+        ("B5", 100, 0.5), ("D6", 120, 0.5), ("B5", 100, 0.5), ("G5", 90, 0.5),
+        ("D5", 80, 0.5), ("G5", 100, 1), (None, 0, 0.5),
+        ("E5", 100, 0.5), ("G5", 110, 0.5), ("C6", 120, 1),
+        ("E6", 125, 1), (None, 0, 0.5),
+        ("D6", 110, 0.5), ("C6", 100, 0.5), ("B5", 90, 0.5),
+        ("A5", 100, 0.5), ("G5", 110, 0.5), ("E5", 90, 1), (None, 0, 0.5),
+        ("F5", 100, 0.5), ("A5", 110, 0.5), ("C6", 120, 1), (None, 0, 0.5),
+        ("B5", 100, 0.5), ("G5", 110, 0.5), ("D6", 120, 0.5),
+        ("C6", 110, 1), ("G5", 90, 0.5), ("C6", 120, 1), (None, 0, 0.5),
+    ]:
+        sparkle.rest(d) if n is None else sparkle.add(n, d, velocity=v)
+
+    for sym in ["C", "Am", "F", "G", "C", "Am", "F", "G"]:
+        pat = "up" if sym in ("C", "F") else "updown"
+        fun.arpeggio(sym, bars=1, pattern=pat, octaves=2, division=Duration.EIGHTH)
+
+    play_song(score)
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -944,6 +1005,7 @@ SONGS = {
     "16": ("Late Night Texts (Drake-style)", drake_vibes),
     "17": ("Neon Grid (Stereo Acid)", neon_grid),
     "18": ("Glass and Silk (Sine+Triangle)", glass_and_silk),
+    "19": ("Dance Party at the Reitz House", dance_party),
 }
 
 if __name__ == "__main__":
@@ -957,7 +1019,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-18, or 'all'): ").strip()
+        choice = input("  Pick a song (1-19, or 'all'): ").strip()
         print()
 
         if choice == "all":
