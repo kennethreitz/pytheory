@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.7
+
+- Add `detune` parameter — ±cents oscillator spread on any synth (3 oscillators per note)
+- Swing now applies to drum hits (offbeats shift with the groove)
+- Improved snare and hi-hat sounds (metallic harmonics, faster attack)
+
 ## 0.25.6
 
 - Swing now applies to drum hits — offbeats shift with the groove, everything locks into the same pocket

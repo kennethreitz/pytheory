@@ -266,6 +266,42 @@ Name             Character
 ``"none"``       Raw waveform, no amplitude shaping at all
 ===============  ================================================
 
+Detune
+------
+
+Any synth can be fattened with the ``detune`` parameter — it renders
+three oscillators per note: the center pitch plus one shifted up and
+one shifted down by the specified number of cents. The slight frequency
+differences create beating and width, like an analog synth with
+oscillator drift.
+
+.. code-block:: python
+
+   # Juno-style analog drift — subtle, warm
+   pad = score.part("pad", synth="saw", detune=15)
+
+   # Trance supersaw territory — wide, shimmery
+   lead = score.part("lead", synth="saw", detune=25)
+
+   # Subtle thickening on a bass
+   bass = score.part("bass", synth="pulse", detune=8)
+
+   # Works on any synth — even FM
+   bells = score.part("bells", synth="fm", detune=12)
+
+Detune values:
+
+- **5–10** = subtle thickening (barely noticeable, just warmer)
+- **12–18** = classic analog drift (Juno, Prophet)
+- **20–30** = wide and shimmery (trance, EDM)
+- **40+** = extreme, almost chorus-like
+
+This is different from the ``chorus`` effect — detune creates
+additional oscillators at render time (three per note), while chorus
+processes the audio after rendering with a modulated delay line.
+Detune is "wider at the source," chorus is "wider after the fact."
+Stack both for maximum fatness.
+
 Choosing Synth and Envelope Combos
 ----------------------------------
 
