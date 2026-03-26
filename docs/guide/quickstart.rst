@@ -1,7 +1,17 @@
 Quickstart
 ==========
 
-From zero to a multi-part arrangement in 5 minutes.
+PyTheory works at two levels — pick the one that fits what you need:
+
+1. **Music theory** — explore scales, chords, keys, intervals, and
+   harmony. No audio required. Works anywhere Python runs.
+
+2. **Composition** — build multi-part arrangements with drums, synths,
+   effects, and export to MIDI. Needs PortAudio for live playback.
+
+Both are first-class. You can use PyTheory purely as a theory
+reference and never touch the audio side, or you can jump straight
+into composing. This guide covers both paths.
 
 Installation
 ------------
@@ -33,12 +43,37 @@ the fastest way to hear what PyTheory can do.
 Explore Music Theory
 --------------------
 
-The theory layer is where most people start. Every concept in Western
-music theory (and five other systems) has a clean Python API:
+The theory layer is where most people start. No audio setup needed —
+this works everywhere Python runs. Every concept in Western music
+theory (and five other systems) has a clean Python API.
+
+Tones and intervals:
 
 .. code-block:: pycon
 
-   >>> from pytheory import Key, Chord, Tone
+   >>> from pytheory import Tone
+
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> c4.frequency
+   261.6255653005986
+   >>> c4.midi
+   60
+
+   >>> c4 + 7
+   <Tone G4>
+   >>> c4.interval_to(c4 + 7)
+   'perfect 5th'
+
+   >>> Tone.from_frequency(440)
+   <Tone A4>
+   >>> Tone.from_midi(69)
+   <Tone A4>
+
+Keys, scales, and chords:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key, Chord
 
    >>> key = Key("C", "major")
    >>> key.chords
@@ -47,14 +82,58 @@ music theory (and five other systems) has a clean Python API:
    >>> [c.symbol for c in key.progression("I", "V", "vi", "IV")]
    ['C', 'G', 'Am', 'F']
 
+   >>> key.signature
+   {'sharps': 0, 'flats': 0, 'accidentals': []}
+
+   >>> Key("F", "major").signature
+   {'sharps': 0, 'flats': 1, 'accidentals': ['Bb']}
+
    >>> Chord.from_symbol("Am7").identify()
    'A minor 7th'
 
-   >>> Tone.from_string("C4").interval_to(Tone.from_string("G4"))
-   'perfect 5th'
+   >>> Chord.from_tones("G", "B", "D", "F").analyze("C")
+   'V7'
+
+Harmonic analysis and modulation:
+
+.. code-block:: pycon
 
    >>> Key("C", "major").pivot_chords(Key("G", "major"))
    ['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
+
+   >>> Key("C", "major").relative
+   <Key A minor>
+
+   >>> key.suggest_next(key.triad(4))  # what follows V?
+   [<Chord C major>, <Chord A minor>, <Chord F major>]
+
+Scales across 6 musical systems:
+
+.. code-block:: pycon
+
+   >>> from pytheory import TonedScale
+
+   >>> TonedScale(tonic="Sa4", system="indian")["bhairav"].note_names
+   ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
+
+   >>> TonedScale(tonic="Do4", system="arabic")["hijaz"].note_names
+   ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
+
+   >>> TonedScale(tonic="C4", system="japanese")["hirajoshi"].note_names
+   ['C', 'D', 'D#', 'G', 'G#', 'C']
+
+Guitar fingerings:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard
+
+   >>> fb = Fretboard.guitar()
+   >>> fb.chord("Am")
+   Fingering(e=0, B=1, G=2, D=2, A=0, E=x)
+
+All of the above works without PortAudio, without sounddevice,
+without any audio setup at all. It's pure Python music theory.
 
 Compose a Track
 ---------------
