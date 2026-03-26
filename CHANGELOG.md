@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.26.3
+
+- Stereo drum panning — each sound placed in the stereo field (hat right, crash left, toms spread, kick/snare center)
+- Stereo convolution reverb — different IR per L/R channel for all 7 presets
+- 2 new songs: Neon Grid (stereo acid), Glass and Silk (sine+triangle waltz)
+
 ## 0.26.2
 
 - Stereo convolution reverb — different IR per L/R channel for all 7 presets
