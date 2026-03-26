@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.3
+
+- Add `pytheory repl` — interactive music theory scratchpad and composition tool
+- Context-aware prompt shows key, bpm, drums, active part + effects
+- Theory commands: key, chords, modes, scales, circle, interval, identify, system
+- Composition: drums, part, add, rest, arp, prog, effects, automation, LFO
+- Guitar: fingering, scale diagram
+- 6 musical systems with correct default tonics
+- REPL guide documentation
+
 ## 0.25.1
 
 - Add `pytheory demo` CLI command — plays a randomly generated track, different every time
