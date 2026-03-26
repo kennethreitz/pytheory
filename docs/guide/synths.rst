@@ -302,6 +302,45 @@ processes the audio after rendering with a modulated delay line.
 Detune is "wider at the source," chorus is "wider after the fact."
 Stack both for maximum fatness.
 
+Stereo Placement
+----------------
+
+Every part can be placed in the stereo field with ``pan`` and ``spread``.
+
+**Pan** positions a part left or right. Constant-power panning keeps
+the perceived loudness even as you move across the field:
+
+.. code-block:: python
+
+   rhythm = score.part("rhythm", synth="saw", pan=-0.7)     # left
+   lead = score.part("lead", synth="saw", pan=0.6)          # right
+   bass = score.part("bass", synth="sine", pan=0.0)         # center
+   hats = score.part("hats", synth="noise", pan=0.3)        # slightly right
+
+Pan values: -1.0 (hard left), 0.0 (center), 1.0 (hard right).
+
+**Spread** works with ``detune`` — the up-detuned oscillator goes to
+the right channel and the down-detuned goes to the left, creating
+stereo width at the source:
+
+.. code-block:: python
+
+   # Wide pad: detuned + spread across the stereo field
+   pad = score.part(
+       "pad",
+       synth="saw",
+       detune=20,
+       spread=1.0,       # full L/R separation of detuned voices
+       reverb=0.4,
+   )
+
+Spread values: 0.0 (detuned voices stay mono), 1.0 (full L/R split).
+Stack with pan to offset the center of the spread.
+
+Reverb is also stereo — the left and right channels get different
+early reflection patterns, so the reverb tail occupies real space
+in the stereo field rather than sitting dead center.
+
 Choosing Synth and Envelope Combos
 ----------------------------------
 
