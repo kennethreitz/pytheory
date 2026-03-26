@@ -2,6 +2,10 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.27.1
+
+- Tab completion in REPL — context-aware for commands, drum presets, synths, envelopes, chords, notes, systems
+
 ## 0.27.0
 
 - Rewrite all 15 drum sounds for higher quality (inharmonic partials, proper transients, multi-mode resonance, saturation)
