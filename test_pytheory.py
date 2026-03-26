@@ -6324,3 +6324,130 @@ def test_recommend_fitness_descending():
     results = Scale.recommend("C", "D", "E", "F#", "G")
     for i in range(len(results) - 1):
         assert results[i][2] >= results[i + 1][2]
+
+
+# ── MIDI Import (Score.from_midi) ────────────────────────────────────────
+
+
+def test_from_midi_basic(tmp_path):
+    """Create a simple MIDI with save_midi, re-import with from_midi."""
+    from pytheory import Score, Duration, Tone
+    score = Score("4/4", bpm=120)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.QUARTER)
+    score.add(Tone.from_string("G4"), Duration.QUARTER)
+
+    midi_path = str(tmp_path / "basic.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    # Should have at least one part with notes
+    assert len(imported.parts) >= 1
+    total_notes = sum(
+        1 for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    )
+    assert total_notes == 3
+
+
+def test_from_midi_tempo(tmp_path):
+    """Verify BPM is preserved through save/import."""
+    from pytheory import Score, Duration, Tone
+    score = Score("4/4", bpm=140)
+    score.add(Tone.from_string("A4"), Duration.QUARTER)
+
+    midi_path = str(tmp_path / "tempo.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    assert imported.bpm == 140
+
+
+def test_from_midi_roundtrip(tmp_path):
+    """Save a progression as MIDI, import it, check parts/notes."""
+    from pytheory import Score, Duration, Tone
+    score = Score("3/4", bpm=100)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.add(Tone.from_string("D4"), Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.QUARTER)
+    score.add(Tone.from_string("F4"), Duration.QUARTER)
+
+    midi_path = str(tmp_path / "roundtrip.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    assert imported.bpm == 100
+    assert imported.time_signature == TimeSignature(3, 4)
+    total_notes = sum(
+        1 for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    )
+    assert total_notes == 4
+
+
+def test_from_midi_velocity(tmp_path):
+    """Verify velocity is preserved through save/import."""
+    from pytheory import Score, Duration, Tone
+    score = Score("4/4", bpm=120)
+    # save_midi uses a fixed velocity param, default 100
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+    score.add(Tone.from_string("E4"), Duration.HALF)
+
+    midi_path = str(tmp_path / "velocity.mid")
+    score.save_midi(midi_path, velocity=80)
+
+    imported = Score.from_midi(midi_path)
+    sounding = [
+        n for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    ]
+    assert len(sounding) == 2
+    for n in sounding:
+        assert n.velocity == 80
+
+
+def test_from_midi_drums(tmp_path):
+    """Verify drum hits survive a roundtrip."""
+    from pytheory import Score, Pattern
+    score = Score("4/4", bpm=120)
+    score.add_pattern(Pattern.preset("rock"), repeats=1)
+
+    midi_path = str(tmp_path / "drums.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    assert len(imported._drum_hits) > 0
+
+
+def test_from_midi_time_signature(tmp_path):
+    """Verify time signature is preserved."""
+    from pytheory import Score, Duration, Tone
+    score = Score("6/8", bpm=150)
+    score.add(Tone.from_string("C4"), Duration.QUARTER)
+
+    midi_path = str(tmp_path / "timesig.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    assert imported.time_signature == TimeSignature(6, 8)
+    assert imported.bpm == 150
+
+
+def test_from_midi_note_durations(tmp_path):
+    """Verify note durations are approximately preserved."""
+    from pytheory import Score, Duration, Tone
+    score = Score("4/4", bpm=120)
+    score.add(Tone.from_string("C4"), Duration.WHOLE)    # 4 beats
+    score.add(Tone.from_string("E4"), Duration.HALF)     # 2 beats
+
+    midi_path = str(tmp_path / "durations.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    sounding = [
+        n for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    ]
+    assert len(sounding) == 2
+    assert abs(sounding[0].beats - 4.0) < 0.01
+    assert abs(sounding[1].beats - 2.0) < 0.01

@@ -83,7 +83,7 @@ What's Inside
   lowpass (with resonance), distortion, chorus, sidechain compression,
   automation, LFOs. Master bus compressor/limiter
 - **Instruments** — 25 presets with fingering generation
-- **Output** — stereo playback, WAV, MIDI export
+- **Output** — stereo playback, WAV export, MIDI import/export
 - **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``
 - **AI-friendly** — Claude Code can compose
   and play music through PyTheory from natural language

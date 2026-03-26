@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.29.0
+
+- Add `Score.from_midi(path)` — import any Standard MIDI File into a Score
+- Minimal zero-dependency MIDI parser (Type 0 and Type 1)
+- Each channel becomes a named Part, channel 10 becomes drum hits
+- Tempo, time signature, velocities, and note durations preserved
+- Roundtrip: save_midi → from_midi works
+
 ## 0.28.3
 
 - Rewrite `pytheory demo` — 8 moods with stereo, effects, humanize, convolution reverb, sidechain

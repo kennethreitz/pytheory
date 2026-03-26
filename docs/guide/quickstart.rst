@@ -233,7 +233,7 @@ drum voices with stereo panning.
 mandolin family, violin family, banjo, harp, oud, sitar, erhu, and
 more) with chord fingering generation and scale diagrams.
 
-**Output** — stereo playback, WAV export, MIDI export.
+**Output** — stereo playback, WAV export, MIDI import/export.
 
 **Interface** — REPL with tab completion (``pytheory repl``), CLI with
 15 commands. ``pytheory demo``, ``pytheory key``, ``pytheory chord``,

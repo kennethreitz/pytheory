@@ -2163,3 +2163,297 @@ class Score:
             f.write(b"MTrk")
             f.write(struct.pack(">I", len(events)))
             f.write(events)
+
+    # ── MIDI Import ──────────────────────────────────────────────────────
+
+    @classmethod
+    def from_midi(cls, path, synth="sine", envelope="pluck") -> "Score":
+        """Import a Standard MIDI File into a Score.
+
+        Reads notes, tempo, and time signature from any Type 0 or Type 1
+        MIDI file. Each MIDI channel becomes a named Part. Channel 10
+        (drums) becomes drum hits.
+
+        Args:
+            path: Path to a .mid file.
+            synth: Default synth for all parts (default "sine").
+            envelope: Default envelope for all parts (default "pluck").
+
+        Returns:
+            A Score with Parts populated from the MIDI data.
+
+        Example::
+
+            >>> score = Score.from_midi("song.mid")
+            >>> score.parts["ch1"].synth = "saw"
+            >>> score.parts["ch1"].reverb_mix = 0.3
+        """
+        midi = _parse_midi(path)
+
+        # Compute BPM from tempo (microseconds per beat)
+        bpm = round(60_000_000 / midi["tempo"])
+
+        # Build time signature string
+        ts_num, ts_den = midi["time_sig"]
+        ts_str = f"{ts_num}/{ts_den}"
+
+        score = cls(time_signature=ts_str, bpm=bpm)
+        tpb = midi["ticks_per_beat"]
+
+        # Build reverse DrumSound lookup: MIDI note number -> DrumSound
+        _drum_by_note = {}
+        for ds in DrumSound:
+            # First one wins (SHAKER and MARACAS both map to 70)
+            if ds.value not in _drum_by_note:
+                _drum_by_note[ds.value] = ds
+
+        # Collect note events per channel from all tracks
+        # Each entry: (abs_tick, 'on'/'off', pitch, velocity)
+        channel_events: dict[int, list] = {}
+        for track_events in midi["tracks"]:
+            for ev in track_events:
+                abs_tick, etype, channel, data = ev
+                if etype in ("note_on", "note_off"):
+                    if channel not in channel_events:
+                        channel_events[channel] = []
+                    channel_events[channel].append(ev)
+
+        for ch in sorted(channel_events.keys()):
+            events = sorted(channel_events[ch], key=lambda e: e[0])
+            is_drum = (ch == 9)  # channel 10 in 0-indexed
+
+            if is_drum:
+                # Convert to _Hit objects
+                for ev in events:
+                    abs_tick, etype, channel, data = ev
+                    if etype == "note_on" and data["velocity"] > 0:
+                        pitch = data["pitch"]
+                        beat_pos = abs_tick / tpb
+                        velocity = data["velocity"]
+                        drum_sound = _drum_by_note.get(pitch)
+                        if drum_sound is not None:
+                            score._drum_hits.append(
+                                _Hit(drum_sound, beat_pos, velocity))
+            else:
+                # Melodic channel: pair note_on/note_off to get durations
+                active: dict[int, tuple] = {}  # pitch -> (on_tick, velocity)
+                completed = []  # (beat_pos, pitch, velocity, duration_beats)
+
+                for ev in events:
+                    abs_tick, etype, channel_num, data = ev
+                    pitch = data["pitch"]
+                    vel = data["velocity"]
+
+                    if etype == "note_on" and vel > 0:
+                        active[pitch] = (abs_tick, vel)
+                    else:
+                        # note_off or note_on with vel=0
+                        if pitch in active:
+                            on_tick, on_vel = active.pop(pitch)
+                            dur_ticks = abs_tick - on_tick
+                            if dur_ticks > 0:
+                                beat_pos = on_tick / tpb
+                                dur_beats = dur_ticks / tpb
+                                completed.append(
+                                    (beat_pos, pitch, on_vel, dur_beats))
+
+                if not completed:
+                    continue
+
+                completed.sort(key=lambda x: (x[0], x[1]))
+
+                part_name = f"ch{ch + 1}"
+                part = score.part(part_name, synth=synth, envelope=envelope)
+
+                # Walk through notes, inserting rests for gaps
+                cursor = 0.0  # current beat position
+                for beat_pos, pitch, velocity, dur_beats in completed:
+                    gap = beat_pos - cursor
+                    if gap > 0.001:  # tolerance for floating point
+                        part.notes.append(Rest(_RawDuration(gap)))
+                    from .tones import Tone
+                    tone = Tone.from_midi(pitch)
+                    part.notes.append(
+                        Note(tone=tone, duration=_RawDuration(dur_beats),
+                             velocity=velocity))
+                    cursor = beat_pos + dur_beats
+
+        return score
+
+
+# ── MIDI File Parser ─────────────────────────────────────────────────────
+
+
+def _read_vlq(data, pos):
+    """Read a MIDI variable-length quantity.
+
+    Returns:
+        (value, new_pos) tuple.
+    """
+    value = 0
+    while True:
+        byte = data[pos]
+        value = (value << 7) | (byte & 0x7F)
+        pos += 1
+        if not (byte & 0x80):
+            break
+    return value, pos
+
+
+def _parse_midi(path):
+    """Parse a Standard MIDI File (Type 0 or Type 1).
+
+    Returns a dict with:
+        - ticks_per_beat: int
+        - tempo: int (microseconds per beat, default 500000 = 120 bpm)
+        - time_sig: (numerator, denominator)
+        - tracks: list of lists of events
+
+    Each event is a tuple: (abs_tick, type_str, channel, data_dict)
+    where type_str is 'note_on' or 'note_off' and data_dict has
+    'pitch' and 'velocity' keys.
+    """
+    with open(path, "rb") as f:
+        raw = f.read()
+
+    pos = 0
+
+    # ── Header chunk ──
+    if raw[pos:pos + 4] != b"MThd":
+        raise ValueError("Not a MIDI file (missing MThd header)")
+    pos += 4
+    header_len = struct.unpack(">I", raw[pos:pos + 4])[0]
+    pos += 4
+    fmt, num_tracks, ticks_per_beat = struct.unpack(">HHH", raw[pos:pos + 6])
+    pos += header_len  # usually 6
+
+    if fmt > 1:
+        raise ValueError(f"MIDI format {fmt} not supported (only 0 and 1)")
+
+    tempo = 500000  # default 120 BPM
+    time_sig = (4, 4)  # default
+    tracks = []
+
+    # ── Track chunks ──
+    for _ in range(num_tracks):
+        if raw[pos:pos + 4] != b"MTrk":
+            raise ValueError("Expected MTrk chunk")
+        pos += 4
+        track_len = struct.unpack(">I", raw[pos:pos + 4])[0]
+        pos += 4
+        track_end = pos + track_len
+
+        track_events = []
+        abs_tick = 0
+        running_status = 0
+
+        while pos < track_end:
+            # Read delta time
+            delta, pos = _read_vlq(raw, pos)
+            abs_tick += delta
+
+            # Read event
+            byte = raw[pos]
+
+            if byte == 0xFF:
+                # Meta event
+                pos += 1
+                meta_type = raw[pos]
+                pos += 1
+                meta_len, pos = _read_vlq(raw, pos)
+                meta_data = raw[pos:pos + meta_len]
+                pos += meta_len
+
+                if meta_type == 0x51 and meta_len == 3:
+                    # Tempo: 3 bytes, microseconds per beat
+                    tempo = (meta_data[0] << 16) | (meta_data[1] << 8) | meta_data[2]
+                elif meta_type == 0x58 and meta_len >= 2:
+                    # Time signature: nn dd cc bb
+                    ts_num = meta_data[0]
+                    ts_den = 2 ** meta_data[1]
+                    time_sig = (ts_num, ts_den)
+                # End of track (0x2F) and others: just skip
+
+            elif byte == 0xF0 or byte == 0xF7:
+                # SysEx event
+                pos += 1
+                sysex_len, pos = _read_vlq(raw, pos)
+                pos += sysex_len
+
+            elif byte & 0x80:
+                # Channel message with status byte
+                status = byte
+                running_status = status
+                pos += 1
+                msg_type = status & 0xF0
+                channel = status & 0x0F
+
+                if msg_type == 0x90:
+                    # Note On
+                    pitch = raw[pos]; pos += 1
+                    vel = raw[pos]; pos += 1
+                    if vel == 0:
+                        track_events.append(
+                            (abs_tick, "note_off", channel,
+                             {"pitch": pitch, "velocity": 0}))
+                    else:
+                        track_events.append(
+                            (abs_tick, "note_on", channel,
+                             {"pitch": pitch, "velocity": vel}))
+                elif msg_type == 0x80:
+                    # Note Off
+                    pitch = raw[pos]; pos += 1
+                    vel = raw[pos]; pos += 1
+                    track_events.append(
+                        (abs_tick, "note_off", channel,
+                         {"pitch": pitch, "velocity": vel}))
+                elif msg_type in (0xA0, 0xB0, 0xE0):
+                    # Aftertouch, Control Change, Pitch Bend: 2 data bytes
+                    pos += 2
+                elif msg_type in (0xC0, 0xD0):
+                    # Program Change, Channel Pressure: 1 data byte
+                    pos += 1
+                else:
+                    # Unknown channel message, skip 2 bytes as safe default
+                    pos += 2
+            else:
+                # Running status (no status byte, reuse previous)
+                if running_status == 0:
+                    # No previous status, skip byte
+                    pos += 1
+                    continue
+                msg_type = running_status & 0xF0
+                channel = running_status & 0x0F
+
+                if msg_type == 0x90:
+                    pitch = raw[pos]; pos += 1
+                    vel = raw[pos]; pos += 1
+                    if vel == 0:
+                        track_events.append(
+                            (abs_tick, "note_off", channel,
+                             {"pitch": pitch, "velocity": 0}))
+                    else:
+                        track_events.append(
+                            (abs_tick, "note_on", channel,
+                             {"pitch": pitch, "velocity": vel}))
+                elif msg_type == 0x80:
+                    pitch = raw[pos]; pos += 1
+                    vel = raw[pos]; pos += 1
+                    track_events.append(
+                        (abs_tick, "note_off", channel,
+                         {"pitch": pitch, "velocity": vel}))
+                elif msg_type in (0xA0, 0xB0, 0xE0):
+                    pos += 2
+                elif msg_type in (0xC0, 0xD0):
+                    pos += 1
+                else:
+                    pos += 2
+
+        tracks.append(track_events)
+
+    return {
+        "ticks_per_beat": ticks_per_beat,
+        "tempo": tempo,
+        "time_sig": time_sig,
+        "tracks": tracks,
+    }

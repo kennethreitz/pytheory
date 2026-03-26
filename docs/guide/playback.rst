@@ -177,3 +177,33 @@ Optional synth, envelope, and gap parameters:
    play_progression(chords, t=2000, envelope=Envelope.PAD)
 
 That's the workflow: hear it, tweak it, hear it again. When it sounds right, export to WAV or MIDI and take it somewhere bigger.
+
+MIDI Import
+-----------
+
+Load any Standard MIDI File into a Score — then play it through
+PyTheory's synth engine with effects, or analyze the theory:
+
+.. code-block:: python
+
+   from pytheory import Score
+   from pytheory.play import play_score
+
+   score = Score.from_midi("song.mid")
+
+   # See what's inside
+   for name, part in score.parts.items():
+       print(f"{name}: {len(part.notes)} notes")
+
+   # Change the synth and add effects
+   score.parts["ch1"].synth = "saw"
+   score.parts["ch1"].reverb_mix = 0.3
+
+   play_score(score)
+
+Each MIDI channel becomes a named Part (``ch1``, ``ch2``, etc.).
+Channel 10 (drums) becomes drum hits. Tempo, time signature,
+note durations, and velocities are all preserved.
+
+Download any MIDI file from the internet, load it, play it through
+the synth engine with reverb and delay. That's the whole idea.
