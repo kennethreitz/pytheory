@@ -458,25 +458,43 @@ def _synth_kick(n_samples):
 
 
 def _synth_snare(n_samples):
-    """Synthesize a snare: pitched body + noise rattle."""
-    body = _sine_f32(180, n_samples) * _exp_decay(n_samples, 15) * 0.6
-    noise = _noise(n_samples) * _exp_decay(n_samples, 12) * 0.7
-    return body + noise
+    """Synthesize a snare: pitched body + noise snap + transient click."""
+    # Body: 220 Hz (was 180) — brighter, more present
+    body = _sine_f32(220, n_samples) * _exp_decay(n_samples, 25) * 0.5
+    # Noise rattle: faster decay for snap (was 12)
+    noise = _noise(n_samples) * _exp_decay(n_samples, 20) * 0.8
+    # Transient click — the stick hitting the head
+    click_len = min(150, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 120)
+    body[:click_len] += click * 0.4
+    # Soft saturation for presence and density
+    return numpy.tanh(body + noise)
 
 
 def _synth_hat_closed(n_samples):
-    """Closed hi-hat: filtered noise, very short."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.05))
-    wave = _noise(n) * _exp_decay(n, 60)
+    """Closed hi-hat: short, crisp, metallic."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.03))  # 30ms (was 50ms)
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Metallic harmonics — inharmonic frequencies that make cymbals shimmer
+    metallic = (numpy.sin(2 * numpy.pi * 6000 * t) * 0.3 +
+                numpy.sin(2 * numpy.pi * 8500 * t) * 0.2 +
+                numpy.sin(2 * numpy.pi * 12000 * t) * 0.15)
+    noise = _noise(n) * 0.6
+    wave = (metallic + noise) * _exp_decay(n, 100)  # fast decay (was 60)
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
 
 
 def _synth_hat_open(n_samples):
-    """Open hi-hat: filtered noise, longer."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.25))
-    wave = _noise(n) * _exp_decay(n, 12)
+    """Open hi-hat: bright, metallic, controlled decay."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.15))  # 150ms (was 250ms)
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    metallic = (numpy.sin(2 * numpy.pi * 6000 * t) * 0.3 +
+                numpy.sin(2 * numpy.pi * 8500 * t) * 0.2 +
+                numpy.sin(2 * numpy.pi * 12000 * t) * 0.15)
+    noise = _noise(n) * 0.5
+    wave = (metallic + noise) * _exp_decay(n, 18)  # tighter (was 12)
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
