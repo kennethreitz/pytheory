@@ -7,7 +7,10 @@ Usage:
     pytheory repl
 """
 
-import readline
+try:
+    import readline  # noqa: F401 — enables line editing on Unix
+except ImportError:
+    pass  # Windows: REPL works without line editing
 import sys
 
 from .scales import Key, TonedScale
@@ -166,8 +169,8 @@ def cmd_drums(session, args):
     preset = " ".join(args[:-1]) if args[-1].isdigit() else " ".join(args)
     repeats = int(args[-1]) if args[-1].isdigit() else 4
     try:
-        session._drum_preset = preset
         session.score.drums(preset, repeats=repeats)
+        session._drum_preset = preset  # only persist after success
         print(f"  score.drums(\"{preset}\", repeats={repeats})")
     except ValueError as e:
         print(f"  error: {e}")
@@ -380,13 +383,20 @@ def cmd_show(session, args):
     for name, part in session.parts.items():
         active = " ←" if part is session.current_part else ""
         fx = []
-        if part.reverb_mix > 0: fx.append(f"reverb={part.reverb_mix}")
-        if part.delay_mix > 0: fx.append(f"delay={part.delay_mix}")
-        if part.lowpass > 0: fx.append(f"lp={part.lowpass}")
-        if part.distortion_mix > 0: fx.append(f"dist={part.distortion_mix}")
-        if part.chorus_mix > 0: fx.append(f"chorus={part.chorus_mix}")
-        if part.legato: fx.append("legato")
-        if part.humanize > 0: fx.append(f"humanize={part.humanize}")
+        if part.reverb_mix > 0:
+            fx.append(f"reverb={part.reverb_mix}")
+        if part.delay_mix > 0:
+            fx.append(f"delay={part.delay_mix}")
+        if part.lowpass > 0:
+            fx.append(f"lp={part.lowpass}")
+        if part.distortion_mix > 0:
+            fx.append(f"dist={part.distortion_mix}")
+        if part.chorus_mix > 0:
+            fx.append(f"chorus={part.chorus_mix}")
+        if part.legato:
+            fx.append("legato")
+        if part.humanize > 0:
+            fx.append(f"humanize={part.humanize}")
         fx_str = " " + " ".join(fx) if fx else ""
         print(f"    {name}: {part.synth}+{part.envelope} "
               f"{len(part.notes)} notes{fx_str}{active}")
@@ -395,9 +405,14 @@ def cmd_show(session, args):
 
 
 def cmd_chords(session, args):
-    numerals = ["I", "ii", "iii", "IV", "V", "vi", "vii°"]
-    for num, chord in zip(numerals, session.key.chords):
-        print(f"  {num:6s}  {chord}")
+    chords = session.key.chords
+    for i, chord in enumerate(chords):
+        from .chords import Chord as ChordClass
+        # Build actual chord to get proper Roman numeral analysis
+        c = session.key.triad(i)
+        analysis = c.analyze(session.key.tonic_name, session.key.mode)
+        label = analysis or str(i + 1)
+        print(f"  {label:6s}  {chord}")
 
 
 def cmd_modes(session, args):
@@ -530,8 +545,16 @@ def cmd_circle(session, args):
 
 
 def cmd_clear(session, args):
-    session.rebuild()
-    print("  cleared")
+    """Full reset — back to initial state."""
+    session.key = Key("C", "major")
+    session.bpm = 120
+    session.time_sig = "4/4"
+    session.swing = 0.0
+    session._drum_preset = None
+    session.score = Score(session.time_sig, bpm=session.bpm)
+    session.parts = {}
+    session.current_part = None
+    print("  cleared (C major, 120 bpm)")
 
 
 def cmd_status(session, args):
@@ -554,7 +577,7 @@ COMMANDS = {
     "add": cmd_add,
     "rest": cmd_rest,
     "arp": cmd_arp,
-    "prog": cmd_prog,
+    "prog": cmd_prog, "progression": cmd_prog,
     "reverb": lambda s, a: _set_effect(s, "reverb", a),
     "delay": lambda s, a: _set_effect(s, "delay", a),
     "lowpass": lambda s, a: _set_effect(s, "lowpass", a, 2000),
@@ -602,11 +625,16 @@ def _prompt(session):
     if session.current_part is not None:
         p = session.current_part
         fx = []
-        if p.reverb_mix > 0: fx.append(f"rev={p.reverb_mix}")
-        if p.delay_mix > 0: fx.append(f"del={p.delay_mix}")
-        if p.lowpass > 0: fx.append(f"lp={int(p.lowpass)}")
-        if p.distortion_mix > 0: fx.append(f"dist={p.distortion_mix}")
-        if p.legato: fx.append("legato")
+        if p.reverb_mix > 0:
+            fx.append(f"rev={p.reverb_mix}")
+        if p.delay_mix > 0:
+            fx.append(f"del={p.delay_mix}")
+        if p.lowpass > 0:
+            fx.append(f"lp={int(p.lowpass)}")
+        if p.distortion_mix > 0:
+            fx.append(f"dist={p.distortion_mix}")
+        if p.legato:
+            fx.append("legato")
         part_str = f"{p.name}({p.synth})"
         if fx:
             part_str += f" {' '.join(fx)}"
