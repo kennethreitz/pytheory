@@ -6,7 +6,7 @@ multi-part arrangements, and exporting them to MIDI for your DAW.
 
 Use it to learn theory by doing — build chords from intervals and hear
 the result. Use it to sketch song ideas faster than clicking through a
-DAW. Use it with `Claude Code <https://claude.ai/code>`_ to prototype
+DAW. Use it with Claude Code to prototype
 music from natural language. Or just use it to answer "what chords are
 in G major?" without opening a browser.
 
@@ -82,7 +82,7 @@ What's Inside
 - **Instruments** — 25 presets with fingering generation
 - **Export** — MIDI, WAV, real-time playback
 - **CLI** — ``pytheory demo``, ``key``, ``chord``, ``midi``, ``play``, and more
-- **AI-friendly** — `Claude Code <https://claude.ai/code>`_ can compose
+- **AI-friendly** — Claude Code can compose
   and play music through PyTheory from natural language
 
 .. toctree::
