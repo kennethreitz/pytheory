@@ -1264,6 +1264,26 @@ def _apply_part_effects(samples, part):
     return _apply_effects_with_params(samples, params)
 
 
+def _pan_to_stereo(mono, pan=0.0):
+    """Pan a mono buffer into a stereo (N, 2) array.
+
+    Args:
+        mono: Float32 1D array.
+        pan: -1.0 (full left) to 1.0 (full right). 0.0 = center.
+
+    Returns:
+        Float32 (N, 2) array.
+    """
+    # Constant-power panning (equal loudness across the field)
+    angle = (pan + 1.0) * 0.25 * numpy.pi  # 0 to pi/2
+    left_gain = numpy.cos(angle)
+    right_gain = numpy.sin(angle)
+    stereo = numpy.zeros((len(mono), 2), dtype=numpy.float32)
+    stereo[:, 0] = mono * left_gain
+    stereo[:, 1] = mono * right_gain
+    return stereo
+
+
 def _master_compress(samples, threshold=0.5, ratio=4.0, attack=0.002,
                      release=0.05, makeup=True, limiter=True,
                      sample_rate=SAMPLE_RATE):
@@ -1374,7 +1394,7 @@ def _total_samples_from_tempo_map(total_beats, tempo_map):
 def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          synth_fn, envelope_tuple, volume, bpm,
                          swing=0.0, tempo_map=None, humanize=0.0,
-                         detune=0.0):
+                         detune=0.0, spread=0.0, stereo_buf=None):
     """Render a list of Notes into an existing buffer at the correct positions."""
     import random as _rnd
 
@@ -1407,14 +1427,25 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     pitches = [note.tone.pitch()]
                 # Render oscillators
                 waves = [synth_fn(hz, n_samples=n_samples) for hz in pitches]
-                # Detune: add a second oscillator shifted by ±cents
+                # Detune: add oscillators shifted by ±cents
+                detune_up = None
+                detune_down = None
                 if detune > 0:
+                    up_waves = []
+                    down_waves = []
                     for hz in pitches:
                         hz_up = hz * (2 ** (detune / 1200))
                         hz_down = hz * (2 ** (-detune / 1200))
-                        waves.append(synth_fn(hz_up, n_samples=n_samples))
-                        waves.append(synth_fn(hz_down, n_samples=n_samples))
-                mixed = sum(w.astype(numpy.float32) for w in waves) / (SAMPLE_PEAK * (1 + (2 if detune > 0 else 0)))
+                        up_waves.append(synth_fn(hz_up, n_samples=n_samples))
+                        down_waves.append(synth_fn(hz_down, n_samples=n_samples))
+                    if spread > 0 and stereo_buf is not None:
+                        # Spread: detuned oscillators go to opposite channels
+                        detune_up = sum(w.astype(numpy.float32) for w in up_waves) / SAMPLE_PEAK
+                        detune_down = sum(w.astype(numpy.float32) for w in down_waves) / SAMPLE_PEAK
+                    else:
+                        waves.extend(up_waves + down_waves)
+                n_osc = len(waves)
+                mixed = sum(w.astype(numpy.float32) for w in waves) / (SAMPLE_PEAK * max(1, n_osc))
                 if a > 0 or d > 0 or s < 1.0 or r > 0:
                     mixed = _apply_envelope(mixed, a, d, s, r)
                 # Apply per-note velocity scaling + humanize velocity
@@ -1425,6 +1456,18 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 vel_scale = vel / 127.0
                 end = min(start + len(mixed), total_samples)
                 buf[start:end] += mixed[:end - start] * volume * vel_scale
+                # Spread detuned oscillators into stereo L/R
+                if detune_up is not None and stereo_buf is not None:
+                    spread_amt = spread
+                    up_env = detune_up[:end - start]
+                    down_env = detune_down[:end - start]
+                    if a > 0 or d > 0 or s < 1.0 or r > 0:
+                        up_env = _apply_envelope(up_env.copy(), a, d, s, r)
+                        down_env = _apply_envelope(down_env.copy(), a, d, s, r)
+                    gain = volume * vel_scale * 0.5
+                    # Right channel gets up-detuned, left gets down-detuned
+                    stereo_buf[start:end, 1] += up_env * gain * spread_amt
+                    stereo_buf[start:end, 0] += down_env * gain * spread_amt
         beat_pos += note.beats
 
 
@@ -1539,7 +1582,7 @@ def render_score(score):
         score: A :class:`Score` object.
 
     Returns:
-        Float32 numpy array of audio samples.
+        Float32 stereo numpy array (N, 2).
     """
     # Build tempo map for variable tempo support
     tempo_map = _build_tempo_map(score)
@@ -1552,6 +1595,9 @@ def render_score(score):
         total_samples = _total_samples_from_tempo_map(total_beats, tempo_map)
     else:
         total_samples = int(total_beats * samples_per_beat)
+    # Stereo master buffer
+    stereo_buf = numpy.zeros((total_samples, 2), dtype=numpy.float32)
+    # Mono buffer for backwards-compat rendering
     buf = numpy.zeros(total_samples, dtype=numpy.float32)
 
     # Default notes (backwards-compatible .add() calls)
@@ -1583,7 +1629,9 @@ def render_score(score):
                     swing=effective_swing,
                     tempo_map=tempo_map if has_tempo_changes else None,
                     humanize=part.humanize,
-                    detune=part.detune)
+                    detune=part.detune,
+                    spread=part.spread,
+                    stereo_buf=stereo_buf)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()
@@ -1620,7 +1668,8 @@ def render_score(score):
             if getattr(part, 'sidechain', 0) > 0:
                 _pending_sidechain.append((part, part_buf))
             else:
-                buf += part_buf
+                # Pan mono part into stereo
+                stereo_buf += _pan_to_stereo(part_buf, part.pan)
 
     # Drum hits — render to separate buffer for sidechain trigger
     drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)
@@ -1651,14 +1700,20 @@ def render_score(score):
             part_buf, drum_buf,
             amount=part.sidechain,
             release=part.sidechain_release)
-        buf += part_buf
+        stereo_buf += _pan_to_stereo(part_buf, part.pan)
 
-    buf += drum_buf
+    # Default notes (mono, center)
+    if score.notes:
+        stereo_buf += _pan_to_stereo(buf, 0.0)
 
-    # Master bus compressor/limiter
-    buf = _master_compress(buf)
+    # Drums: center
+    stereo_buf += _pan_to_stereo(drum_buf, 0.0)
 
-    return buf
+    # Master bus compressor/limiter (per channel)
+    stereo_buf[:, 0] = _master_compress(stereo_buf[:, 0])
+    stereo_buf[:, 1] = _master_compress(stereo_buf[:, 1])
+
+    return stereo_buf
 
 
 def play_score(score):

@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.26.0
+
+- **Stereo output** — render_score() now returns stereo (N, 2) arrays
+- Add `pan` parameter: -1.0 (left) to 1.0 (right), constant-power panning
+- Add `spread` parameter: detuned oscillators spread across L/R channels
+- Master bus compressor runs per-channel for stereo
+- All playback functions handle stereo natively
+
 ## 0.25.7
 
 - Add `detune` parameter — ±cents oscillator spread on any synth (3 oscillators per note)
