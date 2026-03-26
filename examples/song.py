@@ -986,6 +986,50 @@ def dance_party():
     play_song(score)
 
 
+def temple_bell():
+    """Japanese-inspired — sparse koto, Taj Mahal reverb, silence as instrument."""
+    print("  Temple Bell")
+    print("  E hirajoshi | 65 bpm | triangle koto + Taj Mahal reverb")
+
+    score = Score("4/4", bpm=65)
+    score.drums("bolero", repeats=8)
+
+    koto = score.part("koto", synth="triangle", envelope="pluck",
+                      volume=0.45, pan=0.2,
+                      reverb=0.5, reverb_type="taj_mahal",
+                      humanize=0.3)
+    drone = score.part("drone", synth="sine", envelope="pad",
+                       volume=0.15, reverb=0.6, reverb_type="taj_mahal",
+                       chorus=0.15, chorus_rate=0.2)
+    bell = score.part("bell", synth="fm", envelope="bell",
+                      volume=0.1, pan=-0.6,
+                      reverb=0.8, reverb_type="taj_mahal")
+
+    for _ in range(8):
+        drone.add("E2", Duration.WHOLE)
+
+    for n, v, d in [
+        ("E4", 70, 2), (None, 0, 2), ("A4", 60, 1.5), (None, 0, 2.5),
+        ("B4", 75, 2), ("A4", 60, 1), ("E4", 55, 1), (None, 0, 4),
+        ("C5", 80, 3), (None, 0, 1), ("B4", 65, 1.5), ("A4", 55, 1.5),
+        ("E4", 50, 3), (None, 0, 5),
+        ("F4", 60, 1), ("A4", 70, 1.5), ("B4", 80, 2.5), (None, 0, 3),
+        ("E5", 85, 4), (None, 0, 4),
+        ("C5", 65, 1.5), ("B4", 55, 1.5), ("A4", 50, 2),
+        ("E4", 45, 5), (None, 0, 3),
+    ]:
+        koto.rest(d) if n is None else koto.add(n, d, velocity=v)
+
+    for n, v, d in [
+        (None, 0, 8), ("E6", 30, 4), (None, 0, 8),
+        ("B6", 25, 3), (None, 0, 9),
+        ("A6", 30, 4), (None, 0, 12),
+    ]:
+        bell.rest(d) if n is None else bell.add(n, d, velocity=v)
+
+    play_song(score)
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1006,6 +1050,7 @@ SONGS = {
     "17": ("Neon Grid (Stereo Acid)", neon_grid),
     "18": ("Glass and Silk (Sine+Triangle)", glass_and_silk),
     "19": ("Dance Party at the Reitz House", dance_party),
+    "20": ("Temple Bell (Japanese)", temple_bell),
 }
 
 if __name__ == "__main__":
@@ -1019,7 +1064,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-19, or 'all'): ").strip()
+        choice = input("  Pick a song (1-20, or 'all'): ").strip()
         print()
 
         if choice == "all":
