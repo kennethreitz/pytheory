@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.4
+
+- Add master bus compressor/limiter — louder, punchier, more cohesive mixes
+- Feed-forward compression with configurable threshold, ratio, attack, release
+- Makeup gain restores loudness after compression
+- Brick-wall limiter at 0.95 prevents clipping
+- Replaces simple normalization in render_score()
+
 ## 0.25.3
 
 - Add `pytheory repl` — interactive music theory scratchpad and composition tool

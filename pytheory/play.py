@@ -1246,6 +1246,74 @@ def _apply_part_effects(samples, part):
     return _apply_effects_with_params(samples, params)
 
 
+def _master_compress(samples, threshold=0.5, ratio=4.0, attack=0.002,
+                     release=0.05, makeup=True, limiter=True,
+                     sample_rate=SAMPLE_RATE):
+    """Master bus compressor with brick-wall limiter.
+
+    Makes the mix louder, punchier, and more cohesive. Reduces the
+    dynamic range so quiet parts come up and loud parts are controlled —
+    the difference between a bedroom demo and a finished mix.
+
+    The compressor uses feed-forward gain reduction with envelope
+    following. The limiter is a brick-wall at 0.95 to prevent clipping.
+
+    Args:
+        samples: Float32 numpy array (the full mix).
+        threshold: Level above which compression kicks in (0.0–1.0).
+            Lower = more compression. 0.3–0.5 is typical for a master.
+        ratio: Compression ratio above threshold (default 4:1).
+            2:1 = gentle, 4:1 = moderate, 10:1 = heavy, inf = limiter.
+        attack: How fast the compressor reacts, in seconds.
+        release: How fast it lets go, in seconds.
+        makeup: If True, apply makeup gain to restore loudness.
+        limiter: If True, apply brick-wall limiter at 0.95.
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array — compressed and limited.
+    """
+    if len(samples) == 0:
+        return samples
+
+    # Compute envelope (absolute value, smoothed)
+    env = numpy.abs(samples)
+    alpha_a = 1.0 - numpy.exp(-1.0 / (attack * sample_rate))
+    alpha_r = 1.0 - numpy.exp(-1.0 / (release * sample_rate))
+
+    smoothed = numpy.zeros(len(env), dtype=numpy.float32)
+    smoothed[0] = env[0]
+    for i in range(1, len(env)):
+        if env[i] > smoothed[i - 1]:
+            smoothed[i] = alpha_a * env[i] + (1 - alpha_a) * smoothed[i - 1]
+        else:
+            smoothed[i] = alpha_r * env[i] + (1 - alpha_r) * smoothed[i - 1]
+
+    # Compute gain reduction
+    gain = numpy.ones(len(samples), dtype=numpy.float32)
+    above = smoothed > threshold
+    if numpy.any(above):
+        # dB domain compression
+        over = smoothed[above] / threshold
+        reduced = threshold * (over ** (1.0 / ratio))
+        gain[above] = reduced / smoothed[above]
+
+    # Apply gain
+    compressed = samples * gain
+
+    # Makeup gain — bring the level back up
+    if makeup:
+        peak = numpy.max(numpy.abs(compressed))
+        if peak > 0:
+            compressed = compressed / peak * 0.9
+
+    # Brick-wall limiter — hard clip at 0.95
+    if limiter:
+        compressed = numpy.clip(compressed, -0.95, 0.95)
+
+    return compressed
+
+
 def _resolve_synth(name):
     """Map synth name string to wave function."""
     return _SYNTH_FUNCTIONS.get(name, sine_wave)
@@ -1551,10 +1619,8 @@ def render_score(score):
 
     buf += drum_buf
 
-    # Normalize
-    peak = numpy.max(numpy.abs(buf))
-    if peak > 0:
-        buf = buf / peak * 0.9
+    # Master bus compressor/limiter
+    buf = _master_compress(buf)
 
     return buf
 
