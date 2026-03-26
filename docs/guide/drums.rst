@@ -27,8 +27,7 @@ Score:
    score = Score("4/4", bpm=120, drum_humanize=0.0)   # perfectly quantized
    score = Score("4/4", bpm=120, drum_humanize=0.1)   # studio tight
 
-The default is 0.3 — subtle enough to feel human, tight enough to
-sound professional.
+The default is 0.15 — just enough to feel alive without sounding loose.
 
 Every drum sound is stereo-panned like a real kit — kick and snare
 center, hi-hat right, crash left, toms spread across the field,

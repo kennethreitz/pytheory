@@ -1776,7 +1776,7 @@ class Score:
     """
 
     def __init__(self, time_signature="4/4", bpm=120, swing: float = 0.0,
-                 drum_humanize: float = 0.3):
+                 drum_humanize: float = 0.15):
         if isinstance(time_signature, str):
             self.time_signature = TimeSignature.from_string(time_signature)
         else:
