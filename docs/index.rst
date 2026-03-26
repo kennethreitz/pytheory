@@ -85,6 +85,9 @@ What's Inside
 - **AI-friendly** — Claude Code can compose
   and play music through PyTheory from natural language
 
+Music is math that makes you feel something. PyTheory gives you the
+math. What you feel is up to you.
+
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
