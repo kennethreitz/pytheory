@@ -1614,12 +1614,20 @@ def render_score(score):
 
     # Drum hits — render to separate buffer for sidechain trigger
     drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)
+    drum_swing = score.swing
     for hit in score._drum_hits:
+        pos = hit.position
+        # Apply swing: hits on offbeats get pushed later
+        if drum_swing > 0:
+            beat_frac = pos % 1.0
+            # Offbeat = not on a downbeat (0.0) — shift 8th note upbeats
+            if 0.1 < beat_frac < 0.9:
+                pos += drum_swing * 0.15  # subtle swing on drum hits
         if has_tempo_changes:
-            start = _beat_to_sample(hit.position, tempo_map)
+            start = _beat_to_sample(pos, tempo_map)
         else:
-            start = int(hit.position * samples_per_beat)
-        if start >= total_samples:
+            start = int(pos * samples_per_beat)
+        if start >= total_samples or start < 0:
             continue
         remaining = total_samples - start
         hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
