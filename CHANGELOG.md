@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.26.2
+
+- Stereo convolution reverb — different IR per L/R channel for all 7 presets
+- Both algorithmic and convolution reverbs now output true stereo
+
 ## 0.26.1
 
 - Stereo reverb — L and R channels get different early reflection patterns for natural width
