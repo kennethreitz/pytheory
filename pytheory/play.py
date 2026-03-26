@@ -501,134 +501,237 @@ def _synth_hat_open(n_samples):
 
 
 def _synth_clap(n_samples):
-    """Handclap: layered noise bursts."""
+    """Handclap: 808-style layered bursts with filtered tail."""
     wave = numpy.zeros(n_samples, dtype=numpy.float32)
-    for offset_ms in [0, 10, 20, 30]:
+    # Multiple hands hitting slightly apart — the 808 clap sound
+    for offset_ms in [0, 8, 16, 24, 30]:
         start = int(offset_ms * SAMPLE_RATE / 1000)
-        burst_len = min(int(SAMPLE_RATE * 0.03), n_samples - start)
+        burst_len = min(int(SAMPLE_RATE * 0.015), n_samples - start)
         if burst_len > 0:
-            wave[start:start + burst_len] += (
-                _noise(burst_len) * _exp_decay(burst_len, 40) * 0.4)
-    # Tail
-    tail_len = min(int(SAMPLE_RATE * 0.15), n_samples)
-    wave[:tail_len] += _noise(tail_len) * _exp_decay(tail_len, 18) * 0.3
-    return wave
+            burst = _noise(burst_len) * _exp_decay(burst_len, 60)
+            wave[start:start + burst_len] += burst * 0.5
+    # Filtered noise tail — bandpassed for that snappy clap character
+    tail_len = min(int(SAMPLE_RATE * 0.12), n_samples)
+    tail = _noise(tail_len) * _exp_decay(tail_len, 22) * 0.4
+    wave[:tail_len] += tail
+    # Slight saturation for presence
+    return numpy.tanh(wave * 1.3)
 
 
 def _synth_rimshot(n_samples):
-    """Rimshot: short bright click."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.03))
-    wave = (_sine_f32(800, n) + _noise(n) * 0.5) * _exp_decay(n, 80)
+    """Rimshot: bright attack + pitched ring, like a stick hitting the rim and head."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.05))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Two pitched components — the rim and the head resonate together
+    rim = _sine_f32(1200, n) * _exp_decay(n, 50) * 0.6
+    head = _sine_f32(400, n) * _exp_decay(n, 35) * 0.4
+    # Bright transient click
+    click = _noise(min(80, n)) * _exp_decay(min(80, n), 150) * 0.5
+    wave = rim + head
+    wave[:len(click)] += click
     out = numpy.zeros(n_samples, dtype=numpy.float32)
-    out[:n] = wave
+    out[:n] = numpy.tanh(wave * 1.2)
     return out
 
 
 def _synth_tom(hz, n_samples):
-    """Generic tom: pitched sine with decay."""
+    """Tom: pitched membrane with body resonance and attack transient."""
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    freq = hz + 30 * numpy.exp(-20 * t)
+    # Pitch sweep — higher pitch drops to target (stick impact)
+    freq = hz + 60 * numpy.exp(-35 * t)
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    return numpy.sin(phase) * _exp_decay(n_samples, 6)
+    body = numpy.sin(phase) * _exp_decay(n_samples, 5) * 0.8
+    # Second harmonic for fullness
+    body += numpy.sin(phase * 1.5) * _exp_decay(n_samples, 8) * 0.2
+    # Attack transient — the stick hitting the head
+    click_len = min(200, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 80) * 0.35
+    body[:click_len] += click
+    return numpy.tanh(body * 1.1)
 
 
 def _synth_crash(n_samples):
-    """Crash cymbal: long noise decay."""
-    n = min(n_samples, int(SAMPLE_RATE * 1.5))
-    wave = _noise(n) * _exp_decay(n, 3)
+    """Crash cymbal: complex metallic noise with inharmonic partials."""
+    n = min(n_samples, int(SAMPLE_RATE * 2.0))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Metallic partials — inharmonic frequencies that make cymbals shimmer
+    wave = (numpy.sin(2 * numpy.pi * 4200 * t) * 0.15 +
+            numpy.sin(2 * numpy.pi * 5800 * t) * 0.12 +
+            numpy.sin(2 * numpy.pi * 7300 * t) * 0.10 +
+            numpy.sin(2 * numpy.pi * 9100 * t) * 0.08 +
+            numpy.sin(2 * numpy.pi * 11500 * t) * 0.05)
+    # Noise layer for body
+    noise = _noise(n) * 0.4
+    wave = (wave + noise) * _exp_decay(n, 2.5)
+    # Bright attack burst
+    attack_len = min(int(SAMPLE_RATE * 0.01), n)
+    wave[:attack_len] += _noise(attack_len) * 0.6
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
 
 
 def _synth_ride(n_samples):
-    """Ride cymbal: metallic ring + noise."""
-    ring = _sine_f32(3500, n_samples) * _exp_decay(n_samples, 6) * 0.3
-    ring += _sine_f32(5100, n_samples) * _exp_decay(n_samples, 8) * 0.2
-    noise = _noise(n_samples) * _exp_decay(n_samples, 10) * 0.2
-    return ring + noise
+    """Ride cymbal: sustained metallic ring with stick definition."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.8))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Inharmonic partials — the shimmer
+    ring = (numpy.sin(2 * numpy.pi * 3200 * t) * 0.2 +
+            numpy.sin(2 * numpy.pi * 4800 * t) * 0.15 +
+            numpy.sin(2 * numpy.pi * 6700 * t) * 0.1 +
+            numpy.sin(2 * numpy.pi * 9200 * t) * 0.06)
+    ring *= _exp_decay(n, 5)
+    # Stick click — the initial "ting"
+    click_len = min(int(SAMPLE_RATE * 0.005), n)
+    click = _noise(click_len) * 0.5
+    ring[:click_len] += click
+    # Subtle noise wash
+    noise = _noise(n) * _exp_decay(n, 12) * 0.1
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = ring + noise
+    return out
 
 
 def _synth_ride_bell(n_samples):
-    """Ride bell: brighter, more sustain."""
-    ring = _sine_f32(3000, n_samples) * _exp_decay(n_samples, 4) * 0.5
-    ring += _sine_f32(4200, n_samples) * _exp_decay(n_samples, 5) * 0.3
-    return ring
+    """Ride bell: brighter, more sustain, pronounced ping."""
+    n = min(n_samples, int(SAMPLE_RATE * 1.0))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Stronger fundamental + harmonics
+    ring = (numpy.sin(2 * numpy.pi * 2800 * t) * 0.35 +
+            numpy.sin(2 * numpy.pi * 4100 * t) * 0.25 +
+            numpy.sin(2 * numpy.pi * 5600 * t) * 0.15 +
+            numpy.sin(2 * numpy.pi * 7800 * t) * 0.08)
+    ring *= _exp_decay(n, 3.5)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = ring
+    return out
 
 
 def _synth_cowbell(n_samples):
-    """Cowbell: two detuned tones."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.3))
-    wave = (_sine_f32(545, n) * 0.6 + _sine_f32(815, n) * 0.4) * _exp_decay(n, 12)
+    """Cowbell: 808-style — two detuned square-ish tones with bandpass character."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.25))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Two inharmonic tones — the 808 cowbell frequencies
+    tone1 = numpy.tanh(numpy.sin(2 * numpy.pi * 540 * t) * 2) * 0.5
+    tone2 = numpy.tanh(numpy.sin(2 * numpy.pi * 800 * t) * 2) * 0.4
+    wave = (tone1 + tone2) * _exp_decay(n, 14)
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
 
 
 def _synth_clave(n_samples):
-    """Clave: short high-pitched click."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.025))
-    wave = _sine_f32(2500, n) * _exp_decay(n, 100)
+    """Clave: sharp wooden click — two resonant frequencies."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.02))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Two wood resonances
+    wave = (_sine_f32(2500, n) * 0.6 + _sine_f32(3800, n) * 0.3)
+    wave *= _exp_decay(n, 120)
+    # Hard transient
+    click = _noise(min(30, n)) * _exp_decay(min(30, n), 200) * 0.4
+    wave[:len(click)] += click
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
 
 
 def _synth_conga(hz, n_samples):
-    """Conga/bongo: pitched membrane with slap."""
+    """Conga/bongo: pitched membrane with slap transient and body resonance."""
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    freq = hz + 50 * numpy.exp(-25 * t)
+    # Pitch drops from impact
+    freq = hz + 80 * numpy.exp(-30 * t)
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    body = numpy.sin(phase) * _exp_decay(n_samples, 10)
-    slap = _noise(min(500, n_samples)) * _exp_decay(min(500, n_samples), 60)
-    body[:len(slap)] += slap * 0.2
-    return body
+    body = numpy.sin(phase) * _exp_decay(n_samples, 8) * 0.7
+    # Second mode — the shell resonance
+    body += numpy.sin(phase * 1.6) * _exp_decay(n_samples, 12) * 0.2
+    # Slap — the hand hitting the skin
+    slap_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    slap = _noise(slap_len) * _exp_decay(slap_len, 100) * 0.5
+    body[:slap_len] += slap
+    return numpy.tanh(body * 1.1)
 
 
 def _synth_shaker(n_samples):
-    """Shaker/maracas: short noise burst."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.04))
-    wave = _noise(n) * _exp_decay(n, 50)
+    """Shaker/maracas: filtered noise with attack transient."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.06))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Noise shaped with an attack bump
+    env = numpy.exp(-40 * t) + 0.3 * numpy.exp(-8 * t)
+    wave = _noise(n) * env * 0.5
+    # Add high-frequency content for sparkle
+    wave += numpy.sin(2 * numpy.pi * 8000 * t) * _exp_decay(n, 60) * 0.15
     out = numpy.zeros(n_samples, dtype=numpy.float32)
-    out[:n] = wave * 0.5
+    out[:n] = wave
     return out
 
 
 def _synth_tambourine(n_samples):
-    """Tambourine: noise + jingle ring."""
-    noise = _noise(n_samples) * _exp_decay(n_samples, 15) * 0.4
-    jingle = _sine_f32(7000, n_samples) * _exp_decay(n_samples, 20) * 0.2
-    return noise + jingle
+    """Tambourine: jingle metal + noise body."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.2))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Multiple jingle frequencies — each zil is slightly different
+    jingle = (numpy.sin(2 * numpy.pi * 6500 * t) * 0.15 +
+              numpy.sin(2 * numpy.pi * 7800 * t) * 0.12 +
+              numpy.sin(2 * numpy.pi * 9200 * t) * 0.1 +
+              numpy.sin(2 * numpy.pi * 11000 * t) * 0.08)
+    jingle *= _exp_decay(n, 12)
+    # Noise body — the shake
+    noise = _noise(n) * _exp_decay(n, 18) * 0.3
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = jingle + noise
+    return out
 
 
 def _synth_timbale(hz, n_samples):
-    """Timbale: bright metallic ring."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.2))
-    wave = _sine_f32(hz, n) * _exp_decay(n, 15)
-    # Add overtone brightness
-    wave += _sine_f32(hz * 2.3, n) * _exp_decay(n, 25) * 0.3
+    """Timbale: bright metallic shell ring with sharp attack."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.25))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Fundamental + inharmonic overtones (metal shell)
+    wave = (_sine_f32(hz, n) * 0.5 +
+            numpy.sin(2 * numpy.pi * hz * 2.3 * t) * 0.25 +
+            numpy.sin(2 * numpy.pi * hz * 3.7 * t) * 0.12)
+    wave *= _exp_decay(n, 12)
+    # Sharp stick attack
+    click_len = min(60, n)
+    wave[:click_len] += _noise(click_len) * _exp_decay(click_len, 150) * 0.4
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
 
 
 def _synth_agogo(hz, n_samples):
-    """Agogo bell: pitched metallic ring."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.3))
-    wave = (_sine_f32(hz, n) * 0.7 + _sine_f32(hz * 1.5, n) * 0.3) * _exp_decay(n, 10)
+    """Agogo bell: two-tone metallic ring with sustain."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.4))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Two resonant modes — the bell shape creates inharmonic partials
+    wave = (numpy.sin(2 * numpy.pi * hz * t) * 0.5 +
+            numpy.sin(2 * numpy.pi * hz * 1.48 * t) * 0.3 +
+            numpy.sin(2 * numpy.pi * hz * 2.15 * t) * 0.12)
+    wave *= _exp_decay(n, 7)
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = wave
     return out
 
 
 def _synth_guiro(n_samples):
-    """Guiro: scraped noise bursts."""
+    """Guiro: scraped ridged surface — rhythmic noise bursts."""
     wave = numpy.zeros(n_samples, dtype=numpy.float32)
-    scrape_len = min(int(SAMPLE_RATE * 0.01), n_samples)
-    for i in range(0, min(n_samples, int(SAMPLE_RATE * 0.15)), scrape_len * 2):
-        end = min(i + scrape_len, n_samples)
-        wave[i:end] += _noise(end - i) * 0.6
-    wave *= _exp_decay(n_samples, 8)
+    total = min(n_samples, int(SAMPLE_RATE * 0.18))
+    scrape_len = min(int(SAMPLE_RATE * 0.006), n_samples)
+    gap = int(SAMPLE_RATE * 0.004)
+    pos = 0
+    loudness = 0.7
+    while pos < total:
+        end = min(pos + scrape_len, n_samples)
+        # Each scrape is slightly different
+        wave[pos:end] += _noise(end - pos) * loudness
+        # Subtle pitched component — the ridges
+        ridge_len = end - pos
+        t = numpy.arange(ridge_len, dtype=numpy.float32) / SAMPLE_RATE
+        wave[pos:end] += numpy.sin(2 * numpy.pi * 3000 * t) * loudness * 0.2
+        pos += scrape_len + gap
+        loudness *= 0.95  # slight fade
+    wave *= _exp_decay(n_samples, 6)
     return wave
 
 
