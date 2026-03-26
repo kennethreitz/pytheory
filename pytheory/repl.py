@@ -8,9 +8,9 @@ Usage:
 """
 
 try:
-    import readline  # noqa: F401 — enables line editing on Unix
+    import readline
 except ImportError:
-    pass  # Windows: REPL works without line editing
+    readline = None
 import sys
 
 from .scales import Key, TonedScale
@@ -650,8 +650,80 @@ def _prompt(session):
     return f"{lines}\n♫> "
 
 
+# ── Tab completion ─────────────────────────────────────────────────────────
+
+_SYNTH_NAMES = ["sine", "saw", "triangle", "square", "pulse", "fm",
+                "noise", "supersaw", "pwm_slow", "pwm_fast"]
+_ENVELOPE_NAMES = ["piano", "pluck", "pad", "organ", "bell", "strings",
+                   "staccato", "none"]
+_ARP_PATTERNS = ["up", "down", "updown", "downup", "random"]
+_LFO_SHAPES = ["sine", "triangle", "saw", "square"]
+_SYSTEMS = ["western", "indian", "arabic", "japanese", "blues", "gamelan"]
+_NOTE_NAMES = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb",
+               "G", "G#", "Ab", "A", "A#", "Bb", "B"]
+_CHORD_SUFFIXES = ["", "m", "7", "m7", "maj7", "dim", "aug", "sus2", "sus4",
+                   "m7b5", "dim7", "9", "m9", "maj9"]
+
+# Context-aware completions for the second word
+_ARG_COMPLETIONS = {
+    "drums": lambda: Pattern.list_presets(),
+    "part": lambda: _SYNTH_NAMES,
+    "key": lambda: [f"{n}m" for n in _NOTE_NAMES[:12]] + _NOTE_NAMES[:12],
+    "arp": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:6]],
+    "add": lambda: [f"{n}{o}" for n in _NOTE_NAMES[:12] for o in ["3", "4", "5"]],
+    "chord": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:6]],
+    "fingering": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:4]],
+    "system": lambda: _SYSTEMS,
+    "lfo": lambda: ["lowpass", "reverb", "delay", "distortion", "chorus", "volume"],
+    "set": lambda: ["lowpass", "reverb", "delay", "distortion", "chorus", "volume",
+                    "lowpass_q", "reverb_decay", "delay_time", "delay_feedback",
+                    "distortion_drive"],
+    "identify": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:6]],
+}
+
+
+def _completer(text, state):
+    """Tab completion for the REPL."""
+    line = readline.get_line_buffer() if readline else ""
+    tokens = line.split()
+
+    if len(tokens) <= 1:
+        # First word: complete command names
+        options = [cmd for cmd in COMMANDS if cmd.startswith(text)]
+    else:
+        # Second+ word: context-aware
+        cmd = tokens[0].lower()
+        if cmd in _ARG_COMPLETIONS:
+            try:
+                candidates = _ARG_COMPLETIONS[cmd]()
+                options = [c for c in candidates if c.startswith(text)]
+            except Exception:
+                options = []
+        elif cmd == "part" and len(tokens) == 3:
+            # Third arg for part is envelope
+            options = [e for e in _ENVELOPE_NAMES if e.startswith(text)]
+        elif cmd == "arp" and len(tokens) == 3:
+            # Pattern for arp
+            options = [p for p in _ARP_PATTERNS if p.startswith(text)]
+        elif cmd == "lfo" and len(tokens) >= 7:
+            # Shape for lfo
+            options = [s for s in _LFO_SHAPES if s.startswith(text)]
+        else:
+            options = []
+
+    if state < len(options):
+        return options[state] + " "
+    return None
+
+
 def main():
     session = Session()
+
+    # Set up tab completion
+    if readline:
+        readline.set_completer(_completer)
+        readline.parse_and_bind("tab: complete")
+        readline.set_completer_delims(" ")
 
     print()
     print("  ♫  PyTheory REPL")
