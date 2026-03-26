@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.25.5
+
+- Improved snare: 220Hz body, transient click, tanh saturation — snappier and more present
+- Improved hi-hats: metallic harmonics (6k+8.5k+12k Hz), shorter decay, crisper attack
+
 ## 0.25.4
 
 - Add master bus compressor/limiter — louder, punchier, more cohesive mixes
