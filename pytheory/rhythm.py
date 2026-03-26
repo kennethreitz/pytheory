@@ -1775,13 +1775,15 @@ class Score:
         play_score(score)
     """
 
-    def __init__(self, time_signature="4/4", bpm=120, swing: float = 0.0):
+    def __init__(self, time_signature="4/4", bpm=120, swing: float = 0.0,
+                 drum_humanize: float = 0.3):
         if isinstance(time_signature, str):
             self.time_signature = TimeSignature.from_string(time_signature)
         else:
             self.time_signature = time_signature
         self.bpm = bpm
         self.swing = swing
+        self._drum_humanize = drum_humanize
         self.notes: list[Note] = []
         self.parts: dict[str, Part] = {}
         self._drum_hits: list[_Hit] = []

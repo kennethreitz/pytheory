@@ -1951,9 +1951,11 @@ def render_score(score):
     }
 
     # Drum hits — render to mono sidechain trigger + stereo output
+    import random as _drum_rnd
     drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)  # mono for sidechain
     drum_stereo = numpy.zeros((total_samples, 2), dtype=numpy.float32)
     drum_swing = score.swing
+    drum_humanize = getattr(score, '_drum_humanize', 0.3)  # subtle by default
     for hit in score._drum_hits:
         pos = hit.position
         if drum_swing > 0:
@@ -1964,12 +1966,21 @@ def render_score(score):
             start = _beat_to_sample(pos, tempo_map)
         else:
             start = int(pos * samples_per_beat)
+        # Humanize: random timing jitter + velocity variation
+        if drum_humanize > 0:
+            max_offset = int(drum_humanize * 0.03 * samples_per_beat)
+            start += _drum_rnd.randint(-max_offset, max_offset)
+            start = max(0, start)
         if start >= total_samples or start < 0:
             continue
         remaining = total_samples - start
         hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
         wave = _render_drum_hit(hit.sound.value, hit_len)
-        vel_scale = hit.velocity / 127.0
+        vel = hit.velocity
+        if drum_humanize > 0:
+            vel_jitter = int(drum_humanize * 10)
+            vel = max(1, min(127, vel + _drum_rnd.randint(-vel_jitter, vel_jitter)))
+        vel_scale = vel / 127.0
         mono_hit = wave * vel_scale * 0.7
         # Mono sidechain trigger (always center)
         drum_buf[start:start + hit_len] += mono_hit
