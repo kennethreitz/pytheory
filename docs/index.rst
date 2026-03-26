@@ -73,15 +73,18 @@ What's Inside
 -------------
 
 - **Theory** — tones, scales (40+ across 6 systems), chords (17 types),
-  keys, Roman numeral analysis, modulation, voice leading
+  keys, Roman numeral analysis, figured bass, pitch class sets (Forte
+  numbers), scale recommendation, modulation, voice leading
 - **Sequencing** — Score, Parts, arpeggiator, legato/glide, velocity,
-  swing, humanize, tempo changes, song sections
-- **Synthesis** — 10 waveforms, 8 envelopes, 58 drum patterns, 21 fills
-- **Effects** — reverb (algorithmic + 7 convolution IRs), delay, lowpass,
-  distortion, chorus, sidechain, automation, LFOs
+  swing, humanize, tempo changes, song sections with repeat
+- **Synthesis** — 10 waveforms, 8 envelopes, detune, stereo pan/spread,
+  58 drum patterns (stereo panned), 21 fills
+- **Effects** — reverb (algorithmic + 7 convolution IRs, stereo), delay,
+  lowpass (with resonance), distortion, chorus, sidechain compression,
+  automation, LFOs. Master bus compressor/limiter
 - **Instruments** — 25 presets with fingering generation
-- **Export** — MIDI, WAV, real-time playback
-- **CLI** — ``pytheory demo``, ``key``, ``chord``, ``midi``, ``play``, and more
+- **Output** — stereo playback, WAV, MIDI export
+- **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``
 - **AI-friendly** — Claude Code can compose
   and play music through PyTheory from natural language
 

@@ -47,7 +47,12 @@ Optional parameters for synth, envelope, and temperament:
 play_score() -- Full Arrangements
 ---------------------------------
 
-Plays a ``Score`` with all its parts and drums mixed together:
+Plays a ``Score`` with all its parts and drums mixed together.
+Output is **stereo** — each part is panned according to its ``pan``
+setting, drums are stereo-panned like a real kit, and reverb tails
+have natural stereo width. A **master bus compressor/limiter** (4:1
+ratio, brick-wall at 0.95) is applied to prevent clipping and make
+the mix louder and punchier:
 
 .. code-block:: python
 

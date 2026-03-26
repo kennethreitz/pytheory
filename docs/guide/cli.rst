@@ -4,6 +4,14 @@ Command-Line Interface
 PyTheory includes a CLI for music theory lookups, composition, and
 playback — all from the terminal.
 
+Interactive REPL
+----------------
+
+For extended exploration, the REPL is a music theory scratchpad with
+tab completion. See the :doc:`repl` guide for details::
+
+    $ pytheory repl
+
 Demo
 ----
 

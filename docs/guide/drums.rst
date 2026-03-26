@@ -16,6 +16,11 @@ Every sound is generated from waveforms; no samples needed.
 Drum Sounds
 -----------
 
+Every drum sound is stereo-panned like a real kit — kick and snare
+center, hi-hat right, crash left, toms spread across the field,
+percussion instruments placed naturally. Put on headphones and you'll
+hear the kit in front of you.
+
 The ``DrumSound`` enum maps to General MIDI percussion note numbers:
 
 .. code-block:: pycon

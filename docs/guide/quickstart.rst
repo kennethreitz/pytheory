@@ -208,32 +208,35 @@ What's in the Box
 -----------------
 
 **Theory** — tones, scales (40+ across 6 musical systems), chords
-(17 types, Roman numeral analysis, tension scoring, voice leading),
-keys (detection, signatures, modulation paths, borrowed chords).
+(17 types, Roman numeral analysis, figured bass, tension scoring,
+voice leading, pitch class sets with Forte numbers), keys (detection,
+signatures, modulation paths, borrowed chords), scale recommendation.
 
 **Sequencing** — Score, Part, Duration, TimeSignature. Arpeggiator
 with 5 patterns. Legato with pitch glide. Per-note velocity. Swing.
 Tempo changes. Fade in/out. Song sections with repeat. Humanize.
 
 **Synthesis** — 10 waveforms: sine, saw, triangle, square, pulse, FM,
-noise, supersaw, PWM slow, PWM fast. 8 ADSR envelopes.
+noise, supersaw, PWM slow, PWM fast. 8 ADSR envelopes. Detune.
+Stereo pan and spread.
 
 **Effects** — distortion, chorus, lowpass filter (with resonance),
-delay, reverb (algorithmic + 7 convolution presets including
+delay, reverb (algorithmic + 7 stereo convolution presets including
 Taj Mahal with 12-second tail). All per-part with automation and
-LFO modulation. Sidechain compression.
+LFO modulation. Sidechain compression. Master bus compressor/limiter.
 
 **Drums** — 58 pattern presets (rock, jazz, salsa, bossa nova,
 afrobeat, house, trap, and 50+ more). 21 fill presets. 27 synthesized
-drum voices.
+drum voices with stereo panning.
 
 **Instruments** — 25 presets (guitar with 8 tunings, bass, ukulele,
 mandolin family, violin family, banjo, harp, oud, sitar, erhu, and
 more) with chord fingering generation and scale diagrams.
 
-**Export** — MIDI, WAV, real-time playback.
+**Output** — stereo playback, WAV export, MIDI export.
 
-**CLI** — ``pytheory demo``, ``pytheory key``, ``pytheory chord``,
+**Interface** — REPL with tab completion (``pytheory repl``), CLI with
+15 commands. ``pytheory demo``, ``pytheory key``, ``pytheory chord``,
 ``pytheory identify``, ``pytheory midi``, ``pytheory play``, and more.
 
 Where to Go Next

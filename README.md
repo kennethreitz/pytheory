@@ -61,6 +61,13 @@ $ pytheory demo
 
 >>> Key("C", "major").pivot_chords(Key("G", "major"))
 ['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
+
+>>> Chord.from_tones("C", "E", "G").forte_number
+'3-11'
+
+>>> from pytheory.scales import Scale
+>>> Scale.recommend("C", "Eb", "F", "Gb", "G", "Bb", top=3)
+[('C', 'blues', 1.0), ...]
 ```
 
 ## Composition
@@ -89,11 +96,11 @@ score.repeat("chorus", times=2)
 
 ## 10 Synth Waveforms
 
-sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM slow, PWM fast
+sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM slow, PWM fast — with detune, stereo pan, and spread.
 
 ## 58 Drum Patterns
 
-rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass — and 45 more. Plus 21 fill presets.
+rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass — and 45 more. Plus 21 fill presets. Stereo panned like a real kit.
 
 ## 6 Effects with Automation
 
@@ -110,7 +117,7 @@ lead.set(lowpass=4000, distortion=0.9)
 lead.lfo("lowpass", rate=0.5, min=400, max=3000, bars=8)
 ```
 
-Signal chain: distortion → chorus → lowpass → delay → reverb
+Signal chain: distortion → chorus → lowpass → delay → reverb. Sidechain compression. Master bus compressor/limiter. Stereo output.
 
 ## Convolution Reverb
 
@@ -132,6 +139,7 @@ Guitar (8 tunings), bass, ukulele, mandolin family, violin family, banjo, harp, 
 ## Command Line
 
 ```
+$ pytheory repl                            # interactive scratchpad
 $ pytheory demo                            # hear a generated track
 $ pytheory key G major                     # explore a key
 $ pytheory identify Cmaj7                  # analyze a chord symbol
