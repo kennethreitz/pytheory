@@ -38,7 +38,7 @@ pytheory = "pytheory.cli:main"
 
 [dependency-groups]
 dev = ["pytest"]
-docs = ["sphinx"]
+docs = ["sphinx", "myst-parser"]
 
 [build-system]
 requires = ["setuptools"]

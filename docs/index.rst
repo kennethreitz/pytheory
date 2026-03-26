@@ -120,4 +120,4 @@ What's Inside
    :maxdepth: 1
    :caption: Project
 
-   changelog
+   changelog.md

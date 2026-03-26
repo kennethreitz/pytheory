@@ -19,6 +19,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "myst_parser",
 ]
 
 autodoc_member_order = "bysource"
