@@ -859,6 +859,72 @@ def neon_grid():
     play_song(score)
 
 
+def glass_and_silk():
+    """Pure sine and triangle — smooth shapes in a stereo cathedral."""
+    print("  Glass and Silk in Ab major")
+    print("  sine + triangle only | waltz 72bpm | cathedral + Taj Mahal reverb")
+
+    score = Score("3/4", bpm=72, swing=0.2)
+    score.drums("waltz", repeats=16)
+
+    sub = score.part("sub", synth="sine", envelope="pad",
+                     volume=0.3, pan=0.0, lowpass=120)
+    voice = score.part("voice", synth="triangle", envelope="strings",
+                       volume=0.45, pan=0.2, legato=True, glide=0.07,
+                       reverb=0.5, reverb_type="cathedral",
+                       delay=0.2, delay_time=0.56, delay_feedback=0.4,
+                       humanize=0.3)
+    pad = score.part("pad", synth="sine", envelope="pad",
+                     volume=0.2, pan=0.0, detune=10, spread=0.6,
+                     reverb=0.6, reverb_type="taj_mahal",
+                     chorus=0.2, chorus_rate=0.3)
+    counter = score.part("counter", synth="triangle", envelope="strings",
+                         volume=0.2, pan=-0.5,
+                         reverb=0.4, reverb_type="plate",
+                         delay=0.15, delay_time=0.83, delay_feedback=0.35,
+                         humanize=0.25)
+
+    chords = [Chord.from_symbol(s) for s in ["Ab", "Fm", "Db", "Eb"]]
+    for c in chords * 2:
+        for _ in range(3):
+            pad.add(c, Duration.DOTTED_HALF)
+
+    for n in (["Ab2"] * 9 + ["F2"] * 9 + ["Db2"] * 9 + ["Eb2"] * 9) * 2:
+        sub.add(n, Duration.QUARTER)
+
+    for n, v, d in [
+        ("Ab4", 60, 3), ("C5", 70, 1.5), ("Eb5", 75, 1.5),
+        ("Ab5", 85, 4.5), (None, 0, 1.5),
+        ("F5", 75, 1.5), ("Ab5", 80, 1.5), ("C6", 90, 3),
+        ("Bb5", 80, 1.5), ("Ab5", 70, 1.5), (None, 0, 3),
+        ("Db5", 70, 1.5), ("Eb5", 80, 1.5), ("Ab5", 95, 3),
+        ("Bb5", 100, 3), ("C6", 105, 4.5), (None, 0, 1.5),
+        ("Bb5", 85, 1.5), ("Ab5", 75, 1.5), ("Eb5", 70, 3),
+        ("C5", 60, 3), ("Ab4", 55, 6), (None, 0, 3),
+        ("Eb5", 65, 3), ("Ab5", 80, 3), ("C6", 90, 4.5), (None, 0, 1.5),
+        ("Bb5", 85, 1.5), ("Ab5", 75, 1.5), ("F5", 70, 3),
+        ("Eb5", 65, 1.5), ("Db5", 60, 1.5), (None, 0, 3),
+        ("Eb5", 70, 1.5), ("F5", 80, 1.5), ("Ab5", 90, 3),
+        ("Bb5", 95, 3), ("Ab5", 85, 3),
+        ("Eb5", 70, 3), ("Ab4", 55, 9),
+    ]:
+        voice.rest(d) if n is None else voice.add(n, d, velocity=v)
+
+    for _ in range(24):
+        counter.rest(Duration.QUARTER)
+    for n, v, d in [
+        (None, 0, 3), ("C6", 55, 3), ("Eb6", 60, 4.5), (None, 0, 1.5),
+        ("Db6", 50, 3), ("C6", 45, 3), (None, 0, 6),
+        ("Eb6", 55, 4.5), ("Db6", 50, 1.5), ("C6", 45, 3),
+        ("Ab5", 40, 6), (None, 0, 3),
+        ("Bb5", 50, 3), ("C6", 55, 4.5), (None, 0, 1.5),
+        ("Ab5", 45, 9),
+    ]:
+        counter.rest(d) if n is None else counter.add(n, d, velocity=v)
+
+    play_song(score)
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -877,6 +943,7 @@ SONGS = {
     "15": ("Liquid DnB in A minor", drum_and_bass),
     "16": ("Late Night Texts (Drake-style)", drake_vibes),
     "17": ("Neon Grid (Stereo Acid)", neon_grid),
+    "18": ("Glass and Silk (Sine+Triangle)", glass_and_silk),
 }
 
 if __name__ == "__main__":
@@ -890,7 +957,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-17, or 'all'): ").strip()
+        choice = input("  Pick a song (1-18, or 'all'): ").strip()
         print()
 
         if choice == "all":
