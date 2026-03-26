@@ -55,9 +55,14 @@ def cmd_help(session, args):
     key Am                      Key("A", "minor")
     key G major                 Key("G", "major")
     chords                      key.chords
-    progression I V vi IV       key.progression(...)
+    prog I V vi IV              key.progression(...)
     modes                       show all modes
     scales                      list available scales
+    circle [C]                  circle of fifths/fourths
+    interval C4 G4              name the interval
+    identify C E G              identify a chord from notes
+    identify Cmaj7              analyze a chord symbol
+    system [indian]             switch musical system
 
   Score:
     bpm 140                     Score("4/4", bpm=140)
@@ -97,6 +102,10 @@ def cmd_help(session, args):
     play_pattern                play just the drums
     render sketch.wav           render to WAV
     save_midi sketch.mid        save as MIDI
+
+  Guitar:
+    fingering Am                guitar chord fingering
+    diagram [mode] [frets]      scale diagram on guitar
 
   Session:
     show                        score info
@@ -407,6 +416,119 @@ def cmd_scales(session, args):
         print(f"  {name:<20s}  {' '.join(ts[name].note_names)}")
 
 
+def cmd_fingering(session, args):
+    """Show guitar fingering for a chord."""
+    if not args:
+        print("  usage: fingering Am")
+        return
+    from .chords import Fretboard
+    from .charts import CHARTS
+    fb = Fretboard.guitar()
+    name = args[0]
+    chart = CHARTS.get("western", {})
+    if name in chart:
+        print(chart[name].tab(fretboard=fb))
+    else:
+        # Try from_symbol
+        try:
+            f = fb.chord(name)
+            print(f"  {f}")
+        except (ValueError, KeyError) as e:
+            print(f"  error: {e}")
+
+
+def cmd_diagram(session, args):
+    """Show a scale diagram on guitar."""
+    from .chords import Fretboard
+    fb = Fretboard.guitar()
+    mode = args[0] if args else session.key.mode
+    frets = int(args[1]) if len(args) > 1 else 12
+
+    ts = TonedScale(tonic=f"{session.key.tonic_name}4")
+    try:
+        scale = ts[mode]
+        print(fb.scale_diagram(scale, frets=frets))
+    except KeyError:
+        print(f"  unknown scale: {mode}")
+
+
+def cmd_system(session, args):
+    """Switch musical system or show current."""
+    if not args:
+        from .systems import SYSTEMS
+        for name in SYSTEMS:
+            print(f"  {name}")
+        return
+    system = args[0]
+    # Default tonics per system
+    default_tonics = {
+        "western": "C", "indian": "Sa", "arabic": "Do",
+        "japanese": "C", "blues": "C", "gamelan": "C",
+    }
+    tonic = args[1] if len(args) > 1 else default_tonics.get(system, "C")
+    try:
+        ts = TonedScale(tonic=f"{tonic}4", system=system)
+        available = list(ts.scales)[:10]
+        print(f"  system: {system}")
+        print(f"  scales: {', '.join(available)}")
+        if available:
+            first = ts[available[0]]
+            print(f"  {available[0]}: {' '.join(first.note_names)}")
+    except Exception as e:
+        print(f"  error: {e}")
+
+
+def cmd_interval(session, args):
+    """Show the interval between two notes."""
+    if len(args) < 2:
+        print("  usage: interval C4 G4")
+        return
+    try:
+        t1 = Tone.from_string(args[0], system="western")
+        t2 = Tone.from_string(args[1], system="western")
+        print(f"  {t1.full_name} → {t2.full_name}: {t1.interval_to(t2)}")
+        print(f"  {abs(t1 - t2)} semitones")
+    except Exception as e:
+        print(f"  error: {e}")
+
+
+def cmd_identify(session, args):
+    """Identify a chord from notes or a symbol."""
+    if not args:
+        print("  usage: identify C E G   or   identify Cmaj7")
+        return
+    if len(args) == 1:
+        try:
+            chord = Chord.from_symbol(args[0])
+            print(f"  {chord.identify()}")
+            print(f"  symbol: {chord.symbol}")
+            print(f"  tones: {' '.join(t.full_name for t in chord.tones)}")
+            print(f"  intervals: {chord.intervals}")
+            return
+        except ValueError:
+            pass
+    # Try as individual notes
+    try:
+        tones = [Tone.from_string(f"{n}4", system="western") for n in args]
+        chord = Chord(tones=tones)
+        name = chord.identify() or "unknown"
+        print(f"  {name}")
+        if chord.symbol:
+            print(f"  symbol: {chord.symbol}")
+    except Exception as e:
+        print(f"  error: {e}")
+
+
+def cmd_circle(session, args):
+    """Show circle of fifths."""
+    tonic = args[0] if args else session.key.tonic_name
+    tone = Tone.from_string(f"{tonic}4", system="western")
+    fifths = [t.name for t in tone.circle_of_fifths()]
+    fourths = [t.name for t in tone.circle_of_fourths()]
+    print(f"  fifths:  {' → '.join(fifths)}")
+    print(f"  fourths: {' → '.join(fourths)}")
+
+
 def cmd_clear(session, args):
     session.rebuild()
     print("  cleared")
@@ -456,6 +578,12 @@ COMMANDS = {
     "chords": cmd_chords,
     "modes": cmd_modes,
     "scales": cmd_scales,
+    "fingering": cmd_fingering, "f": cmd_fingering,
+    "diagram": cmd_diagram,
+    "system": cmd_system,
+    "interval": cmd_interval,
+    "identify": cmd_identify, "id": cmd_identify,
+    "circle": cmd_circle,
     "clear": cmd_clear,
     "status": cmd_status,
 }
