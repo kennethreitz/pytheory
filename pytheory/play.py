@@ -1815,17 +1815,48 @@ def render_score(score):
                 else:
                     stereo_buf += _pan_to_stereo(part_buf, part.pan)
 
-    # Drum hits — render to separate buffer for sidechain trigger
-    drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)
+    # Drum pan map — how a real kit is mic'd from the audience perspective
+    from .rhythm import DrumSound
+    _DRUM_PAN = {
+        DrumSound.KICK.value: 0.0,          # center
+        DrumSound.SNARE.value: 0.0,         # center
+        DrumSound.RIMSHOT.value: -0.1,      # slightly left
+        DrumSound.CLAP.value: 0.0,          # center
+        DrumSound.CLOSED_HAT.value: 0.3,    # right
+        DrumSound.OPEN_HAT.value: 0.3,      # right
+        DrumSound.PEDAL_HAT.value: 0.3,     # right
+        DrumSound.LOW_TOM.value: 0.4,       # right
+        DrumSound.MID_TOM.value: 0.0,       # center
+        DrumSound.HIGH_TOM.value: -0.3,     # left
+        DrumSound.CRASH.value: -0.4,        # left
+        DrumSound.RIDE.value: 0.4,          # right
+        DrumSound.RIDE_BELL.value: 0.4,     # right
+        DrumSound.COWBELL.value: 0.2,       # slightly right
+        DrumSound.CLAVE.value: -0.2,        # slightly left
+        DrumSound.SHAKER.value: 0.35,       # right
+        DrumSound.TAMBOURINE.value: -0.25,  # slightly left
+        DrumSound.CONGA_HIGH.value: -0.3,   # left
+        DrumSound.CONGA_LOW.value: 0.2,     # slightly right
+        DrumSound.BONGO_HIGH.value: -0.2,   # slightly left
+        DrumSound.BONGO_LOW.value: 0.15,    # slightly right
+        DrumSound.TIMBALE_HIGH.value: -0.25,
+        DrumSound.TIMBALE_LOW.value: 0.2,
+        DrumSound.AGOGO_HIGH.value: -0.3,
+        DrumSound.AGOGO_LOW.value: 0.25,
+        DrumSound.GUIRO.value: -0.15,
+        DrumSound.MARACAS.value: 0.3,
+    }
+
+    # Drum hits — render to mono sidechain trigger + stereo output
+    drum_buf = numpy.zeros(total_samples, dtype=numpy.float32)  # mono for sidechain
+    drum_stereo = numpy.zeros((total_samples, 2), dtype=numpy.float32)
     drum_swing = score.swing
     for hit in score._drum_hits:
         pos = hit.position
-        # Apply swing: hits on offbeats get pushed later
         if drum_swing > 0:
             beat_frac = pos % 1.0
-            # Offbeat = not on a downbeat (0.0) — shift 8th note upbeats
             if 0.1 < beat_frac < 0.9:
-                pos += drum_swing * 0.15  # subtle swing on drum hits
+                pos += drum_swing * 0.15
         if has_tempo_changes:
             start = _beat_to_sample(pos, tempo_map)
         else:
@@ -1836,7 +1867,13 @@ def render_score(score):
         hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
         wave = _render_drum_hit(hit.sound.value, hit_len)
         vel_scale = hit.velocity / 127.0
-        drum_buf[start:start + hit_len] += wave * vel_scale * 0.7
+        mono_hit = wave * vel_scale * 0.7
+        # Mono sidechain trigger (always center)
+        drum_buf[start:start + hit_len] += mono_hit
+        # Stereo panned output
+        pan = _DRUM_PAN.get(hit.sound.value, 0.0)
+        panned = _pan_to_stereo(mono_hit, pan)
+        drum_stereo[start:start + hit_len] += panned
 
     # Apply sidechain compression to parts that request it
     for part, part_buf in _pending_sidechain:
@@ -1850,8 +1887,8 @@ def render_score(score):
     if score.notes:
         stereo_buf += _pan_to_stereo(buf, 0.0)
 
-    # Drums: center
-    stereo_buf += _pan_to_stereo(drum_buf, 0.0)
+    # Drums: stereo panned
+    stereo_buf += drum_stereo
 
     # Master bus compressor/limiter (per channel)
     stereo_buf[:, 0] = _master_compress(stereo_buf[:, 0])
