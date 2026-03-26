@@ -2,7 +2,11 @@ Music Theory Fundamentals
 =========================
 
 This page covers the essential concepts of music theory — the framework
-behind everything PyTheory does.
+behind everything PyTheory does. Don't worry if you're new to this:
+music theory isn't a set of rules you have to memorize, it's a
+vocabulary for describing what you already hear. Every concept below
+connects to something you've felt while listening to music — this page
+just gives it a name.
 
 Sound and Pitch
 ---------------
@@ -313,6 +317,16 @@ paired instruments as a core aesthetic.
    1
    >>> g7.tension['has_dominant_function']
    True
+
+From Theory to Composition
+--------------------------
+
+Everything on this page — tones, intervals, chords, scales, keys — is
+the foundation. But PyTheory goes further: you can use these building
+blocks to compose and play actual music. See the :doc:`sequencing`
+guide to learn how to arrange multi-part scores with melodies, chord
+pads, bass lines, drum patterns, and audio effects — all driven by the
+theory concepts you've just learned.
 
 Further Reading
 ---------------

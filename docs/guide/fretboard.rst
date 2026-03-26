@@ -267,6 +267,33 @@ Generate fingerings for every chord at once:
    >>> uke_chart = Fretboard.ukulele().chart()
    >>> mando_chart = Fretboard.mandolin().chart()
 
+Scale Diagrams with Chord Highlighting
+---------------------------------------
+
+The ``scale_diagram()`` method renders an ASCII fretboard showing where
+scale notes fall on each string. Pass an optional ``chord`` argument to
+highlight chord tones in UPPERCASE while scale-only tones appear in
+lowercase — a quick way to visualize target notes for soloing:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard, TonedScale, Chord
+
+   >>> fb = Fretboard.guitar()
+   >>> pentatonic = TonedScale(tonic="A4")["minor pentatonic"]
+   >>> print(fb.scale_diagram(pentatonic, frets=5))
+
+   >>> # Highlight Am chord tones within the scale:
+   >>> am = Chord.from_symbol("Am")
+   >>> print(fb.scale_diagram(pentatonic, frets=5, chord=am))
+
+Non-String Instruments
+----------------------
+
+Looking for drums and percussion? PyTheory also supports drum pattern
+programming through the sequencing engine. See the :doc:`drums` guide
+for drum kits, patterns, and fills.
+
 Custom Instruments
 ------------------
 
