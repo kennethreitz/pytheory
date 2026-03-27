@@ -620,6 +620,36 @@ Three bend types:
 - ``"late"`` — holds the starting pitch for 60%, bends in the last 40%.
   The classic blues "curl."
 
+Rolls
+-----
+
+Rapid repeated notes with a velocity ramp — perfect for timpani
+rolls, snare rolls, tremolo on any instrument. The velocity ramps
+from ``velocity_start`` to ``velocity_end`` for crescendo or
+decrescendo effects.
+
+.. code-block:: python
+
+   # Timpani crescendo roll
+   timp = score.part("timp", instrument="timpani")
+   timp.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=110)
+   timp.add("C3", Duration.HALF, velocity=127)  # big accent
+
+   # Snare roll with 32nd notes
+   snare = score.part("snare", synth="noise", envelope="pluck")
+   snare.roll("C4", Duration.HALF, speed=0.125,
+              velocity_start=40, velocity_end=100)
+
+   # Decrescendo (loud to quiet)
+   timp.roll("G2", Duration.WHOLE, velocity_start=100, velocity_end=30)
+
+Parameters:
+
+- ``velocity_start``: Starting velocity (default 40).
+- ``velocity_end``: Ending velocity (default 100).
+- ``speed``: Note subdivision (default ``Duration.SIXTEENTH``).
+  Use ``0.125`` for 32nd notes, ``Duration.EIGHTH`` for 8th notes.
+
 Tuning Systems
 --------------
 

@@ -1,7 +1,7 @@
 Synthesizers
 ============
 
-PyTheory includes 27 built-in waveforms and 10 ADSR envelope presets.
+PyTheory includes 29 built-in waveforms and 10 ADSR envelope presets.
 Every sound is generated from scratch -- no samples or external audio
 files needed.
 
@@ -390,11 +390,11 @@ Dedicated Instrument Synths
 --------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
-14 dedicated instrument synths. Each one uses tailored synthesis
+16 dedicated instrument synths. Each one uses tailored synthesis
 techniques -- additive harmonics, formant shaping, body resonance
 modeling, and specialized envelopes -- to capture the character of a
 specific acoustic instrument. These are the waveforms that bring the
-total count to 27.
+total count to 29.
 
 Piano Synth
 ~~~~~~~~~~~
@@ -534,6 +534,29 @@ bridge, producing a shimmering, metallic sustain.
 .. code-block:: python
 
    sitar = score.part("sitar", synth="sitar_synth")
+
+Timpani Synth
+~~~~~~~~~~~~~
+
+Large kettle drum with definite pitch. Inharmonic membrane modes
+(1.0, 1.5, 1.99, 2.44), felt mallet attack, copper kettle resonance.
+Use ``Part.roll()`` for crescendo timpani rolls.
+
+.. code-block:: python
+
+   timp = score.part("timp", synth="timpani_synth")
+   timp.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=110)
+
+Saxophone Synth
+~~~~~~~~~~~~~~~
+
+Single reed through a conical brass bore. All harmonics with strong
+mids, reed buzz, and brass body warmth. Four presets: ``saxophone``,
+``alto_sax``, ``tenor_sax``, ``bari_sax``.
+
+.. code-block:: python
+
+   sax = score.part("sax", instrument="tenor_sax")
 
 Analog Oscillator Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~
