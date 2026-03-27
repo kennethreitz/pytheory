@@ -2,6 +2,26 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.34.0
+
+- **16 dedicated instrument synths** — physical modeling and specialized
+  synthesis for: piano (hammer + steel strings + soundboard), bass guitar
+  (thick KS + pickup), flute (breath + tube resonance), trumpet (lip buzz
+  + bell), clarinet (odd harmonics + reed), oboe (double reed + conical
+  bore), marimba (inharmonic bar modes), harpsichord (quill pluck),
+  cello (deep bowed + body), harp (soft pluck + soundboard bloom),
+  upright bass (pizzicato + wooden body), acoustic guitar (KS + body
+  resonance), electric guitar (KS + pickup comb filter), sitar (jawari
+  + chikari), plus organ and bowed strings
+- **Speaker cabinet simulation** — tames distorted guitar fizz
+- **Guitar strumming** — `Part.strum("Am")` with fretboard lookup
+- **Analog oscillator drift** — subtle per-note pitch wobble on synth presets
+- **World percussion:** dhol, dholak, mridangam, djembe, metal kit
+  with 22 new drum patterns
+- **Piano improvements:** brightness scales with pitch, two-stage decay,
+  hammer impact with felt character
+- 27 synth waveforms, 10 envelopes, 40+ instrument presets, 80+ drum patterns
+
 ## 0.33.1
 
 - **Electric guitar synth** — Karplus-Strong with magnetic pickup comb filter
