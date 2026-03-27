@@ -1784,6 +1784,7 @@ class Score:
         self.bpm = bpm
         self.swing = swing
         self._drum_humanize = drum_humanize
+        self.drum_effects: dict = {}
         self.notes: list[Note] = []
         self.parts: dict[str, Part] = {}
         self._drum_hits: list[_Hit] = []
@@ -1903,6 +1904,29 @@ class Score:
         """
         fill_pattern = Pattern.fill(name)
         return self.add_pattern(fill_pattern, repeats=1)
+
+    def set_drum_effects(self, **kwargs) -> "Score":
+        """Set effects on the drum bus.
+
+        Uses the same parameters as Part effects — reverb, delay,
+        lowpass, distortion, chorus. Applied to the entire drum mix
+        before stereo panning.
+
+        Example::
+
+            score.set_drum_effects(reverb=0.2, reverb_type="plate",
+                                   lowpass=8000, distortion=0.1)
+
+        Returns:
+            Self for chaining.
+        """
+        # Map shorthand names
+        param_map = {"reverb": "reverb_mix", "delay": "delay_mix",
+                     "distortion": "distortion_mix", "chorus": "chorus_mix"}
+        for k, v in kwargs.items():
+            key = param_map.get(k, k)
+            self.drum_effects[key] = v
+        return self
 
     def drums(self, preset: str, repeats: int = 4, fill: str = None,
               fill_every: int = None) -> "Score":

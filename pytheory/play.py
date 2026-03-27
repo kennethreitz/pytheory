@@ -1989,6 +1989,13 @@ def render_score(score):
         panned = _pan_to_stereo(mono_hit, pan)
         drum_stereo[start:start + hit_len] += panned
 
+    # Apply drum bus effects (reverb, delay, etc.) to the stereo drum mix
+    if score.drum_effects:
+        fx = score.drum_effects
+        # Apply to each stereo channel using the same effects engine
+        for ch in range(2):
+            drum_stereo[:, ch] = _apply_effects_with_params(drum_stereo[:, ch], fx)
+
     # Apply sidechain compression to parts that request it
     for part, part_buf in _pending_sidechain:
         part_buf = _apply_sidechain(
