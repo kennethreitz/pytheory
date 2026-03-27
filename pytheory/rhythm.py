@@ -45,28 +45,28 @@ INSTRUMENTS = {
 
     # ── Strings ──
     "violin": {
-        "synth": "strings_synth", "envelope": "strings",
-        "detune": 4, "lowpass": 5000,
+        "synth": "triangle", "envelope": "strings",
+        "lowpass": 5000,
         "humanize": 0.15,
     },
     "viola": {
-        "synth": "strings_synth", "envelope": "strings",
-        "detune": 4, "lowpass": 3500,
+        "synth": "triangle", "envelope": "strings",
+        "lowpass": 3500,
         "humanize": 0.15,
     },
     "cello": {
-        "synth": "strings_synth", "envelope": "strings",
-        "detune": 4, "lowpass": 2500,
+        "synth": "triangle", "envelope": "strings",
+        "lowpass": 2500,
         "humanize": 0.15,
     },
     "contrabass": {
-        "synth": "strings_synth", "envelope": "strings",
-        "detune": 3, "lowpass": 1500,
+        "synth": "triangle", "envelope": "strings",
+        "lowpass": 1500,
         "humanize": 0.1,
     },
     "string_ensemble": {
         "synth": "strings_synth", "envelope": "pad",
-        "detune": 12, "spread": 0.6,
+        "detune": 10, "spread": 0.5,
         "chorus": 0.2, "chorus_rate": 0.5,
         "lowpass": 4000,
     },

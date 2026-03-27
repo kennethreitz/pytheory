@@ -6470,7 +6470,7 @@ def test_instrument_violin():
     from pytheory import Score
     score = Score("4/4", bpm=120)
     p = score.part("v", instrument="violin")
-    assert p.synth == "strings_synth"
+    assert p.synth == "triangle"
     assert p.envelope == "strings"
     assert p.humanize == 0.15
     assert p.lowpass == 5000
