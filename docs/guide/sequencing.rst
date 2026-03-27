@@ -574,3 +574,77 @@ Define sections with ``score.section()`` and repeat them with
 Use any names you want — ``"intro"``, ``"verse"``, ``"chorus"``,
 ``"bridge"``, ``"drop"``, ``"breakdown"``, ``"outro"``, or anything
 that makes sense for your song. The names are just labels.
+
+Guitar Strumming
+----------------
+
+Any part with a fretboard can strum chords using real fingering
+positions. The ``strum()`` method looks up the chord on the fretboard,
+gets the correct voicing, and plays all strings as a chord.
+
+.. code-block:: python
+
+   from pytheory import Fretboard
+
+   guitar = score.part("guitar", instrument="acoustic_guitar",
+                       fretboard=Fretboard.guitar())
+
+   guitar.strum("Am", Duration.HALF, direction="down")
+   guitar.strum("G", Duration.HALF, direction="up")
+   guitar.strum("F", Duration.WHOLE)
+
+Works with any fretboard instrument — guitar, ukulele, banjo, mandolin.
+Works with any guitar preset — clean, crunch, distorted, orange, metal.
+
+Pitch Bends
+-----------
+
+Bend a note's pitch up or down over its duration. Essential for guitar
+bends, sitar meends, trombone slides, and vocal-style expression.
+
+.. code-block:: python
+
+   # Guitar bend: D up to E (2 semitones)
+   guitar.add("D4", Duration.HALF, bend=2, bend_type="smooth")
+
+   # Release bend: E back down to D
+   guitar.add("E4", Duration.HALF, bend=-2)
+
+   # Blues curl: hold then bend at the end
+   guitar.add("C4", Duration.HALF, bend=1, bend_type="late")
+
+Three bend types:
+
+- ``"smooth"`` — logarithmic (default). Perceptually even pitch change.
+- ``"linear"`` — linear frequency interpolation. Mechanical/synth feel.
+- ``"late"`` — holds the starting pitch for 60%, bends in the last 40%.
+  The classic blues "curl."
+
+Tuning Systems
+--------------
+
+A Score can use any tuning system and temperament:
+
+.. code-block:: python
+
+   # Baroque harpsichord — meantone tuning, A=415
+   score = Score("4/4", bpm=80, temperament="meantone",
+                 reference_pitch=415.0)
+
+   # Indian classical — 22-shruti system
+   score = Score("4/4", bpm=75, system="shruti")
+
+   # Just intonation — pure intervals
+   score = Score("4/4", bpm=90, temperament="just")
+
+Temperaments: ``"equal"`` (default), ``"pythagorean"``, ``"meantone"``,
+``"just"``.
+
+Custom equal temperaments via the ``TET()`` factory:
+
+.. code-block:: python
+
+   from pytheory import TET
+
+   edo19 = TET(19)  # 19-tone equal temperament
+   score = Score("4/4", bpm=100, system=edo19)

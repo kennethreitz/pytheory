@@ -87,7 +87,8 @@ What's Inside
   lowpass/highpass (with resonance), distortion, cabinet simulation,
   saturation, chorus, phaser, tremolo, analog drift, sidechain compression,
   automation, LFOs. Master bus compressor/limiter
-- **Instruments** — 25 presets with fingering generation
+- **Instruments** — 49 presets with fingering generation, guitar strumming,
+  pitch bends
 - **Output** — stereo playback, WAV export, MIDI import/export
 - **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``
 - **AI-friendly** — Claude Code can compose
