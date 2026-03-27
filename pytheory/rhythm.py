@@ -1677,6 +1677,7 @@ class Part:
         self.phaser_rate = phaser_rate
         self.fm_ratio = fm_ratio
         self.fm_index = fm_index
+        self._system = "western"  # default, overridden by Score.part()
         self.notes: list[Note] = []
         self._drum_hits: list[_Hit] = []
         self._drum_pattern_beats: float = 0.0
@@ -1692,7 +1693,7 @@ class Part:
         """
         if isinstance(tone_or_string, str):
             from .tones import Tone
-            tone_or_string = Tone.from_string(tone_or_string, system="western")
+            tone_or_string = Tone.from_string(tone_or_string, system=self._system)
         if isinstance(duration, (int, float)):
             duration = _RawDuration(duration)
         self.notes.append(Note(tone=tone_or_string, duration=duration, velocity=velocity))
@@ -2072,13 +2073,14 @@ class Score:
     """
 
     def __init__(self, time_signature="4/4", bpm=120, swing: float = 0.0,
-                 drum_humanize: float = 0.15):
+                 drum_humanize: float = 0.15, system: str = "western"):
         if isinstance(time_signature, str):
             self.time_signature = TimeSignature.from_string(time_signature)
         else:
             self.time_signature = time_signature
         self.bpm = bpm
         self.swing = swing
+        self.system = system
         self._drum_humanize = drum_humanize
         self.notes: list[Note] = []
         self.parts: dict[str, Part] = {}
@@ -2294,6 +2296,7 @@ class Score:
         merged = {**_defaults, **explicit}
 
         p = Part(name, **merged)
+        p._system = self.system
         self.parts[name] = p
         return p
 

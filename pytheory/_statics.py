@@ -579,6 +579,83 @@ TURKISH_SCALES = {
     ],
 }
 
+# ── 72-TET Carnatic (South Indian) ───────────────────────────────────────────
+# The 72 melakarta system classifies all possible 7-note scales with
+# fixed Sa and Pa. 72-TET (16.67 cents/step) captures the srutis used
+# in Carnatic music with high precision. Each 12-TET semitone = 6 steps.
+#
+# Tone names: 12 swaras × 6 microtonal variants each.
+# Main swaras at positions: Sa=0, Ri1=6, Ri2=12, Ga1=12, Ga2=18,
+# Ma1=30, Ma2=36, Pa=42, Da1=48, Da2=54, Ni1=60, Ni2=66
+TONES_CARNATIC = []
+_SWARA_NAMES = [
+    "Sa", "atikomal Ri", "komal Ri", "shuddha Ri",
+    "Ri", "tivra Ri", "komal Ga", "atikomal Ga",
+    "Ga", "shuddha Ga", "tivra Ga", "antara Ga",
+    "komal Ma", "shuddha Ma", "Ma", "tivra shuddha Ma",
+    "ekashruti Ma", "chatushruti Ma", "tivra Ma", "atitivra Ma",
+    "prati Ma", "tivratara Ma", "atikomal Pa-", "komal Pa-",
+    "shuddha Pa-", "Pa-", "Pa-+1", "Pa-+2",
+    "Pa-+3", "Pa-+4", "Pa", "Pa+1",
+    "Pa+2", "Pa+3", "Pa+4", "Pa+5",
+    "komal Da", "atikomal Da", "Da-", "shuddha Da-",
+    "Da", "shuddha Da", "tivra Da", "atitivra Da",
+    "komal Ni", "atikomal Ni", "Ni-", "shuddha Ni-",
+    "Ni", "shuddha Ni", "tivra Ni", "chatushruti Ni",
+    "kakali Ni", "atikakali Ni",
+]
+# Generate 72 tone names: use standard names for the 12 main positions,
+# numbered variants for the intermediates
+for i in range(72):
+    main_pos = i // 6  # which semitone group (0-11)
+    micro = i % 6      # microtonal position within group
+    _base_names = ["Sa", "komal Ri", "Ri", "komal Ga", "Ga", "Ma",
+                   "tivra Ma", "Pa", "komal Da", "Da", "komal Ni", "Ni"]
+    if micro == 0:
+        TONES_CARNATIC.append((_base_names[main_pos],))
+    else:
+        TONES_CARNATIC.append((f"{_base_names[main_pos]}+{micro}",))
+
+DEGREES_CARNATIC = [(f"swara {i+1}", ()) for i in range(72)]
+
+# A selection of important melakartas in 72-TET intervals.
+# Each step = 1/72 of an octave ≈ 16.67 cents.
+CARNATIC_SCALES = {
+    "chromatic": (72, {}),
+    "melakarta": [
+        7,
+        {
+            # Kanakangi (melakarta 1) — Sa Ri1 Ga1 Ma1 Pa Da1 Ni1
+            "kanakangi": {"intervals": (6, 6, 18, 12, 6, 6, 18)},
+            # Shankarabharanam (melakarta 29) — Sa Ri2 Ga3 Ma1 Pa Da2 Ni3
+            # The Carnatic equivalent of the major scale
+            "shankarabharanam": {"intervals": (12, 12, 6, 12, 12, 12, 6)},
+            # Kalyani (melakarta 65) — Sa Ri2 Ga3 Ma2 Pa Da2 Ni3
+            # Carnatic Lydian equivalent
+            "kalyani": {"intervals": (12, 12, 12, 6, 12, 12, 6)},
+            # Kharaharapriya (melakarta 22) — Sa Ri2 Ga2 Ma1 Pa Da2 Ni2
+            # Carnatic Dorian equivalent
+            "kharaharapriya": {"intervals": (12, 6, 12, 12, 12, 6, 12)},
+            # Hanumathodi (melakarta 8) — Sa Ri1 Ga2 Ma1 Pa Da1 Ni2
+            # Carnatic Phrygian equivalent
+            "hanumathodi": {"intervals": (6, 12, 12, 12, 6, 12, 12)},
+            # Natabhairavi (melakarta 20) — Sa Ri2 Ga2 Ma1 Pa Da1 Ni2
+            # Natural minor equivalent
+            "natabhairavi": {"intervals": (12, 6, 12, 12, 6, 12, 12)},
+            # Mayamalavagowla (melakarta 15) — Sa Ri1 Ga3 Ma1 Pa Da1 Ni3
+            # The "lesson scale" — first raga taught to students
+            "mayamalavagowla": {"intervals": (6, 18, 6, 12, 6, 18, 6)},
+            # Simhendramadhyamam (melakarta 57) — Sa Ri2 Ga3 Ma2 Pa Da1 Ni3
+            "simhendramadhyamam": {"intervals": (12, 12, 12, 6, 6, 18, 6)},
+            # Charukesi (melakarta 26) — Sa Ri2 Ga3 Ma1 Pa Da1 Ni2
+            "charukesi": {"intervals": (12, 12, 6, 12, 6, 12, 12)},
+            # Harikambhoji (melakarta 28) — Sa Ri2 Ga3 Ma1 Pa Da2 Ni2
+            # Mixolydian equivalent
+            "harikambhoji": {"intervals": (12, 12, 6, 12, 12, 6, 12)},
+        },
+    ],
+}
+
 # Arabic maqam scales (12-TET approximations).
 # True maqam uses quarter-tones; these are the closest 12-tone equivalents.
 ARABIC_SCALES = {

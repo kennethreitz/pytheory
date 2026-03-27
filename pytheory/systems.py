@@ -8,6 +8,7 @@ from ._statics import (
     TONES_PELOG, DEGREES_PELOG, PELOG_SCALES,
     TONES_THAI, DEGREES_THAI, THAI_SCALES,
     TONES_TURKISH, DEGREES_TURKISH, TURKISH_SCALES,
+    TONES_CARNATIC, DEGREES_CARNATIC, CARNATIC_SCALES,
 )
 
 
@@ -352,4 +353,6 @@ SYSTEMS = {
                    scales=THAI_SCALES, c_index=0),
     "makam": System(tone_names=TONES_TURKISH, degrees=DEGREES_TURKISH,
                     scales=TURKISH_SCALES, c_index=13),
+    "carnatic": System(tone_names=TONES_CARNATIC, degrees=DEGREES_CARNATIC,
+                       scales=CARNATIC_SCALES, c_index=18),  # Sa ≈ C, 18 steps from A
 }
