@@ -2,6 +2,26 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.33.0
+
+- **Non-12-TET support** — `TET(n)` factory creates any equal temperament
+- **11 microtonal systems:**
+  - `"shruti"` (22-TET Indian, 10 thaats with proper shruti intervals)
+  - `"maqam"` (24-TET Arabic, quarter-tone Rast/Bayati/Hijaz + 7 more)
+  - `"slendro"` (5-TET gamelan), `"pelog"` (9-TET gamelan with 3 pathet)
+  - `"thai"` (7-TET, 171 cents/step)
+  - `"makam"` (53-TET Turkish Arel-Ezgi-Uzdilek, 9 makams)
+  - `"carnatic"` (72-TET, 10 melakartas)
+  - `"19-tet"`, `"31-tet"` (historical Western)
+  - `"bohlen-pierce"` (13 divisions of the tritave 3:1 — non-octave!)
+- **Just intonation** — `temperament="just"` for pure 5-limit ratios
+- **Historical pitch** — `Score(reference_pitch=415.0)` for Baroque A=415
+- **`Score(system=, temperament=, reference_pitch=)`** flows through to all playback
+- Per-system `c_index` and `period` replace hardcoded constants
+- Fixed all hardcoded `12`s in tone arithmetic
+- Song #22: Greensleeves (Renaissance lute, meantone, A=415)
+- 22 new microtonal tests (819 total)
+
 ## 0.32.1
 
 - `Tone("X")` now raises `ValueError` immediately instead of silently accepting invalid names (#39)
