@@ -311,51 +311,76 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
 
 def piano_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
-    """Piano — hammer strike on steel strings with soundboard resonance.
+    """Piano — steel strings struck by felt hammer.
 
-    Models the key characteristics:
-    1. Hammer impact — a brief, bright transient (the "thunk")
-    2. Multiple strings per note — real pianos have 2-3 strings per key,
-       slightly detuned, creating natural chorus
-    3. Soundboard resonance — the large wooden board amplifies and colors
-    4. Inharmonicity — piano strings are stiff, so upper partials are
-       slightly sharper than pure harmonics (makes piano sound like piano)
+    The piano sound has three key qualities:
+    1. Metallic ring — steel strings produce clear, ringing harmonics
+       (especially 2nd and 3rd) that sustain for seconds
+    2. Smooth attack — felt hammer absorbs the initial transient,
+       no pick noise or pluck character
+    3. Two-stage decay — fast initial drop (~0.3s) as hammer energy
+       dissipates, then a long slow ring as the string sustains
+
+    Two slightly detuned strings per note create the natural
+    chorus/shimmer that makes piano sound like piano.
     """
     t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
     rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
-    # Multiple detuned strings (2-3 per note on a real piano)
-    detune_cents = 3.0  # slight detuning between strings
-    hz2 = hz * (2 ** (detune_cents / 1200))
-    hz3 = hz * (2 ** (-detune_cents / 1200))
+    # Two-stage decay: fast initial (3.0/s) then slow sustain (0.8/s)
+    decay = numpy.where(t < 0.3,
+                        numpy.exp(-3.0 * t),
+                        numpy.exp(-3.0 * 0.3) * numpy.exp(-0.8 * (t - 0.3)))
+
+    # Two detuned strings — subtle shimmer
+    detune = 1.5  # cents
+    hz2 = hz * (2 ** (detune / 1200))
 
     wave = numpy.zeros(n_samples, dtype=numpy.float64)
 
-    # Additive synthesis with inharmonicity
-    # Piano strings are stiff, so partial n is at f * n * (1 + B*n²)
-    # B ≈ 0.0001 for a typical piano string
-    B = 0.00008
-    n_harmonics = min(25, int((SAMPLE_RATE / 2) / hz))
+    # Brightness scales with pitch — high notes are brighter, low notes warmer
+    # C2=65Hz → 0.0, C4=262Hz → 0.5, C6=1047Hz → 1.0
+    brightness = numpy.clip((hz - 65) / 1000, 0.0, 1.0)
 
-    for string_hz in [hz, hz2, hz3]:
+    # Harmonics with the metallic spectral shape of steel strings
+    n_harmonics = min(15, int((SAMPLE_RATE / 2) / hz))
+
+    for string_hz in [hz, hz2]:
         for n in range(1, n_harmonics + 1):
-            # Inharmonic partial frequency
-            f_n = string_hz * n * numpy.sqrt(1 + B * n * n)
+            f_n = string_hz * n
             if f_n >= SAMPLE_RATE / 2:
                 break
-            # Amplitude: roughly 1/n but shaped for piano timbre
-            amp = (1.0 / n) * numpy.exp(-0.15 * n)
-            # Each partial decays at its own rate (high partials die faster)
-            partial_decay = 4.0 + 15.0 / (n + 1)
+            # Piano spectral shape: strong 1-3, then falling
+            # Upper register has more prominent harmonics (brighter)
+            if n == 1:
+                amp = 1.0
+            elif n == 2:
+                amp = 0.7 + 0.15 * brightness
+            elif n == 3:
+                amp = 0.45 + 0.2 * brightness
+            elif n <= 6:
+                amp = (0.25 + 0.15 * brightness) / n
+            else:
+                amp = (0.1 + 0.1 * brightness) / (n * n)
+            # Higher harmonics decay faster, but less so in upper register
+            h_decay = decay * numpy.exp(-(1.5 - 0.5 * brightness) * (n - 1) * t)
             phase = rng.uniform(0, 2 * numpy.pi)
-            wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * numpy.exp(-partial_decay * t)
+            wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * h_decay
 
-    # Hammer impact — brief broadband transient
-    hammer_len = min(int(SAMPLE_RATE * 0.008), n_samples)
-    hammer = rng.uniform(-0.3, 0.3, hammer_len) * numpy.exp(-numpy.linspace(0, 8, hammer_len))
+    wave *= 0.5
+
+    # Hammer impact — felt-on-string thump
+    # Brighter and punchier on high notes, warmer on low notes
+    hammer_len = min(int(SAMPLE_RATE * (0.015 - 0.007 * brightness)), n_samples)
+    if hammer_len < 4:
+        hammer_len = 4
+    hammer_t = numpy.arange(hammer_len, dtype=numpy.float64) / SAMPLE_RATE
+    hammer_freq = 300 + 400 * brightness  # 300Hz low register, 700Hz high
+    hammer = (numpy.sin(2 * numpy.pi * hammer_freq * hammer_t) * (0.4 + 0.3 * brightness) +
+              numpy.sin(2 * numpy.pi * hz * 1.5 * hammer_t) * 0.3)
+    hammer *= numpy.exp(-numpy.linspace(0, 12 + 8 * brightness, hammer_len))
     wave[:hammer_len] += hammer
 
-    # Normalize
     mx = numpy.abs(wave).max()
     if mx > 0:
         wave /= mx
@@ -554,6 +579,212 @@ def marimba_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         wave /= mx
 
     return (peak * wave).astype(numpy.int16)
+
+
+def oboe_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Oboe — double reed through a conical bore.
+
+    The conical bore (unlike clarinet's cylinder) produces both odd
+    AND even harmonics, but with a nasal, reedy quality from the
+    double reed. Brighter and more piercing than clarinet.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    vib_onset = numpy.clip(t / 0.2, 0.0, 1.0)
+    vib = hz * 0.004 * vib_onset * numpy.sin(2 * numpy.pi * 5.0 * t)
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    n_harmonics = min(18, int((SAMPLE_RATE / 2) / hz))
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Conical bore: all harmonics, peaked around 3-5
+        amp = (1.0 / n) * numpy.exp(-0.05 * (n - 3) ** 2)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
+
+    # Double reed buzz — nasal character
+    reed = rng.normal(0, 0.06, n_samples)
+    bw = max(100, hz * 0.4)
+    lo, hi = max(20, int(hz * 2 - bw)), min(SAMPLE_RATE // 2 - 1, int(hz * 2 + bw))
+    if lo < hi:
+        br, ar = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        reed = scipy.signal.lfilter(br, ar, reed)
+    wave += reed
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
+def harpsichord_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Harpsichord — quill plucking a metal string.
+
+    Distinctive bright, metallic pluck with no sustain control
+    (unlike piano, you can't play soft). Rich in harmonics with
+    a sharp attack and moderate decay.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Bright initial noise — quill pluck is sharper than felt hammer
+    buf = rng.uniform(-1.0, 1.0, period).astype(numpy.float64)
+    # Less filtering than guitar — harpsichord keeps brightness
+    for k in range(period - 1):
+        buf[k] = 0.7 * buf[k] + 0.3 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        # Moderate decay — not as long as piano, not as short as guitar
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.999
+
+    # Harpsichord has a distinctive "chiff" — the quill release
+    chiff_len = min(int(SAMPLE_RATE * 0.003), n_samples)
+    chiff = rng.uniform(-0.5, 0.5, chiff_len) * numpy.exp(-numpy.linspace(0, 15, chiff_len))
+    out[:chiff_len] += chiff
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
+
+
+def cello_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Cello — deep bowed string with large body resonance.
+
+    Like strings_wave but with stronger low-frequency body resonance
+    (the cello body is much larger than violin) and a darker, warmer
+    harmonic profile.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Delayed vibrato
+    vib_rate = 5.0 + rng.uniform(-0.3, 0.3)
+    vib_depth = hz * 0.004
+    vib_onset = numpy.clip(t / 0.25, 0.0, 1.0)
+    vibrato = vib_depth * vib_onset * numpy.sin(2 * numpy.pi * vib_rate * t)
+
+    nyquist = SAMPLE_RATE / 2.0
+    n_harmonics = min(25, int(nyquist / hz))
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Cello body resonance: strong peaks at ~250Hz and ~500Hz
+    def body(f):
+        r = 1.0
+        r += 0.8 * numpy.exp(-((f - 250) / 80) ** 2)  # main resonance
+        r += 0.5 * numpy.exp(-((f - 500) / 120) ** 2)  # second peak
+        r += 0.2 * numpy.exp(-((f - 1200) / 200) ** 2)  # bridge
+        return r
+
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= nyquist:
+            break
+        amp = (1.0 / n) * body(f_n)
+        if n % 2 == 0:
+            amp *= 0.85
+        phi = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n * t + vibrato * n / hz) + phi)
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    # Bow pressure variation
+    wave *= 1.0 + 0.04 * numpy.sin(2 * numpy.pi * 3.5 * t)
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def harp_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Harp — plucked string with large resonant soundboard.
+
+    Warmer than guitar, longer sustain, with the distinctive
+    "bloom" as the soundboard absorbs and re-radiates energy.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Soft pluck — fingers, not pick
+    buf = rng.uniform(-0.5, 0.5, period).astype(numpy.float64)
+    for _ in range(3):
+        for k in range(period - 1):
+            buf[k] = 0.6 * buf[k] + 0.4 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        # Long sustain — harp strings ring
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9995
+
+    # Large soundboard resonance — bloom effect
+    for center, bw, gain in [(150, 60, 0.3), (350, 100, 0.25), (700, 150, 0.15)]:
+        lo = max(20, center - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            out += scipy.signal.lfilter(bp, ap, out) * gain
+
+    # Warm rolloff
+    bl, al = scipy.signal.butter(2, min(5000, hz * 10), btype='low', fs=SAMPLE_RATE)
+    out = scipy.signal.lfilter(bl, al, out)
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
+
+
+def upright_bass_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Upright bass — thick gut/steel string pizzicato with wooden body.
+
+    Deep, round, woody. The large hollow body gives a warm resonance
+    that electric bass can't match. Pizzicato (plucked) by default.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Thick string — very warm initial noise
+    buf = rng.uniform(-0.6, 0.6, period).astype(numpy.float64)
+    for _ in range(5):
+        for k in range(period - 1):
+            buf[k] = 0.5 * buf[k] + 0.5 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9985
+
+    # Wooden body resonance — big, round
+    for center, bw, gain in [(80, 40, 0.4), (200, 60, 0.3), (400, 100, 0.15)]:
+        lo = max(20, center - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            out += scipy.signal.lfilter(bp, ap, out) * gain
+
+    # Dark rolloff — upright bass is not bright
+    bl, al = scipy.signal.butter(2, min(1500, hz * 6), btype='low', fs=SAMPLE_RATE)
+    out = scipy.signal.lfilter(bl, al, out)
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
 
 
 def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
@@ -851,6 +1082,11 @@ class Synth(Enum):
     TRUMPET = "trumpet_synth"
     CLARINET = "clarinet_synth"
     MARIMBA = "marimba_synth"
+    OBOE = "oboe_synth"
+    HARPSICHORD = "harpsichord_synth"
+    CELLO = "cello_synth"
+    HARP = "harp_synth"
+    UPRIGHT_BASS = "upright_bass_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
@@ -869,7 +1105,10 @@ _SYNTH_FUNCTIONS = {
     "strings_synth": strings_wave, "piano_synth": piano_wave,
     "bass_guitar_synth": bass_guitar_wave, "flute_synth": flute_wave,
     "trumpet_synth": trumpet_wave, "clarinet_synth": clarinet_wave,
-    "marimba_synth": marimba_wave, "acoustic_guitar_synth": acoustic_guitar_wave,
+    "marimba_synth": marimba_wave, "oboe_synth": oboe_wave,
+    "harpsichord_synth": harpsichord_wave, "cello_synth": cello_wave,
+    "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
+    "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
 

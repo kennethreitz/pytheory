@@ -33,8 +33,7 @@ INSTRUMENTS = {
         "analog": 0.15,
     },
     "harpsichord": {
-        "synth": "pluck_synth", "envelope": "none",
-        "lowpass": 3500,
+        "synth": "harpsichord_synth", "envelope": "none",
     },
     "celesta": {
         "synth": "fm", "envelope": "mallet",
@@ -62,10 +61,8 @@ INSTRUMENTS = {
         "noise_mix": 0.03,
     },
     "cello": {
-        "synth": "strings_synth", "envelope": "bowed",
-        "detune": 2, "lowpass": 2500,
+        "synth": "cello_synth", "envelope": "bowed",
         "humanize": 0.15, "vel_to_filter": 1000,
-        "noise_mix": 0.02,
     },
     "contrabass": {
         "synth": "strings_synth", "envelope": "bowed",
@@ -93,9 +90,8 @@ INSTRUMENTS = {
         "vel_to_filter": 1500,
     },
     "oboe": {
-        "synth": "saw", "envelope": "strings",
-        "lowpass": 3500, "lowpass_q": 1.2,
-        "humanize": 0.15, "noise_mix": 0.04,
+        "synth": "oboe_synth", "envelope": "strings",
+        "humanize": 0.15,
         "vel_to_filter": 1000,
     },
     "bassoon": {
@@ -187,13 +183,11 @@ INSTRUMENTS = {
         "humanize": 0.1, "sub_osc": 0.15,
     },
     "upright_bass": {
-        "synth": "triangle", "envelope": "pluck",
-        "lowpass": 800,
+        "synth": "upright_bass_synth", "envelope": "none",
         "humanize": 0.15, "saturation": 0.1,
     },
     "harp": {
-        "synth": "pluck_synth", "envelope": "none",
-        "lowpass": 5000,
+        "synth": "harp_synth", "envelope": "none",
         "reverb": 0.3, "reverb_type": "plate",
     },
     "sitar": {
