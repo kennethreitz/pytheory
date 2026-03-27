@@ -26,7 +26,7 @@ class Tone:
 
     def __init__(
         self,
-        name: str,
+        name,
         *,
         alt_names: Optional[list[str]] = None,
         octave: Optional[int] = None,
@@ -36,8 +36,10 @@ class Tone:
         """Initialize a Tone with a name, optional octave, and musical system.
 
         Args:
-            name: The note name (e.g. ``"C"``, ``"C#4"``). If the name
-                contains a digit, it is parsed as the octave.
+            name: The note name as a string (``"C"``, ``"C#4"``) or an int
+                for numbered systems (``0``, ``11``). Ints are converted to
+                strings and wrapped to the system's range (e.g. 22 in a
+                22-tone system becomes 0 at octave+1).
             alt_names: Alternate spellings for this tone (e.g. enharmonics).
             octave: The octave number. Overrides any octave parsed from *name*.
             system: The tuning system, either as a string key (``"western"``)
@@ -45,6 +47,23 @@ class Tone:
         """
         if alt_names is None:
             alt_names = []
+
+        # Int tone names: wrap to system range, adjust octave
+        if isinstance(name, int):
+            if isinstance(system, str):
+                from .systems import SYSTEMS
+                _sys = SYSTEMS[system]
+            else:
+                _sys = system
+            n_tones = len(_sys.tone_names)
+            if name < 0 or name >= n_tones:
+                extra_octaves = name // n_tones
+                name = name % n_tones
+                if octave is None:
+                    octave = 4 + extra_octaves
+                else:
+                    octave += extra_octaves
+            name = str(name)
 
         if isinstance(name, str):
             # Normalize unicode music symbols to ASCII equivalents
@@ -762,9 +781,12 @@ class Tone:
         period = getattr(self.system, 'period', 2.0)
         c_idx = getattr(self.system, 'c_index', C_INDEX)
 
-        if period != 2.0 and temperament == "equal":
-            # Non-octave period (e.g. Bohlen-Pierce tritave=3.0):
-            # generate ratios as period^(n/tones) instead of 2^(n/tones)
+        # Custom ratios override temperament (e.g. shruti just ratios)
+        custom_ratios = getattr(self.system, 'ratios', None)
+        if custom_ratios is not None:
+            pitch_scale = list(custom_ratios) + [period]
+        elif period != 2.0 and temperament == "equal":
+            # Non-octave period (e.g. Bohlen-Pierce tritave=3.0)
             import sympy
             pitch_scale = [period ** sympy.Rational(i, tones) for i in range(tones + 1)]
         else:

@@ -295,8 +295,51 @@ DEGREES_SHRUTI = [
     ("shadja", ()),                 # Sa (octave)
 ]
 
+# 22-shruti frequency ratios — 5-limit just intonation.
+# These are the REAL shruti intervals, NOT 22-TET approximations.
+# Based on the traditional Pythagorean/harmonic ratios from Indian
+# musicological treatises (Natya Shastra, Sangita Ratnakara).
+#
+# Ordered from Dha (A=1.0) to match our system indexing.
+# Sa is at index 5 (ratio ≈ 6/5 from Dha).
+from fractions import Fraction
+_SHRUTI_RATIOS_FROM_SA = [
+    Fraction(1, 1),       #  0: Sa        — 1/1
+    Fraction(256, 243),   #  1: atikomal Re — Pythagorean limma
+    Fraction(16, 15),     #  2: komal Re   — JI minor second
+    Fraction(10, 9),      #  3: shuddha Re — minor whole tone
+    Fraction(9, 8),       #  4: Re         — major whole tone
+    Fraction(32, 27),     #  5: atikomal Ga — Pythagorean minor 3rd
+    Fraction(6, 5),       #  6: komal Ga   — JI minor 3rd
+    Fraction(5, 4),       #  7: Ga         — JI major 3rd
+    Fraction(81, 64),     #  8: tivra Ga   — Pythagorean major 3rd
+    Fraction(4, 3),       #  9: Ma         — perfect 4th
+    Fraction(27, 20),     # 10: ekashruti Ma
+    Fraction(45, 32),     # 11: tivra Ma   — augmented 4th
+    Fraction(729, 512),   # 12: atitivra Ma — Pythagorean tritone
+    Fraction(3, 2),       # 13: Pa         — perfect 5th
+    Fraction(128, 81),    # 14: atikomal Dha — Pythagorean minor 6th
+    Fraction(8, 5),       # 15: komal Dha  — JI minor 6th
+    Fraction(5, 3),       # 16: shuddha Dha
+    Fraction(27, 16),     # 17: Dha        — Pythagorean major 6th
+    Fraction(16, 9),      # 18: komal Ni   — Pythagorean minor 7th
+    Fraction(9, 5),       # 19: shuddha Ni — JI minor 7th
+    Fraction(15, 8),      # 20: Ni         — JI major 7th
+    Fraction(243, 128),   # 21: tivra Ni   — Pythagorean major 7th
+]
+
+# Rotate to start from Dha (index 17 in the Sa-based list above).
+# Dha = 27/16 from Sa. We divide all ratios by 27/16 and wrap.
+_dha_ratio = _SHRUTI_RATIOS_FROM_SA[17]
+SHRUTI_RATIOS = []
+for i in range(22):
+    sa_idx = (i + 17) % 22  # rotate: Dha=0, komalNi=1, ..., Sa=5, ...
+    r = _SHRUTI_RATIOS_FROM_SA[sa_idx] / _dha_ratio
+    if r < 1:
+        r *= 2  # wrap into the same octave
+    SHRUTI_RATIOS.append(float(r))
+
 # 22-shruti thaat scales with proper microtonal intervals.
-# Each interval is counted in shrutis (22-TET steps).
 # Compare to the 12-TET approximations in INDIAN_SCALES which lose
 # the distinction between 2-shruti and 3-shruti steps.
 SHRUTI_SCALES = {

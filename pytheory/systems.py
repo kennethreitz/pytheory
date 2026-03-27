@@ -2,7 +2,7 @@ from ._statics import (
     TEMPERAMENTS, TONES, DEGREES, SCALES,
     INDIAN_SCALES, ARABIC_SCALES, JAPANESE_SCALES,
     BLUES_SCALES, GAMELAN_SCALES, SYSTEMS,
-    TONES_SHRUTI, DEGREES_SHRUTI, SHRUTI_SCALES,
+    TONES_SHRUTI, DEGREES_SHRUTI, SHRUTI_SCALES, SHRUTI_RATIOS,
     TONES_ARABIC_24, DEGREES_ARABIC_24, ARABIC_24_SCALES,
     TONES_SLENDRO, DEGREES_SLENDRO, SLENDRO_SCALES,
     TONES_PELOG, DEGREES_PELOG, PELOG_SCALES,
@@ -14,7 +14,7 @@ from ._statics import (
 
 class System:
     def __init__(self, *, tone_names, degrees, scales=None, c_index=None,
-                 period=2.0):
+                 period=2.0, ratios=None):
         self.tone_names = tone_names
 
         self.degrees = degrees
@@ -24,6 +24,11 @@ class System:
         # 2.0 for standard octave-based systems.
         # 3.0 for Bohlen-Pierce (tritave).
         self.period = period
+
+        # Custom frequency ratios: if set, overrides equal temperament.
+        # A list of N floats (one per tone), each relative to the first
+        # tone (1.0). For example, just intonation shruti ratios.
+        self.ratios = ratios
 
         # c_index: the index of the "reference C" in the tone list.
         # For octave arithmetic — scientific pitch changes octave at C.
@@ -214,6 +219,17 @@ class System:
         # descending goes in meta?
         return {"intervals": scale, "hemitonic": hemitonic, "meta": {}}
 
+    def tone(self, name, octave=4):
+        """Create a Tone in this system. Shorthand for ``Tone(name, octave=octave, system=self)``.
+
+        Example::
+
+            >>> edo19 = TET(19)
+            >>> edo19.tone(5, octave=4).frequency
+        """
+        from . import Tone
+        return Tone(name, octave=octave, system=self)
+
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
 
@@ -352,7 +368,7 @@ SYSTEMS = {
     "31-tet": TET(31, names=_31TET_NAMES),
     # Microtonal systems with proper intervals (not 12-TET approximations)
     "shruti": System(tone_names=TONES_SHRUTI, degrees=DEGREES_SHRUTI,
-                     scales=SHRUTI_SCALES, c_index=5),
+                     scales=SHRUTI_SCALES, c_index=5, ratios=SHRUTI_RATIOS),
     "maqam": System(tone_names=TONES_ARABIC_24, degrees=DEGREES_ARABIC_24,
                     scales=ARABIC_24_SCALES, c_index=5),
     "slendro": System(tone_names=TONES_SLENDRO, degrees=DEGREES_SLENDRO,
