@@ -945,8 +945,8 @@ def vocal_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
     # Asymmetric pulse: slow open phase, sharp closure, then closed phase.
     # Much more "voice-like" than a sine or sawtooth.
     # Jitter (pitch irregularity) + shimmer (amplitude irregularity)
-    jitter = rng.normal(0, hz * 0.003, n_samples)  # ~0.3% pitch jitter
-    shimmer = 1.0 + rng.normal(0, 0.02, n_samples)  # ~2% amp shimmer
+    jitter = rng.normal(0, hz * 0.001, n_samples)  # ~0.1% pitch jitter
+    shimmer = 1.0 + rng.normal(0, 0.008, n_samples)  # ~0.8% amp shimmer
     # Vibrato
     vib = hz * 0.001 * numpy.sin(2 * numpy.pi * 5.5 * t)
     inst_freq = hz + vib + jitter
@@ -959,9 +959,9 @@ def vocal_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
                           -numpy.sin(numpy.pi * (saw - 0.6) / 0.4) * 0.8)  # sharp fall
     glottal *= shimmer
 
-    # Aspiration noise (breathiness)
-    breath = rng.normal(0, 0.08, n_samples)
-    source = glottal * 0.85 + breath * 0.15
+    # Aspiration noise (breathiness) — subtle
+    breath = rng.normal(0, 0.04, n_samples)
+    source = glottal * 0.92 + breath * 0.08
 
     # ── Formant filtering ──
     n_vowels = len(vowels_in_lyric)
@@ -1038,6 +1038,12 @@ def vocal_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
                 ws = _sig.lfilter(bp, ap, ws)
             ws *= numpy.linspace(0.5, 0, wl)
             out[:wl] = ws * 0.4 + out[:wl] * 0.6
+
+    # Soft edges — prevent clicks at note boundaries
+    fade_samples = min(int(SAMPLE_RATE * 0.01), n_samples // 4)
+    if fade_samples > 0:
+        out[:fade_samples] *= numpy.linspace(0, 1, fade_samples)
+        out[-fade_samples:] *= numpy.linspace(1, 0, fade_samples)
 
     mx = numpy.abs(out).max()
     if mx > 0:
