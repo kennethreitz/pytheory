@@ -341,6 +341,89 @@ Reverb is also stereo — the left and right channels get different
 early reflection patterns, so the reverb tail occupies real space
 in the stereo field rather than sitting dead center.
 
+Physical Modeling
+-----------------
+
+Three synths go beyond traditional waveform synthesis into physical
+modeling territory — they simulate how real instruments produce sound.
+
+Karplus-Strong Pluck
+~~~~~~~~~~~~~~~~~~~~
+
+A burst of noise fed into a short delay line. The delay length sets
+the pitch, the feedback filter models the string decaying. This is
+how every physical modeling synth since 1983 does plucked strings.
+It sounds genuinely like a real guitar, harp, or koto.
+
+.. code-block:: python
+
+   guitar = score.part("guitar", synth="pluck_synth")
+   harp = score.part("harp", instrument="harp")  # uses pluck_synth
+
+Hammond Organ
+~~~~~~~~~~~~~
+
+Additive synthesis with drawbar harmonics — sine waves at the
+fundamental plus 2nd, 3rd, 4th, 5th, 6th, and 8th harmonics mixed
+at musical levels. Warm, round, unmistakably organ.
+
+.. code-block:: python
+
+   organ = score.part("organ", synth="organ_synth")
+
+String Ensemble
+~~~~~~~~~~~~~~~
+
+Filtered sawtooth with body resonance formants at ~500 Hz and ~1500 Hz,
+modeling the way a violin or cello body shapes the sound. Warmer and
+more "wooden" than a raw saw wave.
+
+.. code-block:: python
+
+   violin = score.part("violin", synth="strings_synth")
+
+Instrument Presets
+------------------
+
+Instead of choosing synth + envelope + effects manually, use an
+instrument preset — 38 predefined combinations that approximate real
+instruments:
+
+.. code-block:: python
+
+   piano = score.part("piano", instrument="piano")
+   violin = score.part("violin", instrument="violin")
+   guitar = score.part("guitar", instrument="acoustic_guitar")
+   organ = score.part("organ", instrument="organ")
+   bass = score.part("bass", instrument="upright_bass")
+
+Available instruments:
+
+**Keys**: piano, electric_piano, organ, harpsichord, celesta, music_box
+
+**Strings**: violin, viola, cello, contrabass, string_ensemble
+
+**Woodwinds**: flute, clarinet, oboe, bassoon
+
+**Brass**: trumpet, trombone, french_horn, tuba, brass_ensemble
+
+**Plucked**: acoustic_guitar, electric_guitar, distorted_guitar,
+bass_guitar, upright_bass, harp, sitar, koto
+
+**Synth**: synth_lead, synth_pad, synth_bass, acid_bass, 808_bass
+
+**Percussion**: vibraphone, marimba, xylophone, glockenspiel, tubular_bells
+
+Explicit kwargs override preset defaults:
+
+.. code-block:: python
+
+   # Piano with extra reverb
+   piano = score.part("piano", instrument="piano", reverb=0.5)
+
+   # Violin panned left
+   violin = score.part("v", instrument="violin", pan=-0.4)
+
 Choosing Synth and Envelope Combos
 ----------------------------------
 

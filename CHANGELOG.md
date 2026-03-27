@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.31.0
+
+- 3 new synth engines: Karplus-Strong pluck, Hammond organ, string ensemble with body formants
+- 38 instrument presets: `score.part("lead", instrument="violin")`
+- Keys, strings, woodwinds, brass, plucked, synth, and mallet categories
+- 13 total synth waveforms
+
 ## 0.30.0
 
 - Drums are a real Part — same effects pipeline as any voice
