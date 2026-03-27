@@ -1,7 +1,7 @@
 Synthesizers
 ============
 
-PyTheory includes 29 built-in waveforms and 10 ADSR envelope presets.
+PyTheory includes 30 built-in waveforms and 10 ADSR envelope presets.
 Every sound is generated from scratch -- no samples or external audio
 files needed.
 
@@ -390,11 +390,11 @@ Dedicated Instrument Synths
 --------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
-16 dedicated instrument synths. Each one uses tailored synthesis
+17 dedicated instrument synths. Each one uses tailored synthesis
 techniques -- additive harmonics, formant shaping, body resonance
 modeling, and specialized envelopes -- to capture the character of a
 specific acoustic instrument. These are the waveforms that bring the
-total count to 29.
+total count to 30.
 
 Piano Synth
 ~~~~~~~~~~~
@@ -557,6 +557,35 @@ mids, reed buzz, and brass body warmth. Four presets: ``saxophone``,
 .. code-block:: python
 
    sax = score.part("sax", instrument="tenor_sax")
+
+Granular Synth
+~~~~~~~~~~~~~~
+
+Grain cloud synthesis — chops a source waveform into tiny overlapping
+grains (10-200ms), each windowed and optionally pitch/time scattered.
+Creates textures impossible with other synthesis: frozen tones,
+shimmering clouds, evolving pads, glitchy stutters.
+
+.. code-block:: python
+
+   # Atmospheric granular pad
+   pad = score.part("pad", instrument="granular_pad")
+
+   # Granular with filter envelope sweep + resonance
+   texture = score.part("texture", synth="granular_synth", envelope="pad",
+                        filter_amount=4000, filter_attack=0.5,
+                        filter_decay=1.5, filter_sustain=0.3,
+                        lowpass=600, lowpass_q=3.0,
+                        reverb=0.5, reverb_type="taj_mahal")
+
+Parameters (passed as synth kwargs):
+
+- ``grain_size``: Duration per grain in seconds (default 0.04).
+- ``density``: Grains per second (default 50). Higher = denser cloud.
+- ``scatter``: Random position jitter 0-1 (default 0.5).
+- ``pitch_var``: Per-grain pitch randomization in cents (default 12).
+- ``source``: Base waveform — ``"saw"``, ``"sine"``, ``"triangle"``,
+  ``"square"``, ``"noise"``.
 
 Analog Oscillator Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~

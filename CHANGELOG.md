@@ -21,7 +21,10 @@ All notable changes to PyTheory are documented here.
   decrescendo rolls on any instrument
 - **Vibrato tuning** — all instruments reduced to 0.001 depth for cleaner
   ensemble sound
-- 29 synth waveforms, 838 tests
+- **Granular synthesis** — grain cloud engine with scatter, pitch
+  variation, and Hanning-windowed grains. Two presets: granular_pad,
+  granular_texture.
+- 30 synth waveforms, 838 tests
 
 ## 0.34.0
 
