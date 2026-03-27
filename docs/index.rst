@@ -77,14 +77,16 @@ What's Inside
   numbers), scale recommendation, modulation, voice leading
 - **Sequencing** — Score, Parts, arpeggiator, legato/glide, velocity,
   swing, humanize, tempo changes, song sections with repeat
-- **Synthesis** — 13 waveforms (including Karplus-Strong pluck, Hammond organ,
-  bowed string), 10 envelopes, 38 instrument presets, configurable FM,
-  sub-oscillator, noise layer, filter envelope, velocity-to-brightness,
-  detune, stereo pan/spread, 58 drum patterns (stereo panned), 21 fills
+- **Synthesis** — 27 waveforms (including Karplus-Strong pluck, Hammond organ,
+  bowed string, and 14 dedicated instrument synths), 10 envelopes, 40+
+  instrument presets, configurable FM, sub-oscillator, noise layer, filter
+  envelope, velocity-to-brightness, analog oscillator drift, detune, stereo
+  pan/spread, strumming, 80+ drum patterns (stereo panned, including world
+  percussion), 21 fills
 - **Effects** — reverb (algorithmic + 7 convolution IRs, stereo), delay,
-  lowpass/highpass (with resonance), distortion, saturation, chorus,
-  phaser, tremolo, sidechain compression, automation, LFOs. Master bus
-  compressor/limiter
+  lowpass/highpass (with resonance), distortion, cabinet simulation,
+  saturation, chorus, phaser, tremolo, analog drift, sidechain compression,
+  automation, LFOs. Master bus compressor/limiter
 - **Instruments** — 25 presets with fingering generation
 - **Output** — stereo playback, WAV export, MIDI import/export
 - **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``

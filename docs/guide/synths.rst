@@ -1,7 +1,7 @@
 Synthesizers
 ============
 
-PyTheory includes 13 built-in waveforms and 10 ADSR envelope presets.
+PyTheory includes 27 built-in waveforms and 10 ADSR envelope presets.
 Every sound is generated from scratch -- no samples or external audio
 files needed.
 
@@ -233,7 +233,7 @@ shapes the amplitude over time for natural-sounding notes:
 - **Sustain** -- the held volume while the note is on.
 - **Release** -- how quickly it fades to silence after the note ends.
 
-PyTheory includes 8 presets:
+PyTheory includes 10 presets:
 
 .. code-block:: python
 
@@ -386,11 +386,183 @@ more "wooden" than a raw saw wave.
 
    violin = score.part("violin", synth="strings_synth")
 
+Dedicated Instrument Synths
+--------------------------
+
+Beyond the classic and physical modeling waveforms, PyTheory includes
+14 dedicated instrument synths. Each one uses tailored synthesis
+techniques -- additive harmonics, formant shaping, body resonance
+modeling, and specialized envelopes -- to capture the character of a
+specific acoustic instrument. These are the waveforms that bring the
+total count to 27.
+
+Piano Synth
+~~~~~~~~~~~
+
+Hammer-strike envelope with body resonance and subtle inharmonicity.
+Models the way a felt hammer excites steel strings inside a wooden
+soundboard.
+
+.. code-block:: python
+
+   piano = score.part("piano", synth="piano_synth")
+
+Bass Guitar Synth
+~~~~~~~~~~~~~~~~~
+
+Plucked string model with finger-damped harmonics and low-end warmth.
+
+.. code-block:: python
+
+   bass = score.part("bass", synth="bass_guitar_synth")
+
+Flute Synth
+~~~~~~~~~~~~
+
+Breathy noise excitation through a resonant tube model, with
+overblowing behavior at higher velocities.
+
+.. code-block:: python
+
+   flute = score.part("flute", synth="flute_synth")
+
+Trumpet Synth
+~~~~~~~~~~~~~
+
+Brass lip-buzz model with spectral brightness that increases with
+velocity, plus a characteristic brassy edge from shaped harmonics.
+
+.. code-block:: python
+
+   trumpet = score.part("trumpet", synth="trumpet_synth")
+
+Clarinet Synth
+~~~~~~~~~~~~~~
+
+Cylindrical bore model producing mostly odd harmonics, giving the
+characteristic hollow, woody tone.
+
+.. code-block:: python
+
+   clarinet = score.part("clarinet", synth="clarinet_synth")
+
+Oboe Synth
+~~~~~~~~~~~
+
+Double-reed model with nasal formant shaping and a buzzy, penetrating
+timbre.
+
+.. code-block:: python
+
+   oboe = score.part("oboe", synth="oboe_synth")
+
+Marimba Synth
+~~~~~~~~~~~~~
+
+Tuned bar model with a soft mallet attack and a warm, resonant decay
+that emphasizes the fundamental.
+
+.. code-block:: python
+
+   marimba = score.part("marimba", synth="marimba_synth")
+
+Harpsichord Synth
+~~~~~~~~~~~~~~~~~
+
+Plucked-string model with a bright, immediate attack and rapid decay
+-- the characteristic "plink" of a quill plucking a string.
+
+.. code-block:: python
+
+   harpsi = score.part("harpsi", synth="harpsichord_synth")
+
+Cello Synth
+~~~~~~~~~~~
+
+Bowed string model with body formants at cello resonance frequencies,
+producing a rich, warm, sustained tone.
+
+.. code-block:: python
+
+   cello = score.part("cello", synth="cello_synth")
+
+Harp Synth
+~~~~~~~~~~
+
+Plucked string with longer sustain and gentle high-frequency rolloff,
+modeling nylon strings on a resonant frame.
+
+.. code-block:: python
+
+   harp = score.part("harp", synth="harp_synth")
+
+Upright Bass Synth
+~~~~~~~~~~~~~~~~~~
+
+Pizzicato double bass with woody body resonance and a thumpy low end.
+
+.. code-block:: python
+
+   bass = score.part("bass", synth="upright_bass_synth")
+
+Acoustic Guitar Synth
+~~~~~~~~~~~~~~~~~~~~~
+
+Steel-string model with pick transient, body resonance, and natural
+string decay.
+
+.. code-block:: python
+
+   guitar = score.part("guitar", synth="acoustic_guitar_synth")
+
+Electric Guitar Synth
+~~~~~~~~~~~~~~~~~~~~~
+
+Magnetic pickup model with brighter harmonics and less body resonance
+than the acoustic, ready for effects processing.
+
+.. code-block:: python
+
+   eguitar = score.part("eguitar", synth="electric_guitar_synth")
+
+Sitar Synth
+~~~~~~~~~~~~
+
+Sympathetic string resonance with the characteristic buzzy "jawari"
+bridge, producing a shimmering, metallic sustain.
+
+.. code-block:: python
+
+   sitar = score.part("sitar", synth="sitar_synth")
+
+Analog Oscillator Drift
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+All waveform synths support the ``analog_drift`` parameter, which adds
+subtle, slow random pitch variation to each oscillator -- modeling the
+voltage instability of vintage analog circuits. This is what makes a
+real Minimoog sound slightly different on every note, and why analog
+synths feel "alive" compared to their digital counterparts.
+
+.. code-block:: python
+
+   # Subtle vintage drift
+   pad = score.part("pad", synth="saw", analog_drift=0.1)
+
+   # More pronounced, wobbly analog character
+   lead = score.part("lead", synth="square", analog_drift=0.3)
+
+Drift values:
+
+- **0.05--0.1** = subtle warmth (studio-grade analog)
+- **0.15--0.25** = noticeable drift (vintage gear warming up)
+- **0.3+** = unstable, wobbly (broken tape machine)
+
 Instrument Presets
 ------------------
 
 Instead of choosing synth + envelope + effects manually, use an
-instrument preset — 38 predefined combinations that approximate real
+instrument preset — 40+ predefined combinations that approximate real
 instruments:
 
 .. code-block:: python

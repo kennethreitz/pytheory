@@ -45,18 +45,15 @@ def bossa_nova_girl():
     score = Score("4/4", bpm=140)
     score.drums("bossa nova", repeats=4)
 
-    rhodes = score.part("rhodes", synth="fm", envelope="piano",
+    rhodes = score.part("rhodes", instrument="electric_piano",
                         volume=0.3, pan=-0.3,
-                        reverb=0.4, reverb_decay=1.8, reverb_type="plate",
-                        detune=8, humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="pluck",
+                        reverb=0.4, reverb_decay=1.8, reverb_type="plate")
+    lead = score.part("lead", instrument="flute",
                       volume=0.45, pan=0.3,
                       delay=0.25, delay_time=0.32, delay_feedback=0.35,
-                      reverb=0.2, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.45, pan=0.0, lowpass=600,
-                      humanize=0.15)
+                      reverb=0.2, reverb_type="plate")
+    bass = score.part("bass", instrument="upright_bass",
+                      volume=0.45, pan=0.0, lowpass=600)
 
     for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
         rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -90,19 +87,16 @@ def bebop_in_bb():
     score = Score("4/4", bpm=160)
     score.drums("bebop", repeats=8, fill="jazz", fill_every=8)
 
-    rhodes = score.part("rhodes", synth="fm", envelope="piano",
+    rhodes = score.part("rhodes", instrument="electric_piano",
                         volume=0.25, pan=-0.3,
-                        reverb=0.35, reverb_decay=1.2, reverb_type="plate",
-                        detune=8, humanize=0.2)
-    lead = score.part("lead", synth="saw", envelope="pluck",
+                        reverb=0.35, reverb_decay=1.2, reverb_type="plate")
+    lead = score.part("lead", instrument="trumpet",
                       volume=0.4, pan=0.25,
                       lowpass=4000, lowpass_q=1.1,
                       delay=0.15, delay_time=0.19, delay_feedback=0.25,
-                      reverb=0.15, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="triangle", envelope="pluck",
-                      volume=0.4, pan=0.0, lowpass=500,
-                      humanize=0.15)
+                      reverb=0.15, reverb_type="plate")
+    bass = score.part("bass", instrument="upright_bass",
+                      volume=0.4, pan=0.0, lowpass=500)
 
     for sym in ["Bb", "Gm", "Cm", "F7"] * 2:
         rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -148,14 +142,12 @@ def salsa_descarga():
                       volume=0.2, pan=-0.35,
                       reverb=0.3, reverb_type="plate", lowpass=2000,
                       detune=10, humanize=0.2)
-    lead = score.part("lead", synth="saw", envelope="pluck",
+    lead = score.part("lead", instrument="trumpet",
                       volume=0.4, pan=0.3,
                       delay=0.2, delay_time=0.167, delay_feedback=0.3,
-                      reverb=0.15, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="pulse", envelope="pluck",
-                      volume=0.45, pan=0.0, lowpass=500, lowpass_q=1.3,
-                      humanize=0.15)
+                      reverb=0.15, reverb_type="plate")
+    bass = score.part("bass", instrument="synth_bass",
+                      volume=0.45, pan=0.0, lowpass=500, lowpass_q=1.3)
 
     for sym in ["Em7b5", "A7", "Dm7", "Bbmaj7"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -191,20 +183,17 @@ def afrobeat_groove():
     score = Score("4/4", bpm=115)
     score.drums("afrobeat", repeats=8, fill="afrobeat", fill_every=8)
 
-    pads = score.part("pads", synth="supersaw", envelope="pad",
+    pads = score.part("pads", instrument="synth_pad",
                       volume=0.2, pan=-0.3,
                       reverb=0.4, reverb_decay=2.0, reverb_type="cathedral",
-                      lowpass=3000, detune=10, spread=0.6,
-                      humanize=0.2)
-    lead = score.part("lead", synth="saw", envelope="pluck",
+                      lowpass=3000)
+    lead = score.part("lead", instrument="trumpet",
                       volume=0.4, pan=0.3,
                       lowpass=3000, lowpass_q=1.0,
                       delay=0.2, delay_time=0.26, delay_feedback=0.3,
-                      reverb=0.15, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.5, pan=0.0, lowpass=500,
-                      humanize=0.15)
+                      reverb=0.15, reverb_type="plate")
+    bass = score.part("bass", instrument="bass_guitar",
+                      volume=0.5, pan=0.0, lowpass=500)
 
     for sym in ["Em", "Am", "D", "C"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -241,14 +230,12 @@ def reggae_one_drop():
                         reverb=0.5, reverb_decay=2.0, reverb_type="cathedral",
                         lowpass=2000, detune=8,
                         humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="strings",
+    lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.35, delay_time=0.5625, delay_feedback=0.45,
-                      reverb=0.3, reverb_type="cathedral",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.55, pan=0.0, lowpass=400, lowpass_q=1.3,
-                      humanize=0.15)
+                      reverb=0.3, reverb_type="cathedral")
+    bass = score.part("bass", instrument="bass_guitar",
+                      volume=0.55, pan=0.0, lowpass=400, lowpass_q=1.3)
 
     for sym in ["G", "C", "D", "C"] * 2:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -286,15 +273,13 @@ def funk_workout():
                         volume=0.25, pan=-0.4,
                         lowpass=2500, reverb=0.15, reverb_type="plate",
                         sidechain=0.4, humanize=0.2)
-    lead = score.part("lead", synth="saw", envelope="pluck",
+    lead = score.part("lead", instrument="synth_lead",
                       volume=0.4, pan=0.35,
                       lowpass=3500, lowpass_q=1.5,
                       delay=0.15, delay_time=0.15, delay_feedback=0.25,
-                      reverb=0.1, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="pulse", envelope="pluck",
-                      volume=0.5, pan=0.0, lowpass=600, lowpass_q=1.2,
-                      humanize=0.15)
+                      reverb=0.1, reverb_type="plate")
+    bass = score.part("bass", instrument="synth_bass",
+                      volume=0.5, pan=0.0, lowpass=600, lowpass_q=1.2)
 
     for sym in ["Em", "Am", "D", "B7"] * 2:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -332,18 +317,16 @@ def blues_shuffle():
     score = Score("12/8", bpm=70)
     score.drums("12/8 blues", repeats=6)
 
-    chords = score.part("chords", synth="fm", envelope="piano",
+    chords = score.part("chords", instrument="electric_piano",
                         volume=0.3, pan=-0.3,
-                        reverb=0.3, reverb_decay=1.5, reverb_type="plate",
-                        detune=8, humanize=0.2)
-    lead = score.part("lead", synth="saw", envelope="pluck",
+                        reverb=0.3, reverb_decay=1.5, reverb_type="plate")
+    lead = score.part("lead", instrument="trumpet",
                       volume=0.45, pan=0.25,
                       reverb=0.3, reverb_decay=1.2, reverb_type="plate",
                       delay=0.2, delay_time=0.43, delay_feedback=0.3,
-                      lowpass=3500, humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.5, pan=0.0, lowpass=500,
-                      humanize=0.15)
+                      lowpass=3500)
+    bass = score.part("bass", instrument="upright_bass",
+                      volume=0.5, pan=0.0, lowpass=500)
 
     for sym in ["A", "A", "D", "D", "E7", "A"]:
         chords.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
@@ -381,19 +364,16 @@ def samba_de_janeiro():
     score = Score("4/4", bpm=170)
     score.drums("samba", repeats=8, fill="samba", fill_every=8)
 
-    pads = score.part("pads", synth="supersaw", envelope="pad",
+    pads = score.part("pads", instrument="synth_pad",
                       volume=0.2, pan=-0.3,
                       reverb=0.45, reverb_decay=2.0, reverb_type="plate",
-                      lowpass=4000, detune=10, spread=0.5,
-                      humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="pluck",
+                      lowpass=4000)
+    lead = score.part("lead", instrument="flute",
                       volume=0.45, pan=0.3,
                       delay=0.2, delay_time=0.176, delay_feedback=0.3,
-                      reverb=0.15, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.45, pan=0.0, lowpass=500,
-                      humanize=0.15)
+                      reverb=0.15, reverb_type="plate")
+    bass = score.part("bass", instrument="bass_guitar",
+                      volume=0.45, pan=0.0, lowpass=500)
 
     for sym in ["G", "Em", "Am", "D7"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -426,18 +406,15 @@ def jazz_waltz():
     score = Score("3/4", bpm=150)
     score.drums("waltz", repeats=16)
 
-    rhodes = score.part("rhodes", synth="fm", envelope="piano",
+    rhodes = score.part("rhodes", instrument="electric_piano",
                         volume=0.3, pan=-0.3,
-                        reverb=0.4, reverb_decay=2.0, reverb_type="cathedral",
-                        detune=8, humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="strings",
+                        reverb=0.4, reverb_decay=2.0, reverb_type="cathedral")
+    lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.25,
                       reverb=0.3, reverb_decay=1.5, reverb_type="plate",
-                      delay=0.2, delay_time=0.4, delay_feedback=0.3,
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.4, pan=0.0, lowpass=500,
-                      humanize=0.15)
+                      delay=0.2, delay_time=0.4, delay_feedback=0.3)
+    bass = score.part("bass", instrument="upright_bass",
+                      volume=0.4, pan=0.0, lowpass=500)
 
     for _ in range(2):
         for sym in ["Fmaj7", "Gm", "C7", "Fmaj7"]:
@@ -471,20 +448,19 @@ def house_anthem():
     score = Score("4/4", bpm=124)
     score.drums("house", repeats=8, fill="house", fill_every=8)
 
-    pads = score.part("pads", synth="supersaw", envelope="pad",
+    pads = score.part("pads", instrument="synth_pad",
                       volume=0.25, pan=-0.3,
                       reverb=0.5, reverb_decay=2.5, reverb_type="cathedral",
-                      lowpass=5000, detune=12, spread=0.7,
-                      sidechain=0.6, humanize=0.2)
-    lead = score.part("lead", synth="saw", envelope="staccato",
+                      lowpass=5000,
+                      sidechain=0.6)
+    lead = score.part("lead", instrument="synth_lead",
                       volume=0.35, pan=0.3,
                       lowpass=2000, lowpass_q=2.0,
                       delay=0.2, delay_time=0.242, delay_feedback=0.35,
-                      reverb=0.15, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.55, pan=0.0, lowpass=300,
-                      sidechain=0.5, humanize=0.15)
+                      reverb=0.15, reverb_type="plate")
+    bass = score.part("bass", instrument="808_bass",
+                      volume=0.55, pan=0.0,
+                      sidechain=0.5)
 
     for sym in ["Cm", "Ab", "Bb", "Cm"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -538,14 +514,12 @@ def dub_kingston():
                         reverb=0.6, reverb_decay=2.5, reverb_type="cathedral",
                         lowpass=1500, lowpass_q=0.9, detune=8,
                         humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="strings",
+    lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.45, delay_time=0.625, delay_feedback=0.5,
-                      reverb=0.35, reverb_decay=2.0, reverb_type="cathedral",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.6, pan=0.0, lowpass=400, lowpass_q=1.5,
-                      humanize=0.15)
+                      reverb=0.35, reverb_decay=2.0, reverb_type="cathedral")
+    bass = score.part("bass", instrument="bass_guitar",
+                      volume=0.6, pan=0.0, lowpass=400, lowpass_q=1.5)
     siren = score.part("siren", synth="pwm_slow", envelope="pad",
                        volume=0.15, pan=0.5,
                        reverb=0.7, reverb_decay=3.0, reverb_type="cathedral",
@@ -585,20 +559,20 @@ def techno_minimal():
     score = Score("4/4", bpm=130)
     score.drums("techno", repeats=8, fill="house", fill_every=8)
 
-    pad = score.part("pad", synth="supersaw", envelope="pad",
+    pad = score.part("pad", instrument="synth_pad",
                      volume=0.2, pan=-0.3,
                      reverb=0.5, reverb_decay=3.0, reverb_type="cathedral",
-                     lowpass=3000, detune=12, spread=0.7,
-                     sidechain=0.6, humanize=0.2)
+                     lowpass=3000,
+                     sidechain=0.6)
     lead = score.part("lead", synth="pwm_fast", envelope="staccato",
                       volume=0.35, pan=0.3,
                       lowpass=1500, lowpass_q=3.0,
                       delay=0.3, delay_time=0.231, delay_feedback=0.4,
                       reverb=0.1, reverb_type="plate",
                       humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.55, pan=0.0, lowpass=250,
-                      sidechain=0.5, humanize=0.15)
+    bass = score.part("bass", instrument="808_bass",
+                      volume=0.55, pan=0.0,
+                      sidechain=0.5)
 
     for sym in ["Fm", "Db", "Eb", "Fm"] * 2:
         pad.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -624,18 +598,15 @@ def gospel_shuffle():
     score = Score("4/4", bpm=108)
     score.drums("gospel", repeats=8, fill="buildup", fill_every=8)
 
-    organ = score.part("organ", synth="fm", envelope="organ",
+    organ = score.part("organ", instrument="organ",
                        volume=0.3, pan=-0.3,
-                       reverb=0.45, reverb_decay=2.0, reverb_type="cathedral",
-                       detune=8, humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="pluck",
+                       reverb=0.45, reverb_decay=2.0, reverb_type="cathedral")
+    lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.2, delay_time=0.278, delay_feedback=0.3,
-                      reverb=0.2, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.45, pan=0.0, lowpass=500,
-                      humanize=0.15)
+                      reverb=0.2, reverb_type="plate")
+    bass = score.part("bass", instrument="upright_bass",
+                      volume=0.45, pan=0.0, lowpass=500)
 
     for sym in ["C", "Am", "F", "G"] * 2:
         organ.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -691,20 +662,18 @@ def dub_delay_madness():
                         volume=0.15, pan=-0.4,
                         reverb=0.7, reverb_decay=3.0, reverb_type="cathedral",
                         lowpass=1200, detune=8, humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.6, pan=0.0, lowpass=350, lowpass_q=1.5,
-                      humanize=0.15)
+    bass = score.part("bass", instrument="bass_guitar",
+                      volume=0.6, pan=0.0, lowpass=350, lowpass_q=1.5)
     siren = score.part("siren", synth="pwm_slow", envelope="pad",
                        volume=0.12, pan=0.5,
                        reverb=0.8, reverb_decay=4.0, reverb_type="cathedral",
                        delay=0.4, delay_time=0.88, delay_feedback=0.6,
                        lowpass=900, detune=10)
     # Melodica stabs — sparse, lots of delay
-    melodica = score.part("melodica", synth="triangle", envelope="pluck",
+    melodica = score.part("melodica", instrument="flute",
                           volume=0.35, pan=0.3,
                           delay=0.6, delay_time=0.66, delay_feedback=0.55,
-                          reverb=0.5, reverb_decay=2.5, reverb_type="cathedral",
-                          humanize=0.2)
+                          reverb=0.5, reverb_decay=2.5, reverb_type="cathedral")
 
     for sym in ["Em", "Em", "Am", "Am", "Em", "Em", "Bm", "Em"]:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -741,19 +710,16 @@ def drum_and_bass():
     score = Score("4/4", bpm=174)
     score.drums("drum and bass", repeats=8, fill="buildup", fill_every=8)
 
-    pads = score.part("pads", synth="supersaw", envelope="pad",
+    pads = score.part("pads", instrument="synth_pad",
                       volume=0.25, pan=-0.3,
                       reverb=0.5, reverb_decay=2.5, reverb_type="plate",
-                      lowpass=4000, detune=10, spread=0.6,
-                      humanize=0.2)
-    lead = score.part("lead", synth="triangle", envelope="strings",
+                      lowpass=4000)
+    lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.3, delay_time=0.172, delay_feedback=0.4,
-                      reverb=0.25, reverb_type="plate",
-                      humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.55, pan=0.0, lowpass=300,
-                      humanize=0.15)
+                      reverb=0.25, reverb_type="plate")
+    bass = score.part("bass", instrument="808_bass",
+                      volume=0.55, pan=0.0)
 
     for sym in ["Am", "F", "C", "G"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -787,25 +753,24 @@ def drake_vibes():
     score = Score("4/4", bpm=68)
     score.drums("trap", repeats=8, fill="trap", fill_every=8)
 
-    pads = score.part("pads", synth="supersaw", envelope="pad",
+    pads = score.part("pads", instrument="synth_pad",
                       volume=0.2, pan=-0.25,
                       reverb=0.5, reverb_decay=3.0, reverb_type="cathedral",
-                      lowpass=2500, detune=12, spread=0.6,
-                      sidechain=0.4, humanize=0.2)
-    bells = score.part("bells", synth="fm", envelope="bell",
+                      lowpass=2500,
+                      sidechain=0.4)
+    bells = score.part("bells", instrument="vibraphone",
                        volume=0.3, pan=0.4,
                        reverb=0.4, reverb_decay=2.0, reverb_type="plate",
-                       delay=0.25, delay_time=0.44, delay_feedback=0.35,
-                       humanize=0.2)
+                       delay=0.25, delay_time=0.44, delay_feedback=0.35)
     lead = score.part("lead", synth="pwm_slow", envelope="strings",
                       volume=0.35, pan=-0.2,
                       reverb=0.3, reverb_type="cathedral", lowpass=2000,
                       delay=0.2, delay_time=0.88, delay_feedback=0.3,
                       humanize=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck",
-                      volume=0.6, pan=0.0, lowpass=200, lowpass_q=1.8,
+    bass = score.part("bass", instrument="808_bass",
+                      volume=0.6, pan=0.0,
                       distortion=0.4, distortion_drive=2.0,
-                      sidechain=0.3, humanize=0.15)
+                      sidechain=0.3)
 
     for sym in ["Ebm", "B", "Gb", "Db"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -858,14 +823,14 @@ def neon_grid():
     score._drum_pattern_beats = max(score._drum_pattern_beats, 32.0)
 
     sky = score.part(
-        "sky", synth="supersaw", envelope="pad",
+        "sky", instrument="synth_pad",
         volume=0.18, pan=0.0,
         detune=30, spread=1.0,
         reverb=0.6, reverb_decay=3.5,
         chorus=0.3, sidechain=0.5,
     )
     acid_l = score.part(
-        "acid_l", synth="saw", envelope="pad",
+        "acid_l", instrument="acid_bass",
         volume=0.35, pan=-0.7,
         legato=True, glide=0.025,
         distortion=0.9, distortion_drive=12.0,
@@ -875,7 +840,7 @@ def neon_grid():
     acid_l.lfo("lowpass", rate=0.5, min=400, max=3000, bars=8, shape="sine")
 
     acid_r = score.part(
-        "acid_r", synth="saw", envelope="pad",
+        "acid_r", instrument="acid_bass",
         volume=0.3, pan=0.7,
         legato=True, glide=0.02,
         distortion=0.85, distortion_drive=10.0,
@@ -885,7 +850,7 @@ def neon_grid():
     acid_r.lfo("lowpass", rate=0.33, min=500, max=2500, bars=8, shape="triangle")
 
     sub = score.part(
-        "sub", synth="sine", envelope="pluck",
+        "sub", instrument="808_bass",
         volume=0.55, pan=0.0,
         lowpass=160, sidechain=0.85, sidechain_release=0.08,
     )
@@ -896,12 +861,12 @@ def neon_grid():
         detune=15, spread=0.7,
     )
     bell_l = score.part(
-        "bell_l", synth="fm", envelope="bell",
+        "bell_l", instrument="vibraphone",
         volume=0.1, pan=-1.0,
         reverb=0.7, reverb_decay=3.0,
     )
     bell_r = score.part(
-        "bell_r", synth="fm", envelope="bell",
+        "bell_r", instrument="vibraphone",
         volume=0.1, pan=1.0,
         reverb=0.7, reverb_decay=3.0,
         delay=0.2, delay_time=0.8, delay_feedback=0.4,
@@ -1026,14 +991,14 @@ def dance_party():
             score._drum_hits.append(_Hit(DrumSound.KICK, bar * 4.0 + beat, 120))
     score._drum_pattern_beats = max(score._drum_pattern_beats, 32.0)
 
-    bass = score.part("bass", synth="square", envelope="pluck",
+    bass = score.part("bass", instrument="synth_bass",
                       volume=0.45, lowpass=500, lowpass_q=1.3,
                       sidechain=0.75, sidechain_release=0.12)
-    sparkle = score.part("sparkle", synth="fm", envelope="bell",
+    sparkle = score.part("sparkle", instrument="vibraphone",
                          volume=0.3, pan=0.4, reverb=0.3, reverb_decay=1.5,
                          delay=0.2, delay_time=0.234, delay_feedback=0.3)
-    chords_part = score.part("chords", synth="supersaw", envelope="pad",
-                             volume=0.2, detune=12, spread=0.7,
+    chords_part = score.part("chords", instrument="synth_pad",
+                             volume=0.2,
                              reverb=0.4, reverb_type="plate", sidechain=0.7)
     fun = score.part("fun", synth="square", envelope="staccato",
                      volume=0.2, pan=-0.5, delay=0.15, delay_time=0.117,
@@ -1080,14 +1045,13 @@ def temple_bell():
     score = Score("4/4", bpm=65)
     score.drums("bolero", repeats=8)
 
-    koto = score.part("koto", synth="triangle", envelope="pluck",
+    koto = score.part("koto", instrument="koto",
                       volume=0.45, pan=0.2,
-                      reverb=0.5, reverb_type="taj_mahal",
-                      humanize=0.3)
+                      reverb=0.5, reverb_type="taj_mahal")
     drone = score.part("drone", synth="sine", envelope="pad",
                        volume=0.15, reverb=0.6, reverb_type="taj_mahal",
                        chorus=0.15, chorus_rate=0.2)
-    bell = score.part("bell", synth="fm", envelope="bell",
+    bell = score.part("bell", instrument="vibraphone",
                       volume=0.1, pan=-0.6,
                       reverb=0.8, reverb_type="taj_mahal")
 

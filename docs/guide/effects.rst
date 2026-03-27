@@ -32,8 +32,8 @@ It's a well-tested order that sounds good by default.
 
 Effects are applied in this fixed order::
 
-    Signal --> Saturation --> Tremolo --> Distortion --> Chorus --> Phaser
-          --> Highpass --> Lowpass --> Delay --> Reverb --> Mix
+    Signal --> Saturation --> Tremolo --> Distortion --> Cabinet --> Chorus
+          --> Phaser --> Highpass --> Lowpass --> Delay --> Reverb --> Mix
 
 Additionally, these per-note effects are applied before the part effects chain:
 
@@ -47,11 +47,12 @@ Part-level effects:
 - **Saturation** first: subtle even-harmonic warmth (tape/tube color).
 - **Tremolo** second: amplitude LFO modulation.
 - **Distortion** third: drives the signal before filtering.
-- **Chorus** fourth: thickens the signal.
-- **Phaser** fifth: swept allpass notches.
-- **Highpass** sixth: removes low-frequency mud.
-- **Lowpass** seventh: shapes the tone (like a tone knob on an amp).
-- **Delay** eighth: echoes the shaped signal (tap delay / tape echo).
+- **Cabinet** fourth: speaker cab simulation (rolloff + presence bump).
+- **Chorus** fifth: thickens the signal.
+- **Phaser** sixth: swept allpass notches.
+- **Highpass** seventh: removes low-frequency mud.
+- **Lowpass** eighth: shapes the tone (like a tone knob on an amp).
+- **Delay** ninth: echoes the shaped signal (tap delay / tape echo).
 - **Reverb** last: places everything in a space (room / hall).
 
 Distortion
@@ -94,6 +95,89 @@ Parameters:
        envelope="staccato",
        distortion=0.8,
        distortion_drive=10.0,
+   )
+
+Cabinet Simulation
+------------------
+
+A real guitar amp doesn't just distort the signal -- the speaker
+cabinet shapes the tone dramatically. A 12-inch speaker in a closed
+cabinet rolls off the harsh high frequencies above 5 kHz and adds a
+presence bump around 2--3 kHz that gives the sound its "in the room"
+quality. Without a cabinet, distortion sounds thin and fizzy. With
+one, it sounds like a real amp.
+
+PyTheory's cabinet simulation applies a speaker rolloff curve (lowpass
+at ~5 kHz) combined with a presence resonance bump, placed in the
+signal chain immediately after distortion -- exactly where it sits in
+a real amp.
+
+Parameters:
+
+- ``cabinet``: Wet/dry mix, 0.0--1.0 (default 0, off).
+
+  - 0.3--0.5 = subtle speaker coloring
+  - 0.6--0.8 = classic amp-in-a-room
+  - 1.0 = full cabinet, no dry signal
+
+.. code-block:: python
+
+   # Classic rock amp tone: distortion into cabinet
+   guitar = score.part(
+       "guitar",
+       synth="saw",
+       envelope="pluck",
+       distortion=0.6,
+       distortion_drive=5.0,
+       cabinet=0.8,
+   )
+
+   # Clean amp with just cabinet warmth (no distortion)
+   clean = score.part(
+       "clean",
+       synth="triangle",
+       envelope="pluck",
+       cabinet=0.5,
+   )
+
+Analog Drift
+------------
+
+Real analog synthesizers are never perfectly in tune. The voltage-
+controlled oscillators drift slightly over time as components warm up
+and temperature fluctuates. This imperfection is actually a big part
+of why vintage analog synths sound so appealing -- the subtle pitch
+wandering gives each note a unique, living quality that static digital
+oscillators lack.
+
+The ``analog_drift`` parameter adds slow, random pitch variation to
+each oscillator, modeling this vintage behavior.
+
+Parameters:
+
+- ``analog_drift``: Drift amount, 0.0--1.0 (default 0, off).
+
+  - 0.05--0.1 = subtle warmth (studio-grade analog)
+  - 0.15--0.25 = noticeable drift (vintage gear warming up)
+  - 0.3+ = unstable, wobbly (broken tape machine)
+
+.. code-block:: python
+
+   # Warm vintage pad
+   pad = score.part(
+       "pad",
+       synth="supersaw",
+       envelope="pad",
+       analog_drift=0.1,
+       chorus=0.3,
+   )
+
+   # Lo-fi detuned lead
+   lead = score.part(
+       "lead",
+       synth="saw",
+       envelope="pluck",
+       analog_drift=0.25,
    )
 
 Chorus

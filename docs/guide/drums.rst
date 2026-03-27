@@ -10,7 +10,7 @@ the genre -- they tell the listener's body how to move before a single
 melodic note is played.
 
 PyTheory includes a complete drum system -- 27 synthesized percussion
-sounds, 58 pattern presets across dozens of genres, and 21 fill presets.
+sounds, 80+ pattern presets across dozens of genres, and 21 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
 Drum Sounds
@@ -145,8 +145,8 @@ Each sound has a dedicated synthesizer:
 Pattern Presets
 ---------------
 
-58 patterns spanning genres from rock to Afro-Cuban to electronic.
-Load them with ``Pattern.preset()``:
+80+ patterns spanning genres from rock to Afro-Cuban to electronic to
+world percussion. Load them with ``Pattern.preset()``:
 
 .. code-block:: pycon
 
@@ -193,9 +193,16 @@ adds syncopation.
 rattling hi-hats of trap, the breakneck tempo of drum and bass. These
 patterns were born in drum machines and they still live there.
 
-**Metal/Punk:** metal, blast beat, punk -- Speed and aggression.
-The blast beat is both feet and both hands going as fast as humanly
-possible. Punk strips everything to its essentials.
+**Metal/Punk:** metal, blast beat, punk, double kick, metal blast,
+metal groove, metal gallop -- Speed and aggression. The blast beat is
+both feet and both hands going as fast as humanly possible. Punk strips
+everything to its essentials. The metal kit adds 3 dedicated sounds
+(double kick, china cymbal, stack) and 4 patterns for extreme metal
+subgenres.
+
+**World Percussion:** tabla, dhol, dholak, mridangam, djembe -- Deep
+traditions from across the globe, each with authentic sound sets and
+idiomatic patterns. See the World Percussion section below for details.
 
 **Other:** funk, hip hop, bo diddley, second line, new orleans, waltz,
 12/8 blues, country, gospel, flamenco -- Everything else. The syncopated
@@ -303,6 +310,128 @@ drum pattern and all named parts are mixed together by ``play_score()``:
        bass.add(n, Duration.QUARTER)
 
    play_score(score)
+
+World Percussion
+----------------
+
+PyTheory includes dedicated sound sets and pattern presets for
+traditional percussion instruments from around the world. Each
+instrument has its own synthesized sounds that capture the timbral
+character of the real instrument, plus idiomatic rhythmic patterns
+drawn from their musical traditions.
+
+Tabla
+~~~~~
+
+The tabla is a pair of hand drums from the Indian subcontinent -- the
+smaller, higher-pitched *dayan* and the larger, bass *bayan*. It is
+the rhythmic backbone of Hindustani classical music, and one of the
+most expressive percussion instruments ever created. A single tabla
+player can produce an astonishing range of tones by varying finger
+placement, pressure, and striking technique.
+
+**6 sounds** -- covering the primary tabla strokes (na, tin, tun, ge,
+ke, and ti-ra-ki-ta combinations).
+
+**7 patterns:** teental (16 beats, the most common taal), jhaptaal
+(10 beats), rupak (7 beats), dadra (6 beats), keherwa (8 beats, folk
+and light classical), tabla solo, and tiri kita (fast ornamental
+pattern).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=80)
+   score.drums("teental", repeats=4)
+
+Dhol
+~~~~
+
+The dhol is a double-headed barrel drum from Punjab, played with
+sticks. It is the driving force behind bhangra music -- loud,
+energetic, and physically impossible to sit still to.
+
+**3 sounds** -- bass stroke, treble stroke, and rimshot.
+
+**2 patterns:** bhangra (the classic bhangra groove) and dhol chaal
+(a processional rhythm).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=160)
+   score.drums("bhangra", repeats=4)
+
+Dholak
+~~~~~~
+
+The dholak is a smaller, lighter two-headed drum used across South
+Asia in folk music, qawwali, and Bollywood. Played with bare hands,
+it produces a warm, melodic tone.
+
+**3 sounds** -- bass, treble, and slap.
+
+**2 patterns:** qawwali (the rhythmic foundation of Sufi devotional
+music) and dholak folk (a general folk groove).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   score.drums("qawwali", repeats=4)
+
+Mridangam
+~~~~~~~~~
+
+The mridangam is a double-headed drum from South India, the
+rhythmic anchor of Carnatic classical music. Its tuning system is
+extraordinarily precise, and its rhythmic vocabulary is among the
+most mathematically complex in the world.
+
+**4 sounds** -- tha, thom, nam, and din.
+
+**2 patterns:** adi talam (the most common Carnatic talam, 8 beats)
+and mridangam korvai (a rhythmic cadence pattern).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=90)
+   score.drums("adi talam", repeats=4)
+
+Djembe
+~~~~~~
+
+The djembe is a rope-tuned goblet drum from West Africa, capable of
+producing a wide range of tones from deep bass to sharp slaps. It is
+central to the drum ensemble traditions of Mali, Guinea, and Senegal.
+
+**3 sounds** -- bass (open center strike), tone (edge strike), and
+slap (sharp edge strike).
+
+**3 patterns:** djembe (a basic accompanying rhythm), kuku (a
+traditional rhythm from Guinea associated with fishing), and soli (a
+solo/celebration rhythm).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   score.drums("djembe", repeats=4)
+
+Metal Kit
+~~~~~~~~~
+
+A dedicated percussion kit for extreme metal subgenres, with
+specialized sounds and patterns that go beyond the standard drum kit.
+
+**3 sounds** -- double kick (triggered, tight attack), china cymbal,
+and stack (a short, trashy cymbal choke).
+
+**4 patterns:** double kick (relentless double bass drum pattern),
+metal blast (blast beat with china cymbal accents), metal groove (a
+half-time groove with double kick fills), and metal gallop (the
+classic triplet-feel gallop rhythm).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=200)
+   score.drums("metal blast", repeats=4)
 
 MIDI Export
 -----------

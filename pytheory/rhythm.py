@@ -320,11 +320,18 @@ class TimeSignature:
 
 @dataclass
 class Note:
-    """A pairing of a sound (Tone, Chord, or None for rest) with a duration."""
+    """A pairing of a sound (Tone, Chord, or None for rest) with a duration.
+
+    The optional ``bend`` field specifies a pitch bend in semitones
+    applied over the note's duration. Positive = bend up, negative = down.
+    For example, ``bend=2`` bends the note up a whole step by the end.
+    """
 
     tone: object
     duration: Duration
     velocity: int = 100
+    bend: float = 0.0
+    bend_type: str = "smooth"  # "smooth" (log), "linear", "late"
 
     @property
     def beats(self) -> float:
@@ -2051,11 +2058,15 @@ class Part:
         self._drum_pattern_beats: float = 0.0
         self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
-    def add(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100) -> "Part":
+    def add(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100,
+            bend: float = 0.0, bend_type: str = "smooth") -> "Part":
         """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
 
         Duration can be a ``Duration`` enum or a raw float (beats).
         Velocity controls loudness (1-127, default 100).
+        Bend specifies a pitch bend in semitones over the note duration
+        (e.g. ``bend=2`` bends up a whole step, ``bend=-1`` bends down
+        a half step). Used for guitar bends, sitar meends, slides.
 
         Returns self for chaining.
         """
@@ -2064,7 +2075,9 @@ class Part:
             tone_or_string = Tone.from_string(tone_or_string, system=self._system)
         if isinstance(duration, (int, float)):
             duration = _RawDuration(duration)
-        self.notes.append(Note(tone=tone_or_string, duration=duration, velocity=velocity))
+        self.notes.append(Note(tone=tone_or_string, duration=duration,
+                               velocity=velocity, bend=bend,
+                               bend_type=bend_type))
         return self
 
     def set(self, **params) -> "Part":

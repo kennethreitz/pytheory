@@ -3246,9 +3246,36 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 if analog > 0:
                     pitches = [hz * (2 ** (_rnd.gauss(0, analog * 5) / 1200))
                                for hz in pitches]
-                # Render oscillators (pass synth_kwargs for FM etc.)
-                waves = [synth_fn(hz, n_samples=n_samples, **_skw)
-                         for hz in pitches]
+                # Pitch bend: render with time-varying frequency
+                bend_amt = getattr(note, 'bend', 0.0)
+                if bend_amt != 0:
+                    bend_type = getattr(note, 'bend_type', 'smooth')
+                    t_bend = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+                    t_norm = numpy.clip(t_bend / (dur_ms / 1000), 0.0, 1.0)
+
+                    waves = []
+                    for hz in pitches:
+                        hz_end = hz * (2 ** (bend_amt / 12))
+                        if bend_type == 'smooth':
+                            # Log interpolation — perceptually linear pitch
+                            freq_curve = hz * (hz_end / hz) ** t_norm
+                        elif bend_type == 'linear':
+                            freq_curve = hz + (hz_end - hz) * t_norm
+                        elif bend_type == 'late':
+                            # Hold pitch for 60%, bend in last 40%
+                            late_t = numpy.clip((t_norm - 0.6) / 0.4, 0.0, 1.0)
+                            freq_curve = hz * (hz_end / hz) ** late_t
+                        else:
+                            freq_curve = hz * (hz_end / hz) ** t_norm
+
+                        # Phase accumulation for smooth frequency change
+                        phase = numpy.cumsum(2 * numpy.pi * freq_curve / SAMPLE_RATE)
+                        bent = numpy.sin(phase).astype(numpy.float64)
+                        waves.append((bent * SAMPLE_PEAK).astype(numpy.int16))
+                else:
+                    # Render oscillators (pass synth_kwargs for FM etc.)
+                    waves = [synth_fn(hz, n_samples=n_samples, **_skw)
+                             for hz in pitches]
                 # Sub-oscillator: octave-below sine
                 if sub_osc > 0:
                     for hz in pitches:
