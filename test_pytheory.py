@@ -6534,3 +6534,186 @@ def test_instrument_808_bass():
     assert p.lowpass_q == 1.5
     assert p.synth == "sine"
     assert p.envelope == "pluck"
+
+
+# ── Non-12-TET / Microtonal systems ─────────────────────────────────────────
+
+from pytheory import TET
+
+
+def test_tet_factory_creates_system():
+    edo17 = TET(17)
+    assert len(edo17.tone_names) == 17
+    assert edo17.semitones == 17
+
+
+def test_tet_factory_numbered_tones():
+    edo17 = TET(17)
+    t = Tone("0", octave=4, system=edo17)
+    assert t.frequency == pytest.approx(440.0, rel=1e-3)
+    # One octave up
+    t_up = t.add(17)
+    assert t_up.frequency == pytest.approx(880.0, rel=1e-3)
+
+
+def test_tet_factory_custom_names():
+    names = ["A", "B", "C", "D", "E"]
+    edo5 = TET(5, names=names)
+    assert len(edo5.tone_names) == 5
+    t = Tone("A", octave=4, system=edo5)
+    assert t.frequency == pytest.approx(440.0, rel=1e-3)
+
+
+def test_tet_factory_wrong_name_count():
+    with pytest.raises(ValueError):
+        TET(5, names=["A", "B", "C"])
+
+
+def test_19tet_system():
+    sys19 = SYSTEMS["19-tet"]
+    assert sys19.semitones == 19
+    a = Tone("A", octave=4, system=sys19)
+    assert a.frequency == pytest.approx(440.0, rel=1e-3)
+    # Octave should double
+    a5 = a.add(19)
+    assert a5.frequency == pytest.approx(880.0, rel=1e-3)
+
+
+def test_19tet_scale():
+    sys19 = SYSTEMS["19-tet"]
+    ts = TonedScale(system=sys19, tonic=Tone("C", octave=4, system=sys19))
+    major = ts["major"]
+    assert len(major.tones) == 8  # 7 + octave
+
+
+def test_31tet_system():
+    sys31 = SYSTEMS["31-tet"]
+    assert sys31.semitones == 31
+    a = Tone("A", octave=4, system=sys31)
+    assert a.frequency == pytest.approx(440.0, rel=1e-3)
+
+
+def test_shruti_system():
+    shruti = SYSTEMS["shruti"]
+    assert shruti.semitones == 22
+    sa = Tone("Sa", octave=4, system=shruti)
+    # Sa should be near C4 (261.63 Hz) — not exact due to 22-TET
+    assert 250 < sa.frequency < 270
+
+
+def test_shruti_octave():
+    shruti = SYSTEMS["shruti"]
+    sa4 = Tone("Sa", octave=4, system=shruti)
+    sa5 = sa4.add(22)
+    assert sa5.frequency == pytest.approx(sa4.frequency * 2, rel=1e-3)
+
+
+def test_shruti_bhairav_scale():
+    shruti = SYSTEMS["shruti"]
+    ts = TonedScale(system=shruti, tonic=Tone("Sa", octave=4, system=shruti))
+    bhairav = ts["bhairav"]
+    names = [t.name for t in bhairav.tones]
+    assert names[0] == "Sa"
+    assert "komal Re" in names  # the microtonal komal Re
+    assert len(bhairav.tones) == 8
+
+
+def test_maqam_system():
+    maqam = SYSTEMS["maqam"]
+    assert maqam.semitones == 24
+    do = Tone("Do", octave=4, system=maqam)
+    assert 250 < do.frequency < 270
+
+
+def test_maqam_rast_has_quarter_tones():
+    maqam = SYSTEMS["maqam"]
+    ts = TonedScale(system=maqam, tonic=Tone("Do", octave=4, system=maqam))
+    rast = ts["rast"]
+    names = [t.name for t in rast.tones]
+    # Rast should contain quarter-tone positions
+    assert any("↓" in n or "↑" in n for n in names)
+
+
+def test_slendro_system():
+    slendro = SYSTEMS["slendro"]
+    assert slendro.semitones == 5
+    ji = Tone("ji", octave=4, system=slendro)
+    # 5 steps = octave
+    ji_up = ji.add(5)
+    assert ji_up.frequency == pytest.approx(ji.frequency * 2, rel=1e-3)
+
+
+def test_pelog_system():
+    pelog = SYSTEMS["pelog"]
+    assert pelog.semitones == 9
+    ts = TonedScale(system=pelog, tonic=Tone("ji", octave=4, system=pelog))
+    full_pelog = ts["pelog"]
+    assert len(full_pelog.tones) == 8
+
+
+def test_thai_system():
+    thai = SYSTEMS["thai"]
+    assert thai.semitones == 7
+    do = Tone("do", octave=4, system=thai)
+    # 7 steps = octave
+    do_up = do.add(7)
+    assert do_up.frequency == pytest.approx(do.frequency * 2, rel=1e-3)
+
+
+def test_turkish_makam_system():
+    makam = SYSTEMS["makam"]
+    assert makam.semitones == 53
+    ts = TonedScale(system=makam, tonic=Tone("Do", octave=4, system=makam))
+    rast = ts["rast"]
+    assert len(rast.tones) == 8
+
+
+def test_carnatic_system():
+    carnatic = SYSTEMS["carnatic"]
+    assert carnatic.semitones == 72
+    ts = TonedScale(system=carnatic, tonic=Tone("Sa", octave=4, system=carnatic))
+    shankarabharanam = ts["shankarabharanam"]
+    assert len(shankarabharanam.tones) == 8
+
+
+def test_circle_of_fifths_19tet():
+    sys19 = SYSTEMS["19-tet"]
+    c = Tone("C", octave=4, system=sys19)
+    cof = c.circle_of_fifths()
+    assert len(cof) == 19  # should cycle through all 19 tones
+
+
+def test_circle_of_fifths_western_unchanged():
+    """Existing 12-TET circle of fifths should not be affected."""
+    c = Tone("C", octave=4, system="western")
+    cof = c.circle_of_fifths()
+    assert len(cof) == 12
+    assert cof[0].name == "C"
+    assert cof[1].name == "G"
+
+
+def test_from_frequency_non12():
+    sys19 = SYSTEMS["19-tet"]
+    t = Tone.from_frequency(440.0, system=sys19)
+    assert t.name == "A"
+    assert t.octave == 4
+
+
+def test_score_system_param():
+    """Score passes system to parts for string→Tone resolution."""
+    from pytheory import Score, Duration
+    shruti = SYSTEMS["shruti"]
+    score = Score("4/4", bpm=120, system=shruti)
+    p = score.part("test", synth="sine")
+    assert p._system is shruti
+    # String "Sa" should resolve via shruti system, not western
+    p.add(Tone("Sa", octave=4, system=shruti), Duration.QUARTER)
+    assert len(p.notes) == 1
+
+
+def test_interval_to_non12():
+    sys19 = SYSTEMS["19-tet"]
+    a = Tone("A", octave=4, system=sys19)
+    a5 = a.add(19)
+    result = a.interval_to(a5)
+    assert "octave" in result

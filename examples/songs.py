@@ -1204,6 +1204,37 @@ def cinematic_showcase():
     play_song(score, "Cinematic Showcase — A minor")
 
 
+def greensleeves():
+    """Greensleeves — Renaissance lute, meantone tuning, A=415 Hz."""
+    score = Score("3/4", bpm=120, temperament="meantone", reference_pitch=415.0)
+
+    lute = score.part("lute", instrument="acoustic_guitar",
+                      reverb=0.3, reverb_type="taj_mahal")
+
+    melody = [
+        ("A4", 1.0, 80),
+        ("C5", 2.0, 85),   ("D5", 1.0, 80),
+        ("E5", 3.0, 90),
+        ("F5", 1.0, 75),   ("E5", 2.0, 85),
+        ("D5", 1.0, 80),
+        ("B4", 3.0, 85),
+        ("G4", 1.0, 70),   ("B4", 2.0, 80),
+        ("C5", 1.0, 75),
+        ("A4", 3.0, 85),
+        ("A4", 1.0, 70),   ("A4", 2.0, 75),
+        ("G#4", 1.0, 70),
+        ("A4", 2.0, 80),   ("B4", 1.0, 75),
+        ("G4", 3.0, 85),
+        ("E4", 1.0, 70),
+        ("A4", 3.0, 90),
+    ]
+
+    for note, dur, vel in melody:
+        lute.add(note, dur, velocity=vel)
+
+    play_song(score, "Greensleeves — Renaissance Lute (Meantone, A=415)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1226,6 +1257,7 @@ SONGS = {
     "19": ("Dance Party at the Reitz House", dance_party),
     "20": ("Temple Bell (Japanese)", temple_bell),
     "21": ("Cinematic Showcase (Orchestral)", cinematic_showcase),
+    "22": ("Greensleeves (Renaissance Lute)", greensleeves),
 }
 
 if __name__ == "__main__":
@@ -1239,7 +1271,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-21, or 'all'): ").strip()
+        choice = input("  Pick a song (1-22, or 'all'): ").strip()
         print()
 
         if choice == "all":
