@@ -310,6 +310,59 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Acoustic guitar — Karplus-Strong with wooden body resonance.
+
+    Models a steel string exciting a resonant wooden body:
+    1. Karplus-Strong plucked string (softer initial noise than pure KS)
+    2. Body resonance — bandpass filters at the guitar body's natural
+       frequencies (~100Hz air cavity, ~250Hz top plate, ~500Hz back)
+    3. Warmer, rounder attack than electric (fingers vs pickup)
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Softer initial noise — nylon/steel string, not a harsh burst
+    buf = rng.uniform(-0.8, 0.8, period).astype(numpy.float64)
+    # Warm the initial burst — lowpass the noise slightly
+    for j in range(2):
+        for k in range(period - 1):
+            buf[k] = 0.6 * buf[k] + 0.4 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Karplus-Strong with moderate decay
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9988
+
+    # Body resonance — three formant peaks modeling the guitar body
+    # These interact with the string harmonics to create the "woody" tone
+    resonances = numpy.zeros(n_samples, dtype=numpy.float64)
+    for center, bw, gain in [(110, 60, 0.4), (250, 80, 0.3), (500, 120, 0.2)]:
+        lo = max(20, center - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            resonances += scipy.signal.lfilter(bp, ap, out) * gain
+
+    out = out * 0.6 + resonances
+
+    # Gentle rolloff above 5kHz (no brightness of electric pickup)
+    bl, al = scipy.signal.butter(2, 5000, btype='low', fs=SAMPLE_RATE)
+    out = scipy.signal.lfilter(bl, al, out)
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+
+    return (peak * out).astype(numpy.int16)
+
+
 def electric_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Electric guitar — Karplus-Strong through magnetic pickup simulation.
 
@@ -546,6 +599,7 @@ class Synth(Enum):
     PLUCK = "pluck_synth"
     ORGAN = "organ_synth"
     STRINGS = "strings_synth"
+    ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
 
@@ -560,8 +614,8 @@ _SYNTH_FUNCTIONS = {
     "noise": noise_wave, "supersaw": supersaw_wave,
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
     "pluck_synth": pluck_wave, "organ_synth": organ_wave,
-    "strings_synth": strings_wave, "sitar_synth": sitar_wave,
-    "electric_guitar_synth": electric_guitar_wave,
+    "strings_synth": strings_wave, "acoustic_guitar_synth": acoustic_guitar_wave,
+    "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
 
 

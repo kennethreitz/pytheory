@@ -145,8 +145,7 @@ INSTRUMENTS = {
 
     # ── Plucked ──
     "acoustic_guitar": {
-        "synth": "pluck_synth", "envelope": "none",
-        "lowpass": 3000,
+        "synth": "acoustic_guitar_synth", "envelope": "none",
         "humanize": 0.2, "saturation": 0.05,
     },
     "electric_guitar": {
@@ -2429,26 +2428,12 @@ class Part:
         else:
             total_beats = float(duration)
 
-        # Build a Chord from the fingering tones so all strings ring together
+        # Build a Chord — all strings ring together through the
+        # shared body resonance, like a real guitar
         from .chords import Chord as ChordClass
         chord_obj = ChordClass(tones=strum_tones)
 
-        # Add grace notes for the strum sweep — short individual string
-        # hits before the full chord, creating the audible "sweep"
-        n_strings = len(strum_tones)
-        per_string = strum_time / max(1, n_strings) if n_strings > 1 else 0
-
-        import random as _rnd
-        # Grace notes: each string except the last gets a quiet hit
-        # Lower velocity than the main chord to avoid pick noise buildup
-        grace_vel = max(1, int(velocity * 0.5))
-        for i in range(n_strings - 1):
-            vel = max(1, min(127, grace_vel + _rnd.randint(-5, 5)))
-            self.add(strum_tones[i], per_string, velocity=vel)
-
-        # Full chord rings for the remaining duration
-        ring_beats = max(0.1, total_beats - strum_time)
-        self.add(chord_obj, ring_beats, velocity=velocity)
+        self.add(chord_obj, total_beats, velocity=velocity)
 
         return self
 
