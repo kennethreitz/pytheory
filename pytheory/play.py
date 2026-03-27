@@ -1130,6 +1130,53 @@ def granular_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     return (peak * out).astype(numpy.int16)
 
 
+def mandolin_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Mandolin — paired steel strings, bright and ringing.
+
+    The mandolin has 4 courses of paired strings, tuned in unison.
+    The doubled strings create natural chorus. Bright attack from
+    the plectrum, small body with high-frequency resonance.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Two strings per course — slightly detuned for natural chorus
+    buf1 = rng.uniform(-0.8, 0.8, period).astype(numpy.float64)
+    period2 = max(2, period + rng.integers(-1, 2))
+    buf2 = rng.uniform(-0.8, 0.8, period2).astype(numpy.float64)
+    # Light filtering — steel is brighter than nylon
+    for k in range(period - 1):
+        buf1[k] = 0.65 * buf1[k] + 0.35 * buf1[k + 1]
+    for k in range(period2 - 1):
+        buf2[k] = 0.65 * buf2[k] + 0.35 * buf2[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        s1 = buf1[i % period]
+        s2 = buf2[i % period2]
+        out[i] = s1 * 0.55 + s2 * 0.45
+        next1 = (i + 1) % period
+        buf1[i % period] = 0.5 * (s1 + buf1[next1]) * 0.9988
+        next2 = (i + 1) % period2
+        buf2[i % period2] = 0.5 * (s2 + buf2[next2]) * 0.9988
+
+    # Small bright body — higher resonance than guitar
+    import scipy.signal as _sig
+    for center, bw, gain in [(500, 120, 0.3), (1000, 200, 0.25), (2000, 300, 0.15)]:
+        lo = max(20, center - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            out += _sig.lfilter(bp, ap, out) * gain
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
+
+
 def ukulele_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Ukulele — nylon strings on a small resonant body.
 
@@ -1476,6 +1523,7 @@ class Synth(Enum):
     SAXOPHONE = "saxophone_synth"
     GRANULAR = "granular_synth"
     VOCAL = "vocal_synth"
+    MANDOLIN = "mandolin_synth"
     UKULELE = "ukulele_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
@@ -1500,7 +1548,8 @@ _SYNTH_FUNCTIONS = {
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
     "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
     "granular_synth": granular_wave, "vocal_synth": vocal_wave,
-    "ukulele_synth": ukulele_wave, "acoustic_guitar_synth": acoustic_guitar_wave,
+    "mandolin_synth": mandolin_wave, "ukulele_synth": ukulele_wave,
+    "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
 
@@ -2255,6 +2304,68 @@ def _synth_mridangam_tha(n_samples):
     return out
 
 
+def _synth_cajon_bass(n_samples):
+    """Cajón bass — palm strike on center of the face.
+
+    Deep woody thump. The box resonates like a bass drum but with
+    a warmer, more wooden character.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Wooden box thump
+    thump_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    thump_raw = _noise(thump_len)
+    import scipy.signal as _sig
+    if thump_len > 20:
+        bl, al = _sig.butter(2, [40, 200], btype='band', fs=SAMPLE_RATE)
+        thump = _sig.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len].astype(numpy.float32)
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 18) * 0.8
+    body = numpy.sin(2 * numpy.pi * 70 * t) * _exp_decay(n_samples, 7) * 0.8
+    sub = _sine_f32(45, n_samples) * _exp_decay(n_samples, 9) * 0.4
+    click_len = min(200, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 45) * 0.3
+    result = body + sub
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.3).astype(numpy.float32)
+
+
+def _synth_cajon_slap(n_samples):
+    """Cajón slap — fingers near the top edge, snare wires buzz.
+
+    Bright crack with a buzzy rattle from the internal snare wires.
+    The signature cajón sound — like a snare but woodier.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Snare wire buzz
+    wire = _noise(n_samples) * _exp_decay(n_samples, 18) * 0.6
+    import scipy.signal as _sig
+    bl, al = _sig.butter(2, [1500, 6000], btype='band', fs=SAMPLE_RATE)
+    wire = _sig.lfilter(bl, al, wire).astype(numpy.float32) * 1.2
+    # Wood body
+    body = numpy.sin(2 * numpy.pi * 200 * t) * _exp_decay(n_samples, 22) * 0.4
+    # Sharp slap
+    slap_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    slap = _noise(slap_len) * _exp_decay(slap_len, 200) * 0.8
+    result = body + wire
+    result[:slap_len] += slap
+    return numpy.tanh(result * 1.5).astype(numpy.float32)
+
+
+def _synth_cajon_tap(n_samples):
+    """Cajón tap — light fingertip on the face. Ghost note."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.04))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    tap = numpy.sin(2 * numpy.pi * 300 * t) * _exp_decay(n, 35) * 0.3
+    pop = _noise(min(50, n)) * _exp_decay(min(50, n), 250) * 0.5
+    result = tap
+    result[:min(50, n)] += pop
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(result * 1.5)
+    return out
+
+
 def _synth_metal_kick(n_samples):
     """Metal kick — punchy with beater click. Double-bass ready.
 
@@ -2523,6 +2634,10 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.DJEMBE_BASS.value: lambda n: _synth_djembe_bass(n),
         DrumSound.DJEMBE_TONE.value: lambda n: _synth_djembe_tone(n),
         DrumSound.DJEMBE_SLAP.value: lambda n: _synth_djembe_slap(n),
+        # Cajon
+        DrumSound.CAJON_BASS.value: lambda n: _synth_cajon_bass(n),
+        DrumSound.CAJON_SLAP.value: lambda n: _synth_cajon_slap(n),
+        DrumSound.CAJON_TAP.value: lambda n: _synth_cajon_tap(n),
         # Metal kit
         DrumSound.METAL_KICK.value: lambda n: _synth_metal_kick(n),
         DrumSound.METAL_SNARE.value: lambda n: _synth_metal_snare(n),
@@ -4112,6 +4227,10 @@ def render_score(score):
         DrumSound.DJEMBE_BASS.value: 0.0,
         DrumSound.DJEMBE_TONE.value: 0.1,
         DrumSound.DJEMBE_SLAP.value: -0.1,
+        # Cajon — centered (single instrument)
+        DrumSound.CAJON_BASS.value: 0.0,
+        DrumSound.CAJON_SLAP.value: 0.0,
+        DrumSound.CAJON_TAP.value: 0.1,
         # Metal kit
         DrumSound.METAL_KICK.value: 0.0,
         DrumSound.METAL_SNARE.value: 0.0,

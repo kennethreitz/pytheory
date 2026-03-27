@@ -1707,46 +1707,27 @@ def epic_bhairav():
     ])
     score.add_pattern(p_f3, repeats=1)
 
-    # Part 3.5: polyrhythm — musical phrases that create cross-rhythm
+    # Part 3.5: polyrhythm — space and conversation, not density
     T5 = 4.0 / 5.0
-    T7 = 4.0 / 7.0
     p_poly = Pattern(name="poly", time_signature="4/4", beats=16.0, hits=[
-        # Bar 1: dayan plays 5-groups while bayan holds the 4
-        _Hit(DH, 0.0, 92), _Hit(GE, 1.0, 78),
-        _Hit(NA, 0.0, 72), _Hit(TT, 0.0 + T5, 42), _Hit(NA, 0.0 + 2*T5, 68),
-        _Hit(TT, 0.0 + 3*T5, 40), _Hit(NA, 0.0 + 4*T5, 75),
-        _Hit(DH, 2.0, 90), _Hit(GE, 3.0, 78),
-        _Hit(NA, 2.0, 70), _Hit(TT, 2.0 + T5, 40), _Hit(NA, 2.0 + 2*T5, 72),
-        _Hit(TT, 2.0 + 3*T5, 42), _Hit(DH, 2.0 + 4*T5, 85),
-        # Bar 2: 7-group phrase — "ti ra ki ta ta ka dha"
-        _Hit(GB, 4.0, 95),
-        _Hit(TT, 4.0 + T7, 48), _Hit(TT, 4.0 + 2*T7, 42),
-        _Hit(KE, 4.0 + 3*T7, 52), _Hit(NA, 4.0 + 4*T7, 68),
-        _Hit(NA, 4.0 + 5*T7, 62), _Hit(KE, 4.0 + 6*T7, 55),
-        _Hit(DH, 4.0 + 7*T7, 88),
-        _Hit(GB, 6.0, 92),
-        _Hit(TT, 6.0 + T7, 45), _Hit(TT, 6.0 + 2*T7, 40),
-        _Hit(KE, 6.0 + 3*T7, 50), _Hit(NA, 6.0 + 4*T7, 72),
-        _Hit(NA, 6.0 + 5*T7, 65), _Hit(DH, 6.0 + 6*T7, 90),
-        # Bar 3: 9-group with accented phrase shape
-        _Hit(DH, 8.0, 105),
-        _Hit(NA, 8.0 + T9, 60), _Hit(TT, 8.0 + 2*T9, 42),
-        _Hit(KE, 8.0 + 3*T9, 48), _Hit(DH, 8.0 + 4*T9, 82),
-        _Hit(TT, 8.0 + 5*T9, 40), _Hit(NA, 8.0 + 6*T9, 65),
-        _Hit(TT, 8.0 + 7*T9, 38), _Hit(DH, 8.0 + 8*T9, 88),
-        _Hit(GE, 10.0, 85),
-        _Hit(TT, 10.0 + T9, 42), _Hit(NA, 10.0 + 2*T9, 62),
-        _Hit(KE, 10.0 + 3*T9, 48), _Hit(DH, 10.0 + 4*T9, 85),
-        _Hit(NA, 10.0 + 5*T9, 60), _Hit(TT, 10.0 + 6*T9, 40),
-        _Hit(KE, 10.0 + 7*T9, 45), _Hit(GB, 10.0 + 8*T9, 95),
-        # Bar 4: everything converges on sam
-        _Hit(DH, 12.0, 115),
-        _Hit(TT, 12.25, 45), _Hit(NA, 12.5, 72), _Hit(TT, 12.75, 42),
-        _Hit(DH, 13.0, 108), _Hit(TT, 13.25, 40), _Hit(KE, 13.5, 50),
-        _Hit(NA, 13.75, 70),
-        _Hit(DH, 14.0, 112), _Hit(NA, 14.25, 68),
-        _Hit(TT, 14.5, 48), _Hit(TT, 14.625, 42), _Hit(TT, 14.75, 45),
-        _Hit(DH, 15.0, 120), _Hit(GB, 15.5, 112),
+        # Bar 1: single Dha, let reverb ring. Bayan answers.
+        _Hit(DH, 0.0, 95),
+        _Hit(GB, 3.0, 88),
+        # Bar 2: one 5-group phrase, then breathe
+        _Hit(NA, 4.0, 75), _Hit(TT, 4.0 + T5, 42),
+        _Hit(NA, 4.0 + 2*T5, 70), _Hit(TT, 4.0 + 3*T5, 40),
+        _Hit(DH, 4.0 + 4*T5, 88),
+        # Bar 3: bayan, pause, one floating 9-group
+        _Hit(GB, 8.0, 100),
+        _Hit(NA, 9.0, 62),
+        *[_Hit(TT if i % 2 == 0 else KE, 10.0 + i * T9, 35 + i * 4)
+          for i in range(9)],
+        _Hit(DH, 11.0, 105),
+        # Bar 4: simple question-answer into sam
+        _Hit(DH, 12.0, 100), _Hit(NA, 12.5, 62),
+        _Hit(GE, 13.0, 88),
+        _Hit(NA, 14.0, 72), _Hit(TT, 14.25, 40), _Hit(NA, 14.5, 70),
+        _Hit(DH, 15.0, 112), _Hit(GB, 15.5, 105),
     ])
     score.add_pattern(p_poly, repeats=1)
 
@@ -1772,6 +1753,63 @@ def epic_bhairav():
     score.set_drum_effects(reverb=0.4, reverb_type=REV)
 
     play_song(score, "Epic Bhairav — Orchestra + Choir + Tabla (22-Shruti JI)")
+
+
+def acoustic_ensemble():
+    """Acoustic Ensemble — guitar, ukulele, mandolin, cajón."""
+    import random
+    from pytheory import Fretboard
+    random.seed(7)
+    score = Score("4/4", bpm=115)
+
+    fb_g = Fretboard.guitar()
+    guitar = score.part("guitar", instrument="acoustic_guitar", fretboard=fb_g,
+                         reverb=0.3, reverb_type="plate", humanize=0.2, pan=-0.3)
+
+    fb_u = Fretboard.ukulele()
+    uke = score.part("uke", instrument="ukulele", fretboard=fb_u,
+                      reverb=0.25, reverb_type="plate", humanize=0.25, pan=0.3)
+
+    fb_m = Fretboard.mandolin()
+    mando = score.part("mando", instrument="mandolin", fretboard=fb_m,
+                        reverb=0.25, reverb_type="plate", humanize=0.2, pan=0.15)
+
+    for sym in ["C", "G", "Am", "F"] * 3:
+        vd = random.randint(75, 95)
+        vu = random.randint(58, 78)
+        guitar.strum(sym, Duration.QUARTER, direction="down", velocity=vd)
+        guitar.strum(sym, Duration.EIGHTH, direction="up", velocity=vu)
+        guitar.strum(sym, Duration.EIGHTH, direction="down", velocity=vd - 8)
+        guitar.strum(sym, Duration.QUARTER, direction="up", velocity=vu)
+        guitar.strum(sym, Duration.QUARTER, direction="down", velocity=vd)
+
+        vd2 = random.randint(65, 88)
+        vu2 = random.randint(50, 72)
+        uke.rest(Duration.EIGHTH)
+        uke.strum(sym, Duration.EIGHTH, direction="up", velocity=vu2)
+        uke.strum(sym, Duration.QUARTER, direction="down", velocity=vd2)
+        uke.strum(sym, Duration.EIGHTH, direction="up", velocity=vu2)
+        uke.strum(sym, Duration.EIGHTH, direction="down", velocity=vd2 - 5)
+        uke.strum(sym, Duration.QUARTER, direction="up", velocity=vu2)
+
+        mando.strum(sym, Duration.EIGHTH, direction="down",
+                    velocity=random.randint(65, 82))
+        mando.strum(sym, Duration.EIGHTH, direction="up",
+                    velocity=random.randint(55, 72))
+        mando.strum(sym, Duration.EIGHTH, direction="down",
+                    velocity=random.randint(65, 82))
+        mando.rest(Duration.EIGHTH)
+        mando.strum(sym, Duration.EIGHTH, direction="up",
+                    velocity=random.randint(55, 72))
+        mando.strum(sym, Duration.EIGHTH, direction="down",
+                    velocity=random.randint(68, 85))
+        mando.strum(sym, Duration.QUARTER, direction="down",
+                    velocity=random.randint(70, 85))
+
+    score.drums("cajon", repeats=6)
+    score.set_drum_effects(reverb=0.15)
+
+    play_song(score, "Acoustic Ensemble — Guitar, Uke, Mandolin, Cajón")
 
 
 SONGS = {
@@ -1800,6 +1838,7 @@ SONGS = {
     "23": ("Tabla Solo (Raga Yaman)", tabla_solo_yaman),
     "24": ("Journey (Western → World → Indian)", journey),
     "25": ("Epic Bhairav (Orchestral + Tabla)", epic_bhairav),
+    "26": ("Acoustic Ensemble (Guitar+Uke+Mando+Cajón)", acoustic_ensemble),
 }
 
 if __name__ == "__main__":
@@ -1813,7 +1852,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-25, or 'all'): ").strip()
+        choice = input("  Pick a song (1-26, or 'all'): ").strip()
         print()
 
         if choice == "all":

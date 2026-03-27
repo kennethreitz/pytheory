@@ -195,6 +195,15 @@ INSTRUMENTS = {
         "detune": 12, "lowpass": 3000, "lowpass_q": 1.5,
         "humanize": 0.2,
     },
+    "mandolin": {
+        "synth": "mandolin_synth", "envelope": "none",
+        "humanize": 0.2,
+    },
+    "mandola": {
+        "synth": "mandolin_synth", "envelope": "none",
+        "lowpass": 3000,
+        "humanize": 0.2,
+    },
     "ukulele": {
         "synth": "ukulele_synth", "envelope": "none",
         "humanize": 0.2,
@@ -483,6 +492,10 @@ class DrumSound(Enum):
     DJEMBE_BASS = 102    # open bass (center of head)
     DJEMBE_TONE = 103    # open tone (edge, fingers together)
     DJEMBE_SLAP = 104    # slap (edge, fingers spread, sharp crack)
+    # Cajon sounds
+    CAJON_BASS = 108     # center of face, deep thump
+    CAJON_SLAP = 109     # top edge, snare wires buzz
+    CAJON_TAP = 110      # light finger tap
     # Metal kit — tighter, punchier, more attack
     METAL_KICK = 105     # clicky, punchy, tight
     METAL_SNARE = 106    # crack, bright, cutting
@@ -1511,6 +1524,50 @@ Pattern._PRESETS["tabla solo"] = dict(
         _h(TNA, 1.0), _h(TTIT, 1.25), _h(TGE, 1.5), _h(TNA, 1.75),
         _h(TDHA, 2.0), _h(TNA, 2.25), _h(TTI, 2.5), _h(TNA, 2.75),
         _h(TDHA, 3.0), _h(TTIT, 3.5), _h(TGE, 3.75),
+    ],
+)
+
+# ── Cajón patterns ────────────────────────────────────────────────────────
+CB = DrumSound.CAJON_BASS
+CSL = DrumSound.CAJON_SLAP
+CT = DrumSound.CAJON_TAP
+
+# Cajón flamenco — the classic acoustic percussion groove
+Pattern._PRESETS["cajon"] = dict(
+    name="cajon",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(CB, 0.0, 85), _h(CT, 0.5, 35), _h(CT, 0.75, 38),
+        _h(CSL, 1.0, 80), _h(CT, 1.5, 32),
+        _h(CB, 2.0, 82), _h(CT, 2.5, 35), _h(CT, 2.75, 40),
+        _h(CSL, 3.0, 82), _h(CT, 3.25, 30), _h(CT, 3.5, 35),
+    ],
+)
+
+# Cajón rumba — Latin-flavored
+Pattern._PRESETS["cajon rumba"] = dict(
+    name="cajon rumba",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(CB, 0.0, 88), _h(CT, 0.5, 38),
+        _h(CSL, 1.0, 78), _h(CT, 1.25, 32), _h(CB, 1.5, 72),
+        _h(CSL, 2.0, 82), _h(CT, 2.5, 35),
+        _h(CB, 3.0, 75), _h(CSL, 3.5, 80), _h(CT, 3.75, 38),
+    ],
+)
+
+# Cajón singer-songwriter — simple, supportive
+Pattern._PRESETS["cajon folk"] = dict(
+    name="cajon folk",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(CB, 0.0, 80),
+        _h(CSL, 1.0, 72), _h(CT, 1.5, 30),
+        _h(CB, 2.0, 78),
+        _h(CSL, 3.0, 75),
     ],
 )
 
