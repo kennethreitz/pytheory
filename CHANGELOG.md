@@ -20,6 +20,8 @@ All notable changes to PyTheory are documented here.
   with 22 new drum patterns
 - **Piano improvements:** brightness scales with pitch, two-stage decay,
   hammer impact with felt character
+- **Vibrato tuning:** reduced across flute, oboe, trumpet, cello for
+  smoother ensemble sound
 - 27 synth waveforms, 10 envelopes, 40+ instrument presets, 80+ drum patterns
 
 ## 0.33.1
