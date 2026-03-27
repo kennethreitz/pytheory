@@ -5320,7 +5320,7 @@ def test_supersaw_wave():
 @needs_portaudio
 def test_all_synths_in_enum():
     from pytheory.play import Synth
-    assert len(Synth) == 16
+    assert len(Synth) == 22
     for s in Synth:
         wave = s(440, n_samples=1000)
         assert len(wave) == 1000
@@ -6467,11 +6467,8 @@ def test_instrument_piano():
     from pytheory import Score, Duration
     score = Score("4/4", bpm=120)
     p = score.part("p", instrument="piano")
-    assert p.synth == "fm"
-    assert p.envelope == "piano"
-    assert p.detune == 5
-    assert p.lowpass == 6000
-    assert p.chorus_mix == 0.1
+    assert p.synth == "piano_synth"
+    assert p.vel_to_filter == 3000
 
 
 def test_instrument_violin():
@@ -6488,12 +6485,9 @@ def test_instrument_violin():
 def test_instrument_override():
     from pytheory import Score
     score = Score("4/4", bpm=120)
-    # Explicit synth overrides the preset's "fm"
+    # Explicit synth overrides the preset
     p = score.part("p", instrument="piano", synth="saw")
     assert p.synth == "saw"
-    # Other preset values still apply
-    assert p.envelope == "piano"
-    assert p.detune == 5
 
 
 def test_instrument_unknown_raises():

@@ -14,11 +14,8 @@ from typing import Optional
 INSTRUMENTS = {
     # ── Keys ──
     "piano": {
-        "synth": "fm", "envelope": "piano",
-        "fm_ratio": 1.0, "fm_index": 1.5,
-        "detune": 5, "chorus": 0.1, "chorus_rate": 0.3,
-        "lowpass": 6000, "saturation": 0.1,
-        "vel_to_filter": 3000, "noise_mix": 0.02,
+        "synth": "piano_synth", "envelope": "none",
+        "vel_to_filter": 3000,
     },
     "electric_piano": {  # Rhodes/Wurlitzer
         "synth": "fm", "envelope": "piano",
@@ -86,15 +83,13 @@ INSTRUMENTS = {
 
     # ── Woodwinds ──
     "flute": {
-        "synth": "sine", "envelope": "strings",
-        "lowpass": 4000,
-        "humanize": 0.2, "noise_mix": 0.08,
+        "synth": "flute_synth", "envelope": "strings",
+        "humanize": 0.2,
         "vel_to_filter": 2000,
     },
     "clarinet": {
-        "synth": "square", "envelope": "strings",
-        "lowpass": 3000,
-        "humanize": 0.15, "noise_mix": 0.05,
+        "synth": "clarinet_synth", "envelope": "strings",
+        "humanize": 0.15,
         "vel_to_filter": 1500,
     },
     "oboe": {
@@ -112,16 +107,13 @@ INSTRUMENTS = {
 
     # ── Brass ──
     "trumpet": {
-        "synth": "saw", "envelope": "bowed",
-        "detune": 3, "lowpass": 4000, "lowpass_q": 1.1,
+        "synth": "trumpet_synth", "envelope": "bowed",
         "humanize": 0.15, "vel_to_filter": 2000,
-        "saturation": 0.1,
     },
     "trombone": {
-        "synth": "saw", "envelope": "strings",
-        "detune": 3, "lowpass": 2500,
+        "synth": "trumpet_synth", "envelope": "strings",
+        "lowpass": 2500,
         "humanize": 0.15, "vel_to_filter": 1500,
-        "saturation": 0.1,
     },
     "french_horn": {
         "synth": "saw", "envelope": "strings",
@@ -191,9 +183,8 @@ INSTRUMENTS = {
         "humanize": 0.1,
     },
     "bass_guitar": {
-        "synth": "triangle", "envelope": "pluck",
-        "lowpass": 1000,
-        "humanize": 0.1, "sub_osc": 0.2,
+        "synth": "bass_guitar_synth", "envelope": "none",
+        "humanize": 0.1, "sub_osc": 0.15,
     },
     "upright_bass": {
         "synth": "triangle", "envelope": "pluck",
@@ -272,8 +263,7 @@ INSTRUMENTS = {
         "reverb": 0.3, "reverb_type": "plate",
     },
     "marimba": {
-        "synth": "sine", "envelope": "mallet",
-        "lowpass": 3000,
+        "synth": "marimba_synth", "envelope": "mallet",
     },
     "xylophone": {
         "synth": "fm", "envelope": "pluck",

@@ -310,6 +310,252 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def piano_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Piano — hammer strike on steel strings with soundboard resonance.
+
+    Models the key characteristics:
+    1. Hammer impact — a brief, bright transient (the "thunk")
+    2. Multiple strings per note — real pianos have 2-3 strings per key,
+       slightly detuned, creating natural chorus
+    3. Soundboard resonance — the large wooden board amplifies and colors
+    4. Inharmonicity — piano strings are stiff, so upper partials are
+       slightly sharper than pure harmonics (makes piano sound like piano)
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Multiple detuned strings (2-3 per note on a real piano)
+    detune_cents = 3.0  # slight detuning between strings
+    hz2 = hz * (2 ** (detune_cents / 1200))
+    hz3 = hz * (2 ** (-detune_cents / 1200))
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Additive synthesis with inharmonicity
+    # Piano strings are stiff, so partial n is at f * n * (1 + B*n²)
+    # B ≈ 0.0001 for a typical piano string
+    B = 0.00008
+    n_harmonics = min(25, int((SAMPLE_RATE / 2) / hz))
+
+    for string_hz in [hz, hz2, hz3]:
+        for n in range(1, n_harmonics + 1):
+            # Inharmonic partial frequency
+            f_n = string_hz * n * numpy.sqrt(1 + B * n * n)
+            if f_n >= SAMPLE_RATE / 2:
+                break
+            # Amplitude: roughly 1/n but shaped for piano timbre
+            amp = (1.0 / n) * numpy.exp(-0.15 * n)
+            # Each partial decays at its own rate (high partials die faster)
+            partial_decay = 4.0 + 15.0 / (n + 1)
+            phase = rng.uniform(0, 2 * numpy.pi)
+            wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * numpy.exp(-partial_decay * t)
+
+    # Hammer impact — brief broadband transient
+    hammer_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    hammer = rng.uniform(-0.3, 0.3, hammer_len) * numpy.exp(-numpy.linspace(0, 8, hammer_len))
+    wave[:hammer_len] += hammer
+
+    # Normalize
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def bass_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Bass guitar — plucked thick string with magnetic pickup.
+
+    Heavier Karplus-Strong with:
+    1. Thicker initial burst (roundwound string character)
+    2. More fundamental, less high harmonics
+    3. Pickup emphasizes low-mids
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Thick string — warmer initial noise
+    buf = rng.uniform(-0.8, 0.8, period).astype(numpy.float64)
+    # Pre-filter: warm the initial burst heavily
+    for _ in range(3):
+        for k in range(period - 1):
+            buf[k] = 0.5 * buf[k] + 0.5 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        # Heavier damping on highs — thick string loses brightness fast
+        buf[i % period] = 0.45 * buf[i % period] + 0.55 * buf[next_idx]
+        buf[i % period] *= 0.9992
+
+    # Low-mid emphasis (pickup position)
+    bl, al = scipy.signal.butter(2, 1200, btype='low', fs=SAMPLE_RATE)
+    out = scipy.signal.lfilter(bl, al, out)
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+
+    return (peak * out).astype(numpy.int16)
+
+
+def flute_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Flute — breath noise through a resonant tube.
+
+    Models an air jet exciting a cylindrical tube:
+    1. Breath noise — bandpass filtered around the fundamental
+    2. Tube resonance — mostly fundamental + odd harmonics
+    3. Vibrato that develops over time
+    4. Breathy attack
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Vibrato — develops after ~200ms
+    vib_onset = numpy.clip(t / 0.2, 0.0, 1.0)
+    vib = hz * 0.003 * vib_onset * numpy.sin(2 * numpy.pi * 5.0 * t)
+
+    # Tube resonance — mostly fundamental + weak odd harmonics
+    wave = numpy.sin(2 * numpy.pi * (hz + vib) * t) * 0.7
+    wave += numpy.sin(2 * numpy.pi * (hz * 3 + vib * 3) * t) * 0.15
+    wave += numpy.sin(2 * numpy.pi * (hz * 5 + vib * 5) * t) * 0.05
+
+    # Breath noise — bandpassed around the fundamental
+    breath = rng.normal(0, 0.15, n_samples)
+    bw = max(100, hz * 0.3)
+    lo = max(20, hz - bw)
+    hi = min(SAMPLE_RATE // 2 - 1, hz + bw)
+    if lo < hi:
+        bn, an = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        breath = scipy.signal.lfilter(bn, an, breath)
+
+    wave = wave + breath
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def trumpet_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Trumpet — lip buzz through a brass bell.
+
+    Models the key trumpet characteristics:
+    1. Lip buzz — rich in harmonics (like a saw but with specific spectral shape)
+    2. Bell resonance — boosts 1-2kHz "brightness" range
+    3. Brass warmth — even harmonics stronger than clarinet
+    4. Slight vibrato
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Vibrato
+    vib_onset = numpy.clip(t / 0.15, 0.0, 1.0)
+    vib = hz * 0.004 * vib_onset * numpy.sin(2 * numpy.pi * 5.5 * t)
+
+    # Lip buzz — additive with brass spectral shape
+    # Trumpet has strong even AND odd harmonics (unlike clarinet)
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    n_harmonics = min(20, int((SAMPLE_RATE / 2) / hz))
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Brass spectral envelope: peaks around harmonics 3-6
+        amp = (1.0 / n) * numpy.exp(-0.08 * (n - 4) ** 2)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
+
+    # Bell resonance — boost around 1.5-3kHz
+    bl, al = scipy.signal.butter(2, [1500, 3000], btype='band', fs=SAMPLE_RATE)
+    bell = scipy.signal.lfilter(bl, al, wave) * 0.4
+    wave = wave + bell
+
+    # Gentle attack buzz
+    attack_len = min(int(SAMPLE_RATE * 0.02), n_samples)
+    buzz = rng.uniform(-0.1, 0.1, attack_len) * numpy.exp(-numpy.linspace(0, 5, attack_len))
+    wave[:attack_len] += buzz
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def clarinet_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Clarinet — reed vibration in a cylindrical bore.
+
+    A cylindrical bore produces mostly odd harmonics (like a square wave
+    but with a specific spectral envelope). The reed adds a nasal quality.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    vib_onset = numpy.clip(t / 0.3, 0.0, 1.0)
+    vib = hz * 0.002 * vib_onset * numpy.sin(2 * numpy.pi * 4.5 * t)
+
+    # Cylindrical bore: odd harmonics dominate
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    n_harmonics = min(15, int((SAMPLE_RATE / 2) / hz))
+    for n in range(1, n_harmonics + 1, 2):  # odd harmonics only
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        amp = 1.0 / n
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
+
+    # Reed noise — nasal character
+    reed = rng.normal(0, 0.05, n_samples)
+    wave += reed
+
+    # Bore resonance — slight lowpass
+    bl, al = scipy.signal.butter(2, min(4000, hz * 8), btype='low', fs=SAMPLE_RATE)
+    wave = scipy.signal.lfilter(bl, al, wave)
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def marimba_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Marimba — struck wooden bar with resonator tube.
+
+    The bar produces a fundamental plus inharmonic partials (the bar
+    modes are NOT integer multiples). The tubular resonator under
+    each bar amplifies the fundamental.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+
+    # Bar modes: fundamental, then 4x, 9.2x (not harmonic!)
+    wave = numpy.sin(2 * numpy.pi * hz * t) * 0.8
+    wave += numpy.sin(2 * numpy.pi * hz * 4.0 * t) * 0.15 * numpy.exp(-20 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 9.2 * t) * 0.05 * numpy.exp(-40 * t)
+
+    # Resonator tube amplifies fundamental
+    wave *= (1.0 + 0.3 * numpy.exp(-3 * t))
+
+    # Mallet impact
+    impact_len = min(int(SAMPLE_RATE * 0.005), n_samples)
+    impact = numpy.random.default_rng(int(hz * 100) % 2**31).uniform(-0.2, 0.2, impact_len)
+    impact *= numpy.exp(-numpy.linspace(0, 10, impact_len))
+    wave[:impact_len] += impact
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
 def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Acoustic guitar — Karplus-Strong with wooden body resonance.
 
@@ -599,6 +845,12 @@ class Synth(Enum):
     PLUCK = "pluck_synth"
     ORGAN = "organ_synth"
     STRINGS = "strings_synth"
+    PIANO = "piano_synth"
+    BASS_GUITAR = "bass_guitar_synth"
+    FLUTE = "flute_synth"
+    TRUMPET = "trumpet_synth"
+    CLARINET = "clarinet_synth"
+    MARIMBA = "marimba_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
@@ -614,7 +866,10 @@ _SYNTH_FUNCTIONS = {
     "noise": noise_wave, "supersaw": supersaw_wave,
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
     "pluck_synth": pluck_wave, "organ_synth": organ_wave,
-    "strings_synth": strings_wave, "acoustic_guitar_synth": acoustic_guitar_wave,
+    "strings_synth": strings_wave, "piano_synth": piano_wave,
+    "bass_guitar_synth": bass_guitar_wave, "flute_synth": flute_wave,
+    "trumpet_synth": trumpet_wave, "clarinet_synth": clarinet_wave,
+    "marimba_synth": marimba_wave, "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
 
