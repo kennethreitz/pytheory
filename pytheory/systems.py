@@ -2,6 +2,8 @@ from ._statics import (
     TEMPERAMENTS, TONES, DEGREES, SCALES,
     INDIAN_SCALES, ARABIC_SCALES, JAPANESE_SCALES,
     BLUES_SCALES, GAMELAN_SCALES, SYSTEMS,
+    TONES_SHRUTI, DEGREES_SHRUTI, SHRUTI_SCALES,
+    TONES_ARABIC_24, DEGREES_ARABIC_24, ARABIC_24_SCALES,
 )
 
 
@@ -333,4 +335,9 @@ SYSTEMS = {
     "gamelan": System(tone_names=TONES["gamelan"], degrees=DEGREES["gamelan"], scales=GAMELAN_SCALES[12]),
     "19-tet": TET(19, names=_19TET_NAMES),
     "31-tet": TET(31, names=_31TET_NAMES),
+    # Microtonal systems with proper intervals (not 12-TET approximations)
+    "shruti": System(tone_names=TONES_SHRUTI, degrees=DEGREES_SHRUTI,
+                     scales=SHRUTI_SCALES, c_index=5),
+    "maqam": System(tone_names=TONES_ARABIC_24, degrees=DEGREES_ARABIC_24,
+                    scales=ARABIC_24_SCALES, c_index=5),
 }

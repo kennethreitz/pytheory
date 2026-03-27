@@ -220,6 +220,173 @@ INDIAN_SCALES = {
     }
 }
 
+# ── 22-shruti Indian system ──────────────────────────────────────────────────
+# The shruti system divides the octave into 22 microtonal steps, capturing
+# the melodic nuances that 12-TET cannot represent. Each of the 7 swaras
+# has multiple shruti positions (e.g. komal Re at shruti 2, shuddha Re at
+# shruti 4). 22-TET is the standard equal-tempered approximation.
+#
+# Ordered from Dha (=A) to match Western index positions (Sa at index 5 ≈ C).
+TONES_SHRUTI = [
+    ("Dha",),               #  0 — A  — shuddha dhaivat (reference = 440 Hz)
+    ("atikomal Ni",),       #  1 — shruti between Dha and komal Ni
+    ("komal Ni",),          #  2 — Bb — komal nishad
+    ("shuddha Ni",),        #  3 — between komal Ni and Ni
+    ("Ni",),                #  4 — B  — shuddha (kakali) nishad
+    ("Sa",),                #  5 — C  — shadja (tonic)
+    ("atikomal Re",),       #  6 — shruti between Sa and komal Re
+    ("komal Re",),          #  7 — Db — komal rishabh
+    ("shuddha Re",),        #  8 — between komal Re and Re
+    ("Re",),                #  9 — D  — chatushruti rishabh
+    ("atikomal Ga",),       # 10 — shruti between Re and komal Ga
+    ("komal Ga",),          # 11 — Eb — komal gandhar
+    ("Ga",),                # 12 — E  — antara gandhar
+    ("tivra Ga",),          # 13 — shruti between Ga and Ma
+    ("Ma",),                # 14 — F  — shuddha madhyam
+    ("ekashruti Ma",),      # 15 — shruti between Ma and tivra Ma
+    ("tivra Ma",),          # 16 — F# — tivra madhyam
+    ("atitivra Ma",),       # 17 — shruti between tivra Ma and Pa
+    ("Pa",),                # 18 — G  — pancham
+    ("atikomal Dha",),      # 19 — shruti between Pa and komal Dha
+    ("komal Dha",),         # 20 — Ab — komal dhaivat
+    ("shuddha Dha",),       # 21 — shruti between komal Dha and Dha
+]
+
+DEGREES_SHRUTI = [
+    ("shadja", ("bilawal",)),       # Sa — tonic
+    ("rishabh", ("marwa",)),        # Re
+    ("gandhar", ("bhairavi",)),     # Ga
+    ("madhyam", ("kalyan",)),       # Ma
+    ("pancham", ("kafi",)),         # Pa
+    ("dhaivat", ("asavari",)),      # Dha
+    ("nishad", ("khamaj",)),        # Ni
+    ("shadja", ()),                 # Sa (octave)
+]
+
+# 22-shruti thaat scales with proper microtonal intervals.
+# Each interval is counted in shrutis (22-TET steps).
+# Compare to the 12-TET approximations in INDIAN_SCALES which lose
+# the distinction between 2-shruti and 3-shruti steps.
+SHRUTI_SCALES = {
+    "chromatic": (22, {}),
+    "thaat": [
+        7,
+        {
+            # Bilawal (≈ Ionian) — Sa Re Ga Ma Pa Dha Ni
+            "bilawal": {"intervals": (4, 3, 2, 4, 4, 3, 2)},
+            # Khamaj (≈ Mixolydian) — Sa Re Ga Ma Pa Dha komal-Ni
+            "khamaj": {"intervals": (4, 3, 2, 4, 4, 1, 4)},
+            # Kafi (≈ Dorian) — Sa Re komal-Ga Ma Pa Dha komal-Ni
+            "kafi": {"intervals": (4, 2, 3, 4, 4, 1, 4)},
+            # Asavari (≈ Aeolian) — Sa Re komal-Ga Ma Pa komal-Dha komal-Ni
+            "asavari": {"intervals": (4, 2, 3, 4, 2, 3, 4)},
+            # Bhairavi (≈ Phrygian) — Sa komal-Re komal-Ga Ma Pa komal-Dha komal-Ni
+            "bhairavi": {"intervals": (2, 4, 3, 4, 2, 3, 4)},
+            # Bhairav — Sa komal-Re Ga Ma Pa komal-Dha Ni (unique to Indian music)
+            "bhairav": {"intervals": (2, 5, 2, 4, 2, 5, 2)},
+            # Kalyan (≈ Lydian) — Sa Re Ga tivra-Ma Pa Dha Ni
+            "kalyan": {"intervals": (4, 3, 4, 2, 4, 3, 2)},
+            # Marwa — Sa komal-Re Ga tivra-Ma Pa Dha Ni (unique)
+            "marwa": {"intervals": (2, 5, 4, 2, 4, 3, 2)},
+            # Poorvi — Sa komal-Re Ga tivra-Ma Pa komal-Dha Ni (unique)
+            "poorvi": {"intervals": (2, 5, 4, 2, 2, 5, 2)},
+            # Todi — Sa komal-Re komal-Ga tivra-Ma Pa komal-Dha Ni (unique)
+            "todi": {"intervals": (2, 4, 5, 2, 2, 5, 2)},
+        },
+    ],
+    "pentatonic": [
+        5,
+        {
+            # Bhupali (≈ major pentatonic) — Sa Re Ga Pa Dha
+            "bhupali": {"intervals": (4, 3, 6, 4, 5)},
+            # Malkauns — Sa komal-Ga Ma komal-Dha komal-Ni
+            "malkauns": {"intervals": (6, 3, 4, 5, 4)},
+            # Durga — Sa Re Ma Pa Dha
+            "durga": {"intervals": (4, 5, 4, 4, 5)},
+            # Bhairavi pentatonic — Sa komal-Re Ma Pa komal-Ni
+            "bhairavi pentatonic": {"intervals": (2, 7, 4, 2, 7)},
+        },
+    ],
+}
+
+# ── 24-TET Arabic maqam system ─────────────────────────────────────────────
+# Arabic maqam uses quarter-tones (half-flat, half-sharp). 24-TET captures
+# these intervals exactly. Each step = 50 cents (vs 100 in 12-TET).
+# The half-flat (♭½) is the defining sound of Arabic music — it's what
+# makes maqam Rast and Bayati sound distinctly Middle Eastern.
+#
+# Ordered from La (=A) to match Western index positions.
+TONES_ARABIC_24 = [
+    ("La",),                #  0 — A
+    ("La↑",),               #  1 — A quarter-sharp
+    ("Sib",),               #  2 — Bb
+    ("Si↓",),               #  3 — B quarter-flat
+    ("Si",),                #  4 — B
+    ("Do",),                #  5 — C
+    ("Do↑",),               #  6 — C quarter-sharp
+    ("Reb",),               #  7 — Db
+    ("Re↓",),               #  8 — D quarter-flat
+    ("Re",),                #  9 — D
+    ("Re↑",),               # 10 — D quarter-sharp
+    ("Mib",),               # 11 — Eb
+    ("Mi↓",),               # 12 — E quarter-flat
+    ("Mi",),                # 13 — E
+    ("Fa",),                # 14 — F
+    ("Fa↑",),               # 15 — F quarter-sharp
+    ("Fa#",),               # 16 — F#
+    ("Sol↓",),              # 17 — G quarter-flat
+    ("Sol",),               # 18 — G
+    ("Sol↑",),              # 19 — G quarter-sharp
+    ("Lab",),               # 20 — Ab
+    ("La↓",),               # 21 — A quarter-flat
+    ("La½b",),              # 22 — between Ab and A (rarely used)
+    ("La♮",),               # 23 — enharmonic A (rarely used)
+]
+
+DEGREES_ARABIC_24 = [
+    ("tonic", ()),
+    ("second", ()),
+    ("third", ()),
+    ("fourth", ()),
+    ("fifth", ()),
+    ("sixth", ()),
+    ("seventh", ()),
+    ("octave", ()),
+]
+
+# 24-TET maqam scales with true quarter-tone intervals.
+# Each step = 1 quarter-tone (50 cents). A 12-TET semitone = 2 steps.
+ARABIC_24_SCALES = {
+    "chromatic": (24, {}),
+    "maqam": [
+        7,
+        {
+            # Rast — the foundational maqam. E and B are quarter-flat.
+            # Do Re Mi↓ Fa Sol La Si↓ Do
+            "rast": {"intervals": (4, 3, 3, 4, 4, 3, 3)},
+            # Bayati — starts on D with quarter-flat 2nd.
+            # Re Mi↓ Fa Sol La Sib Do Re
+            "bayati": {"intervals": (3, 3, 4, 4, 2, 4, 4)},
+            # Saba — similar to Bayati with flattened 4th
+            "saba": {"intervals": (3, 3, 2, 6, 2, 4, 4)},
+            # Sikah — starts on E quarter-flat
+            "sikah": {"intervals": (3, 4, 3, 4, 3, 4, 3)},
+            # Hijaz — augmented 2nd (6 quarter-tones) between 2nd and 3rd
+            "hijaz": {"intervals": (2, 6, 2, 4, 2, 4, 4)},
+            # Nahawand (≈ harmonic minor)
+            "nahawand": {"intervals": (4, 2, 4, 4, 2, 6, 2)},
+            # Ajam (≈ major)
+            "ajam": {"intervals": (4, 4, 2, 4, 4, 4, 2)},
+            # Kurd (≈ Phrygian)
+            "kurd": {"intervals": (2, 4, 4, 4, 2, 4, 4)},
+            # Nikriz — augmented 2nd between 3rd and 4th
+            "nikriz": {"intervals": (4, 2, 6, 2, 4, 2, 4)},
+            # Jiharkah — like Rast but with natural B
+            "jiharkah": {"intervals": (4, 4, 2, 4, 4, 3, 3)},
+        },
+    ],
+}
+
 # Arabic maqam scales (12-TET approximations).
 # True maqam uses quarter-tones; these are the closest 12-tone equivalents.
 ARABIC_SCALES = {
