@@ -909,6 +909,84 @@ def saxophone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def granular_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+                  grain_size=0.04, density=50, scatter=0.5,
+                  pitch_var=12, source="saw"):
+    """Granular synthesis — clouds of tiny sound grains.
+
+    Chops a source waveform into overlapping micro-grains (10-200ms),
+    each independently windowed and optionally pitch/time scattered.
+    Creates textures impossible with other synthesis: frozen tones,
+    shimmering clouds, evolving pads, glitchy stutters.
+
+    Args:
+        hz: Base frequency.
+        grain_size: Duration of each grain in seconds (default 0.05 = 50ms).
+        density: Grains per second (default 20). Higher = denser cloud.
+        scatter: Random position jitter 0-1 (default 0.3). How much each
+            grain's read position varies from sequential order.
+        pitch_var: Random pitch variation per grain in cents (default 5).
+        source: Base waveform — ``"saw"``, ``"sine"``, ``"triangle"``,
+            ``"square"``, ``"noise"`` (default ``"saw"``).
+    """
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Generate source material — longer than needed for scatter headroom
+    src_len = n_samples + int(SAMPLE_RATE * scatter * 2)
+    src_fns = {
+        "saw": sawtooth_wave, "sine": sine_wave, "triangle": triangle_wave,
+        "square": square_wave, "noise": noise_wave,
+    }
+    src_fn = src_fns.get(source, sawtooth_wave)
+    src = src_fn(hz, n_samples=src_len).astype(numpy.float64) / SAMPLE_PEAK
+
+    # Grain parameters
+    grain_samples = max(64, int(grain_size * SAMPLE_RATE))
+    n_grains = max(1, int(n_samples / SAMPLE_RATE * density))
+
+    # Hanning window for each grain (smooth fade in/out, no clicks)
+    window = numpy.hanning(grain_samples).astype(numpy.float64)
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    for i in range(n_grains):
+        # Output position — evenly spaced with jitter
+        base_pos = int(i * n_samples / n_grains)
+        jitter = int(rng.uniform(-0.5, 0.5) * n_samples / n_grains * 0.3)
+        out_pos = max(0, min(n_samples - grain_samples, base_pos + jitter))
+
+        # Source read position — sequential with scatter
+        src_pos = int(base_pos * src_len / n_samples)
+        src_jitter = int(rng.uniform(-scatter, scatter) * grain_samples * 4)
+        src_pos = max(0, min(src_len - grain_samples, src_pos + src_jitter))
+
+        # Per-grain pitch variation via resampling
+        if pitch_var > 0:
+            cents = rng.uniform(-pitch_var, pitch_var)
+            rate = 2 ** (cents / 1200)
+            read_len = max(2, min(int(grain_samples * rate), src_len - src_pos))
+            grain_src = src[src_pos:src_pos + read_len]
+            x_old = numpy.linspace(0, 1, len(grain_src))
+            x_new = numpy.linspace(0, 1, grain_samples)
+            grain = numpy.interp(x_new, x_old, grain_src)
+        else:
+            end = min(src_pos + grain_samples, src_len)
+            grain = src[src_pos:end]
+            if len(grain) < grain_samples:
+                grain = numpy.pad(grain, (0, grain_samples - len(grain)))
+
+        # Apply window and mix
+        grain *= window[:len(grain)]
+        end = min(out_pos + len(grain), n_samples)
+        out[out_pos:end] += grain[:end - out_pos]
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+
+    return (peak * out).astype(numpy.int16)
+
+
 def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Acoustic guitar — Karplus-Strong with wooden body resonance.
 
@@ -1211,6 +1289,7 @@ class Synth(Enum):
     UPRIGHT_BASS = "upright_bass_synth"
     TIMPANI = "timpani_synth"
     SAXOPHONE = "saxophone_synth"
+    GRANULAR = "granular_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
@@ -1233,6 +1312,7 @@ _SYNTH_FUNCTIONS = {
     "harpsichord_synth": harpsichord_wave, "cello_synth": cello_wave,
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
     "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
+    "granular_synth": granular_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }

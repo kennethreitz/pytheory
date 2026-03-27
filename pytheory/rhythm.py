@@ -241,6 +241,16 @@ INSTRUMENTS = {
         "vel_to_filter": 3000,
         "analog": 0.3,
     },
+    "granular_pad": {
+        "synth": "granular_synth", "envelope": "pad",
+        "reverb": 0.4, "reverb_type": "cathedral",
+        "analog": 0.3,
+    },
+    "granular_texture": {
+        "synth": "granular_synth", "envelope": "none",
+        "reverb": 0.5, "reverb_type": "taj_mahal",
+        "delay": 0.3, "delay_time": 0.4, "delay_feedback": 0.4,
+    },
     "808_bass": {
         "synth": "sine", "envelope": "pluck",
         "distortion": 0.4, "distortion_drive": 2.5,
