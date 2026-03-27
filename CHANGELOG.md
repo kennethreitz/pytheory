@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.32.1
+
+- `Tone("X")` now raises `ValueError` immediately instead of silently accepting invalid names (#39)
+- Support enharmonic spellings: `Cb`, `Fb`, `E#`, `B#` resolve correctly (#40)
+- Support double sharps (`C##`, `Fx`) and double flats (`Dbb`) via semitone arithmetic (#41)
+- Accept unicode music symbols: `♯` `♭` `𝄪` `𝄫`
+
 ## 0.32.0
 
 - **8 new synth engine features:**
