@@ -1130,6 +1130,48 @@ def granular_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     return (peak * out).astype(numpy.int16)
 
 
+def ukulele_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Ukulele — nylon strings on a small resonant body.
+
+    Brighter and thinner than guitar, shorter sustain. The small
+    body gives a mid-heavy resonance (no deep bass). Nylon strings
+    have a softer, warmer attack than steel.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Nylon string — soft noise
+    buf = rng.uniform(-0.5, 0.5, period).astype(numpy.float64)
+    for _ in range(5):
+        for k in range(period - 1):
+            buf[k] = 0.55 * buf[k] + 0.45 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.998
+
+    # Small body resonance — mid-heavy, no deep bass
+    import scipy.signal as _sig
+    for center, bw, gain in [(350, 100, 0.35), (700, 150, 0.25), (1200, 200, 0.15)]:
+        lo = max(20, center - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            out += _sig.lfilter(bp, ap, out) * gain
+
+    bl, al = _sig.butter(2, min(6000, hz * 12), btype='low', fs=SAMPLE_RATE)
+    out = _sig.lfilter(bl, al, out)
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
+
+
 def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Acoustic guitar — Karplus-Strong with wooden body resonance.
 
@@ -1434,6 +1476,7 @@ class Synth(Enum):
     SAXOPHONE = "saxophone_synth"
     GRANULAR = "granular_synth"
     VOCAL = "vocal_synth"
+    UKULELE = "ukulele_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
@@ -1457,7 +1500,7 @@ _SYNTH_FUNCTIONS = {
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
     "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
     "granular_synth": granular_wave, "vocal_synth": vocal_wave,
-    "acoustic_guitar_synth": acoustic_guitar_wave,
+    "ukulele_synth": ukulele_wave, "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
 
