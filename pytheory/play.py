@@ -1925,6 +1925,42 @@ def _synth_metal_hat(n_samples):
     return out
 
 
+def _synth_tabla_ge_bend(n_samples):
+    """Tabla Ge with upward pitch bend — palm pressing into bayan head.
+
+    The player strikes the bayan and then presses their palm into the
+    head, raising the pitch dramatically. The signature bayan sound
+    in Bollywood and fusion music.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Membrane thud
+    thump_len = min(int(SAMPLE_RATE * 0.07), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [40, 250], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 20) * 0.8
+    # Pitch sweep UP — 60 Hz rising to 200+ Hz as palm presses
+    # Gets quieter as pitch rises (palm mutes the head as it presses)
+    freq = 60 + 180 * (1 - numpy.exp(-4 * t))
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    body = numpy.sin(phase) * _exp_decay(n_samples, 6) * 0.9
+    # Metal shell resonance
+    metal_len = min(int(SAMPLE_RATE * 0.1), n_samples)
+    metal = numpy.sin(2 * numpy.pi * 150 * t[:metal_len]) * _exp_decay(metal_len, 8) * 0.3
+    # Sub
+    sub = _sine_f32(50, n_samples) * _exp_decay(n_samples, 5) * 0.4
+    click_len = min(250, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 35) * 0.3
+    result = body + sub
+    result[:thump_len] += thump
+    result[:metal_len] += metal
+    result[:click_len] += click
+    return numpy.tanh(result * 1.3).astype(numpy.float32)
+
+
 def _synth_djembe_bass(n_samples):
     """Djembe bass — open palm strike in center of goatskin head.
 
@@ -2077,6 +2113,7 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.TABLA_DHA.value: lambda n: _synth_tabla_dha(n),
         DrumSound.TABLA_TIT.value: lambda n: _synth_tabla_tit(n),
         DrumSound.TABLA_KE.value: lambda n: _synth_tabla_ke(n),
+        DrumSound.TABLA_GE_BEND.value: lambda n: _synth_tabla_ge_bend(n),
         # Dhol
         DrumSound.DHOL_DAGGA.value: lambda n: _synth_dhol_dagga(n),
         DrumSound.DHOL_TILLI.value: lambda n: _synth_dhol_tilli(n),
@@ -3352,6 +3389,12 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     vel_cutoff = vel_to_filter * vel_scale + 1000
                     mixed = _apply_lowpass(mixed, vel_cutoff, q=filter_q)
                 end = min(start + len(mixed), total_samples)
+                # Choke: fade out any existing signal at this point
+                # so new notes don't pile up on previous tails
+                choke_len = min(int(SAMPLE_RATE * 0.003), start)
+                if choke_len > 0:
+                    fade = numpy.linspace(1.0, 0.0, choke_len).astype(numpy.float32)
+                    buf[start - choke_len:start] *= fade
                 buf[start:end] += mixed[:end - start] * volume * vel_scale
                 # Spread detuned oscillators into stereo L/R
                 if detune_up is not None and stereo_buf is not None:
@@ -3654,6 +3697,7 @@ def render_score(score):
         DrumSound.TABLA_GE.value: -0.2,
         DrumSound.TABLA_KE.value: -0.2,
         DrumSound.TABLA_DHA.value: 0.0,   # both drums = center
+        DrumSound.TABLA_GE_BEND.value: -0.2,
         # Dhol: bass left, treble right
         DrumSound.DHOL_DAGGA.value: -0.2,
         DrumSound.DHOL_TILLI.value: 0.2,
@@ -3687,6 +3731,10 @@ def render_score(score):
     drum_parts = [p for p in score.parts.values() if p.is_drums]
     for drum_part in drum_parts:
         part_stereo = numpy.zeros((total_samples, 2), dtype=numpy.float32)
+        # Track last hit position per sound for choke (new hit dampens
+        # the previous ring on the same drum)
+        _last_hit_start = {}
+
         for hit in drum_part._drum_hits:
             pos = hit.position
             if drum_swing > 0:
@@ -3703,6 +3751,21 @@ def render_score(score):
                 start = max(0, start)
             if start >= total_samples or start < 0:
                 continue
+
+            # Choke: if the same sound was hit recently, fade out
+            # the tail at this point (new hit dampens old resonance)
+            sound_id = hit.sound.value
+            if sound_id in _last_hit_start:
+                prev_start = _last_hit_start[sound_id]
+                # Quick 2ms fade-out at the new hit position
+                fade_len = min(int(SAMPLE_RATE * 0.002), max(0, start - prev_start))
+                if fade_len > 0 and start > 0:
+                    fade = numpy.linspace(1.0, 0.0, fade_len).astype(numpy.float32)
+                    fade_start = max(0, start - fade_len)
+                    for ch in range(2):
+                        part_stereo[fade_start:start, ch] *= fade
+            _last_hit_start[sound_id] = start
+
             remaining = total_samples - start
             hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
             wave = _render_drum_hit(hit.sound.value, hit_len)

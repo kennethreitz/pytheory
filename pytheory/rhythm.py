@@ -428,6 +428,7 @@ class DrumSound(Enum):
     MRIDANGAM_NAM = 99   # treble ring (valanthalai/right head)
     MRIDANGAM_DIN = 100  # both heads
     MRIDANGAM_THA = 101  # muted treble
+    TABLA_GE_BEND = 108  # bayan with upward pitch bend (palm press)
     # Djembe sounds
     DJEMBE_BASS = 102    # open bass (center of head)
     DJEMBE_TONE = 103    # open tone (edge, fingers together)
