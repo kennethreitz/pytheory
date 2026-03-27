@@ -58,15 +58,19 @@ class Tone:
             if len(name) >= 2 and name[1] in ('x', 'X') and name[0].isalpha():
                 name = name[0] + '##' + name[2:]
 
-            try:
-                parsed_octave = int("".join([c for c in filter(str.isdigit, name)]))
-            except ValueError:
-                parsed_octave = None
+            # Only parse octave from trailing digits if name starts with
+            # a letter (e.g. "C4" → name="C", octave=4). Numeric pitch
+            # class names like "0" or "11" should not be parsed as octaves.
+            if name and name[0].isalpha():
+                try:
+                    parsed_octave = int("".join([c for c in filter(str.isdigit, name)]))
+                except ValueError:
+                    parsed_octave = None
 
-            if parsed_octave is not None:
-                name = name.replace(str(parsed_octave), "")
-                if octave is None:
-                    octave = parsed_octave
+                if parsed_octave is not None:
+                    name = name.replace(str(parsed_octave), "")
+                    if octave is None:
+                        octave = parsed_octave
 
         self.name = name
         self.octave = octave
@@ -354,10 +358,13 @@ class Tone:
         Returns:
             A new ``Tone`` instance.
         """
-        try:
-            octave = int("".join([c for c in filter(str.isdigit, s)]))
-        except ValueError:
-            octave = None
+        octave = None
+        # Only parse octave from trailing digits if name starts with a letter
+        if s and s[0].isalpha():
+            try:
+                octave = int("".join([c for c in filter(str.isdigit, s)]))
+            except ValueError:
+                octave = None
 
         tone = s.replace(str(octave), "") if octave else s
 
@@ -400,19 +407,20 @@ class Tone:
         import math
         if hz <= 0:
             raise ValueError("Frequency must be positive")
-        # Semitones from A4
-        semitones_from_a4 = 12 * math.log2(hz / REFERENCE_A)
-        semitones = round(semitones_from_a4)
-        # A4 is index 0 in the Western system, octave 4
-        # Convert to absolute position from C0
-        a4_from_c0 = ((0 - C_INDEX) % 12) + (4 * 12)  # = 57
-        abs_pos = a4_from_c0 + semitones
-        octave = abs_pos // 12
-        relative = abs_pos % 12
-        index = (relative + C_INDEX) % 12
         if isinstance(system, str):
             from .systems import SYSTEMS
             system = SYSTEMS[system]
+        n = len(system.tone_names)
+        c_idx = getattr(system, 'c_index', C_INDEX)
+        # Steps from A4 in this EDO
+        steps_from_a4 = n * math.log2(hz / REFERENCE_A)
+        steps = round(steps_from_a4)
+        # A4 is index 0, octave 4. Convert to absolute position from C0.
+        a4_from_c0 = ((0 - c_idx) % n) + (4 * n)
+        abs_pos = a4_from_c0 + steps
+        octave = abs_pos // n
+        relative = abs_pos % n
+        index = (relative + c_idx) % n
         return klass.from_index(index, octave=octave, system=system)
 
     @classmethod
@@ -428,13 +436,19 @@ class Tone:
             >>> Tone.from_midi(69)
             <Tone A4>
         """
+        if isinstance(system, str):
+            from .systems import SYSTEMS
+            system = SYSTEMS[system]
+        # MIDI is a 12-TET standard. Convert to Hz and use from_frequency
+        # for non-12 systems.
+        n = len(system.tone_names)
+        if n != 12:
+            hz = REFERENCE_A * (2 ** ((note_number - 69) / 12))
+            return klass.from_frequency(hz, system=system)
         adjusted = note_number - 12  # MIDI C0=12
         octave = adjusted // 12
         relative = adjusted % 12
         index = (relative + C_INDEX) % 12
-        if isinstance(system, str):
-            from .systems import SYSTEMS
-            system = SYSTEMS[system]
         return klass.from_index(index, octave=octave, system=system)
 
     @classmethod
@@ -554,9 +568,10 @@ class Tone:
             'octave'
         """
         semitones = abs(self - other)
-        octaves = semitones // 12
-        remainder = semitones % 12
-        name = self._INTERVAL_NAMES.get(remainder, f"{remainder} semitones")
+        n = len(self.system.tones)
+        octaves = semitones // n
+        remainder = semitones % n
+        name = self._INTERVAL_NAMES.get(remainder, f"{remainder} steps")
         if octaves == 0:
             return name
         if remainder == 0:
@@ -579,6 +594,12 @@ class Tone:
         """
         if self.octave is None:
             return None
+        n = len(self.system.tones)
+        if n != 12:
+            # Non-12-TET: approximate MIDI via frequency
+            import math
+            hz = self.pitch()
+            return round(69 + 12 * math.log2(hz / REFERENCE_A))
         semitones_from_c0 = ((self._index - C_INDEX) % 12) + (self.octave * 12)
         return semitones_from_c0 + 12  # MIDI C0 = 12 (C-1 = 0)
 
@@ -620,42 +641,43 @@ class Tone:
         return 1200 * math.log2(f2 / f1)
 
     def circle_of_fifths(self) -> list[Tone]:
-        """The 12 tones of the circle of fifths starting from this tone.
+        """The circle of fifths starting from this tone.
 
-        Each step ascends by a perfect fifth (7 semitones). After 12
-        steps you return to the starting tone. The circle of fifths
-        is the backbone of Western harmony — it determines key
-        signatures, chord relationships, and modulation paths.
-
-        Clockwise = add sharps: C → G → D → A → E → B → F# → ...
-        Counter-clockwise = add flats (see ``circle_of_fourths``).
+        Each step ascends by a perfect fifth (7 semitones in 12-TET).
+        After N steps (where N = number of tones in the system) you
+        return to the starting tone. The circle of fifths is the
+        backbone of Western harmony — it determines key signatures,
+        chord relationships, and modulation paths.
 
         Returns:
-            A list of 12 Tones.
+            A list of Tones (12 for Western, N for other systems).
         """
+        n = len(self.system.tones)
+        # Perfect fifth: the closest approximation to 3:2 ratio
+        fifth = round(n * 7 / 12)  # 7 in 12-TET, 11 in 19-TET, 18 in 31-TET
         tones: list[Tone] = []
         t = self
-        for _ in range(12):
+        for _ in range(n):
             tones.append(t)
-            t = t.add(7)
+            t = t.add(fifth)
         return tones
 
     def circle_of_fourths(self) -> list[Tone]:
-        """The 12 tones of the circle of fourths starting from this tone.
+        """The circle of fourths starting from this tone.
 
-        Each step ascends by a perfect fourth (5 semitones) — the
-        reverse direction of the circle of fifths.
-
-        Clockwise = add flats: C → F → Bb → Eb → Ab → ...
+        Each step ascends by a perfect fourth — the reverse direction
+        of the circle of fifths.
 
         Returns:
-            A list of 12 Tones.
+            A list of Tones (12 for Western, N for other systems).
         """
+        n = len(self.system.tones)
+        fourth = round(n * 5 / 12)  # 5 in 12-TET, 8 in 19-TET, 13 in 31-TET
         tones: list[Tone] = []
         t = self
-        for _ in range(12):
+        for _ in range(n):
             tones.append(t)
-            t = t.add(5)
+            t = t.add(fourth)
         return tones
 
     @property

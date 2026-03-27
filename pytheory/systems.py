@@ -6,14 +6,36 @@ from ._statics import (
 
 
 class System:
-    def __init__(self, *, tone_names, degrees, scales=None):
+    def __init__(self, *, tone_names, degrees, scales=None, c_index=None):
         self.tone_names = tone_names
 
         self.degrees = degrees
         self._scales = scales
 
+        # c_index: the index of the "reference C" in the tone list.
+        # For octave arithmetic — scientific pitch changes octave at C.
+        # Default 3 for 12-TET western (A=0, A#=1, B=2, C=3).
+        # For non-12-TET systems, this is the index of the tone nearest C,
+        # or 0 if no C equivalent exists.
+        if c_index is not None:
+            self.c_index = c_index
+        else:
+            # Try to find C in the tone names, fall back to 0
+            self.c_index = 0
+            for i, names in enumerate(tone_names):
+                if "C" in names:
+                    self.c_index = i
+                    break
+
         if scales is None:
-            self._scales = SCALES[self.semitones]
+            n = self.semitones
+            if n in SCALES:
+                self._scales = SCALES[n]
+            else:
+                # Generate chromatic scale for unknown sizes
+                self._scales = {
+                    "chromatic": (n, {}),
+                }
 
     @property
     def semitones(self):
@@ -182,6 +204,126 @@ class System:
     def __repr__(self):
         return f"<System semitones={self.semitones!r}>"
 
+
+def TET(n, *, names=None, reference_index=0):
+    """Create an N-tone equal temperament system.
+
+    Each step divides the octave into *n* equal parts. The frequency
+    ratio between adjacent tones is ``2^(1/n)``.
+
+    Args:
+        n: Number of equal divisions of the octave (e.g. 19, 24, 31, 53).
+        names: Optional list of *n* tone name strings. If omitted,
+            tones are numbered ``"0"`` through ``"n-1"``.
+        reference_index: Index of the tone that corresponds to A440
+            (default 0, meaning tone "0" = A4 = 440 Hz).
+
+    Returns:
+        A :class:`System` instance.
+
+    Example::
+
+        >>> edo19 = TET(19)
+        >>> from pytheory import Tone
+        >>> t = Tone("0", octave=4, system=edo19)
+        >>> t.frequency  # 440.0 Hz (tone 0 = A4)
+        440.0
+
+        >>> edo31 = TET(31)
+        >>> t = Tone("18", octave=4, system=edo31)
+        >>> t.frequency  # 18 steps above A in 31-TET
+    """
+    if names is not None:
+        if len(names) != n:
+            raise ValueError(f"Expected {n} names, got {len(names)}")
+        tone_names = [(name,) for name in names]
+    else:
+        tone_names = [(str(i),) for i in range(n)]
+
+    # Degrees: numbered, with no modal names
+    degrees = [(f"degree {i+1}", ()) for i in range(n)]
+
+    # Scales: chromatic (all steps = 1) plus MOS scales for common EDOs
+    scale_data = {
+        "chromatic": (n, {}),
+    }
+
+    # Add well-known scales for specific EDOs
+    if n == 19:
+        # 19-TET: major and minor have different step sizes
+        # Major: 3 3 2 3 3 3 2 (sums to 19)
+        # Minor: 3 2 3 3 2 3 3
+        scale_data["heptatonic"] = [7, {
+            "major": {"intervals": (3, 3, 2, 3, 3, 3, 2)},
+            "minor": {"intervals": (3, 2, 3, 3, 2, 3, 3)},
+            "harmonic minor": {"intervals": (3, 2, 3, 3, 2, 4, 2)},
+        }]
+        scale_data["pentatonic"] = [5, {
+            "major pentatonic": {"intervals": (3, 3, 5, 3, 5)},
+            "minor pentatonic": {"intervals": (5, 3, 3, 5, 3)},
+        }]
+    elif n == 24:
+        # 24-TET (quarter-tone): standard 12-TET scales with doubled steps
+        scale_data["heptatonic"] = [7, {
+            "major": {"intervals": (4, 4, 2, 4, 4, 4, 2)},
+            "minor": {"intervals": (4, 2, 4, 4, 2, 4, 4)},
+        }]
+    elif n == 31:
+        # 31-TET: excellent approximation of quarter-comma meantone
+        # Major: 5 5 3 5 5 5 3 (sums to 31)
+        # Minor: 5 3 5 5 3 5 5
+        scale_data["heptatonic"] = [7, {
+            "major": {"intervals": (5, 5, 3, 5, 5, 5, 3)},
+            "minor": {"intervals": (5, 3, 5, 5, 3, 5, 5)},
+            "harmonic minor": {"intervals": (5, 3, 5, 5, 3, 7, 3)},
+        }]
+        scale_data["pentatonic"] = [5, {
+            "major pentatonic": {"intervals": (5, 5, 8, 5, 8)},
+            "minor pentatonic": {"intervals": (8, 5, 5, 8, 5)},
+        }]
+    elif n == 53:
+        # 53-TET: nearly perfect fifths and thirds
+        # Major: 9 9 4 9 9 9 4 (sums to 53)
+        scale_data["heptatonic"] = [7, {
+            "major": {"intervals": (9, 9, 4, 9, 9, 9, 4)},
+            "minor": {"intervals": (9, 4, 9, 9, 4, 9, 9)},
+        }]
+
+    # Find C equivalent for c_index (reference_index is A, C is 3 steps in 12-TET)
+    # Proportionally: C is 3/12 of the way around from A
+    c_idx = round(n * 3 / 12) if n != 12 else 3
+
+    return System(
+        tone_names=tone_names,
+        degrees=degrees,
+        scales=scale_data,
+        c_index=c_idx,
+    )
+
+
+# ── 19-TET named system ──
+# Traditional note names for 19-TET: all 12 western notes plus
+# 7 quarter-tone positions (enharmonic splits)
+_19TET_NAMES = [
+    "A", "A#", "Bb", "B", "B#",
+    "C", "C#", "Db", "D", "D#",
+    "Eb", "E", "E#", "F", "F#",
+    "Gb", "G", "G#", "Ab",
+]
+
+# ── 31-TET named system ──
+# Adriaan Fokker's naming: sharps and flats are distinct pitches
+_31TET_NAMES = [
+    "A", "A↑", "A#", "Bb", "B↓",
+    "B", "B↑", "C", "C↑", "C#",
+    "Db", "D↓", "D", "D↑", "D#",
+    "Eb", "E↓", "E", "E↑", "E#",
+    "F", "F↑", "F#", "Gb", "G↓",
+    "G", "G↑", "G#", "Ab", "A↓",
+    "A♮",  # enharmonic return (distinct from "A" by a diesis)
+]
+
+
 SYSTEMS = {
     "western": System(tone_names=TONES["western"], degrees=DEGREES["western"]),
     "indian": System(tone_names=TONES["indian"], degrees=DEGREES["indian"], scales=INDIAN_SCALES[12]),
@@ -189,4 +331,6 @@ SYSTEMS = {
     "japanese": System(tone_names=TONES["japanese"], degrees=DEGREES["japanese"], scales=JAPANESE_SCALES[12]),
     "blues": System(tone_names=TONES["blues"], degrees=DEGREES["blues"], scales=BLUES_SCALES[12]),
     "gamelan": System(tone_names=TONES["gamelan"], degrees=DEGREES["gamelan"], scales=GAMELAN_SCALES[12]),
+    "19-tet": TET(19, names=_19TET_NAMES),
+    "31-tet": TET(31, names=_31TET_NAMES),
 }
