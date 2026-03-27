@@ -21,7 +21,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "pytuning",
     "numeral",
     "sounddevice",
     "scipy",

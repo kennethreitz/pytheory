@@ -2,9 +2,22 @@ from enum import Enum
 import time
 
 import numpy
-import scipy.signal
 
 from .tones import Tone
+
+
+class _LazyModule:
+    """Lazy import wrapper — module loaded on first attribute access."""
+    def __init__(self, name):
+        self._name = name
+        self._mod = None
+    def __getattr__(self, attr):
+        if self._mod is None:
+            import importlib
+            self._mod = importlib.import_module(self._name)
+        return getattr(self._mod, attr)
+
+scipy = type('scipy', (), {'signal': _LazyModule('scipy.signal')})()
 
 
 def _get_sd():

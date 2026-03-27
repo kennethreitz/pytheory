@@ -816,8 +816,7 @@ class Tone:
             pitch_scale = list(custom_ratios) + [period]
         elif period != 2.0 and temperament == "equal":
             # Non-octave period (e.g. Bohlen-Pierce tritave=3.0)
-            import sympy
-            pitch_scale = [period ** sympy.Rational(i, tones) for i in range(tones + 1)]
+            pitch_scale = [period ** (i / tones) for i in range(tones + 1)]
         else:
             pitch_scale = TEMPERAMENTS[temperament](tones)
         octave = self.octave if self.octave is not None else 4
@@ -834,7 +833,7 @@ class Tone:
         if symbolic:
             return reference_pitch * ratio
         else:
-            result = reference_pitch * ratio
+            result = float(reference_pitch * ratio)
             if precision:
-                return float(result.evalf(precision))
-            return float(result)
+                return round(result, precision)
+            return result
