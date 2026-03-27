@@ -68,9 +68,16 @@ def test_tone_system():
 
 def test_tone_exists():
     c4 = Tone(name="C", octave=4, system="western")
-    invalid_tone = Tone(name="H", octave=4, system="western")
     assert c4.exists is True
-    assert invalid_tone.exists is False
+
+
+def test_tone_invalid_raises():
+    """Invalid tone names raise ValueError at construction time (fixes #39)."""
+    import pytest
+    with pytest.raises(ValueError, match="Unknown tone name"):
+        Tone(name="H", octave=4, system="western")
+    with pytest.raises(ValueError, match="Unknown tone name"):
+        Tone("X")
 
 
 def test_tone_names_method():
@@ -4839,10 +4846,11 @@ def test_solfege_no_octave():
     assert t.solfege == "Do"
 
 
-def test_solfege_unknown_returns_name():
-    """A non-standard name should be returned unchanged."""
-    t = Tone(name="X", system="western")
-    assert t.solfege == "X"
+def test_solfege_unknown_raises():
+    """A non-standard name should raise ValueError at construction (fixes #39)."""
+    import pytest
+    with pytest.raises(ValueError, match="Unknown tone name"):
+        Tone(name="X", system="western")
 
 
 # ── Rhythm / Duration system ────────────────────────────────────────────────

@@ -31,6 +31,7 @@ class Tone:
         alt_names: Optional[list[str]] = None,
         octave: Optional[int] = None,
         system: Union[str, object] = "western",
+        _validate: bool = True,
     ) -> None:
         """Initialize a Tone with a name, optional octave, and musical system.
 
@@ -67,6 +68,13 @@ class Tone:
         else:
             self.system_name = None
             self._system = system
+
+        # Validate tone name against the system early (fixes #39).
+        if _validate and self.system.resolve_name(name) is None:
+            raise ValueError(
+                f"Unknown tone name: {name!r}. "
+                f"Not found in the {system!r} system."
+            )
 
     @property
     def exists(self) -> bool:
@@ -345,7 +353,7 @@ class Tone:
         if system:
             return klass(name=tone, octave=octave, system=system)
         else:
-            return klass(name=tone, octave=octave)
+            return klass(name=tone, octave=octave, _validate=False)
 
     @classmethod
     def from_tuple(klass, t: tuple[str, ...]) -> Tone:
