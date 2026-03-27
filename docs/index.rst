@@ -77,8 +77,9 @@ What's Inside
   numbers), scale recommendation, modulation, voice leading
 - **Sequencing** — Score, Parts, arpeggiator, legato/glide, velocity,
   swing, humanize, tempo changes, song sections with repeat
-- **Synthesis** — 10 waveforms, 8 envelopes, detune, stereo pan/spread,
-  58 drum patterns (stereo panned), 21 fills
+- **Synthesis** — 13 waveforms (including Karplus-Strong pluck, Hammond organ,
+  string ensemble), 8 envelopes, 38 instrument presets, detune, stereo
+  pan/spread, 58 drum patterns (stereo panned), 21 fills
 - **Effects** — reverb (algorithmic + 7 convolution IRs, stereo), delay,
   lowpass (with resonance), distortion, chorus, sidechain compression,
   automation, LFOs. Master bus compressor/limiter
