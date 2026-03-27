@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.29.2
+
+- Add `score.set_drum_effects()` — reverb, delay, lowpass, distortion, chorus on the drum bus
+- Same effects engine as parts, zero code duplication
+
 ## 0.29.1
 
 - Rename song.py → songs.py
