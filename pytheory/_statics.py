@@ -384,13 +384,75 @@ SHRUTI_SCALES = {
     ],
 }
 
-# ── 24-TET Arabic maqam system ─────────────────────────────────────────────
-# Arabic maqam uses quarter-tones (half-flat, half-sharp). 24-TET captures
-# these intervals exactly. Each step = 50 cents (vs 100 in 12-TET).
-# The half-flat (♭½) is the defining sound of Arabic music — it's what
-# makes maqam Rast and Bayati sound distinctly Middle Eastern.
+# ── Arabic maqam system ───────────────────────────────────────────────────
+# Arabic maqam uses quarter-tones with specific JI ratios, NOT equal
+# 24-TET divisions. The neutral intervals (quarter-flat, quarter-sharp)
+# are based on ratios involving the 11th partial, as theorized by
+# Zalzal (8th century Baghdad). The quarter-flat E in Rast is 27/22,
+# not simply halfway between Eb and E.
 #
+# 24 positions per octave, but with unequal JI spacing.
 # Ordered from La (=A) to match Western index positions.
+
+# Maqam JI ratios from Do (C). Based on traditional practice:
+# - Standard JI intervals for the 12 chromatic positions
+# - Zalzalian ratios (11-limit) for the quarter-tone positions
+_MAQAM_RATIOS_FROM_DO = [
+    Fraction(1, 1),       #  0: Do       — unison
+    Fraction(33, 32),     #  1: Do↑      — quarter-sharp (~53¢, 33rd harmonic)
+    Fraction(16, 15),     #  2: Reb      — JI minor 2nd
+    Fraction(12, 11),     #  3: Re↓      — Zalzalian neutral 2nd (~151¢)
+    Fraction(9, 8),       #  4: Re       — major whole tone
+    Fraction(11, 9) * Fraction(1, 1),  #  5: Re↑  — undecimal (~347¢... too high)
+    Fraction(6, 5),       #  6: Mib      — JI minor 3rd
+    Fraction(27, 22),     #  7: Mi↓      — Zalzalian neutral 3rd (~355¢) THE Rast note
+    Fraction(5, 4),       #  8: Mi       — JI major 3rd
+    Fraction(4, 3),       #  9: Fa       — perfect 4th
+    Fraction(11, 8),      # 10: Fa↑      — undecimal tritone (~551¢)
+    Fraction(45, 32),     # 11: Fa#      — augmented 4th
+    Fraction(22, 15),     # 12: Sol↓     — neutral (~663¢... adjusted)
+    Fraction(3, 2),       # 13: Sol      — perfect 5th
+    Fraction(99, 64),     # 14: Sol↑     — quarter-sharp 5th
+    Fraction(8, 5),       # 15: Lab      — JI minor 6th
+    Fraction(18, 11),     # 16: La↓      — Zalzalian neutral 6th
+    Fraction(5, 3),       # 17: La       — JI major 6th
+    Fraction(27, 16),     # 18: La↑/Sib↓ — Pythagorean major 6th
+    Fraction(16, 9),      # 19: Sib      — Pythagorean minor 7th
+    Fraction(11, 6),      # 20: Si↓      — undecimal neutral 7th
+    Fraction(15, 8),      # 21: Si       — JI major 7th
+    Fraction(243, 128),   # 22: Si↑      — Pythagorean major 7th
+    Fraction(2, 1) * Fraction(33, 64),  # 23: near-octave (~1049¢)
+]
+
+# Ratios directly from La (A=1/1), each position defined explicitly.
+# Standard JI intervals for chromatic positions, Zalzalian (11-limit)
+# ratios for the quarter-tone positions.
+MAQAM_RATIOS = [
+    1.0,                              #  0: La       — A (unison)
+    float(Fraction(256, 243)),        #  1: La↑      — Pythagorean comma up
+    float(Fraction(16, 15)),          #  2: Sib      — Bb (JI minor 2nd)
+    float(Fraction(12, 11)),          #  3: Si↓      — B quarter-flat (Zalzalian)
+    float(Fraction(9, 8)),            #  4: Si       — B (major 2nd)
+    float(Fraction(6, 5)),            #  5: Do       — C (minor 3rd from A)
+    float(Fraction(11, 9)),           #  6: Do↑      — C quarter-sharp (undecimal)
+    float(Fraction(5, 4)),            #  7: Reb      — Db (major 3rd from A...= JI Db)
+    float(Fraction(9, 7)),            #  8: Re↓      — D quarter-flat (septimal)
+    float(Fraction(4, 3)),            #  9: Re       — D (perfect 4th from A)
+    float(Fraction(11, 8)),           # 10: Re↑      — D quarter-sharp (undecimal)
+    float(Fraction(45, 32)),          # 11: Mib      — Eb (augmented 4th from A)
+    float(Fraction(6, 5) * Fraction(27, 22)),  # 12: Mi↓ — E quarter-flat (Do × 27/22)
+    float(Fraction(3, 2)),            # 13: Mi       — E (perfect 5th from A)
+    float(Fraction(8, 5)),            # 14: Fa       — F (minor 6th from A)
+    float(Fraction(18, 11)),          # 15: Fa↑      — F quarter-sharp (Zalzalian)
+    float(Fraction(5, 3)),            # 16: Fa#      — F# (major 6th from A)
+    float(Fraction(27, 16)),          # 17: Sol↓     — G quarter-flat
+    float(Fraction(16, 9)),           # 18: Sol      — G (minor 7th from A)
+    float(Fraction(11, 6)),           # 19: Sol↑     — G quarter-sharp (undecimal)
+    float(Fraction(15, 8)),           # 20: Lab      — Ab (major 7th from A)
+    float(Fraction(27, 14)),          # 21: La↓      — A quarter-flat (septimal)
+    float(Fraction(243, 128)),        # 22: La½b     — near-octave
+    float(Fraction(2, 1) * Fraction(256, 257)),  # 23: La♮  — near-octave
+]
 TONES_ARABIC_24 = [
     ("La",),                #  0 — A
     ("La↑",),               #  1 — A quarter-sharp
