@@ -881,12 +881,18 @@ def saxophone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         phase = rng.uniform(0, 2 * numpy.pi)
         wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
 
-    # Reed buzz — gentler than oboe's double reed
-    reed = rng.normal(0, 0.03, n_samples)
+    # Reed buzz — more present than oboe but still warm
+    reed = rng.normal(0, 0.07, n_samples)
+    # Bandpass the reed noise around 1-3kHz (the "honk" range)
+    import scipy.signal as _sig
+    reed_lo = max(20, int(hz * 2))
+    reed_hi = min(SAMPLE_RATE // 2 - 1, int(hz * 6))
+    if reed_lo < reed_hi:
+        br, ar = _sig.butter(2, [reed_lo, reed_hi], btype='band', fs=SAMPLE_RATE)
+        reed = _sig.lfilter(br, ar, reed).astype(numpy.float64) * 2.0
     wave += reed
 
-    # Brass body warmth — slight low-mid boost
-    import scipy.signal as _sig
+    # Brass body warmth — low-mid boost
     center = min(1500, hz * 4)
     bw = 500
     lo = max(20, int(center - bw))

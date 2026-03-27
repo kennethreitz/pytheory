@@ -277,7 +277,7 @@ INSTRUMENTS = {
     },
     "timpani": {
         "synth": "timpani_synth", "envelope": "none",
-        "reverb": 0.3, "reverb_type": "hall",
+        "reverb": 0.4, "reverb_type": "cathedral",
     },
 
     # ── Woodwinds (continued) ──
@@ -2458,6 +2458,50 @@ class Part:
 
         self.add(chord_obj, total_beats, velocity=velocity)
 
+        return self
+
+    def roll(self, tone_or_string, duration=Duration.WHOLE, *,
+             velocity_start: int = 40, velocity_end: int = 100,
+             speed=Duration.SIXTEENTH) -> "Part":
+        """Play a roll — rapid repeated notes with velocity ramp.
+
+        Perfect for timpani rolls, snare rolls, tremolo on any
+        instrument. The velocity ramps from ``velocity_start`` to
+        ``velocity_end`` over the duration for crescendo/decrescendo.
+
+        Args:
+            tone_or_string: The note to repeat.
+            duration: Total duration of the roll.
+            velocity_start: Velocity of the first hit (default 40).
+            velocity_end: Velocity of the last hit (default 100).
+            speed: How fast to repeat (default SIXTEENTH notes).
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> timp = score.part("timp", instrument="timpani")
+            >>> timp.roll("C3", Duration.WHOLE, velocity_start=30, velocity_end=110)
+        """
+        if hasattr(duration, 'value'):
+            total = duration.value
+        else:
+            total = float(duration)
+        if hasattr(speed, 'value'):
+            step = speed.value
+        else:
+            step = float(speed)
+
+        n_hits = max(1, int(total / step))
+        for i in range(n_hits):
+            frac = i / max(1, n_hits - 1)
+            vel = int(velocity_start + (velocity_end - velocity_start) * frac)
+            vel = max(1, min(127, vel))
+            remaining = total - i * step
+            note_dur = min(step, remaining)
+            if note_dur > 0:
+                self.add(tone_or_string, note_dur, velocity=vel)
         return self
 
     @property
