@@ -7,6 +7,217 @@ from enum import Enum
 from typing import Optional
 
 
+# ── Instrument presets ────────────────────────────────────────────────────────
+# Predefined combinations of synth, envelope, effects, and parameters that
+# approximate real instruments.  Used by ``Score.part(instrument=...)``.
+
+INSTRUMENTS = {
+    # ── Keys ──
+    "piano": {
+        "synth": "fm", "envelope": "piano",
+        "detune": 5, "chorus": 0.1, "chorus_rate": 0.3,
+        "lowpass": 6000,
+    },
+    "electric_piano": {  # Rhodes/Wurlitzer
+        "synth": "fm", "envelope": "piano",
+        "detune": 6, "chorus": 0.2, "chorus_rate": 1.0,
+        "lowpass": 4000,
+    },
+    "organ": {
+        "synth": "organ_synth", "envelope": "organ",
+        "chorus": 0.2, "chorus_rate": 5.5,
+        "lowpass": 5000,
+    },
+    "harpsichord": {
+        "synth": "pluck_synth", "envelope": "none",
+        "lowpass": 3500,
+    },
+    "celesta": {
+        "synth": "fm", "envelope": "bell",
+        "lowpass": 8000,
+        "reverb": 0.3, "reverb_type": "plate",
+    },
+    "music_box": {
+        "synth": "sine", "envelope": "bell",
+        "lowpass": 6000,
+        "reverb": 0.25, "reverb_type": "plate",
+    },
+
+    # ── Strings ──
+    "violin": {
+        "synth": "strings_synth", "envelope": "strings",
+        "detune": 4, "lowpass": 5000,
+        "humanize": 0.15,
+    },
+    "viola": {
+        "synth": "strings_synth", "envelope": "strings",
+        "detune": 4, "lowpass": 3500,
+        "humanize": 0.15,
+    },
+    "cello": {
+        "synth": "strings_synth", "envelope": "strings",
+        "detune": 4, "lowpass": 2500,
+        "humanize": 0.15,
+    },
+    "contrabass": {
+        "synth": "strings_synth", "envelope": "strings",
+        "detune": 3, "lowpass": 1500,
+        "humanize": 0.1,
+    },
+    "string_ensemble": {
+        "synth": "strings_synth", "envelope": "pad",
+        "detune": 12, "spread": 0.6,
+        "chorus": 0.2, "chorus_rate": 0.5,
+        "lowpass": 4000,
+    },
+
+    # ── Woodwinds ──
+    "flute": {
+        "synth": "sine", "envelope": "strings",
+        "lowpass": 4000,
+        "humanize": 0.2,
+    },
+    "clarinet": {
+        "synth": "square", "envelope": "strings",
+        "lowpass": 3000,
+        "humanize": 0.15,
+    },
+    "oboe": {
+        "synth": "saw", "envelope": "strings",
+        "lowpass": 3500, "lowpass_q": 1.2,
+        "humanize": 0.15,
+    },
+    "bassoon": {
+        "synth": "saw", "envelope": "strings",
+        "lowpass": 2000,
+        "humanize": 0.15,
+    },
+
+    # ── Brass ──
+    "trumpet": {
+        "synth": "saw", "envelope": "pluck",
+        "detune": 3, "lowpass": 4000, "lowpass_q": 1.1,
+        "humanize": 0.15,
+    },
+    "trombone": {
+        "synth": "saw", "envelope": "strings",
+        "detune": 3, "lowpass": 2500,
+        "humanize": 0.15,
+    },
+    "french_horn": {
+        "synth": "saw", "envelope": "strings",
+        "detune": 4, "lowpass": 2000,
+        "chorus": 0.1,
+        "humanize": 0.15,
+    },
+    "tuba": {
+        "synth": "saw", "envelope": "strings",
+        "detune": 3, "lowpass": 1200,
+        "humanize": 0.1,
+    },
+    "brass_ensemble": {
+        "synth": "saw", "envelope": "strings",
+        "detune": 10, "spread": 0.4,
+        "lowpass": 3000,
+        "chorus": 0.15,
+    },
+
+    # ── Plucked ──
+    "acoustic_guitar": {
+        "synth": "pluck_synth", "envelope": "none",
+        "lowpass": 4000,
+        "humanize": 0.2,
+    },
+    "electric_guitar": {
+        "synth": "saw", "envelope": "pluck",
+        "detune": 5, "lowpass": 3500,
+        "humanize": 0.15,
+    },
+    "distorted_guitar": {
+        "synth": "saw", "envelope": "pluck",
+        "detune": 8, "distortion": 0.6, "distortion_drive": 5.0,
+        "lowpass": 3000,
+        "humanize": 0.15,
+    },
+    "bass_guitar": {
+        "synth": "triangle", "envelope": "pluck",
+        "lowpass": 1000,
+        "humanize": 0.1,
+    },
+    "upright_bass": {
+        "synth": "sine", "envelope": "pluck",
+        "lowpass": 800,
+        "humanize": 0.15,
+    },
+    "harp": {
+        "synth": "pluck_synth", "envelope": "none",
+        "lowpass": 5000,
+        "reverb": 0.3, "reverb_type": "plate",
+    },
+    "sitar": {
+        "synth": "saw", "envelope": "pluck",
+        "detune": 12, "lowpass": 3000, "lowpass_q": 1.5,
+        "humanize": 0.2,
+    },
+    "koto": {
+        "synth": "pluck_synth", "envelope": "none",
+        "lowpass": 4000,
+        "reverb": 0.2,
+    },
+
+    # ── Synth presets ──
+    "synth_lead": {
+        "synth": "saw", "envelope": "pluck",
+        "detune": 8, "lowpass": 3000,
+        "delay": 0.2, "delay_time": 0.25, "delay_feedback": 0.3,
+    },
+    "synth_pad": {
+        "synth": "supersaw", "envelope": "pad",
+        "detune": 12, "spread": 0.6,
+        "chorus": 0.2,
+    },
+    "synth_bass": {
+        "synth": "saw", "envelope": "pluck",
+        "lowpass": 800, "lowpass_q": 1.3,
+    },
+    "acid_bass": {
+        "synth": "saw", "envelope": "pad",
+        "legato": True, "glide": 0.03,
+        "distortion": 0.7, "distortion_drive": 8.0,
+        "lowpass": 800, "lowpass_q": 5.0,
+    },
+    "808_bass": {
+        "synth": "sine", "envelope": "pluck",
+        "distortion": 0.4, "distortion_drive": 2.5,
+        "lowpass": 200, "lowpass_q": 1.5,
+    },
+
+    # ── Percussion / Mallet ──
+    "vibraphone": {
+        "synth": "fm", "envelope": "bell",
+        "lowpass": 5000,
+        "reverb": 0.3, "reverb_type": "plate",
+    },
+    "marimba": {
+        "synth": "sine", "envelope": "pluck",
+        "lowpass": 3000,
+    },
+    "xylophone": {
+        "synth": "fm", "envelope": "pluck",
+        "lowpass": 6000,
+    },
+    "glockenspiel": {
+        "synth": "fm", "envelope": "bell",
+        "lowpass": 8000,
+        "reverb": 0.2,
+    },
+    "tubular_bells": {
+        "synth": "fm", "envelope": "bell",
+        "reverb": 0.4, "reverb_type": "cathedral",
+    },
+}
+
+
 class Duration(Enum):
     """Note durations in beats (quarter note = 1 beat)."""
 
@@ -1857,28 +2068,34 @@ class Score:
                 setattr(p, attr, v)
         return self
 
-    def part(self, name: str, *, synth: str = "sine",
-             envelope: str = "piano", volume: float = 0.5,
-             reverb: float = 0.0, reverb_decay: float = 1.0,
-             reverb_type: str = "algorithmic",
-             delay: float = 0.0, delay_time: float = 0.375,
-             delay_feedback: float = 0.4,
-             lowpass: float = 0.0, lowpass_q: float = 0.707,
-             distortion: float = 0.0, distortion_drive: float = 3.0,
-             legato: bool = False, glide: float = 0.0,
-             chorus: float = 0.0, chorus_rate: float = 1.5,
-             chorus_depth: float = 0.003,
+    def part(self, name: str, *, instrument: str = None,
+             synth: str = None, envelope: str = None,
+             volume: float = None,
+             reverb: float = None, reverb_decay: float = None,
+             reverb_type: str = None,
+             delay: float = None, delay_time: float = None,
+             delay_feedback: float = None,
+             lowpass: float = None, lowpass_q: float = None,
+             distortion: float = None, distortion_drive: float = None,
+             legato: bool = None, glide: float = None,
+             chorus: float = None, chorus_rate: float = None,
+             chorus_depth: float = None,
              swing: Optional[float] = None,
-             humanize: float = 0.0,
-             sidechain: float = 0.0,
-             sidechain_release: float = 0.1,
-             detune: float = 0.0,
-             pan: float = 0.0,
-             spread: float = 0.0) -> Part:
+             humanize: float = None,
+             sidechain: float = None,
+             sidechain_release: float = None,
+             detune: float = None,
+             pan: float = None,
+             spread: float = None) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
             name: Part name (e.g. ``"lead"``, ``"bass"``, ``"pads"``).
+            instrument: Instrument preset name (e.g. ``"piano"``,
+                ``"violin"``, ``"808_bass"``).  See :data:`INSTRUMENTS`
+                for the full list.  When set, the preset's synth, envelope,
+                and effects are used as defaults; any explicit keyword
+                argument still overrides the preset value.
             synth: Waveform — ``"sine"``, ``"saw"``, ``"triangle"``,
                 ``"square"``, ``"pulse"``, ``"fm"``, ``"noise"``,
                 ``"supersaw"``, ``"pwm_slow"``, ``"pwm_fast"``.
@@ -1926,22 +2143,71 @@ class Score:
 
             lead = score.part("lead", synth="saw", envelope="pluck",
                               reverb=0.3, delay=0.25, lowpass=3000)
+
+            # Or use an instrument preset:
+            piano = score.part("keys", instrument="piano")
         """
-        p = Part(name, synth=synth, envelope=envelope, volume=volume,
-                 reverb=reverb, reverb_decay=reverb_decay,
-                 reverb_type=reverb_type,
-                 delay=delay, delay_time=delay_time,
-                 delay_feedback=delay_feedback,
-                 lowpass=lowpass, lowpass_q=lowpass_q,
-                 distortion=distortion, distortion_drive=distortion_drive,
-                 legato=legato, glide=glide,
-                 chorus=chorus, chorus_rate=chorus_rate,
-                 chorus_depth=chorus_depth,
-                 swing=swing, humanize=humanize,
-                 sidechain=sidechain, sidechain_release=sidechain_release,
-                 detune=detune, pan=pan, spread=spread)
+        # Default values for all Part parameters.
+        _defaults = {
+            "synth": "sine", "envelope": "piano", "volume": 0.5,
+            "reverb": 0.0, "reverb_decay": 1.0, "reverb_type": "algorithmic",
+            "delay": 0.0, "delay_time": 0.375, "delay_feedback": 0.4,
+            "lowpass": 0.0, "lowpass_q": 0.707,
+            "distortion": 0.0, "distortion_drive": 3.0,
+            "legato": False, "glide": 0.0,
+            "chorus": 0.0, "chorus_rate": 1.5, "chorus_depth": 0.003,
+            "swing": None, "humanize": 0.0,
+            "sidechain": 0.0, "sidechain_release": 0.1,
+            "detune": 0.0, "pan": 0.0, "spread": 0.0,
+        }
+
+        # If an instrument preset is specified, layer it on top of defaults.
+        if instrument is not None:
+            preset = INSTRUMENTS.get(instrument)
+            if preset is None:
+                raise ValueError(
+                    f"Unknown instrument: {instrument!r}. "
+                    f"Use Score.list_instruments() to see available presets."
+                )
+            _defaults.update(preset)
+
+        # Collect explicitly-provided kwargs (non-None) and override defaults.
+        explicit = {}
+        _locals = {
+            "synth": synth, "envelope": envelope, "volume": volume,
+            "reverb": reverb, "reverb_decay": reverb_decay,
+            "reverb_type": reverb_type,
+            "delay": delay, "delay_time": delay_time,
+            "delay_feedback": delay_feedback,
+            "lowpass": lowpass, "lowpass_q": lowpass_q,
+            "distortion": distortion, "distortion_drive": distortion_drive,
+            "legato": legato, "glide": glide,
+            "chorus": chorus, "chorus_rate": chorus_rate,
+            "chorus_depth": chorus_depth,
+            "swing": swing, "humanize": humanize,
+            "sidechain": sidechain, "sidechain_release": sidechain_release,
+            "detune": detune, "pan": pan, "spread": spread,
+        }
+        for k, v in _locals.items():
+            if v is not None:
+                explicit[k] = v
+
+        merged = {**_defaults, **explicit}
+
+        p = Part(name, **merged)
         self.parts[name] = p
         return p
+
+    @classmethod
+    def list_instruments(cls) -> list:
+        """Return a sorted list of available instrument preset names.
+
+        Example::
+
+            Score.list_instruments()
+            # ['808_bass', 'acid_bass', 'acoustic_guitar', ...]
+        """
+        return sorted(INSTRUMENTS.keys())
 
     def add_pattern(self, pattern, repeats: int = 1) -> "Score":
         """Add a drum pattern to this score.

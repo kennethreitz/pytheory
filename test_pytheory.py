@@ -5312,7 +5312,7 @@ def test_supersaw_wave():
 @needs_portaudio
 def test_all_synths_in_enum():
     from pytheory.play import Synth
-    assert len(Synth) == 10
+    assert len(Synth) == 13
     for s in Synth:
         wave = s(440, n_samples=1000)
         assert len(wave) == 1000
@@ -6451,3 +6451,77 @@ def test_from_midi_note_durations(tmp_path):
     assert len(sounding) == 2
     assert abs(sounding[0].beats - 4.0) < 0.01
     assert abs(sounding[1].beats - 2.0) < 0.01
+
+
+# ── Instrument presets ────────────────────────────────────────────────────────
+
+def test_instrument_piano():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    p = score.part("p", instrument="piano")
+    assert p.synth == "fm"
+    assert p.envelope == "piano"
+    assert p.detune == 5
+    assert p.lowpass == 6000
+    assert p.chorus_mix == 0.1
+
+
+def test_instrument_violin():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    p = score.part("v", instrument="violin")
+    assert p.synth == "strings_synth"
+    assert p.envelope == "strings"
+    assert p.humanize == 0.15
+    assert p.lowpass == 5000
+
+
+def test_instrument_override():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    # Explicit synth overrides the preset's "fm"
+    p = score.part("p", instrument="piano", synth="saw")
+    assert p.synth == "saw"
+    # Other preset values still apply
+    assert p.envelope == "piano"
+    assert p.detune == 5
+
+
+def test_instrument_unknown_raises():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    with pytest.raises(ValueError, match="Unknown instrument"):
+        score.part("x", instrument="kazoo")
+
+
+def test_list_instruments():
+    from pytheory import Score, INSTRUMENTS
+    result = Score.list_instruments()
+    assert isinstance(result, list)
+    assert result == sorted(result)
+    assert "piano" in result
+    assert "violin" in result
+    assert "808_bass" in result
+    assert len(result) == len(INSTRUMENTS)
+
+
+def test_instrument_effects():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    p = score.part("c", instrument="celesta")
+    assert p.reverb_mix == 0.3
+    assert p.reverb_type == "plate"
+    assert p.synth == "fm"
+    assert p.envelope == "bell"
+
+
+def test_instrument_808_bass():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    p = score.part("b", instrument="808_bass")
+    assert p.distortion_mix == 0.4
+    assert p.distortion_drive == 2.5
+    assert p.lowpass == 200
+    assert p.lowpass_q == 1.5
+    assert p.synth == "sine"
+    assert p.envelope == "pluck"

@@ -190,6 +190,97 @@ def pwm_fast_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return pwm_wave(hz, peak, n_samples, lfo_rate=3.0)
 
 
+def pluck_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Karplus-Strong plucked string synthesis.
+
+    A burst of noise is fed into a short delay line with feedback —
+    the delay length determines the pitch, and the feedback filter
+    determines the decay. This is how every physical modeling synth
+    since 1983 does plucked strings. It sounds genuinely like a real
+    guitar, harp, or koto — not a synth approximation.
+
+    The algorithm: fill a buffer with random noise the length of one
+    period, then repeatedly average adjacent samples. The averaging
+    acts as a lowpass filter, gradually removing high harmonics —
+    exactly what a real vibrating string does as energy dissipates.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    # Initial noise burst — the "pluck"
+    buf = numpy.random.uniform(-1.0, 1.0, period).astype(numpy.float64)
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        # Averaging filter: smooth adjacent samples (Karplus-Strong)
+        buf[i % period] = 0.5 * (buf[i % period] + buf[(i + 1) % period]) * 0.998
+    return (peak * out).astype(numpy.int16)
+
+
+def organ_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Hammond organ — additive synthesis with drawbar harmonics.
+
+    A real Hammond B3 has 9 drawbars that mix sine waves at different
+    harmonics. This models the classic "full" registration with all
+    drawbars pulled: fundamental, 2nd, 3rd, 4th, 5th, 6th, and 8th
+    harmonics at musical levels.
+
+    The result is warm, rich, and unmistakably organ — somewhere
+    between a sine wave and a square wave, with that characteristic
+    hollow roundness.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # Drawbar levels (inspired by 888800000 — full even harmonics)
+    wave = (numpy.sin(2 * numpy.pi * hz * t) * 1.0 +           # 16' fundamental
+            numpy.sin(2 * numpy.pi * hz * 2 * t) * 0.8 +       # 8'
+            numpy.sin(2 * numpy.pi * hz * 3 * t) * 0.6 +       # 5 1/3'
+            numpy.sin(2 * numpy.pi * hz * 4 * t) * 0.5 +       # 4'
+            numpy.sin(2 * numpy.pi * hz * 5 * t) * 0.3 +       # 2 2/3'
+            numpy.sin(2 * numpy.pi * hz * 6 * t) * 0.25 +      # 2'
+            numpy.sin(2 * numpy.pi * hz * 8 * t) * 0.15)       # 1 3/5'
+    wave /= 3.5  # normalize
+    return (peak * wave).astype(numpy.int16)
+
+
+def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """String ensemble — filtered saw with body resonance formants.
+
+    Goes beyond raw sawtooth by modeling the resonant body of a
+    stringed instrument. Two formant peaks (at ~500 Hz and ~1500 Hz)
+    shape the spectrum the way a violin or cello body does — boosting
+    certain frequencies and cutting others.
+
+    The result is warmer and more "wooden" than a raw saw wave,
+    with the characteristic nasal quality of bowed strings.
+    """
+    # Base: sawtooth (all harmonics, like a bowed string)
+    length = SAMPLE_RATE / float(hz)
+    omega = numpy.pi * 2 / length
+    xvalues = numpy.arange(int(length)) * omega
+    onecycle = scipy.signal.sawtooth(xvalues, width=1)
+    wave = numpy.resize(onecycle, (n_samples,)).astype(numpy.float64)
+
+    # Body resonance formants — two bandpass peaks
+    # Formant 1: ~500 Hz (body resonance)
+    f1 = 500
+    bw1 = 200
+    b1, a1 = scipy.signal.butter(2, [max(20, f1 - bw1), f1 + bw1],
+                                  btype='band', fs=SAMPLE_RATE)
+    formant1 = scipy.signal.lfilter(b1, a1, wave)
+
+    # Formant 2: ~1500 Hz (bridge/top plate)
+    f2 = 1500
+    bw2 = 400
+    b2, a2 = scipy.signal.butter(2, [f2 - bw2, f2 + bw2],
+                                  btype='band', fs=SAMPLE_RATE)
+    formant2 = scipy.signal.lfilter(b2, a2, wave)
+
+    # Mix: original (attenuated) + formants
+    mixed = wave * 0.3 + formant1 * 0.4 + formant2 * 0.3
+
+    return (peak * mixed).astype(numpy.int16)
+
+
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
     """Apply an ADSR amplitude envelope to a sample array.
 
@@ -291,6 +382,9 @@ class Synth(Enum):
     SUPERSAW = "supersaw"
     PWM_SLOW = "pwm_slow"
     PWM_FAST = "pwm_fast"
+    PLUCK = "pluck_synth"
+    ORGAN = "organ_synth"
+    STRINGS = "strings_synth"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
@@ -302,6 +396,8 @@ _SYNTH_FUNCTIONS = {
     "square": square_wave, "pulse": pulse_wave, "fm": fm_wave,
     "noise": noise_wave, "supersaw": supersaw_wave,
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
+    "pluck_synth": pluck_wave, "organ_synth": organ_wave,
+    "strings_synth": strings_wave,
 }
 
 
