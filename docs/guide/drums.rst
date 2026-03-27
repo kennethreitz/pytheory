@@ -29,6 +29,50 @@ Score:
 
 The default is 0.15 — just enough to feel alive without sounding loose.
 
+Drums Are Parts
+~~~~~~~~~~~~~~~~
+
+Drums are a real Part — the same as any melodic voice. You can set
+effects on them the same way:
+
+.. code-block:: python
+
+   score.drums("rock", repeats=4)
+   score.parts["drums"].reverb_mix = 0.2
+   score.parts["drums"].reverb_type = "plate"
+
+Or use the shorthand:
+
+.. code-block:: python
+
+   score.set_drum_effects(reverb=0.2, reverb_type="plate", lowpass=8000)
+
+Split Drums
+~~~~~~~~~~~
+
+For maximum control, split the kit into separate Parts — kick, snare,
+hats, toms, cymbals, and percussion — each with independent effects:
+
+.. code-block:: python
+
+   score.drums("rock", repeats=4, split=True)
+
+   # Now each group is its own Part
+   score.parts["snare"].reverb_mix = 0.3
+   score.parts["snare"].reverb_type = "plate"
+   score.parts["hats"].lowpass = 7000
+   score.parts["kick"]  # dry, no effects
+
+   # set_drum_effects still works — applies to all drum Parts
+   score.set_drum_effects(reverb=0.1)
+
+This is how real studios work — the snare gets its own reverb send,
+the hats get their own EQ, the kick stays dry and punchy. Now you
+can do the same thing in Python.
+
+Sidechain compression triggers on kick hits only — hi-hats and snares
+don't duck the pad.
+
 Every drum sound is stereo-panned like a real kit — kick and snare
 center, hi-hat right, crash left, toms spread across the field,
 percussion instruments placed naturally. Put on headphones and you'll

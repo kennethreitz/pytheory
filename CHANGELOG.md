@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.30.0
+
+- Drums are a real Part — same effects pipeline as any voice
+- `score.drums("rock", split=True)` splits kit into kick/snare/hats/toms/cymbals/percussion Parts
+- Each split Part gets independent effects (reverb on snare, LP on hats, etc.)
+- `set_drum_effects()` applies to all drum Parts (split or not)
+- Sidechain triggers on kick only — hats and snare don't duck the pad
+- MIDI import via `Score.from_midi(path)`
+
 ## 0.29.3
 
 - Drums are now a real Part — same effects pipeline as any other voice, zero code duplication
