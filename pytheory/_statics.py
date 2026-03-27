@@ -387,6 +387,198 @@ ARABIC_24_SCALES = {
     ],
 }
 
+# ── 5-TET Gamelan Slendro ────────────────────────────────────────────────────
+# Slendro is a 5-tone equal temperament — each step is 240 cents.
+# The actual tuning varies between gamelans (each set is unique), but
+# 5-TET is the theoretical ideal that all slendro tunings approximate.
+# Ordered from nem (≈A) to loosely match Western indexing.
+TONES_SLENDRO = [
+    ("nem",),       # 0 — 6 (≈A)
+    ("ji",),        # 1 — 1 (≈C)
+    ("ro",),        # 2 — 2 (≈D)
+    ("lu",),        # 3 — 3 (≈F)
+    ("mo",),        # 4 — 5 (≈G)
+]
+
+DEGREES_SLENDRO = [
+    ("nem", ()), ("ji", ()), ("ro", ()), ("lu", ()), ("mo", ()),
+]
+
+SLENDRO_SCALES = {
+    "chromatic": (5, {}),
+    "pentatonic": [5, {
+        # The full slendro IS the pentatonic — all 5 tones
+        "slendro": {"intervals": (1, 1, 1, 1, 1)},
+    }],
+}
+
+# ── 9-TET Gamelan Pelog ─────────────────────────────────────────────────────
+# Pelog uses 7 tones from a roughly 9-step division of the octave.
+# 9-TET (133 cents/step) approximates the unequal pelog intervals.
+# The 3 pathet (modes) select 5 tones from the 7.
+TONES_PELOG = [
+    ("nem",),       # 0 — 6
+    ("pi",),        # 1 — 7
+    ("ji",),        # 2 — 1
+    ("ro",),        # 3 — 2
+    ("lu",),        # 4 — 3
+    ("pat",),       # 5 — 4
+    ("barang",),    # 6 — complementary
+    ("mo",),        # 7 — 5
+    ("nem+",),      # 8 — auxiliary
+]
+
+DEGREES_PELOG = [
+    ("nem", ()), ("pi", ()), ("ji", ()), ("ro", ()),
+    ("lu", ()), ("pat", ()), ("barang", ()), ("mo", ()), ("nem+", ()),
+]
+
+PELOG_SCALES = {
+    "chromatic": (9, {}),
+    "heptatonic": [7, {
+        # Full pelog — 7 tones from 9 steps
+        "pelog": {"intervals": (1, 2, 1, 1, 2, 1, 1)},
+    }],
+    "pentatonic": [5, {
+        # Pathet nem — the most common mode
+        "pelog nem": {"intervals": (1, 2, 2, 2, 2)},
+        # Pathet lima
+        "pelog lima": {"intervals": (1, 2, 2, 1, 3)},
+        # Pathet barang
+        "pelog barang": {"intervals": (2, 1, 2, 2, 2)},
+    }],
+}
+
+# ── 7-TET Thai classical ────────────────────────────────────────────────────
+# Thai classical music divides the octave into 7 exactly equal steps
+# (~171 cents each). This is unique — no Western equivalent exists.
+# The 7 tones are numbered 1-7 in Thai theory.
+TONES_THAI = [
+    ("do",),        # 0 — 1st degree
+    ("re",),        # 1 — 2nd
+    ("mi",),        # 2 — 3rd
+    ("fa",),        # 3 — 4th
+    ("sol",),       # 4 — 5th
+    ("la",),        # 5 — 6th
+    ("si",),        # 6 — 7th
+]
+
+DEGREES_THAI = [
+    ("thang 1", ()), ("thang 2", ()), ("thang 3", ()),
+    ("thang 4", ()), ("thang 5", ()), ("thang 6", ()), ("thang 7", ()),
+]
+
+THAI_SCALES = {
+    "chromatic": (7, {}),
+    "pentatonic": [5, {
+        # The standard Thai pentatonic — 5 of 7 equal steps
+        "thai pentatonic": {"intervals": (1, 1, 2, 1, 2)},
+        # Alternate selection
+        "thai pentatonic 2": {"intervals": (2, 1, 1, 2, 1)},
+    }],
+    "heptatonic": [7, {
+        # The full 7-TET scale
+        "thai": {"intervals": (1, 1, 1, 1, 1, 1, 1)},
+    }],
+}
+
+# ── 53-TET Turkish makam (Arel-Ezgi-Uzdilek) ───────────────────────────────
+# The gold standard for Turkish music theory. 53-TET has nearly perfect
+# fifths (31 steps = 701.89 cents vs 701.96 just) and excellent thirds.
+# A comma (1 step) = 22.6 cents. The basic intervals:
+#   Bakiye (B) = 4 commas ≈ 90 cents (like a limma)
+#   Küçük mücenneb (S) = 5 commas ≈ 113 cents
+#   Büyük mücenneb (K) = 8 commas ≈ 181 cents
+#   Tanini (T) = 9 commas ≈ 204 cents (like a whole tone)
+TONES_TURKISH = [
+    ("La",),                #  0 — A (Dügah reference)
+    ("La+1",),              #  1
+    ("La+2",),              #  2
+    ("La+3",),              #  3
+    ("Sib",),               #  4 — Bb (4 commas from A)
+    ("Sib+1",),             #  5
+    ("Sib+2",),             #  6
+    ("Sib+3",),             #  7
+    ("Sib+4",),             #  8
+    ("Si",),                #  9 — B
+    ("Si+1",),              # 10
+    ("Si+2",),              # 11
+    ("Si+3",),              # 12
+    ("Do",),                # 13 — C (Rast)
+    ("Do+1",),              # 14
+    ("Do+2",),              # 15
+    ("Do+3",),              # 16
+    ("Do+4",),              # 17
+    ("Reb",),               # 18 — Db
+    ("Reb+1",),             # 19
+    ("Reb+2",),             # 20
+    ("Reb+3",),             # 21
+    ("Re",),                # 22 — D (Dügah)
+    ("Re+1",),              # 23
+    ("Re+2",),              # 24
+    ("Re+3",),              # 25
+    ("Re+4",),              # 26
+    ("Mib",),               # 27 — Eb
+    ("Mib+1",),             # 28
+    ("Mib+2",),             # 29
+    ("Mib+3",),             # 30
+    ("Mi",),                # 31 — E (Segah)
+    ("Mi+1",),              # 32
+    ("Mi+2",),              # 33
+    ("Mi+3",),              # 34
+    ("Mi+4",),              # 35
+    ("Fa",),                # 36 — F
+    ("Fa+1",),              # 37
+    ("Fa+2",),              # 38
+    ("Fa+3",),              # 39
+    ("Fa#",),               # 40 — F#
+    ("Fa#+1",),             # 41
+    ("Fa#+2",),             # 42
+    ("Fa#+3",),             # 43
+    ("Sol",),               # 44 — G (Neva)
+    ("Sol+1",),             # 45
+    ("Sol+2",),             # 46
+    ("Sol+3",),             # 47
+    ("Lab",),               # 48 — Ab
+    ("Lab+1",),             # 49
+    ("Lab+2",),             # 50
+    ("Lab+3",),             # 51
+    ("Lab+4",),             # 52
+]
+
+DEGREES_TURKISH = [(f"perde {i+1}", ()) for i in range(53)]
+
+# Turkish makam scales in 53-TET commas.
+# T=9 commas (whole tone), S=5 (small), K=8 (large), B=4 (limma)
+TURKISH_SCALES = {
+    "chromatic": (53, {}),
+    "makam": [
+        7,
+        {
+            # Rast — the foundational makam. Uses segah (≈ neutral 3rd)
+            # T + T + S + T + T + T + S = 9+9+5+9+9+9+4 = 53...
+            # Actually: 9+8+5+9+9+8+5 = 53
+            "rast": {"intervals": (9, 8, 5, 9, 9, 8, 5)},
+            # Nihavend (≈ harmonic minor)
+            "nihavend": {"intervals": (9, 4, 9, 9, 4, 13, 5)},
+            # Hicaz — the augmented 2nd makam
+            "hicaz": {"intervals": (5, 12, 5, 9, 4, 9, 9)},
+            # Ussak — one of the most common makams
+            "ussak": {"intervals": (8, 5, 9, 9, 8, 5, 9)},
+            # Huseyni
+            "huseyni": {"intervals": (8, 5, 9, 9, 5, 8, 9)},
+            # Kurdi (≈ Phrygian)
+            "kurdi": {"intervals": (4, 9, 9, 9, 4, 9, 9)},
+            # Segah — starts on the neutral 3rd
+            "segah": {"intervals": (5, 9, 9, 8, 5, 9, 8)},
+            # Saba — descending differs from ascending
+            "saba": {"intervals": (8, 5, 4, 14, 4, 9, 9)},
+            # Hüzzam
+            "huzzam": {"intervals": (5, 9, 8, 5, 9, 8, 9)},
+        },
+    ],
+}
+
 # Arabic maqam scales (12-TET approximations).
 # True maqam uses quarter-tones; these are the closest 12-tone equivalents.
 ARABIC_SCALES = {

@@ -4,6 +4,10 @@ from ._statics import (
     BLUES_SCALES, GAMELAN_SCALES, SYSTEMS,
     TONES_SHRUTI, DEGREES_SHRUTI, SHRUTI_SCALES,
     TONES_ARABIC_24, DEGREES_ARABIC_24, ARABIC_24_SCALES,
+    TONES_SLENDRO, DEGREES_SLENDRO, SLENDRO_SCALES,
+    TONES_PELOG, DEGREES_PELOG, PELOG_SCALES,
+    TONES_THAI, DEGREES_THAI, THAI_SCALES,
+    TONES_TURKISH, DEGREES_TURKISH, TURKISH_SCALES,
 )
 
 
@@ -340,4 +344,12 @@ SYSTEMS = {
                      scales=SHRUTI_SCALES, c_index=5),
     "maqam": System(tone_names=TONES_ARABIC_24, degrees=DEGREES_ARABIC_24,
                     scales=ARABIC_24_SCALES, c_index=5),
+    "slendro": System(tone_names=TONES_SLENDRO, degrees=DEGREES_SLENDRO,
+                      scales=SLENDRO_SCALES, c_index=1),
+    "pelog": System(tone_names=TONES_PELOG, degrees=DEGREES_PELOG,
+                    scales=PELOG_SCALES, c_index=2),
+    "thai": System(tone_names=TONES_THAI, degrees=DEGREES_THAI,
+                   scales=THAI_SCALES, c_index=0),
+    "makam": System(tone_names=TONES_TURKISH, degrees=DEGREES_TURKISH,
+                    scales=TURKISH_SCALES, c_index=13),
 }

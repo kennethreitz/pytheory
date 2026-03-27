@@ -58,17 +58,15 @@ class Tone:
             if len(name) >= 2 and name[1] in ('x', 'X') and name[0].isalpha():
                 name = name[0] + '##' + name[2:]
 
-            # Only parse octave from trailing digits if name starts with
-            # a letter (e.g. "C4" → name="C", octave=4). Numeric pitch
-            # class names like "0" or "11" should not be parsed as octaves.
+            # Only parse trailing digits as octave (e.g. "C4" → "C", octave=4).
+            # Digits embedded in the name (e.g. "Mib+1") are NOT octaves.
+            # Numeric pitch class names ("0", "11") are also left alone.
             if name and name[0].isalpha():
-                try:
-                    parsed_octave = int("".join([c for c in filter(str.isdigit, name)]))
-                except ValueError:
-                    parsed_octave = None
-
-                if parsed_octave is not None:
-                    name = name.replace(str(parsed_octave), "")
+                import re as _re
+                m = _re.search(r'(\d+)$', name)
+                if m:
+                    parsed_octave = int(m.group(1))
+                    name = name[:m.start()]
                     if octave is None:
                         octave = parsed_octave
 
@@ -358,15 +356,15 @@ class Tone:
         Returns:
             A new ``Tone`` instance.
         """
+        import re as _re
         octave = None
-        # Only parse octave from trailing digits if name starts with a letter
+        tone = s
+        # Only parse trailing digits as octave
         if s and s[0].isalpha():
-            try:
-                octave = int("".join([c for c in filter(str.isdigit, s)]))
-            except ValueError:
-                octave = None
-
-        tone = s.replace(str(octave), "") if octave else s
+            m = _re.search(r'(\d+)$', s)
+            if m:
+                octave = int(m.group(1))
+                tone = s[:m.start()]
 
         if system:
             return klass(name=tone, octave=octave, system=system)
@@ -475,7 +473,19 @@ class Tone:
                     break
         else:
             tone = tone_names[0]  # primary spelling
-        return klass(name=tone, octave=octave, system=system)
+        # Bypass parsing and validation — name comes from a known system index
+        obj = klass.__new__(klass)
+        obj.name = tone
+        obj.octave = octave
+        obj.alt_names = list(tone_names[1:]) if len(tone_names) > 1 else []
+        obj._frequency = None
+        if isinstance(system, str):
+            obj.system_name = system
+            obj._system = None
+        else:
+            obj.system_name = None
+            obj._system = system
+        return obj
 
     @property
     def _index(self) -> int:
@@ -491,7 +501,15 @@ class Tone:
             canonical = self.system.resolve_name(self.name)
             if canonical is None:
                 raise ValueError(f"Tone {self.name!r} not found in system")
-            return self.system.tones.index(canonical)
+            # Use _name_to_index for direct lookup (avoids creating Tone objects)
+            idx = self.system._name_to_index(canonical)
+            if idx is not None:
+                return idx
+            # Fallback: linear search through tone_names
+            for i, names in enumerate(self.system.tone_names):
+                if canonical in names:
+                    return i
+            raise ValueError(f"Tone {self.name!r} not found in system")
         except AttributeError:
             raise ValueError("Tone index cannot be referenced without a system!")
 
@@ -505,19 +523,21 @@ class Tone:
         octave = self.octave or 0
 
         try:
-            mod = len(self.system.tones)
+            mod = len(self.system.tone_names)
         except AttributeError:
             raise ValueError(
                 "Tone math can only be computed with an associated system!"
             )
 
-        # Convert to absolute semitones from C0
-        note_from_c0 = ((self._index - C_INDEX) % mod) + (octave * mod)
+        c_idx = getattr(self.system, 'c_index', C_INDEX)
+
+        # Convert to absolute steps from C0
+        note_from_c0 = ((self._index - c_idx) % mod) + (octave * mod)
         note_from_c0 += interval
 
         new_octave = note_from_c0 // mod
         relative = note_from_c0 % mod
-        new_index = (relative + C_INDEX) % mod
+        new_index = (relative + c_idx) % mod
 
         return (new_index, new_octave)
 
