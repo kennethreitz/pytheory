@@ -1302,6 +1302,166 @@ def tabla_solo_yaman():
     play_song(score, "Tabla Solo — Raga Yaman (22-Shruti, Taj Mahal)")
 
 
+def journey():
+    """Journey — piano → orchestra → world → sitar EDM.
+
+    One reverb space (Taj Mahal), tanpura drone throughout. Piano opens
+    alone, cello joins, harp/oboe/flute take over with djembe, sitar
+    arrives over tabla, builds to an EDM section with house drums.
+    """
+    REV = "taj_mahal"
+    score = Score("4/4", bpm=72)
+
+    # ── Drone — runs the entire piece ──
+    tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
+                          detune=3, lowpass=1000, volume=0.12,
+                          reverb=0.5, reverb_type=REV)
+    for _ in range(28):
+        tanpura.add("A2", Duration.WHOLE)
+
+    # ── Bars 1-8: Piano alone, then cello ──
+    piano = score.part("piano", instrument="piano", volume=0.35,
+                        reverb=0.35, reverb_type=REV)
+    for notes in [
+        ["A2","E3","A3","C4","E4","C4","A3","E3"],
+        ["F2","C3","F3","A3","C4","A3","F3","C3"],
+        ["G2","D3","G3","B3","D4","B3","G3","D3"],
+        ["E2","B2","E3","G#3","B3","G#3","E3","B2"],
+        ["A2","E3","A3","C4","E4","C4","A3","E3"],
+        ["D2","A2","D3","F3","A3","F3","D3","A2"],
+        ["E2","B2","E3","G#3","B3","G#3","E3","B2"],
+        ["A2","E3","A3","C4","E4","A4","E4","C4"],
+    ]:
+        for n in notes:
+            piano.add(n, Duration.EIGHTH, velocity=68)
+
+    cello = score.part("cello", instrument="cello", volume=0.2,
+                        reverb=0.4, reverb_type=REV)
+    cello.rest(Duration.WHOLE)
+    for note, dur, vel in [
+        ("A3", 4.0, 55), ("C4", 4.0, 58),
+        ("B3", 2.0, 52), ("A3", 2.0, 50), ("G3", 4.0, 55),
+        ("F3", 4.0, 52), ("E3", 4.0, 55), ("A3", 4.0, 58),
+    ]:
+        cello.add(note, dur, velocity=vel)
+
+    # ── Bars 9-16: Harp + oboe + flute + djembe ──
+    harp = score.part("harp", instrument="harp", volume=0.28,
+                       reverb=0.45, reverb_type=REV)
+    oboe = score.part("oboe", instrument="oboe", volume=0.22,
+                       reverb=0.4, reverb_type=REV)
+    flute = score.part("flute", instrument="flute", volume=0.18,
+                        reverb=0.4, reverb_type=REV)
+    for _ in range(8):
+        harp.rest(Duration.WHOLE)
+    for notes in [
+        ["A3","C4","E4","A4","C5","E5","A5","E5"],
+        ["D3","F3","A3","D4","F4","A4","D5","A4"],
+        ["E3","G3","B3","E4","G4","B4","E5","B4"],
+        ["A3","C4","E4","A4","E5","C5","A4","E4"],
+        ["F3","A3","C4","F4","A4","C5","F5","C5"],
+        ["E3","G#3","B3","E4","G#4","B4","E5","B4"],
+    ]:
+        for n in notes:
+            harp.add(n, Duration.EIGHTH, velocity=58)
+    for _ in range(9):
+        oboe.rest(Duration.WHOLE)
+    for note, dur, vel in [
+        ("E5", 1.5, 62), ("D5", 0.5, 55), ("C5", 1.0, 58),
+        ("A4", 1.0, 62), ("G4", 1.0, 55), ("A4", 1.5, 58),
+        ("B4", 0.5, 52), ("C5", 2.0, 62), ("A4", 4.0, 58),
+    ]:
+        oboe.add(note, dur, velocity=vel)
+    for _ in range(10):
+        flute.rest(Duration.WHOLE)
+    for note, dur, vel in [
+        ("A5", 2.0, 50), ("G5", 1.0, 45), ("E5", 1.0, 48),
+        ("D5", 2.0, 50), ("C5", 1.0, 45), ("A4", 1.0, 48),
+        ("G4", 2.0, 50), ("A4", 2.0, 52),
+    ]:
+        flute.add(note, dur, velocity=vel)
+
+    # ── Bars 15-20: Sitar + tabla ──
+    sitar = score.part("sitar", instrument="sitar", volume=0.2,
+                        reverb=0.35, reverb_type=REV)
+    for _ in range(14):
+        sitar.rest(Duration.WHOLE)
+    for note, dur, vel in [
+        ("A4", 1.0, 70), ("Bb4", 0.5, 60), ("A4", 0.5, 65),
+        ("C5", 1.5, 75), ("Bb4", 0.5, 60),
+        ("D5", 1.0, 70), ("E5", 1.5, 78),
+        ("F5", 0.5, 62), ("E5", 1.0, 70),
+        ("D5", 0.5, 62), ("C5", 0.5, 65), ("Bb4", 0.5, 58),
+        ("A4", 2.0, 75),
+        ("Bb4", 0.25, 55), ("C5", 0.25, 58), ("D5", 0.25, 62),
+        ("E5", 0.25, 68),
+        ("F5", 0.25, 65), ("G5", 0.25, 70), ("A5", 0.5, 80),
+        ("G5", 0.25, 62), ("F5", 0.25, 58), ("E5", 0.5, 62),
+        ("C5", 0.5, 58), ("Bb4", 0.5, 55), ("A4", 2.0, 75),
+    ]:
+        sitar.add(note, dur, velocity=vel)
+
+    # ── Bars 21-28: EDM section — sitar over house beat ──
+    pad = score.part("pad", instrument="synth_pad", volume=0.18,
+                      reverb=0.45, reverb_type=REV,
+                      sidechain=0.6, sidechain_release=0.15)
+    for _ in range(20):
+        pad.rest(Duration.WHOLE)
+    for sym in ["Am", "F", "G", "Em"] * 2:
+        pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    sub = score.part("sub", instrument="808_bass", volume=0.4)
+    for _ in range(20):
+        sub.rest(Duration.WHOLE)
+    for n in ["A1","A1","F1","F1","G1","G1","E1","E1"] * 2:
+        sub.add(n, Duration.HALF)
+
+    sitar2 = score.part("sitar2", instrument="sitar", volume=0.22,
+                         reverb=0.3, reverb_type=REV)
+    for _ in range(22):
+        sitar2.rest(Duration.WHOLE)
+    for note, dur, vel in [
+        ("A4", 0.25, 75), ("C5", 0.25, 78), ("E5", 0.5, 85),
+        ("D5", 0.25, 72), ("C5", 0.25, 70), ("A4", 0.5, 75),
+        ("G4", 0.25, 68), ("A4", 0.25, 72), ("C5", 0.5, 78),
+        ("A4", 0.5, 72),
+        ("E5", 0.5, 82), ("D5", 0.25, 72), ("C5", 0.25, 70),
+        ("A4", 0.5, 75), ("G4", 0.5, 68), ("A4", 1.0, 78),
+    ] * 2:
+        sitar2.add(note, dur, velocity=vel)
+
+    # Drums: djembe bars 9-14, tabla bars 15-20, house bars 21-28
+    DJB = DrumSound.DJEMBE_BASS
+    DJT = DrumSound.DJEMBE_TONE
+    DJS = DrumSound.DJEMBE_SLAP
+    NA = DrumSound.TABLA_NA
+    DH = DrumSound.TABLA_DHA
+    TT = DrumSound.TABLA_TIT
+    GB = DrumSound.TABLA_GE_BEND
+
+    silence = Pattern(name="s", time_signature="4/4", beats=32.0, hits=[])
+    score.add_pattern(silence, repeats=1)
+    p_dj = Pattern(name="dj", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DJB, 0.0, 48), _Hit(DJT, 1.0, 40), _Hit(DJT, 1.5, 35),
+        _Hit(DJS, 2.0, 45), _Hit(DJT, 3.0, 40),
+        _Hit(DJB, 4.0, 52), _Hit(DJT, 5.0, 42), _Hit(DJT, 5.5, 38),
+        _Hit(DJS, 6.0, 48), _Hit(DJT, 6.5, 35), _Hit(DJS, 7.0, 45),
+    ])
+    score.add_pattern(p_dj, repeats=3)
+    p_tab = Pattern(name="tab", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH, 0.0, 80), _Hit(TT, 0.5, 30), _Hit(NA, 1.0, 65),
+        _Hit(NA, 2.0, 60), _Hit(DH, 3.0, 80),
+        _Hit(DH, 4.0, 85), _Hit(TT, 4.25, 32), _Hit(TT, 4.5, 35),
+        _Hit(NA, 5.0, 68), _Hit(TT, 5.5, 30), _Hit(NA, 6.0, 65),
+        _Hit(DH, 7.0, 85),
+    ])
+    score.add_pattern(p_tab, repeats=2)
+    score.drums("house", repeats=8)
+    score.set_drum_effects(reverb=0.3, reverb_type=REV)
+
+    play_song(score, "Journey — Piano → World → Sitar EDM (Taj Mahal)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1326,6 +1486,7 @@ SONGS = {
     "21": ("Cinematic Showcase (Orchestral)", cinematic_showcase),
     "22": ("Greensleeves (Renaissance Lute)", greensleeves),
     "23": ("Tabla Solo (Raga Yaman)", tabla_solo_yaman),
+    "24": ("Journey (Western → World → Indian)", journey),
 }
 
 if __name__ == "__main__":
@@ -1339,7 +1500,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-23, or 'all'): ").strip()
+        choice = input("  Pick a song (1-24, or 'all'): ").strip()
         print()
 
         if choice == "all":
