@@ -1315,13 +1315,13 @@ def journey():
     # ── Drone — runs the entire piece ──
     tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
                           detune=3, lowpass=1000, volume=0.12,
-                          reverb=0.5, reverb_type=REV)
+                          reverb=0.6, reverb_type=REV)
     for _ in range(40):
         tanpura.add("A2", Duration.WHOLE)
 
     # ── Bars 1-8: Piano alone, then cello ──
     piano = score.part("piano", instrument="piano", volume=0.35,
-                        reverb=0.35, reverb_type=REV)
+                        reverb=0.6, reverb_type=REV)
     for notes in [
         ["A2","E3","A3","C4","E4","C4","A3","E3"],
         ["F2","C3","F3","A3","C4","A3","F3","C3"],
@@ -1336,7 +1336,7 @@ def journey():
             piano.add(n, Duration.EIGHTH, velocity=68)
 
     cello = score.part("cello", instrument="cello", volume=0.2,
-                        reverb=0.4, reverb_type=REV)
+                        reverb=0.55, reverb_type=REV)
     cello.rest(Duration.WHOLE)
     for note, dur, vel in [
         ("A3", 4.0, 55), ("C4", 4.0, 58),
@@ -1347,11 +1347,11 @@ def journey():
 
     # ── Bars 9-16: Harp + oboe + flute + djembe ──
     harp = score.part("harp", instrument="harp", volume=0.28,
-                       reverb=0.45, reverb_type=REV)
+                       reverb=0.6, reverb_type=REV)
     oboe = score.part("oboe", instrument="oboe", volume=0.22,
-                       reverb=0.4, reverb_type=REV)
+                       reverb=0.55, reverb_type=REV)
     flute = score.part("flute", instrument="flute", volume=0.18,
-                        reverb=0.4, reverb_type=REV)
+                        reverb=0.55, reverb_type=REV)
     for _ in range(8):
         harp.rest(Duration.WHOLE)
     for notes in [
@@ -1383,7 +1383,7 @@ def journey():
 
     # ── Bars 15-20: Sitar + tabla ──
     sitar = score.part("sitar", instrument="sitar", volume=0.2,
-                        reverb=0.35, reverb_type=REV)
+                        reverb=0.6, reverb_type=REV)
     for _ in range(14):
         sitar.rest(Duration.WHOLE)
     for note, dur, vel in [
@@ -1406,7 +1406,7 @@ def journey():
     # Total bars before EDM: 8 piano + 6 harp + 6 djembe + 4 tabla + 9 solo = 33
     edm_start = 33
     pad = score.part("pad", instrument="synth_pad", volume=0.18,
-                      reverb=0.45, reverb_type=REV,
+                      reverb=0.6, reverb_type=REV,
                       sidechain=0.6, sidechain_release=0.15)
     for _ in range(edm_start):
         pad.rest(Duration.WHOLE)
@@ -1575,12 +1575,12 @@ def epic_bhairav():
 
     # Tanpura
     tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
-                          detune=3, lowpass=900, volume=0.14, reverb=0.5, reverb_type=REV)
+                          detune=3, lowpass=900, volume=0.14, reverb=0.4, reverb_type=REV)
     tanpura_pa = score.part("tanpura_pa", synth="strings_synth", envelope="pad",
-                             detune=3, lowpass=1200, volume=0.1, reverb=0.5, reverb_type=REV)
+                             detune=3, lowpass=1200, volume=0.1, reverb=0.4, reverb_type=REV)
     sa = Tone("Sa", octave=3, system=shruti)
     pa = Tone("Pa", octave=3, system=shruti)
-    for _ in range(30):
+    for _ in range(34):
         tanpura.add(sa, Duration.WHOLE)
         tanpura_pa.add(pa, Duration.WHOLE)
 
@@ -1599,7 +1599,7 @@ def epic_bhairav():
 
     # Choir — bar 3
     choir = score.part("choir", synth="vocal_synth", envelope="pad",
-                        detune=8, spread=0.4, reverb=0.5, reverb_type=REV, volume=0.2)
+                        detune=8, spread=0.4, reverb=0.4, reverb_type=REV, volume=0.2)
     for _ in range(2):
         choir.rest(Duration.WHOLE)
     for tone, dur, lyric, vel in [
@@ -1610,7 +1610,7 @@ def epic_bhairav():
 
     # Bansuri — bar 5
     bansuri = score.part("bansuri", instrument="flute", volume=0.22,
-                          reverb=0.45, reverb_type=REV)
+                          reverb=0.4, reverb_type=REV)
     for _ in range(4):
         bansuri.rest(Duration.WHOLE)
     for tone, dur, vel in [
@@ -1630,7 +1630,7 @@ def epic_bhairav():
         cello.add(Tone(name, octave=2, system=shruti), dur, velocity=vel)
 
     # Sitar — bar 9
-    sitar = score.part("sitar", instrument="sitar", volume=0.25, reverb=0.35, reverb_type=REV)
+    sitar = score.part("sitar", instrument="sitar", volume=0.25, reverb=0.4, reverb_type=REV)
     for _ in range(8):
         sitar.rest(Duration.WHOLE)
     for tone, dur, vel in [
@@ -1646,7 +1646,7 @@ def epic_bhairav():
 
     # Strings — bar 13
     strings = score.part("strings", instrument="string_ensemble", volume=0.18,
-                          reverb=0.45, reverb_type=REV)
+                          reverb=0.4, reverb_type=REV)
     for _ in range(12):
         strings.rest(Duration.WHOLE)
     for name, dur, vel in [("Sa", 4.0, 58), ("Ma", 4.0, 62), ("Pa", 4.0, 68), ("Sa", 4.0, 72)]:
@@ -1706,6 +1706,50 @@ def epic_bhairav():
         _Hit(DH, 7.0, 120),
     ])
     score.add_pattern(p_f3, repeats=1)
+
+    # Part 3.5: polyrhythm — musical phrases that create cross-rhythm
+    T5 = 4.0 / 5.0
+    T7 = 4.0 / 7.0
+    p_poly = Pattern(name="poly", time_signature="4/4", beats=16.0, hits=[
+        # Bar 1: dayan plays 5-groups while bayan holds the 4
+        _Hit(DH, 0.0, 92), _Hit(GE, 1.0, 78),
+        _Hit(NA, 0.0, 72), _Hit(TT, 0.0 + T5, 42), _Hit(NA, 0.0 + 2*T5, 68),
+        _Hit(TT, 0.0 + 3*T5, 40), _Hit(NA, 0.0 + 4*T5, 75),
+        _Hit(DH, 2.0, 90), _Hit(GE, 3.0, 78),
+        _Hit(NA, 2.0, 70), _Hit(TT, 2.0 + T5, 40), _Hit(NA, 2.0 + 2*T5, 72),
+        _Hit(TT, 2.0 + 3*T5, 42), _Hit(DH, 2.0 + 4*T5, 85),
+        # Bar 2: 7-group phrase — "ti ra ki ta ta ka dha"
+        _Hit(GB, 4.0, 95),
+        _Hit(TT, 4.0 + T7, 48), _Hit(TT, 4.0 + 2*T7, 42),
+        _Hit(KE, 4.0 + 3*T7, 52), _Hit(NA, 4.0 + 4*T7, 68),
+        _Hit(NA, 4.0 + 5*T7, 62), _Hit(KE, 4.0 + 6*T7, 55),
+        _Hit(DH, 4.0 + 7*T7, 88),
+        _Hit(GB, 6.0, 92),
+        _Hit(TT, 6.0 + T7, 45), _Hit(TT, 6.0 + 2*T7, 40),
+        _Hit(KE, 6.0 + 3*T7, 50), _Hit(NA, 6.0 + 4*T7, 72),
+        _Hit(NA, 6.0 + 5*T7, 65), _Hit(DH, 6.0 + 6*T7, 90),
+        # Bar 3: 9-group with accented phrase shape
+        _Hit(DH, 8.0, 105),
+        _Hit(NA, 8.0 + T9, 60), _Hit(TT, 8.0 + 2*T9, 42),
+        _Hit(KE, 8.0 + 3*T9, 48), _Hit(DH, 8.0 + 4*T9, 82),
+        _Hit(TT, 8.0 + 5*T9, 40), _Hit(NA, 8.0 + 6*T9, 65),
+        _Hit(TT, 8.0 + 7*T9, 38), _Hit(DH, 8.0 + 8*T9, 88),
+        _Hit(GE, 10.0, 85),
+        _Hit(TT, 10.0 + T9, 42), _Hit(NA, 10.0 + 2*T9, 62),
+        _Hit(KE, 10.0 + 3*T9, 48), _Hit(DH, 10.0 + 4*T9, 85),
+        _Hit(NA, 10.0 + 5*T9, 60), _Hit(TT, 10.0 + 6*T9, 40),
+        _Hit(KE, 10.0 + 7*T9, 45), _Hit(GB, 10.0 + 8*T9, 95),
+        # Bar 4: everything converges on sam
+        _Hit(DH, 12.0, 115),
+        _Hit(TT, 12.25, 45), _Hit(NA, 12.5, 72), _Hit(TT, 12.75, 42),
+        _Hit(DH, 13.0, 108), _Hit(TT, 13.25, 40), _Hit(KE, 13.5, 50),
+        _Hit(NA, 13.75, 70),
+        _Hit(DH, 14.0, 112), _Hit(NA, 14.25, 68),
+        _Hit(TT, 14.5, 48), _Hit(TT, 14.625, 42), _Hit(TT, 14.75, 45),
+        _Hit(DH, 15.0, 120), _Hit(GB, 15.5, 112),
+    ])
+    score.add_pattern(p_poly, repeats=1)
+
     p_f4 = Pattern(name="f4", time_signature="4/4", beats=12.0, hits=[
         *[_Hit(TT, 0.0 + i * T3, 38 + i * 2) for i in range(12)],
         _Hit(DH, 1.0, 118), _Hit(GB, 1.5, 110),
@@ -1725,7 +1769,7 @@ def epic_bhairav():
         _Hit(GB, 11.875, 127),
     ])
     score.add_pattern(p_f4, repeats=1)
-    score.set_drum_effects(reverb=0.35, reverb_type=REV)
+    score.set_drum_effects(reverb=0.4, reverb_type=REV)
 
     play_song(score, "Epic Bhairav — Orchestra + Choir + Tabla (22-Shruti JI)")
 
