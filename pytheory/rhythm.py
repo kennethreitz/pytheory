@@ -144,19 +144,50 @@ INSTRUMENTS = {
     # ── Plucked ──
     "acoustic_guitar": {
         "synth": "pluck_synth", "envelope": "none",
-        "lowpass": 4000,
-        "humanize": 0.2,
+        "lowpass": 3000,
+        "humanize": 0.2, "saturation": 0.05,
     },
     "electric_guitar": {
-        "synth": "saw", "envelope": "pluck",
-        "detune": 5, "lowpass": 3500,
+        "synth": "electric_guitar_synth", "envelope": "none",
+        "cabinet": 1.0, "cabinet_brightness": 0.6,
+        "humanize": 0.15,
+    },
+    "clean_guitar": {
+        "synth": "electric_guitar_synth", "envelope": "none",
+        "cabinet": 1.0, "cabinet_brightness": 0.7,
+        "chorus": 0.15, "chorus_rate": 1.0,
+        "reverb": 0.2, "reverb_type": "spring",
+        "humanize": 0.15,
+    },
+    "crunch_guitar": {
+        "synth": "electric_guitar_synth", "envelope": "none",
+        "saturation": 0.3,
+        "distortion": 0.5, "distortion_drive": 4.0,
+        "cabinet": 1.0, "cabinet_brightness": 0.5,
         "humanize": 0.15,
     },
     "distorted_guitar": {
-        "synth": "saw", "envelope": "pluck",
-        "detune": 8, "distortion": 0.6, "distortion_drive": 5.0,
-        "lowpass": 3000, "saturation": 0.3,
+        "synth": "electric_guitar_synth", "envelope": "none",
+        "saturation": 0.3,
+        "distortion": 0.7, "distortion_drive": 5.0,
+        "cabinet": 1.0, "cabinet_brightness": 0.5,
         "humanize": 0.15,
+    },
+    "orange_crunch": {
+        "synth": "electric_guitar_synth", "envelope": "none",
+        "saturation": 0.4,
+        "distortion": 0.7, "distortion_drive": 6.0,
+        "cabinet": 1.0, "cabinet_brightness": 0.4,
+        "humanize": 0.15,
+    },
+    "metal_guitar": {
+        "synth": "electric_guitar_synth", "envelope": "none",
+        "saturation": 0.35,
+        "distortion": 0.8, "distortion_drive": 7.0,
+        "cabinet": 1.0, "cabinet_brightness": 0.5,
+        "highpass": 80,
+        "detune": 4,
+        "humanize": 0.1,
     },
     "bass_guitar": {
         "synth": "triangle", "envelope": "pluck",
@@ -405,6 +436,10 @@ class DrumSound(Enum):
     DJEMBE_BASS = 102    # open bass (center of head)
     DJEMBE_TONE = 103    # open tone (edge, fingers together)
     DJEMBE_SLAP = 104    # slap (edge, fingers spread, sharp crack)
+    # Metal kit — tighter, punchier, more attack
+    METAL_KICK = 105     # clicky, punchy, tight
+    METAL_SNARE = 106    # crack, bright, cutting
+    METAL_HAT = 107      # tight, short, precise
 
 
 class _Hit:
@@ -1432,6 +1467,72 @@ Pattern._PRESETS["tabla solo"] = dict(
     ],
 )
 
+# ── Metal kit patterns ────────────────────────────────────────────────────
+MK = DrumSound.METAL_KICK
+MS = DrumSound.METAL_SNARE
+MH = DrumSound.METAL_HAT
+
+# Metal double kick — the classic thrash/death metal beat
+Pattern._PRESETS["double kick"] = dict(
+    name="double kick",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Double kick 16ths, snare on 2 and 4, tight hats
+        *[_h(MK, i * 0.25) for i in range(16)],
+        _h(MS, 1.0), _h(MS, 3.0),
+        *[_h(MH, i * 0.5) for i in range(8)],
+    ],
+)
+
+# Metal blast — blast beat with metal kit sounds
+Pattern._PRESETS["metal blast"] = dict(
+    name="metal blast",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        *[_h(MK, i * 0.25) for i in range(16)],
+        *[_h(MS, i * 0.25) for i in range(16)],
+        *[_h(MH, i * 0.25) for i in range(16)],
+    ],
+)
+
+# Metal groove — half time with double kick fills
+Pattern._PRESETS["metal groove"] = dict(
+    name="metal groove",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(MK, 0.0), _h(MH, 0.0),
+        _h(MH, 0.5),
+        _h(MS, 1.0), _h(MH, 1.0),
+        _h(MK, 1.5), _h(MH, 1.5),
+        _h(MK, 2.0), _h(MH, 2.0),
+        _h(MK, 2.25),
+        _h(MK, 2.5), _h(MH, 2.5),
+        _h(MK, 2.75),
+        _h(MS, 3.0), _h(MH, 3.0),
+        _h(MH, 3.5),
+    ],
+)
+
+# Metal gallop — the classic Iron Maiden triplet feel
+Pattern._PRESETS["metal gallop"] = dict(
+    name="metal gallop",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(MK, 0.0), _h(MH, 0.0),
+        _h(MK, 0.33), _h(MK, 0.67),
+        _h(MS, 1.0), _h(MH, 1.0),
+        _h(MK, 1.33), _h(MK, 1.67),
+        _h(MK, 2.0), _h(MH, 2.0),
+        _h(MK, 2.33), _h(MK, 2.67),
+        _h(MS, 3.0), _h(MH, 3.0),
+        _h(MK, 3.33), _h(MK, 3.67),
+    ],
+)
+
 # Tabla tiri-kita — rapid 16th-note dayan patter
 Pattern._PRESETS["tiri kita"] = dict(
     name="tiri kita",
@@ -1903,6 +2004,8 @@ class Part:
                  tremolo_rate: float = 5.0,
                  phaser: float = 0.0,
                  phaser_rate: float = 0.5,
+                 cabinet: float = 0.0,
+                 cabinet_brightness: float = 0.5,
                  fm_ratio: float = 2.0,
                  fm_index: float = 3.0):
         self.name = name
@@ -1946,9 +2049,12 @@ class Part:
         self.tremolo_rate = tremolo_rate
         self.phaser_mix = phaser
         self.phaser_rate = phaser_rate
+        self.cabinet = cabinet
+        self.cabinet_brightness = cabinet_brightness
         self.fm_ratio = fm_ratio
         self.fm_index = fm_index
         self._system = "western"  # default, overridden by Score.part()
+        self._fretboard = None    # set by Score.part(fretboard=...)
         self.notes: list[Note] = []
         self._drum_hits: list[_Hit] = []
         self._drum_pattern_beats: float = 0.0
@@ -2032,6 +2138,7 @@ class Part:
             "delay_mix": self.delay_mix, "delay_time": self.delay_time,
             "delay_feedback": self.delay_feedback,
             "phaser_mix": self.phaser_mix, "phaser_rate": self.phaser_rate,
+            "cabinet": self.cabinet, "cabinet_brightness": self.cabinet_brightness,
             "highpass": self.highpass, "highpass_q": self.highpass_q,
             "lowpass": self.lowpass, "lowpass_q": self.lowpass_q,
             "distortion_mix": self.distortion_mix,
@@ -2249,6 +2356,94 @@ class Part:
 
         return self
 
+    def strum(self, chord_name: str, duration=Duration.QUARTER, *,
+              direction: str = "down", velocity: int = 100,
+              strum_time: float = 0.08) -> "Part":
+        """Strum a chord using the part's fretboard fingering.
+
+        Looks up the chord on the fretboard, gets the fingering, and
+        adds each string as a rapid sequence with tiny time offsets —
+        like a real guitar strum. Muted strings are skipped.
+
+        Args:
+            chord_name: Chord name (e.g. ``"Am"``, ``"G"``, ``"D"``).
+            duration: Total duration of the strum (default QUARTER).
+            direction: ``"down"`` (low→high, default) or ``"up"`` (high→low).
+            velocity: Base velocity (each string gets slight variation).
+            strum_time: Time in beats for the full strum sweep
+                (default 0.03 = very fast). Larger values = slower,
+                more audible strum. Try 0.1 for a lazy strum.
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> guitar = score.part("guitar", instrument="acoustic_guitar",
+            ...                     fretboard=Fretboard.guitar())
+            >>> guitar.strum("Am", Duration.HALF)
+            >>> guitar.strum("G", Duration.HALF, direction="up")
+        """
+        if self._fretboard is None:
+            raise ValueError(
+                "Cannot strum without a fretboard. "
+                "Set fretboard= when creating the part."
+            )
+        from .charts import CHARTS
+
+        # Get the fingering
+        system_name = self._system if isinstance(self._system, str) else "western"
+        if system_name in CHARTS:
+            chart = CHARTS[system_name]
+        else:
+            chart = CHARTS["western"]
+        if chord_name in chart:
+            fingering = chart[chord_name].fingering(fretboard=self._fretboard)
+        else:
+            # Try fretboard.chord() as fallback
+            fingering = self._fretboard.chord(chord_name)
+
+        # Get the sounding tones (skips muted strings)
+        tones = fingering.tones  # list of Tone objects, high to low
+
+        if not tones:
+            self.rest(duration)
+            return self
+
+        # Order: down strum = low to high (reverse since tones are high-to-low)
+        if direction == "down":
+            strum_tones = list(reversed(tones))
+        else:
+            strum_tones = list(tones)
+
+        if hasattr(duration, 'value'):
+            total_beats = duration.value
+        else:
+            total_beats = float(duration)
+
+        # Build a Chord from the fingering tones so all strings ring together
+        from .chords import Chord as ChordClass
+        chord_obj = ChordClass(tones=strum_tones)
+
+        # Add grace notes for the strum sweep — short individual string
+        # hits before the full chord, creating the audible "sweep"
+        n_strings = len(strum_tones)
+        per_string = strum_time / max(1, n_strings) if n_strings > 1 else 0
+
+        import random as _rnd
+        # Grace notes: each string except the last gets a quiet hit
+        # Lower velocity than the main chord to avoid pick noise buildup
+        grace_vel = max(1, int(velocity * 0.5))
+        for i in range(n_strings - 1):
+            vel = max(1, min(127, grace_vel + _rnd.randint(-5, 5)))
+            self.add(strum_tones[i], per_string, velocity=vel)
+
+        # Full chord rings for the remaining duration
+        ring_beats = max(0.1, total_beats - strum_time)
+        self.add(chord_obj, ring_beats, velocity=velocity)
+
+        return self
+
     @property
     def is_drums(self) -> bool:
         """True if this part contains drum hits."""
@@ -2451,8 +2646,11 @@ class Score:
              tremolo_rate: float = None,
              phaser: float = None,
              phaser_rate: float = None,
+             cabinet: float = None,
+             cabinet_brightness: float = None,
              fm_ratio: float = None,
-             fm_index: float = None) -> Part:
+             fm_index: float = None,
+             fretboard=None) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -2561,6 +2759,7 @@ class Score:
             "saturation": saturation,
             "tremolo_depth": tremolo_depth, "tremolo_rate": tremolo_rate,
             "phaser": phaser, "phaser_rate": phaser_rate,
+            "cabinet": cabinet, "cabinet_brightness": cabinet_brightness,
             "fm_ratio": fm_ratio, "fm_index": fm_index,
         }
         for k, v in _locals.items():
@@ -2571,6 +2770,7 @@ class Score:
 
         p = Part(name, **merged)
         p._system = self.system
+        p._fretboard = fretboard
         self.parts[name] = p
         return p
 

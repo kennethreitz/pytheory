@@ -310,6 +310,63 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def electric_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Electric guitar — Karplus-Strong through magnetic pickup simulation.
+
+    Models a steel string vibrating over a magnetic pickup:
+    1. Karplus-Strong plucked string (brighter than acoustic)
+    2. Pickup comb filter — a magnetic pickup at 1/4 string length
+       cancels the 4th harmonic and boosts the 2nd, creating the
+       characteristic electric guitar "honk"
+    3. Slightly longer sustain than acoustic (no body absorption)
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Initial pluck — steel string, bright pick attack
+    buf = rng.uniform(-1.0, 1.0, period).astype(numpy.float64)
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Karplus-Strong with slightly less damping than acoustic
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        # Less damping = more sustain (steel string, no wood body absorbing)
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9993
+
+    # Magnetic pickup simulation — comb filter at pickup position.
+    # A pickup at 1/4 of the string length cancels the 4th harmonic
+    # and creates the characteristic electric guitar midrange honk.
+    pickup_pos = period // 4
+    if pickup_pos > 0 and pickup_pos < n_samples:
+        pickup = numpy.zeros(n_samples, dtype=numpy.float64)
+        pickup[pickup_pos:] = out[:-pickup_pos]
+        # Subtract delayed version = comb filter (pickup sampling)
+        out = out - pickup * 0.3
+
+    # Slight single-coil brightness boost
+    # High-shelf boost above 2kHz using a simple 1-pole
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    brightness = numpy.zeros(n_samples, dtype=numpy.float64)
+    if n_samples > 1:
+        alpha = 0.15
+        brightness[0] = out[0]
+        for i in range(1, n_samples):
+            brightness[i] = alpha * (out[i] - out[i-1]) + (1 - alpha) * brightness[i-1]
+        out = out + brightness * 0.2
+
+    # Normalize
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+
+    return (peak * out).astype(numpy.int16)
+
+
 def sitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Sitar — Karplus-Strong with jawari bridge buzz and sympathetic strings.
 
@@ -490,6 +547,7 @@ class Synth(Enum):
     ORGAN = "organ_synth"
     STRINGS = "strings_synth"
     SITAR = "sitar_synth"
+    ELECTRIC_GUITAR = "electric_guitar_synth"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
@@ -503,6 +561,7 @@ _SYNTH_FUNCTIONS = {
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
     "pluck_synth": pluck_wave, "organ_synth": organ_wave,
     "strings_synth": strings_wave, "sitar_synth": sitar_wave,
+    "electric_guitar_synth": electric_guitar_wave,
 }
 
 
@@ -1256,6 +1315,68 @@ def _synth_mridangam_tha(n_samples):
     return out
 
 
+def _synth_metal_kick(n_samples):
+    """Metal kick — punchy with beater click. Double-bass ready.
+
+    Tight low end with a beater click for definition. Not thin —
+    needs the low-end weight to anchor the mix alongside bass guitar.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Pitch sweep — fast attack, tight body
+    freq = 50 + 120 * numpy.exp(-60 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    body = numpy.sin(phase) * _exp_decay(n_samples, 9) * 0.9
+    # Beater click — present but not harsh
+    click_len = min(int(SAMPLE_RATE * 0.012), n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 200) * 0.7
+    # Sub punch — gives it weight
+    sub_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    sub = _sine_f32(50, sub_len) * _exp_decay(sub_len, 20) * 0.5
+    # Membrane thump
+    thump_len = min(int(SAMPLE_RATE * 0.03), n_samples)
+    thump = _noise(thump_len) * _exp_decay(thump_len, 60) * 0.4
+    body[:sub_len] += sub
+    body[:click_len] += click
+    body[:thump_len] += thump
+    return numpy.tanh(body * 1.5).astype(numpy.float32)
+
+
+def _synth_metal_snare(n_samples):
+    """Metal snare — bright crack, tight, cutting.
+
+    High-tuned, cranked snare wires, lots of attack. Needs to cut
+    through double kicks and wall-of-gain guitars.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Higher pitched body than rock snare — tuned tight
+    body = numpy.sin(2 * numpy.pi * 280 * t) * _exp_decay(n_samples, 30) * 0.5
+    # Snare wire rattle — shorter, tighter than rock
+    wire = _noise(n_samples) * _exp_decay(n_samples, 25) * 0.7
+    # Bandpass the wire for presence
+    bl, al = scipy.signal.butter(2, [2000, 8000], btype='band', fs=SAMPLE_RATE)
+    wire = scipy.signal.lfilter(bl, al, wire).astype(numpy.float32) * 1.5
+    # Hard stick crack
+    crack_len = min(int(SAMPLE_RATE * 0.005), n_samples)
+    crack = _noise(crack_len) * _exp_decay(crack_len, 400) * 1.5
+    result = body + wire
+    result[:crack_len] += crack
+    return numpy.tanh(result * 1.8).astype(numpy.float32)
+
+
+def _synth_metal_hat(n_samples):
+    """Metal hi-hat — ultra tight, precise, machine-gun ready."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.02))  # 20ms — very tight
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    metallic = (numpy.sin(2 * numpy.pi * 7000 * t) * 0.3 +
+                numpy.sin(2 * numpy.pi * 9500 * t) * 0.25 +
+                numpy.sin(2 * numpy.pi * 13000 * t) * 0.2)
+    noise = _noise(n) * 0.5
+    wave = (metallic + noise) * _exp_decay(n, 150)
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(wave * 1.5)
+    return out
+
+
 def _synth_djembe_bass(n_samples):
     """Djembe bass — open palm strike in center of goatskin head.
 
@@ -1425,6 +1546,10 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.DJEMBE_BASS.value: lambda n: _synth_djembe_bass(n),
         DrumSound.DJEMBE_TONE.value: lambda n: _synth_djembe_tone(n),
         DrumSound.DJEMBE_SLAP.value: lambda n: _synth_djembe_slap(n),
+        # Metal kit
+        DrumSound.METAL_KICK.value: lambda n: _synth_metal_kick(n),
+        DrumSound.METAL_SNARE.value: lambda n: _synth_metal_snare(n),
+        DrumSound.METAL_HAT.value: lambda n: _synth_metal_hat(n),
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
@@ -2257,6 +2382,41 @@ def _apply_phaser(samples, mix=0.5, rate=0.5, stages=4,
     return (samples * (1 - mix) + wet.astype(numpy.float32) * mix).astype(numpy.float32)
 
 
+def _apply_cabinet(samples, brightness=0.5, sample_rate=SAMPLE_RATE):
+    """Guitar speaker cabinet simulation.
+
+    A real guitar cabinet (4x12, 2x12, 1x12) rolls off everything
+    above ~5kHz sharply. This is what makes distorted guitar sound
+    warm and musical instead of fizzy and harsh. Without cab sim,
+    distorted guitar sounds like a broken radio.
+
+    Also adds a presence bump around 2-3kHz (the "cut" frequency)
+    and rolls off sub-bass below 80Hz (speakers can't reproduce it).
+
+    Args:
+        samples: Float32 numpy array.
+        brightness: 0.0 = dark (jazz combo), 0.5 = normal, 1.0 = bright.
+    """
+    # Highpass at 80Hz — speakers don't go that low
+    if len(samples) > 10:
+        bl, al = scipy.signal.butter(2, 80, btype='high', fs=sample_rate)
+        samples = scipy.signal.lfilter(bl, al, samples).astype(numpy.float32)
+    # Steep lowpass — the cabinet rolloff. This is the magic.
+    cutoff = 3500 + brightness * 2000  # 3.5kHz (dark) to 5.5kHz (bright)
+    if cutoff < sample_rate / 2:
+        bl, al = scipy.signal.butter(3, cutoff, btype='low', fs=sample_rate)
+        samples = scipy.signal.lfilter(bl, al, samples).astype(numpy.float32)
+    # Presence bump at 2-3kHz (the "cut through the mix" frequency)
+    center = 2500
+    bw = 800
+    if center + bw < sample_rate / 2:
+        bp, ap = scipy.signal.butter(2, [center - bw, center + bw],
+                                     btype='band', fs=sample_rate)
+        presence = scipy.signal.lfilter(bp, ap, samples).astype(numpy.float32)
+        samples = samples + presence * 0.3 * brightness
+    return samples
+
+
 def _apply_distortion(samples, drive=1.0, mix=1.0):
     """Apply soft-clip distortion (tanh waveshaping).
 
@@ -2288,8 +2448,8 @@ def _apply_distortion(samples, drive=1.0, mix=1.0):
 
 def _apply_effects_with_params(samples, params, skip_reverb=False):
     """Apply effects using a params dict. Used for both static and automated rendering."""
-    # Signal chain: saturation → tremolo → distortion → chorus → phaser
-    #             → highpass → lowpass → delay → reverb
+    # Signal chain: saturation → tremolo → distortion → cabinet → chorus
+    #             → phaser → highpass → lowpass → delay → reverb
     if params.get("saturation", 0) > 0:
         samples = _apply_saturation(samples, amount=params["saturation"])
     if params.get("tremolo_depth", 0) > 0:
@@ -2299,6 +2459,9 @@ def _apply_effects_with_params(samples, params, skip_reverb=False):
         samples = _apply_distortion(samples,
                                     drive=params.get("distortion_drive", 3.0),
                                     mix=params["distortion_mix"])
+    if params.get("cabinet", 0) > 0:
+        samples = _apply_cabinet(samples,
+                                 brightness=params.get("cabinet_brightness", 0.5))
     if params.get("chorus_mix", 0) > 0:
         samples = _apply_chorus(samples,
                                 mix=params["chorus_mix"],
@@ -2344,6 +2507,8 @@ def _apply_part_effects(samples, part):
         "chorus_depth": part.chorus_depth,
         "phaser_mix": part.phaser_mix,
         "phaser_rate": part.phaser_rate,
+        "cabinet": part.cabinet,
+        "cabinet_brightness": part.cabinet_brightness,
         "highpass": part.highpass,
         "highpass_q": part.highpass_q,
         "lowpass": part.lowpass,
@@ -2822,7 +2987,8 @@ def render_score(score):
                     part_buf[seg_start:seg_end] = segment
             else:
                 has_fx = (part.saturation > 0 or part.tremolo_depth > 0
-                          or part.distortion_mix > 0 or part.chorus_mix > 0
+                          or part.distortion_mix > 0 or part.cabinet > 0
+                          or part.chorus_mix > 0
                           or part.phaser_mix > 0 or part.highpass > 0
                           or part.lowpass > 0 or part.delay_mix > 0
                           or part.reverb_mix > 0)
@@ -2910,6 +3076,10 @@ def render_score(score):
         DrumSound.DJEMBE_BASS.value: 0.0,
         DrumSound.DJEMBE_TONE.value: 0.1,
         DrumSound.DJEMBE_SLAP.value: -0.1,
+        # Metal kit
+        DrumSound.METAL_KICK.value: 0.0,
+        DrumSound.METAL_SNARE.value: 0.0,
+        DrumSound.METAL_HAT.value: 0.3,
     }
 
     # Render all drum Parts (may be one "drums" or split into kick/snare/hats/etc.)

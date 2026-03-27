@@ -2,6 +2,25 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.33.1
+
+- **Electric guitar synth** — Karplus-Strong with magnetic pickup comb filter
+  simulation (single-coil honk, proper sustain)
+- **Speaker cabinet simulation** — steep rolloff above 4-5kHz with presence
+  bump. Makes distorted guitar sound warm instead of fizzy.
+- **6 guitar presets:** electric_guitar, clean_guitar, crunch_guitar,
+  distorted_guitar, orange_crunch, metal_guitar — all with proper cab sim
+- **Sitar synth** — Karplus-Strong with jawari bridge buzz, chikari
+  sympathetic strings, variable damping
+- **Guitar strumming** — `Part.strum("Am", Duration.HALF)` with
+  fretboard fingering lookup, down/up direction, adjustable strum speed
+- **World drums:** dhol (bhangra, chaal), dholak (qawwali, folk),
+  mridangam (adi talam, korvai), djembe (standard, kuku, soli)
+  — all with bandpass-filtered membrane noise for realistic drum head sound
+- **Metal drum kit** — clicky kick, bright snare, tight hats
+  with 4 patterns (double kick, metal blast, metal groove, metal gallop)
+- 15 synth waveforms, 10 envelopes, 40+ instrument presets
+
 ## 0.33.0
 
 - **Non-12-TET support** — `TET(n)` factory creates any equal temperament
