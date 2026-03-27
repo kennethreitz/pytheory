@@ -1551,6 +1551,185 @@ def journey():
     play_song(score, "Journey — Piano → World → Sitar EDM (Taj Mahal)")
 
 
+def epic_bhairav():
+    """Epic Bhairav — orchestral + choir + tabla with extended solo finale."""
+    shruti = SYSTEMS["shruti"]
+    score = Score("4/4", bpm=90, system=shruti)
+    REV = "taj_mahal"
+    T3 = 1.0 / 12.0
+    T9 = 1.0 / 9.0
+
+    ts = TonedScale(system=shruti, tonic=Tone("Sa", octave=4, system=shruti))
+    bh = list(ts["bhairav"].tones)
+    S, kR, G, M, P, kD, N, S2 = bh
+
+    NA = DrumSound.TABLA_NA
+    DH = DrumSound.TABLA_DHA
+    TT = DrumSound.TABLA_TIT
+    KE = DrumSound.TABLA_KE
+    GB = DrumSound.TABLA_GE_BEND
+    GE = DrumSound.TABLA_GE
+    DJB = DrumSound.DJEMBE_BASS
+    DJT = DrumSound.DJEMBE_TONE
+    DJS = DrumSound.DJEMBE_SLAP
+
+    # Tanpura
+    tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
+                          detune=3, lowpass=900, volume=0.14, reverb=0.5, reverb_type=REV)
+    tanpura_pa = score.part("tanpura_pa", synth="strings_synth", envelope="pad",
+                             detune=3, lowpass=1200, volume=0.1, reverb=0.5, reverb_type=REV)
+    sa = Tone("Sa", octave=3, system=shruti)
+    pa = Tone("Pa", octave=3, system=shruti)
+    for _ in range(30):
+        tanpura.add(sa, Duration.WHOLE)
+        tanpura_pa.add(pa, Duration.WHOLE)
+
+    # Timpani
+    timp = score.part("timp", instrument="timpani")
+    timp.roll(Tone("Sa", octave=2, system=shruti), Duration.WHOLE,
+              velocity_start=20, velocity_end=90, speed=0.125)
+    timp.add(Tone("Sa", octave=2, system=shruti), Duration.HALF, velocity=105)
+    timp.rest(Duration.HALF)
+    for _ in range(8):
+        timp.rest(Duration.WHOLE)
+    timp.roll(Tone("Sa", octave=2, system=shruti), Duration.WHOLE,
+              velocity_start=25, velocity_end=115, speed=0.125)
+    timp.add(Tone("Sa", octave=2, system=shruti), Duration.HALF, velocity=120)
+    timp.add(Tone("Pa", octave=2, system=shruti), Duration.HALF, velocity=115)
+
+    # Choir — bar 3
+    choir = score.part("choir", synth="vocal_synth", envelope="pad",
+                        detune=8, spread=0.4, reverb=0.5, reverb_type=REV, volume=0.2)
+    for _ in range(2):
+        choir.rest(Duration.WHOLE)
+    for tone, dur, lyric, vel in [
+        (S, 4.0, "ah", 60), (M, 4.0, "oh", 62), (P, 4.0, "ah", 68),
+        (S, 4.0, "ee", 65), (kD, 4.0, "oh", 70), (P, 4.0, "ah", 72),
+    ]:
+        choir.add(tone, dur, velocity=vel, lyric=lyric)
+
+    # Bansuri — bar 5
+    bansuri = score.part("bansuri", instrument="flute", volume=0.22,
+                          reverb=0.45, reverb_type=REV)
+    for _ in range(4):
+        bansuri.rest(Duration.WHOLE)
+    for tone, dur, vel in [
+        (P, 2.0, 58), (kD, 1.0, 50), (P, 1.0, 55),
+        (M, 2.0, 55), (G, 1.0, 50), (kR, 1.0, 48), (S, 4.0, 58),
+    ]:
+        bansuri.add(tone, dur, velocity=vel)
+
+    # Cello — bar 3
+    cello = score.part("cello", instrument="cello", volume=0.22, reverb=0.4, reverb_type=REV)
+    for _ in range(2):
+        cello.rest(Duration.WHOLE)
+    for name, dur, vel in [
+        ("Sa", 4.0, 55), ("Ma", 4.0, 52), ("Pa", 4.0, 58),
+        ("Sa", 4.0, 55), ("komal Dha", 4.0, 58), ("Pa", 4.0, 55),
+    ]:
+        cello.add(Tone(name, octave=2, system=shruti), dur, velocity=vel)
+
+    # Sitar — bar 9
+    sitar = score.part("sitar", instrument="sitar", volume=0.25, reverb=0.35, reverb_type=REV)
+    for _ in range(8):
+        sitar.rest(Duration.WHOLE)
+    for tone, dur, vel in [
+        (S, 1.0, 72), (kR, 0.5, 62), (S, 0.5, 68), (G, 2.0, 78),
+        (M, 1.0, 72), (P, 2.0, 82), (kD, 0.5, 65), (P, 1.0, 75),
+        (M, 0.5, 65), (G, 0.5, 68), (kR, 0.5, 60), (S, 2.0, 78),
+        (kR, 0.25, 62), (G, 0.25, 65), (M, 0.25, 70), (P, 0.25, 75),
+        (kD, 0.25, 70), (N, 0.25, 78), (S2, 0.5, 88),
+        (N, 0.25, 68), (kD, 0.25, 62), (P, 0.5, 68),
+        (M, 0.5, 62), (G, 0.5, 65), (kR, 0.5, 58), (S, 2.0, 80),
+    ]:
+        sitar.add(tone, dur, velocity=vel)
+
+    # Strings — bar 13
+    strings = score.part("strings", instrument="string_ensemble", volume=0.18,
+                          reverb=0.45, reverb_type=REV)
+    for _ in range(12):
+        strings.rest(Duration.WHOLE)
+    for name, dur, vel in [("Sa", 4.0, 58), ("Ma", 4.0, 62), ("Pa", 4.0, 68), ("Sa", 4.0, 72)]:
+        strings.add(Tone(name, octave=3, system=shruti), dur, velocity=vel)
+
+    # Harp — bar 14
+    harp = score.part("harp", instrument="harp", volume=0.15, reverb=0.4, reverb_type=REV)
+    for _ in range(13):
+        harp.rest(Duration.WHOLE)
+    for name in ["Sa", "komal Ga", "Pa", "Sa", "Pa", "komal Ga", "Sa", "Sa"]:
+        oct = 4 if name == "Sa" and harp.total_beats > 55 else 3
+        harp.add(Tone(name, octave=oct, system=shruti), Duration.EIGHTH, velocity=50)
+
+    # Drums
+    silence = Pattern(name="s", time_signature="4/4", beats=16.0, hits=[])
+    score.add_pattern(silence, repeats=1)
+    p_dj = Pattern(name="dj", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DJB, 0.0, 45), _Hit(DJT, 1.0, 38), _Hit(DJT, 1.5, 32),
+        _Hit(DJS, 2.0, 42), _Hit(DJT, 3.0, 38),
+        _Hit(DJB, 4.0, 50), _Hit(DJT, 5.0, 42), _Hit(DJT, 5.5, 35),
+        _Hit(DJS, 6.0, 48), _Hit(DJT, 6.5, 32), _Hit(DJS, 7.0, 45),
+    ])
+    score.add_pattern(p_dj, repeats=2)
+    p_tab = Pattern(name="tab", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH, 0.0, 82), _Hit(TT, 0.5, 30), _Hit(NA, 1.0, 65),
+        _Hit(NA, 2.0, 60), _Hit(DH, 3.0, 82),
+        _Hit(DH, 4.0, 88), _Hit(TT, 4.25, 32), _Hit(TT, 4.5, 35),
+        _Hit(NA, 5.0, 68), _Hit(TT, 5.5, 30), _Hit(NA, 6.0, 65),
+        _Hit(DH, 7.0, 88),
+    ])
+    score.add_pattern(p_tab, repeats=3)
+
+    # Extended tabla finale — whisper → ghosts → call/response → blazing
+    p_f1 = Pattern(name="f1", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH, 0.0, 78), _Hit(NA, 2.0, 55),
+        _Hit(DH, 4.0, 82), _Hit(TT, 5.0, 30), _Hit(NA, 5.5, 52),
+        _Hit(DH, 7.0, 78),
+    ])
+    score.add_pattern(p_f1, repeats=1)
+    p_f2 = Pattern(name="f2", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH, 0.0, 95), _Hit(TT, 0.25, 35), _Hit(TT, 0.5, 38),
+        _Hit(NA, 1.0, 70), _Hit(TT, 1.25, 30), _Hit(NA, 2.0, 65),
+        _Hit(TT, 2.5, 35), _Hit(DH, 3.0, 90),
+        _Hit(DH, 4.0, 98), _Hit(TT, 4.25, 38), _Hit(TT, 4.5, 42),
+        _Hit(NA, 5.0, 75), _Hit(KE, 5.5, 40), _Hit(NA, 6.0, 70),
+        _Hit(KE, 6.5, 42), _Hit(DH, 7.0, 100), _Hit(GB, 7.5, 92),
+    ])
+    score.add_pattern(p_f2, repeats=1)
+    p_f3 = Pattern(name="f3", time_signature="4/4", beats=8.0, hits=[
+        _Hit(NA, 0.0, 112), _Hit(NA, 0.25, 58), _Hit(TT, 0.5, 40), _Hit(NA, 0.75, 105),
+        _Hit(GE, 1.0, 105), _Hit(GE, 1.25, 52), _Hit(GB, 1.5, 95), _Hit(GE, 1.75, 48),
+        _Hit(NA, 2.0, 115), _Hit(TT, 2.125, 32), _Hit(TT, 2.25, 38),
+        _Hit(NA, 2.5, 108), _Hit(TT, 2.625, 35), _Hit(TT, 2.75, 42),
+        _Hit(GB, 3.0, 115), _Hit(KE, 3.25, 52), _Hit(GE, 3.5, 70),
+        _Hit(DH, 4.0, 118),
+        *[_Hit(TT if i % 2 == 0 else KE, 5.0 + i * T9, 40 + i * 5) for i in range(9)],
+        _Hit(DH, 7.0, 120),
+    ])
+    score.add_pattern(p_f3, repeats=1)
+    p_f4 = Pattern(name="f4", time_signature="4/4", beats=12.0, hits=[
+        *[_Hit(TT, 0.0 + i * T3, 38 + i * 2) for i in range(12)],
+        _Hit(DH, 1.0, 118), _Hit(GB, 1.5, 110),
+        _Hit(NA, 2.0, 112), _Hit(KE, 2.125, 48), _Hit(NA, 2.25, 108),
+        _Hit(KE, 2.375, 50), _Hit(NA, 2.5, 110), _Hit(KE, 2.625, 52), _Hit(NA, 2.75, 115),
+        _Hit(DH, 3.0, 120),
+        *[_Hit(TT, 3.5 + i * T3, 30 + i * 4) for i in range(18)],
+        _Hit(DH, 5.0, 122), _Hit(DH, 5.25, 118), _Hit(GB, 5.5, 115),
+        _Hit(GE, 6.0, 90), _Hit(GE, 7.0, 88),
+        *[_Hit(NA if i % 3 == 0 else TT, 6.0 + i * (2.0/9.0), 42 + (i%3)*15) for i in range(9)],
+        _Hit(DH, 8.0, 110), _Hit(NA, 8.25, 75), _Hit(TT, 8.5, 50),
+        _Hit(KE, 8.75, 55), _Hit(DH, 9.0, 105),
+        _Hit(DH, 9.25, 115), _Hit(NA, 9.5, 80), _Hit(TT, 9.75, 55),
+        _Hit(KE, 10.0, 60), _Hit(DH, 10.25, 110),
+        _Hit(DH, 10.5, 122), _Hit(NA, 10.75, 85), _Hit(TT, 11.0, 60),
+        _Hit(KE, 11.25, 65), _Hit(DH, 11.5, 127),
+        _Hit(GB, 11.875, 127),
+    ])
+    score.add_pattern(p_f4, repeats=1)
+    score.set_drum_effects(reverb=0.35, reverb_type=REV)
+
+    play_song(score, "Epic Bhairav — Orchestra + Choir + Tabla (22-Shruti JI)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1576,6 +1755,7 @@ SONGS = {
     "22": ("Greensleeves (Renaissance Lute)", greensleeves),
     "23": ("Tabla Solo (Raga Yaman)", tabla_solo_yaman),
     "24": ("Journey (Western → World → Indian)", journey),
+    "25": ("Epic Bhairav (Orchestral + Tabla)", epic_bhairav),
 }
 
 if __name__ == "__main__":
@@ -1589,7 +1769,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-24, or 'all'): ").strip()
+        choice = input("  Pick a song (1-25, or 'all'): ").strip()
         print()
 
         if choice == "all":
