@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.29.3
+
+- Drums are now a real Part — same effects pipeline as any other voice, zero code duplication
+- `score.parts["drums"]` is a standard Part with reverb, delay, lowpass, etc.
+- `set_drum_effects()` is sugar over the Part's attributes
+
 ## 0.29.2
 
 - Add `score.set_drum_effects()` — reverb, delay, lowpass, distortion, chorus on the drum bus
