@@ -909,6 +909,160 @@ def saxophone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def vocal_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
+    """Vocal/formant synthesis — sings vowel sounds at a given pitch.
+
+    Models the human voice as:
+    1. Glottal buzz — sawtooth-like pulse train (vocal cords vibrating)
+    2. Formant filters — resonant peaks that shape the spectrum into
+       vowel sounds. Each vowel has 3-5 characteristic frequencies.
+    3. Breathiness — a small amount of noise mixed in
+
+    The ``lyric`` parameter controls which vowel formants are used.
+    Consonants are approximated with noise bursts and filter sweeps.
+
+    Vowel formant frequencies (Hz) for a male voice:
+        A (father): F1=800, F2=1200, F3=2500
+        E (bed):    F1=600, F2=1800, F3=2500
+        I (see):    F1=300, F2=2200, F3=3000
+        O (go):     F1=500, F2=1000, F3=2500
+        U (blue):   F1=350, F2=700,  F3=2500
+    """
+    import scipy.signal as _sig
+
+    # Vowel formant table: (F1, F2, F3, bandwidth1, bandwidth2, bandwidth3)
+    # Wide bandwidths for audible character
+    FORMANTS = {
+        'a': (800, 1200, 2500, 200, 200, 250),
+        'e': (600, 1800, 2500, 150, 200, 250),
+        'i': (300, 2200, 3000, 120, 200, 250),
+        'o': (500, 1000, 2500, 150, 180, 250),
+        'u': (350, 700, 2500, 100, 150, 200),
+    }
+
+    rng = numpy.random.default_rng(int(hz * 100 + len(lyric) * 7) % 2**31)
+
+    # Parse the lyric into a vowel sequence
+    vowels_in_lyric = [c.lower() for c in lyric if c.lower() in FORMANTS]
+    if not vowels_in_lyric:
+        vowels_in_lyric = ['a']  # default
+
+    # Glottal source — sawtooth-like pulse (vocal cord vibration)
+    # Real glottal pulse has sharper closing phase than opening
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # Slight vibrato (natural vocal wobble)
+    vib = hz * 0.0008 * numpy.sin(2 * numpy.pi * 5.5 * t)
+    phase = numpy.cumsum(2 * numpy.pi * (hz + vib) / SAMPLE_RATE)
+    # Glottal pulse: modified sawtooth with sharper falling edge
+    glottal = numpy.sin(phase) * 0.5 + numpy.sin(phase * 2) * 0.3 + numpy.sin(phase * 3) * 0.15
+
+    # Breathiness
+    breath = rng.normal(0, 0.05, n_samples)
+    source = glottal + breath
+
+    # Apply formant filters — one per vowel in the lyric
+    # If multiple vowels, crossfade between them over the note duration
+    n_vowels = len(vowels_in_lyric)
+    samples_per_vowel = n_samples // max(1, n_vowels)
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    for vi, vowel in enumerate(vowels_in_lyric):
+        f1, f2, f3, bw1, bw2, bw3 = FORMANTS[vowel]
+        start = vi * samples_per_vowel
+        end = min(start + samples_per_vowel, n_samples)
+        if vi == n_vowels - 1:
+            end = n_samples  # last vowel gets remaining samples
+
+        segment = source[start:end].copy()
+
+        # Three formant bandpass filters — parallel, then summed
+        # Each formant is an independent resonant peak
+        formant_out = numpy.zeros_like(segment)
+        for fc, bw, gain in [(f1, bw1, 1.0), (f2, bw2, 0.8), (f3, bw3, 0.5)]:
+            lo = max(20, fc - bw)
+            hi = min(SAMPLE_RATE // 2 - 1, fc + bw)
+            if lo < hi:
+                bp, ap = _sig.butter(3, [lo, hi], btype='band', fs=SAMPLE_RATE)
+                formant_out += _sig.lfilter(bp, ap, segment).astype(numpy.float64) * gain
+        # Almost entirely formant-shaped — very little raw source
+        segment = formant_out * 0.9 + segment * 0.1
+
+        # Crossfade at vowel boundaries (10ms)
+        fade_len = min(int(SAMPLE_RATE * 0.01), len(segment) // 4)
+        if vi > 0 and fade_len > 0:
+            fade_in = numpy.linspace(0, 1, fade_len)
+            segment[:fade_len] *= fade_in
+        if vi < n_vowels - 1 and fade_len > 0:
+            fade_out = numpy.linspace(1, 0, fade_len)
+            segment[-fade_len:] *= fade_out
+
+        out[start:end] += segment[:end - start]
+
+    # Check for consonant-like onsets
+    lyric_lower = lyric.lower()
+    has_consonant = lyric_lower and lyric_lower[0] not in 'aeiou'
+
+    if has_consonant:
+        c = lyric_lower[0]
+        cons_len = min(int(SAMPLE_RATE * 0.03), n_samples)
+        if c in 'tdkpb':
+            # Plosive — brief noise burst
+            plosive = rng.uniform(-0.4, 0.4, cons_len)
+            plosive *= numpy.exp(-numpy.linspace(0, 15, cons_len))
+            out[:cons_len] = plosive + out[:cons_len] * 0.3
+        elif c in 'sz':
+            # Sibilant — filtered noise
+            sib = rng.uniform(-0.3, 0.3, cons_len)
+            if cons_len > 20:
+                bl, al = _sig.butter(2, [3000, min(8000, SAMPLE_RATE // 2 - 1)],
+                                     btype='band', fs=SAMPLE_RATE)
+                sib = _sig.lfilter(bl, al, numpy.pad(sib, (0, max(0, n_samples - cons_len))))[:cons_len]
+            sib *= numpy.exp(-numpy.linspace(0, 8, cons_len))
+            out[:cons_len] = sib * 0.5 + out[:cons_len] * 0.5
+        elif c in 'mn':
+            # Nasal — low formant
+            nasal_len = min(int(SAMPLE_RATE * 0.05), n_samples)
+            nasal = numpy.sin(2 * numpy.pi * 250 * t[:nasal_len]) * 0.3
+            nasal *= numpy.exp(-numpy.linspace(0, 5, nasal_len))
+            out[:nasal_len] = nasal + out[:nasal_len] * 0.5
+        elif c in 'fv':
+            # Fricative
+            fric = rng.uniform(-0.2, 0.2, cons_len)
+            fric *= numpy.exp(-numpy.linspace(0, 10, cons_len))
+            out[:cons_len] = fric * 0.4 + out[:cons_len] * 0.6
+        elif c in 'lr':
+            # Liquid — brief glide
+            glide_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+            glide_t = numpy.arange(glide_len, dtype=numpy.float64) / SAMPLE_RATE
+            glide_hz = hz * 0.8 + hz * 0.2 * numpy.linspace(0, 1, glide_len)
+            glide = numpy.sin(numpy.cumsum(2 * numpy.pi * glide_hz / SAMPLE_RATE)) * 0.3
+            out[:glide_len] = glide + out[:glide_len] * 0.7
+        elif c == 'h':
+            # Aspirate — breathy onset
+            h_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+            aspirate = rng.uniform(-0.3, 0.3, h_len)
+            aspirate *= numpy.exp(-numpy.linspace(0, 6, h_len))
+            out[:h_len] = aspirate * 0.5 + out[:h_len] * 0.5
+        elif c == 'w':
+            # Glide from U formant
+            w_len = min(int(SAMPLE_RATE * 0.05), n_samples)
+            w_t = numpy.arange(w_len, dtype=numpy.float64) / SAMPLE_RATE
+            w_source = numpy.sin(numpy.cumsum(2 * numpy.pi * hz / SAMPLE_RATE * numpy.ones(w_len)))
+            if w_len > 20:
+                bp, ap = _sig.butter(2, [max(20, 300), min(800, SAMPLE_RATE // 2 - 1)],
+                                     btype='band', fs=SAMPLE_RATE)
+                w_source = _sig.lfilter(bp, ap, w_source)
+            w_source *= numpy.linspace(0.5, 0, w_len) * 0.4
+            out[:w_len] = w_source + out[:w_len] * 0.6
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+
+    return (peak * out).astype(numpy.int16)
+
+
 def granular_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
                   grain_size=0.04, density=50, scatter=0.5,
                   pitch_var=12, source="saw"):
@@ -1290,6 +1444,7 @@ class Synth(Enum):
     TIMPANI = "timpani_synth"
     SAXOPHONE = "saxophone_synth"
     GRANULAR = "granular_synth"
+    VOCAL = "vocal_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
@@ -1312,7 +1467,7 @@ _SYNTH_FUNCTIONS = {
     "harpsichord_synth": harpsichord_wave, "cello_synth": cello_wave,
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
     "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
-    "granular_synth": granular_wave,
+    "granular_synth": granular_wave, "vocal_synth": vocal_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
@@ -3528,8 +3683,13 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                         bent = src_f[idx] * (1 - frac) + src_f[numpy.minimum(idx + 1, src_len - 1)] * frac
                         waves.append((bent * SAMPLE_PEAK).astype(numpy.int16))
                 else:
-                    # Render oscillators (pass synth_kwargs for FM etc.)
-                    waves = [synth_fn(hz, n_samples=n_samples, **_skw)
+                    # Per-note kwargs (e.g. lyric for vocal synth)
+                    note_skw = dict(_skw)
+                    note_lyric = getattr(note, 'lyric', '')
+                    if note_lyric:
+                        note_skw['lyric'] = note_lyric
+                    # Render oscillators
+                    waves = [synth_fn(hz, n_samples=n_samples, **note_skw)
                              for hz in pitches]
                 # Sub-oscillator: octave-below sine
                 if sub_osc > 0:
