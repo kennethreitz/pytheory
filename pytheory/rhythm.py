@@ -1837,21 +1837,24 @@ class Score:
         }
 
     def set_drum_effects(self, **kwargs) -> "Score":
-        """Set effects on the drum bus.
+        """Set effects on all drum parts.
 
-        The drums Part is a real Part — set effects the same way
-        you would on any other part.
+        When drums are split, applies to every drum Part (kick, snare,
+        hats, etc.). When not split, applies to the single drums Part.
 
         Example::
 
             score.set_drum_effects(reverb=0.2, reverb_type="plate")
         """
-        p = self._ensure_drums_part()
         param_map = {"reverb": "reverb_mix", "delay": "delay_mix",
                      "distortion": "distortion_mix", "chorus": "chorus_mix"}
-        for k, v in kwargs.items():
-            attr = param_map.get(k, k)
-            setattr(p, attr, v)
+        drum_parts = [p for p in self.parts.values() if p.is_drums]
+        if not drum_parts:
+            drum_parts = [self._ensure_drums_part()]
+        for p in drum_parts:
+            for k, v in kwargs.items():
+                attr = param_map.get(k, k)
+                setattr(p, attr, v)
         return self
 
     def part(self, name: str, *, synth: str = "sine",
@@ -1967,45 +1970,83 @@ class Score:
         return self.add_pattern(fill_pattern, repeats=1)
 
 
-    def drums(self, preset: str, repeats: int = 4, fill: str = None,
-              fill_every: int = None) -> "Score":
-        """Add a drum pattern by preset name, with optional auto-fills.
+    # Drum sound groups for split mode
+    _DRUM_GROUPS = {
+        "kick": {DrumSound.KICK.value},
+        "snare": {DrumSound.SNARE.value, DrumSound.RIMSHOT.value, DrumSound.CLAP.value},
+        "hats": {DrumSound.CLOSED_HAT.value, DrumSound.OPEN_HAT.value, DrumSound.PEDAL_HAT.value},
+        "toms": {DrumSound.LOW_TOM.value, DrumSound.MID_TOM.value, DrumSound.HIGH_TOM.value},
+        "cymbals": {DrumSound.CRASH.value, DrumSound.RIDE.value, DrumSound.RIDE_BELL.value},
+        "percussion": {DrumSound.COWBELL.value, DrumSound.CLAVE.value, DrumSound.SHAKER.value,
+                       DrumSound.TAMBOURINE.value, DrumSound.CONGA_HIGH.value, DrumSound.CONGA_LOW.value,
+                       DrumSound.BONGO_HIGH.value, DrumSound.BONGO_LOW.value, DrumSound.TIMBALE_HIGH.value,
+                       DrumSound.TIMBALE_LOW.value, DrumSound.AGOGO_HIGH.value, DrumSound.AGOGO_LOW.value,
+                       DrumSound.GUIRO.value, DrumSound.MARACAS.value},
+    }
 
-        Shorthand for ``score.add_pattern(Pattern.preset(name), repeats=n)``.
+    def drums(self, preset: str, repeats: int = 4, fill: str = None,
+              fill_every: int = None, split: bool = False) -> "Score":
+        """Add a drum pattern by preset name, with optional auto-fills.
 
         Args:
             preset: Pattern preset name (e.g. ``"bossa nova"``, ``"rock"``).
             repeats: Number of times to repeat (default 4).
-            fill: Optional fill name. When provided, groove bars are
-                periodically replaced with the named fill pattern.
-            fill_every: Replace every Nth bar with a fill. If *fill* is
-                provided but *fill_every* is not, defaults to filling only
-                the last bar.
+            fill: Optional fill name.
+            fill_every: Replace every Nth bar with a fill.
+            split: If True, create separate Parts for kick, snare, hats,
+                toms, cymbals, and percussion — each with independent
+                effects. Access via ``score.parts["kick"]``, etc.
 
         Returns:
             Self for chaining.
 
         Example::
 
-            >>> score = Score("4/4", bpm=140)
-            >>> score.drums("bossa nova", repeats=4)
+            >>> score.drums("rock", repeats=4, split=True)
+            >>> score.parts["snare"].reverb_mix = 0.3
+            >>> score.parts["hats"].lowpass = 6000
         """
         if fill is None:
-            return self.add_pattern(Pattern.preset(preset), repeats=repeats)
+            self.add_pattern(Pattern.preset(preset), repeats=repeats)
+        else:
+            groove = Pattern.preset(preset)
+            fill_pattern = Pattern.fill(fill)
+            if fill_every is None:
+                fill_every = repeats
+            for bar in range(1, repeats + 1):
+                if bar % fill_every == 0:
+                    self.add_pattern(fill_pattern, repeats=1)
+                else:
+                    self.add_pattern(groove, repeats=1)
 
-        groove = Pattern.preset(preset)
-        fill_pattern = Pattern.fill(fill)
+        if split:
+            self._split_drums()
 
-        if fill_every is None:
-            # Fill only the last bar
-            fill_every = repeats
-
-        for bar in range(1, repeats + 1):
-            if bar % fill_every == 0:
-                self.add_pattern(fill_pattern, repeats=1)
-            else:
-                self.add_pattern(groove, repeats=1)
         return self
+
+    def _split_drums(self):
+        """Move drum hits from the 'drums' Part into separate group Parts."""
+        drums_part = self.parts.get("drums")
+        if not drums_part:
+            return
+
+        all_hits = list(drums_part._drum_hits)
+        pattern_beats = drums_part._drum_pattern_beats
+        drums_part._drum_hits.clear()
+        drums_part._drum_pattern_beats = 0.0
+
+        for group_name, sound_values in self._DRUM_GROUPS.items():
+            group_hits = [h for h in all_hits if h.sound.value in sound_values]
+            if group_hits:
+                if group_name not in self.parts:
+                    self.parts[group_name] = Part(group_name, synth="sine", volume=0.7)
+                p = self.parts[group_name]
+                p._drum_hits.extend(group_hits)
+                p._drum_pattern_beats = max(p._drum_pattern_beats, pattern_beats)
+
+        # Remove empty drums Part
+        if not drums_part._drum_hits and "drums" in self.parts:
+            del self.parts["drums"]
 
     def add(self, tone_or_chord, duration=Duration.QUARTER) -> "Score":
         """Add a note to the default (unnamed) part.
