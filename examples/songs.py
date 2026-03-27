@@ -15,7 +15,8 @@ Usage:
 
 import sounddevice as sd
 
-from pytheory import Chord, Key, Pattern, Duration, Score
+from pytheory import Chord, Key, Pattern, Duration, Score, Tone, TonedScale, SYSTEMS
+from pytheory.rhythm import DrumSound, _Hit
 from pytheory.play import render_score, SAMPLE_RATE
 
 
@@ -1199,6 +1200,108 @@ def greensleeves():
     play_song(score, "Greensleeves — Renaissance Lute (Meantone, A=415)")
 
 
+def tabla_solo_yaman():
+    """Tabla solo with tanpura drone, sitar, and Raga Yaman — 22-shruti tuning."""
+    shruti = SYSTEMS["shruti"]
+    score = Score("4/4", bpm=160, system=shruti)
+    h = _Hit
+
+    NA = DrumSound.TABLA_NA
+    TI = DrumSound.TABLA_TIN
+    GE = DrumSound.TABLA_GE
+    DH = DrumSound.TABLA_DHA
+    TT = DrumSound.TABLA_TIT
+    KE = DrumSound.TABLA_KE
+    GB = DrumSound.TABLA_GE_BEND
+
+    # Tanpura drone — Sa + Pa
+    tanpura_sa = score.part("tanpura_sa", synth="strings_synth", envelope="pad",
+                             detune=3, lowpass=1000, volume=0.18,
+                             reverb=0.5, reverb_type="taj_mahal")
+    tanpura_pa = score.part("tanpura_pa", synth="strings_synth", envelope="pad",
+                             detune=3, lowpass=1400, volume=0.14,
+                             reverb=0.5, reverb_type="taj_mahal")
+    sa3 = Tone("Sa", octave=3, system=shruti)
+    pa3 = Tone("Pa", octave=3, system=shruti)
+    for _ in range(16):
+        tanpura_sa.add(sa3, Duration.WHOLE)
+        tanpura_pa.add(pa3, Duration.WHOLE)
+
+    # Quiet sitar — Raga Yaman (Kalyan thaat)
+    sitar = score.part("sitar", instrument="sitar", volume=0.12,
+                        reverb=0.4, reverb_type="taj_mahal")
+    ts = TonedScale(system=shruti, tonic=Tone("Sa", octave=4, system=shruti))
+    y = list(ts["kalyan"].tones)
+    S, R, G, M, P, D, N, S2 = y
+    sitar.rest(Duration.WHOLE)
+    sitar.rest(Duration.WHOLE)
+    for tone, dur, vel in [
+        (S, 3.0, 55), (R, 1.0, 50), (G, 3.0, 58), (R, 1.0, 48),
+        (S, 4.0, 55), (G, 1.0, 50), (M, 1.0, 52), (P, 3.0, 58),
+        (M, 1.0, 48), (G, 1.0, 50), (R, 1.0, 48), (S, 4.0, 55),
+        (P, 2.0, 52), (D, 1.0, 55), (N, 2.0, 58), (S2, 3.0, 60),
+        (N, 1.0, 52), (D, 1.0, 50), (P, 1.0, 52), (G, 1.0, 48),
+        (R, 1.0, 48), (S, 4.0, 55),
+    ]:
+        sitar.add(tone, dur, velocity=vel)
+
+    # 4 bars drone intro (silence for drums)
+    silence = Pattern(name="silence", time_signature="4/4", beats=16.0, hits=[])
+    score.add_pattern(silence, repeats=1)
+
+    # Gentle opening
+    p1 = Pattern(name="gentle", time_signature="4/4", beats=8.0, hits=[
+        h(DH, 0.0, 80), h(NA, 2.0, 60),
+        h(DH, 4.0, 85), h(NA, 5.0, 55), h(NA, 6.0, 60), h(DH, 7.0, 80),
+    ])
+
+    # Building with ghost notes
+    p2 = Pattern(name="build", time_signature="4/4", beats=16.0, hits=[
+        h(DH, 0.0, 95), h(TT, 0.5, 35), h(NA, 1.0, 70), h(TT, 1.5, 30),
+        h(NA, 2.0, 65), h(DH, 3.0, 90),
+        h(DH, 4.0, 100), h(TT, 4.25, 35), h(TT, 4.5, 40), h(NA, 5.0, 75),
+        h(TT, 5.5, 35), h(NA, 6.0, 70), h(TT, 6.5, 30), h(DH, 7.0, 95),
+        h(DH, 8.0, 95), h(TI, 9.0, 70), h(TI, 10.0, 72), h(NA, 11.0, 80),
+        h(TT, 11.25, 40), h(TT, 11.5, 42), h(KE, 11.75, 45),
+        h(TT, 12.0, 50), h(TT, 12.25, 55), h(KE, 12.5, 58), h(NA, 12.75, 70),
+        h(DH, 13.0, 100), h(TT, 13.25, 40), h(TT, 13.5, 45), h(KE, 13.75, 50),
+        h(NA, 14.0, 75), h(KE, 14.25, 50), h(DH, 14.5, 85), h(NA, 14.75, 70),
+        h(DH, 15.0, 110), h(GB, 15.5, 100),
+    ])
+
+    # Full intensity
+    p3 = Pattern(name="fire", time_signature="4/4", beats=16.0, hits=[
+        h(TT, 0.0, 50), h(TT, 0.125, 35), h(TT, 0.25, 45), h(KE, 0.5, 55),
+        h(NA, 0.75, 85),
+        h(DH, 1.0, 115), h(TT, 1.25, 38), h(DH, 1.5, 70), h(NA, 1.75, 60),
+        h(TT, 2.0, 50), h(TT, 2.125, 35), h(TT, 2.25, 48), h(KE, 2.5, 55),
+        h(NA, 2.75, 88),
+        h(DH, 3.0, 115), h(GB, 3.5, 105), h(NA, 3.75, 72),
+        h(NA, 4.0, 115), h(NA, 4.25, 60), h(TT, 4.5, 40), h(NA, 4.75, 105),
+        h(GE, 5.0, 105), h(GE, 5.25, 55), h(GB, 5.5, 95), h(GE, 5.75, 50),
+        h(NA, 6.0, 115), h(TT, 6.125, 30), h(TT, 6.25, 38), h(NA, 6.5, 100),
+        h(TT, 6.625, 32), h(TT, 6.75, 42),
+        h(GB, 7.0, 115), h(KE, 7.25, 52), h(GE, 7.5, 72), h(KE, 7.75, 48),
+        # Tihai
+        h(DH, 8.0, 115), h(NA, 8.25, 78), h(TT, 8.5, 52), h(KE, 8.75, 58),
+        h(DH, 9.0, 105),
+        h(DH, 9.5, 110), h(NA, 9.75, 78), h(TT, 10.0, 52), h(KE, 10.25, 58),
+        h(DH, 10.5, 105),
+        h(DH, 11.0, 120), h(NA, 11.25, 82), h(TT, 11.5, 58), h(KE, 11.75, 62),
+        h(DH, 12.0, 120),
+        # Silence... then finish
+        h(GB, 14.5, 120),
+        h(DH, 15.5, 127), h(DH, 15.75, 127),
+    ])
+
+    score.add_pattern(p1, repeats=1)
+    score.add_pattern(p2, repeats=1)
+    score.add_pattern(p3, repeats=1)
+    score.set_drum_effects(reverb=0.4, reverb_type="taj_mahal")
+
+    play_song(score, "Tabla Solo — Raga Yaman (22-Shruti, Taj Mahal)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1222,6 +1325,7 @@ SONGS = {
     "20": ("Temple Bell (Japanese)", temple_bell),
     "21": ("Cinematic Showcase (Orchestral)", cinematic_showcase),
     "22": ("Greensleeves (Renaissance Lute)", greensleeves),
+    "23": ("Tabla Solo (Raga Yaman)", tabla_solo_yaman),
 }
 
 if __name__ == "__main__":
@@ -1235,7 +1339,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-22, or 'all'): ").strip()
+        choice = input("  Pick a song (1-23, or 'all'): ").strip()
         print()
 
         if choice == "all":
