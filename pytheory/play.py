@@ -2660,7 +2660,7 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          filter_sustain=0.0, filter_amount=0.0,
                          vel_to_filter=0.0, filter_q=0.707,
                          synth_kwargs=None, temperament="equal",
-                         reference_pitch=440.0):
+                         reference_pitch=440.0, analog=0.0):
     """Render a list of Notes into an existing buffer at the correct positions."""
     import random as _rnd
 
@@ -2692,6 +2692,12 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     pitches = [t.pitch(temperament=temperament, reference_pitch=reference_pitch) for t in note.tone.tones]
                 else:
                     pitches = [note.tone.pitch(temperament=temperament, reference_pitch=reference_pitch)]
+                # Analog drift: slight random pitch offset per note,
+                # simulating analog oscillator instability. Each note
+                # gets a unique drift amount (±cents scaled by analog).
+                if analog > 0:
+                    pitches = [hz * (2 ** (_rnd.gauss(0, analog * 5) / 1200))
+                               for hz in pitches]
                 # Render oscillators (pass synth_kwargs for FM etc.)
                 waves = [synth_fn(hz, n_samples=n_samples, **_skw)
                          for hz in pitches]
@@ -2956,7 +2962,8 @@ def render_score(score):
                     filter_q=part.lowpass_q,
                     synth_kwargs=synth_kwargs,
                     temperament=_temperament,
-                    reference_pitch=_ref_pitch)
+                    reference_pitch=_ref_pitch,
+                    analog=part.analog)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()

@@ -26,12 +26,14 @@ INSTRUMENTS = {
         "detune": 6, "chorus": 0.2, "chorus_rate": 1.0,
         "lowpass": 4000, "saturation": 0.15,
         "tremolo_depth": 0.15, "tremolo_rate": 4.5,
+        "analog": 0.2,
     },
     "organ": {
         "synth": "organ_synth", "envelope": "organ",
         "chorus": 0.2, "chorus_rate": 5.5,
         "lowpass": 5000,
         "phaser": 0.15, "phaser_rate": 0.4,
+        "analog": 0.15,
     },
     "harpsichord": {
         "synth": "pluck_synth", "envelope": "none",
@@ -227,6 +229,7 @@ INSTRUMENTS = {
         "delay": 0.2, "delay_time": 0.25, "delay_feedback": 0.3,
         "filter_attack": 0.01, "filter_decay": 0.3,
         "filter_sustain": 0.2, "filter_amount": 3000,
+        "analog": 0.3,
     },
     "synth_pad": {
         "synth": "supersaw", "envelope": "pad",
@@ -234,6 +237,7 @@ INSTRUMENTS = {
         "chorus": 0.2,
         "phaser": 0.3, "phaser_rate": 0.3,
         "sub_osc": 0.2,
+        "analog": 0.4,
     },
     "synth_bass": {
         "synth": "saw", "envelope": "pluck",
@@ -241,6 +245,7 @@ INSTRUMENTS = {
         "filter_attack": 0.005, "filter_decay": 0.2,
         "filter_sustain": 0.0, "filter_amount": 2000,
         "sub_osc": 0.4,
+        "analog": 0.2,
     },
     "acid_bass": {
         "synth": "saw", "envelope": "pad",
@@ -250,6 +255,7 @@ INSTRUMENTS = {
         "filter_attack": 0.005, "filter_decay": 0.15,
         "filter_sustain": 0.0, "filter_amount": 4000,
         "vel_to_filter": 3000,
+        "analog": 0.3,
     },
     "808_bass": {
         "synth": "sine", "envelope": "pluck",
@@ -2006,6 +2012,7 @@ class Part:
                  phaser_rate: float = 0.5,
                  cabinet: float = 0.0,
                  cabinet_brightness: float = 0.5,
+                 analog: float = 0.0,
                  fm_ratio: float = 2.0,
                  fm_index: float = 3.0):
         self.name = name
@@ -2051,6 +2058,7 @@ class Part:
         self.phaser_rate = phaser_rate
         self.cabinet = cabinet
         self.cabinet_brightness = cabinet_brightness
+        self.analog = analog
         self.fm_ratio = fm_ratio
         self.fm_index = fm_index
         self._system = "western"  # default, overridden by Score.part()
@@ -2648,6 +2656,7 @@ class Score:
              phaser_rate: float = None,
              cabinet: float = None,
              cabinet_brightness: float = None,
+             analog: float = None,
              fm_ratio: float = None,
              fm_index: float = None,
              fretboard=None) -> Part:
@@ -2760,6 +2769,7 @@ class Score:
             "tremolo_depth": tremolo_depth, "tremolo_rate": tremolo_rate,
             "phaser": phaser, "phaser_rate": phaser_rate,
             "cabinet": cabinet, "cabinet_brightness": cabinet_brightness,
+            "analog": analog,
             "fm_ratio": fm_ratio, "fm_index": fm_index,
         }
         for k, v in _locals.items():
