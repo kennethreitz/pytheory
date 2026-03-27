@@ -246,6 +246,16 @@ INSTRUMENTS = {
         "reverb": 0.4, "reverb_type": "cathedral",
         "analog": 0.3,
     },
+    "vocal": {
+        "synth": "vocal_synth", "envelope": "strings",
+        "reverb": 0.3, "reverb_type": "hall",
+        "humanize": 0.15,
+    },
+    "choir": {
+        "synth": "vocal_synth", "envelope": "pad",
+        "detune": 8, "spread": 0.4,
+        "reverb": 0.45, "reverb_type": "cathedral",
+    },
     "granular_texture": {
         "synth": "granular_synth", "envelope": "none",
         "reverb": 0.5, "reverb_type": "taj_mahal",
@@ -367,6 +377,7 @@ class Note:
     velocity: int = 100
     bend: float = 0.0
     bend_type: str = "smooth"  # "smooth" (log), "linear", "late"
+    lyric: str = ""  # syllable for vocal synth
 
     @property
     def beats(self) -> float:
@@ -2095,7 +2106,7 @@ class Part:
         self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
     def add(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100,
-            bend: float = 0.0, bend_type: str = "smooth") -> "Part":
+            bend: float = 0.0, bend_type: str = "smooth", lyric: str = "") -> "Part":
         """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
 
         Duration can be a ``Duration`` enum or a raw float (beats).
@@ -2113,7 +2124,7 @@ class Part:
             duration = _RawDuration(duration)
         self.notes.append(Note(tone=tone_or_string, duration=duration,
                                velocity=velocity, bend=bend,
-                               bend_type=bend_type))
+                               bend_type=bend_type, lyric=lyric))
         return self
 
     def set(self, **params) -> "Part":
