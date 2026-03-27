@@ -1316,7 +1316,7 @@ def journey():
     tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
                           detune=3, lowpass=1000, volume=0.12,
                           reverb=0.5, reverb_type=REV)
-    for _ in range(32):
+    for _ in range(40):
         tanpura.add("A2", Duration.WHOLE)
 
     # ── Bars 1-8: Piano alone, then cello ──
@@ -1461,32 +1461,86 @@ def journey():
     KE = DrumSound.TABLA_KE
     TI = DrumSound.TABLA_TIN
     GE = DrumSound.TABLA_GE
-    T3 = 1.0 / 12.0  # 32nd triplet
-    p_solo = Pattern(name="solo", time_signature="4/4", beats=16.0, hits=[
-        # Gentle opening
-        _Hit(DH, 0.0, 90), _Hit(TT, 0.5, 35), _Hit(NA, 1.0, 72),
-        _Hit(NA, 2.0, 65), _Hit(DH, 3.0, 88),
-        # Ghost notes building
-        _Hit(DH, 4.0, 95), _Hit(TT, 4.25, 38), _Hit(TT, 4.5, 42),
-        _Hit(NA, 5.0, 75), _Hit(TT, 5.5, 35),
-        _Hit(NA, 6.0, 70), _Hit(TT, 6.5, 30), _Hit(DH, 7.0, 95),
-        # Double time burst
-        _Hit(TT, 8.0, 50), _Hit(TT, 8.125, 38), _Hit(TT, 8.25, 45),
-        _Hit(KE, 8.5, 55), _Hit(NA, 8.75, 82),
-        _Hit(DH, 9.0, 110), _Hit(TT, 9.25, 40), _Hit(DH, 9.5, 72),
-        _Hit(NA, 9.75, 62),
-        # 32nd triplet cascade
-        *[_Hit(TT, 10.0 + i * T3, 35 + i * 3) for i in range(12)],
-        _Hit(DH, 11.0, 115), _Hit(GB, 11.5, 105),
-        # Tihai
-        _Hit(DH, 12.0, 110), _Hit(NA, 12.25, 78), _Hit(TT, 12.5, 52),
-        _Hit(KE, 12.75, 58), _Hit(DH, 13.0, 105),
-        _Hit(DH, 13.5, 112), _Hit(NA, 13.75, 78), _Hit(TT, 14.0, 55),
-        _Hit(KE, 14.25, 60), _Hit(DH, 14.5, 108),
-        # Silence... then slam into EDM
-        _Hit(GB, 15.5, 120), _Hit(DH, 15.75, 127),
+    T3 = 1.0 / 12.0   # 32nd triplet
+    T9 = 1.0 / 9.0    # ninth note
+
+    # Part 1: whisper — space, breath, single hits
+    p_solo1 = Pattern(name="solo1", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH, 0.0, 78),
+        _Hit(NA, 2.0, 55),
+        _Hit(DH, 4.0, 82),
+        _Hit(TT, 5.0, 30), _Hit(NA, 5.5, 52), _Hit(TT, 6.0, 28),
+        _Hit(DH, 7.0, 78),
     ])
-    score.add_pattern(p_solo, repeats=1)
+    score.add_pattern(p_solo1, repeats=1)
+
+    # Part 2: ghosts emerge — 16th note ghost fills between accents
+    p_solo2 = Pattern(name="solo2", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH, 0.0, 92), _Hit(TT, 0.25, 32), _Hit(TT, 0.5, 35),
+        _Hit(NA, 1.0, 68), _Hit(TT, 1.25, 30), _Hit(TT, 1.5, 28),
+        _Hit(NA, 2.0, 62), _Hit(TT, 2.5, 32), _Hit(DH, 3.0, 88),
+        _Hit(TT, 3.25, 35), _Hit(TT, 3.5, 38),
+        _Hit(DH, 4.0, 95), _Hit(TT, 4.25, 38), _Hit(TT, 4.5, 42),
+        _Hit(NA, 5.0, 72), _Hit(TT, 5.25, 32), _Hit(TT, 5.5, 35),
+        _Hit(KE, 5.75, 40),
+        _Hit(NA, 6.0, 68), _Hit(TT, 6.25, 35), _Hit(KE, 6.5, 38),
+        _Hit(DH, 7.0, 95), _Hit(GB, 7.5, 88),
+    ])
+    score.add_pattern(p_solo2, repeats=1)
+
+    # Part 3: call and response — dayan vs bayan, dynamics wide open
+    p_solo3 = Pattern(name="solo3", time_signature="4/4", beats=8.0, hits=[
+        # Dayan speaks
+        _Hit(NA, 0.0, 110), _Hit(NA, 0.25, 55), _Hit(TT, 0.5, 38),
+        _Hit(NA, 0.75, 100),
+        # Bayan answers
+        _Hit(GE, 1.0, 100), _Hit(GE, 1.25, 50), _Hit(GB, 1.5, 90),
+        _Hit(GE, 1.75, 45),
+        # Dayan louder
+        _Hit(NA, 2.0, 115), _Hit(TT, 2.125, 30), _Hit(TT, 2.25, 35),
+        _Hit(NA, 2.5, 105), _Hit(TT, 2.625, 32), _Hit(TT, 2.75, 38),
+        # Bayan louder
+        _Hit(GB, 3.0, 112), _Hit(KE, 3.25, 50), _Hit(GE, 3.5, 68),
+        _Hit(KE, 3.75, 45),
+        # Together — explosion
+        _Hit(DH, 4.0, 120), _Hit(TT, 4.25, 45), _Hit(TT, 4.5, 48),
+        _Hit(DH, 5.0, 115), _Hit(TT, 5.25, 42), _Hit(NA, 5.5, 72),
+        # 9-tuplet — the weird one, breaks the grid
+        *[_Hit(TT if i % 2 == 0 else KE, 6.0 + i * T9, 38 + i * 5)
+          for i in range(9)],
+        _Hit(DH, 7.0, 118),
+    ])
+    score.add_pattern(p_solo3, repeats=1)
+
+    # Part 4: blazing — 32nd triplets, cascades, tihai finale
+    p_solo4 = Pattern(name="solo4", time_signature="4/4", beats=12.0, hits=[
+        # 32nd triplet opening flourish
+        *[_Hit(TT, 0.0 + i * T3, 40 + i * 2) for i in range(12)],
+        _Hit(DH, 1.0, 120), _Hit(GB, 1.5, 108),
+        # Rapid alternating hands
+        _Hit(NA, 2.0, 110), _Hit(KE, 2.125, 45), _Hit(NA, 2.25, 105),
+        _Hit(KE, 2.375, 48), _Hit(NA, 2.5, 108), _Hit(KE, 2.625, 50),
+        _Hit(NA, 2.75, 112),
+        _Hit(DH, 3.0, 118),
+        # Another 32nd triplet burst — longer, crescendo
+        *[_Hit(TT, 3.5 + i * T3, 32 + i * 4) for i in range(18)],
+        _Hit(DH, 5.0, 122), _Hit(DH, 5.25, 118), _Hit(GB, 5.5, 115),
+        # 9 against 4 polyrhythm moment
+        _Hit(GE, 6.0, 88), _Hit(GE, 7.0, 85),
+        *[_Hit(NA if i % 3 == 0 else TT, 6.0 + i * (2.0 / 9.0), 42 + (i % 3) * 15)
+          for i in range(9)],
+        # Grand tihai — 3x pattern, each louder
+        _Hit(DH, 8.0, 108), _Hit(NA, 8.25, 72), _Hit(TT, 8.5, 48),
+        _Hit(KE, 8.75, 52), _Hit(DH, 9.0, 100),
+        _Hit(DH, 9.25, 112), _Hit(NA, 9.5, 78), _Hit(TT, 9.75, 52),
+        _Hit(KE, 10.0, 58), _Hit(DH, 10.25, 108),
+        _Hit(DH, 10.5, 120), _Hit(NA, 10.75, 85), _Hit(TT, 11.0, 58),
+        _Hit(KE, 11.25, 62), _Hit(DH, 11.5, 127),
+        # Silence.....
+        # SLAM
+        _Hit(GB, 11.875, 127),
+    ])
+    score.add_pattern(p_solo4, repeats=1)
 
     score.drums("house", repeats=8)
     score.set_drum_effects(reverb=0.3, reverb_type=REV)
