@@ -1130,6 +1130,48 @@ def granular_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     return (peak * out).astype(numpy.int16)
 
 
+def banjo_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Banjo — steel strings on a drum-head body.
+
+    The banjo's distinctive twang comes from the membrane head
+    (like a drum skin) instead of a wooden soundboard. This gives
+    a sharp attack, bright tone, and fast decay with a nasal,
+    metallic quality. The 5th string drone adds shimmer.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Steel string — bright, sharp attack
+    buf = rng.uniform(-0.9, 0.9, period).astype(numpy.float64)
+    # Minimal filtering — banjo keeps the brightness
+    for k in range(period - 1):
+        buf[k] = 0.7 * buf[k] + 0.3 * buf[k + 1]
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(n_samples):
+        out[i] = buf[i % period]
+        next_idx = (i + 1) % period
+        # Moderate decay — drum head rings but shorter than guitar
+        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9988
+
+    # Drum-head resonance — nasal, ringy, mid-frequency peaks
+    # The membrane head rings more than wood — that's the twang
+    import scipy.signal as _sig
+    for center, bw, gain in [(600, 200, 0.5), (1500, 300, 0.4), (3000, 500, 0.25)]:
+        lo = max(20, center - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            out += _sig.lfilter(bp, ap, out) * gain
+
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
+
+
 def mandolin_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Mandolin — paired steel strings, bright and ringing.
 
@@ -1523,6 +1565,7 @@ class Synth(Enum):
     SAXOPHONE = "saxophone_synth"
     GRANULAR = "granular_synth"
     VOCAL = "vocal_synth"
+    BANJO = "banjo_synth"
     MANDOLIN = "mandolin_synth"
     UKULELE = "ukulele_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
@@ -1548,7 +1591,8 @@ _SYNTH_FUNCTIONS = {
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
     "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
     "granular_synth": granular_wave, "vocal_synth": vocal_wave,
-    "mandolin_synth": mandolin_wave, "ukulele_synth": ukulele_wave,
+    "banjo_synth": banjo_wave, "mandolin_synth": mandolin_wave,
+    "ukulele_synth": ukulele_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }

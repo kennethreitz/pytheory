@@ -2,6 +2,25 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.36.0
+
+- **Banjo synth** — steel strings on drum-head body, nasal twang,
+  fast decay with membrane resonance
+- **Mandolin synth** — paired steel strings (natural chorus from
+  doubled courses), bright body resonance
+- **Ukulele synth** — nylon strings, small mid-heavy body, shorter
+  sustain than guitar
+- **Cajón drums** — bass (woody box thump), slap (snare wire buzz),
+  tap (ghost note). 3 patterns: cajon, cajon rumba, cajon folk
+- **Vocal/formant synth** — LF glottal model, 5 Peterson & Barney
+  formant peaks, jitter/shimmer, consonant onsets, per-note lyrics.
+  Presets: vocal, choir
+- **Granular synthesis** — grain cloud engine with scatter, pitch
+  variation, Hanning windows. Presets: granular_pad, granular_texture
+- **Strum sweep** — subtle grace notes before chord hit for natural
+  strum feel on all fretboard instruments
+- Mandola preset, 34 synth waveforms, 26 songs
+
 ## 0.35.0
 
 - **8.5x faster import** — dropped pytuning/sympy, lazy-load scipy.

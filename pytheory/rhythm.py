@@ -195,6 +195,10 @@ INSTRUMENTS = {
         "detune": 12, "lowpass": 3000, "lowpass_q": 1.5,
         "humanize": 0.2,
     },
+    "banjo": {
+        "synth": "banjo_synth", "envelope": "none",
+        "humanize": 0.2,
+    },
     "mandolin": {
         "synth": "mandolin_synth", "envelope": "none",
         "humanize": 0.2,
