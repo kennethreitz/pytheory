@@ -25,13 +25,56 @@ class System:
         return tuple([Tone.from_tuple(tone) for tone in self.tone_names])
 
     def resolve_name(self, name: str) -> str | None:
-        """Resolve a note name (including flats) to the canonical name.
+        """Resolve a note name (including flats, double sharps/flats) to the canonical name.
+
+        Handles enharmonic equivalents:
+        - Standard names and their alternates (e.g. Bb, C#)
+        - Double sharps (C## = D, F## = G)
+        - Double flats (Dbb = C, Ebb = D)
 
         Returns the primary name if found, or None if not recognized.
         """
+        # Direct lookup first
         for names in self.tone_names:
             if name in names:
                 return names[0]
+
+        # Handle double sharps (e.g. C## → D, F## → G)
+        if name.endswith('##') and len(name) >= 3:
+            base = name[:-2]
+            base_idx = self._name_to_index(base)
+            if base_idx is not None:
+                resolved_idx = (base_idx + 2) % len(self.tone_names)
+                return self.tone_names[resolved_idx][0]
+
+        # Handle double flats (e.g. Dbb → C, Ebb → D)
+        if name.endswith('bb') and len(name) >= 3 and name[0] != 'b':
+            base = name[:-2]
+            base_idx = self._name_to_index(base)
+            if base_idx is not None:
+                resolved_idx = (base_idx - 2) % len(self.tone_names)
+                return self.tone_names[resolved_idx][0]
+
+        # Handle single sharps/flats on natural notes (e.g. Cb → B, E# → F)
+        if len(name) == 2:
+            base = name[0]
+            modifier = name[1]
+            base_idx = self._name_to_index(base)
+            if base_idx is not None:
+                if modifier == '#':
+                    resolved_idx = (base_idx + 1) % len(self.tone_names)
+                    return self.tone_names[resolved_idx][0]
+                elif modifier == 'b':
+                    resolved_idx = (base_idx - 1) % len(self.tone_names)
+                    return self.tone_names[resolved_idx][0]
+
+        return None
+
+    def _name_to_index(self, name: str) -> int | None:
+        """Return the index of a tone name, or None if not found."""
+        for i, names in enumerate(self.tone_names):
+            if name in names:
+                return i
         return None
 
 

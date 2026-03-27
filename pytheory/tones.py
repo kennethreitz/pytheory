@@ -47,6 +47,17 @@ class Tone:
             alt_names = []
 
         if isinstance(name, str):
+            # Normalize unicode music symbols to ASCII equivalents
+            name = (name
+                    .replace('\u266f', '#')   # ♯ → #
+                    .replace('\u266d', 'b')   # ♭ → b
+                    .replace('\U0001d12a', '##')  # 𝄪 → ##
+                    .replace('\U0001d12b', 'bb')  # 𝄫 → bb
+                    )
+            # Normalize 'x' / 'X' as double sharp (only after letter name)
+            if len(name) >= 2 and name[1] in ('x', 'X') and name[0].isalpha():
+                name = name[0] + '##' + name[2:]
+
             try:
                 parsed_octave = int("".join([c for c in filter(str.isdigit, name)]))
             except ValueError:
@@ -442,9 +453,14 @@ class Tone:
         """
         tone_names = system.tone_names[i]
         if prefer_flats and len(tone_names) > 1:
-            tone = tone_names[1]  # flat spelling (e.g. "Bb")
+            # Find the first flat spelling (contains 'b' but isn't just 'B')
+            tone = tone_names[0]  # fallback to primary
+            for tn in tone_names[1:]:
+                if 'b' in tn and tn != 'B':
+                    tone = tn
+                    break
         else:
-            tone = tone_names[0]  # sharp spelling (e.g. "A#")
+            tone = tone_names[0]  # primary spelling
         return klass(name=tone, octave=octave, system=system)
 
     @property
