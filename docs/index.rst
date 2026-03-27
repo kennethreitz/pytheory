@@ -77,7 +77,7 @@ What's Inside
   numbers), scale recommendation, modulation, voice leading
 - **Sequencing** — Score, Parts, arpeggiator, legato/glide, velocity,
   swing, humanize, tempo changes, song sections with repeat
-- **Synthesis** — 27 waveforms (including Karplus-Strong pluck, Hammond organ,
+- **Synthesis** — 29 waveforms (including Karplus-Strong pluck, Hammond organ,
   bowed string, and 14 dedicated instrument synths), 10 envelopes, 40+
   instrument presets, configurable FM, sub-oscillator, noise layer, filter
   envelope, velocity-to-brightness, analog oscillator drift, detune, stereo

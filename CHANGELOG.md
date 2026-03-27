@@ -2,6 +2,27 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.35.0
+
+- **8.5x faster import** — dropped pytuning/sympy, lazy-load scipy.
+  `import pytheory` now takes ~50ms instead of ~480ms (#44)
+- **Proper shruti JI ratios** — 22 positions with 5-limit just intonation
+  (pure 3/2 fifths, 5/4 thirds), not 22-TET approximation
+- **Arabic maqam JI ratios** — Zalzalian 11-limit ratios.
+  Mi↓ (the Rast third) is exactly 27/22 from Do
+- **B#/Cb octave boundary fix** — B#4 = C5, Cb4 = B3 (#45)
+- **Int tone names** — `Tone(0, system=TET(22))` works alongside strings.
+  Wrapping: `Tone(22)` → tone 0, octave+1. `System.tone()` convenience.
+- **Timpani synth** — inharmonic membrane modes, felt mallet, copper kettle
+  resonance, cathedral reverb
+- **Saxophone synth** — conical bore, reed buzz, brass body warmth.
+  4 presets: saxophone, alto_sax, tenor_sax, bari_sax
+- **Part.roll()** — rapid repeated notes with velocity ramp for crescendo/
+  decrescendo rolls on any instrument
+- **Vibrato tuning** — all instruments reduced to 0.001 depth for cleaner
+  ensemble sound
+- 29 synth waveforms, 838 tests
+
 ## 0.34.0
 
 - **16 dedicated instrument synths** — physical modeling and specialized
