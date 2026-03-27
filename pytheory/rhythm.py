@@ -275,6 +275,31 @@ INSTRUMENTS = {
         "fm_ratio": 2.0, "fm_index": 3.0,
         "reverb": 0.4, "reverb_type": "cathedral",
     },
+    "timpani": {
+        "synth": "timpani_synth", "envelope": "none",
+        "reverb": 0.3, "reverb_type": "hall",
+    },
+
+    # ── Woodwinds (continued) ──
+    "saxophone": {
+        "synth": "saxophone_synth", "envelope": "bowed",
+        "humanize": 0.15, "vel_to_filter": 1500,
+    },
+    "alto_sax": {
+        "synth": "saxophone_synth", "envelope": "bowed",
+        "humanize": 0.15, "vel_to_filter": 1800,
+    },
+    "tenor_sax": {
+        "synth": "saxophone_synth", "envelope": "bowed",
+        "lowpass": 3000,
+        "humanize": 0.15, "vel_to_filter": 1200,
+    },
+    "bari_sax": {
+        "synth": "saxophone_synth", "envelope": "bowed",
+        "lowpass": 2000,
+        "humanize": 0.15, "vel_to_filter": 800,
+        "sub_osc": 0.15,
+    },
 }
 
 

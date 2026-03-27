@@ -800,6 +800,109 @@ def upright_bass_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * out).astype(numpy.int16)
 
 
+def timpani_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Timpani — large kettle drum with definite pitch.
+
+    The copper kettle creates a tuned resonance with inharmonic
+    overtones. The head modes are at ratios 1.0, 1.5, 1.99, 2.44
+    (not integer multiples like strings). The felt mallet gives a
+    soft attack with a deep, booming body.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+
+    # Timpani head modes — inharmonic but definite pitch
+    # Mode ratios from vibrating circular membrane physics
+    wave = numpy.sin(2 * numpy.pi * hz * t) * 0.8
+    wave += numpy.sin(2 * numpy.pi * hz * 1.5 * t) * 0.35 * numpy.exp(-6 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 1.99 * t) * 0.2 * numpy.exp(-10 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 2.44 * t) * 0.1 * numpy.exp(-15 * t)
+
+    # Two-stage decay: initial thump fades fast, fundamental rings
+    decay = numpy.where(t < 0.15,
+                        numpy.exp(-4 * t),
+                        numpy.exp(-4 * 0.15) * numpy.exp(-1.5 * (t - 0.15)))
+    wave *= decay
+
+    # Felt mallet impact — warm, not sharp
+    mallet_len = min(int(SAMPLE_RATE * 0.02), n_samples)
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    mallet = rng.uniform(-0.3, 0.3, mallet_len)
+    mallet *= numpy.exp(-numpy.linspace(0, 8, mallet_len))
+    wave[:mallet_len] += mallet
+
+    # Copper kettle resonance — boosts low-mids
+    import scipy.signal as _sig
+    lo, hi = max(20, int(hz * 0.7)), min(SAMPLE_RATE // 2 - 1, int(hz * 2))
+    if lo < hi:
+        bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        kettle = _sig.lfilter(bp, ap, wave) * 0.3
+        wave += kettle
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def saxophone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Saxophone — single reed through a conical brass bore.
+
+    The conical bore produces all harmonics (like oboe), but the
+    brass body and larger mouthpiece give a warmer, fatter, more
+    vocal quality. The reed adds a slight buzz. Saxophone is
+    between clarinet (odd harmonics) and oboe (nasal even+odd) —
+    it has everything, with a strong fundamental and rich mids.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Vibrato — develops after ~250ms, wider than flute
+    vib_onset = numpy.clip(t / 0.25, 0.0, 1.0)
+    vib = hz * 0.0012 * vib_onset * numpy.sin(2 * numpy.pi * 5.2 * t)
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    n_harmonics = min(20, int((SAMPLE_RATE / 2) / hz))
+
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Sax spectral shape: strong fundamental, broad mid peak (3-6),
+        # slower rolloff than oboe (brass body carries harmonics further)
+        if n == 1:
+            amp = 1.0
+        elif n <= 3:
+            amp = 0.6
+        elif n <= 6:
+            amp = 0.4 * numpy.exp(-0.1 * (n - 4) ** 2)
+        else:
+            amp = 0.2 / n
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
+
+    # Reed buzz — gentler than oboe's double reed
+    reed = rng.normal(0, 0.03, n_samples)
+    wave += reed
+
+    # Brass body warmth — slight low-mid boost
+    import scipy.signal as _sig
+    center = min(1500, hz * 4)
+    bw = 500
+    lo = max(20, int(center - bw))
+    hi = min(SAMPLE_RATE // 2 - 1, int(center + bw))
+    if lo < hi:
+        bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        body = _sig.lfilter(bp, ap, wave) * 0.2
+        wave += body
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
 def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Acoustic guitar — Karplus-Strong with wooden body resonance.
 
@@ -1100,6 +1203,8 @@ class Synth(Enum):
     CELLO = "cello_synth"
     HARP = "harp_synth"
     UPRIGHT_BASS = "upright_bass_synth"
+    TIMPANI = "timpani_synth"
+    SAXOPHONE = "saxophone_synth"
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
@@ -1121,6 +1226,7 @@ _SYNTH_FUNCTIONS = {
     "marimba_synth": marimba_wave, "oboe_synth": oboe_wave,
     "harpsichord_synth": harpsichord_wave, "cello_synth": cello_wave,
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
+    "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
 }
