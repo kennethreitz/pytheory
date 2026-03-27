@@ -388,6 +388,23 @@ class DrumSound(Enum):
     TABLA_DHA = 89      # both drums (Na + Ge)
     TABLA_TIT = 90      # light dayan flick
     TABLA_KE = 91       # muted bayan slap
+    # Dhol sounds
+    DHOL_DAGGA = 92     # heavy bass side (dagga stick)
+    DHOL_TILLI = 93     # thin treble side (tilli stick)
+    DHOL_BOTH = 94      # both sides
+    # Dholak sounds
+    DHOLAK_GE = 95      # bass side (open palm)
+    DHOLAK_NA = 96      # treble side (fingers)
+    DHOLAK_TIT = 97     # light treble tap
+    # Mridangam sounds
+    MRIDANGAM_THAM = 98  # bass stroke (thoppi/left head)
+    MRIDANGAM_NAM = 99   # treble ring (valanthalai/right head)
+    MRIDANGAM_DIN = 100  # both heads
+    MRIDANGAM_THA = 101  # muted treble
+    # Djembe sounds
+    DJEMBE_BASS = 102    # open bass (center of head)
+    DJEMBE_TONE = 103    # open tone (edge, fingers together)
+    DJEMBE_SLAP = 104    # slap (edge, fingers spread, sharp crack)
 
 
 class _Hit:
@@ -1426,6 +1443,144 @@ Pattern._PRESETS["tiri kita"] = dict(
         _h(TDHA, 1.0), _h(TTIT, 1.25), _h(TTIT, 1.5), _h(TKE, 1.75),
         _h(TNA, 2.0), _h(TKE, 2.25), _h(TDHA, 2.5), _h(TNA, 2.75),
         _h(TDHA, 3.0), _h(TTIT, 3.5), _h(TDHA, 3.75),
+    ],
+)
+
+# ── Dhol patterns ────────────────────────────────────────────────────────
+DD = DrumSound.DHOL_DAGGA
+DT = DrumSound.DHOL_TILLI
+DB = DrumSound.DHOL_BOTH
+
+# Bhangra — the classic punjabi groove
+Pattern._PRESETS["bhangra"] = dict(
+    name="bhangra",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Dagga on 1, tilli fills, both on 3
+        _h(DD, 0.0), _h(DT, 0.5), _h(DT, 0.75),
+        _h(DT, 1.0), _h(DT, 1.5),
+        _h(DB, 2.0), _h(DT, 2.5), _h(DT, 2.75),
+        _h(DD, 3.0), _h(DT, 3.25), _h(DT, 3.5), _h(DT, 3.75),
+    ],
+)
+
+# Dhol chaal — driving folk pattern
+Pattern._PRESETS["dhol chaal"] = dict(
+    name="dhol chaal",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(DB, 0.0), _h(DT, 0.25), _h(DD, 0.5),
+        _h(DT, 1.0), _h(DT, 1.25), _h(DT, 1.5), _h(DD, 1.75),
+        _h(DB, 2.0), _h(DT, 2.25), _h(DD, 2.5),
+        _h(DT, 3.0), _h(DT, 3.25), _h(DT, 3.5), _h(DT, 3.75),
+    ],
+)
+
+# ── Dholak patterns ─────────────────────────────────────────────────────
+DKG = DrumSound.DHOLAK_GE
+DKN = DrumSound.DHOLAK_NA
+DKT = DrumSound.DHOLAK_TIT
+
+# Qawwali — driving devotional pattern
+Pattern._PRESETS["qawwali"] = dict(
+    name="qawwali",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(DKG, 0.0), _h(DKN, 0.5), _h(DKT, 0.75),
+        _h(DKN, 1.0), _h(DKG, 1.5),
+        _h(DKG, 2.0), _h(DKN, 2.5), _h(DKT, 2.75),
+        _h(DKN, 3.0), _h(DKT, 3.25), _h(DKN, 3.5), _h(DKG, 3.75),
+    ],
+)
+
+# Dholak folk — light folk music pattern
+Pattern._PRESETS["dholak folk"] = dict(
+    name="dholak folk",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(DKG, 0.0), _h(DKN, 1.0), _h(DKT, 1.5),
+        _h(DKG, 2.0), _h(DKN, 3.0), _h(DKT, 3.5),
+    ],
+)
+
+# ── Mridangam patterns ──────────────────────────────────────────────────
+MTH = DrumSound.MRIDANGAM_THAM
+MN = DrumSound.MRIDANGAM_NAM
+MD = DrumSound.MRIDANGAM_DIN
+MTA = DrumSound.MRIDANGAM_THA
+
+# Adi talam — the fundamental Carnatic rhythm (8 beats: 4+2+2)
+Pattern._PRESETS["adi talam"] = dict(
+    name="adi talam",
+    time_signature="4/4",
+    beats=8.0,
+    hits=[
+        # Tha Din | Tha ka | Dhi na | Tha ka
+        _h(MD, 0.0), _h(MN, 1.0),
+        _h(MTH, 2.0), _h(MTA, 3.0),
+        _h(MD, 4.0), _h(MN, 5.0),
+        _h(MTH, 6.0), _h(MTA, 7.0),
+    ],
+)
+
+# Mridangam korvai — rhythmic cadence pattern
+Pattern._PRESETS["mridangam korvai"] = dict(
+    name="mridangam korvai",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(MD, 0.0), _h(MN, 0.25), _h(MTA, 0.5), _h(MN, 0.75),
+        _h(MTH, 1.0), _h(MN, 1.25), _h(MN, 1.5), _h(MTH, 1.75),
+        _h(MD, 2.0), _h(MTA, 2.25), _h(MN, 2.5), _h(MTA, 2.75),
+        _h(MD, 3.0), _h(MN, 3.5), _h(MD, 3.75),
+    ],
+)
+
+# ── Djembe patterns ─────────────────────────────────────────────────────
+JB = DrumSound.DJEMBE_BASS
+JT = DrumSound.DJEMBE_TONE
+JS = DrumSound.DJEMBE_SLAP
+
+# Djembe — standard West African pattern
+Pattern._PRESETS["djembe"] = dict(
+    name="djembe",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0), _h(JT, 0.5), _h(JT, 0.75),
+        _h(JS, 1.0), _h(JT, 1.5),
+        _h(JB, 2.0), _h(JT, 2.5), _h(JT, 2.75),
+        _h(JS, 3.0), _h(JT, 3.25), _h(JS, 3.5),
+    ],
+)
+
+# Kuku — traditional Guinean harvest dance rhythm
+Pattern._PRESETS["kuku"] = dict(
+    name="kuku",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JS, 0.0), _h(JS, 0.5),
+        _h(JT, 1.0), _h(JB, 1.5),
+        _h(JS, 2.0), _h(JS, 2.5),
+        _h(JT, 3.0), _h(JT, 3.25), _h(JB, 3.5),
+    ],
+)
+
+# Soli — powerful Mandinka rhythm
+Pattern._PRESETS["soli"] = dict(
+    name="soli",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0), _h(JT, 0.25), _h(JS, 0.5), _h(JT, 0.75),
+        _h(JB, 1.0), _h(JS, 1.5),
+        _h(JB, 2.0), _h(JT, 2.25), _h(JS, 2.5), _h(JT, 2.75),
+        _h(JB, 3.0), _h(JT, 3.5), _h(JS, 3.75),
     ],
 )
 

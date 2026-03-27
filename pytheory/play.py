@@ -1055,6 +1055,290 @@ def _synth_tabla_ke(n_samples):
     return out
 
 
+def _synth_dhol_dagga(n_samples):
+    """Dhol dagga — heavy bass side hit with thick stick.
+
+    The dhol's bass head is thick goatskin, hit with a heavy curved
+    stick (dagga). Massive low-end punch, the sound of bhangra.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Heavy membrane thud
+    thump_len = min(int(SAMPLE_RATE * 0.08), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [30, 180], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 15) * 1.0
+    # Deep pitched body — lower than tabla bayan
+    freq = 50 + 60 * numpy.exp(-20 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    body = numpy.sin(phase) * _exp_decay(n_samples, 8) * 0.9
+    # Sub boom
+    sub = _sine_f32(35, n_samples) * _exp_decay(n_samples, 10) * 0.6
+    # Stick attack — heavier than tabla palm
+    click_len = min(200, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 60) * 0.5
+    result = body + sub
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.5)
+
+
+def _synth_dhol_tilli(n_samples):
+    """Dhol tilli — thin treble side hit with light stick.
+
+    The treble head is thinner goatskin, hit with a thin bamboo stick
+    (tilli). Bright, cutting, high-pitched crack.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Thin membrane snap
+    thump_len = min(int(SAMPLE_RATE * 0.03), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [400, 2000], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 60) * 0.9
+    # Higher pitched ring
+    ring = numpy.sin(2 * numpy.pi * 500 * t) * _exp_decay(n_samples, 20) * 0.5
+    ring2 = numpy.sin(2 * numpy.pi * 1200 * t) * 0.3 * _exp_decay(n_samples, 30)
+    # Sharp stick crack
+    click_len = min(80, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 300) * 0.9
+    result = ring + ring2
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.6)
+
+
+def _synth_dhol_both(n_samples):
+    """Dhol both sides — full power bhangra hit."""
+    dagga = _synth_dhol_dagga(n_samples) * 0.6
+    tilli = _synth_dhol_tilli(n_samples) * 0.5
+    return numpy.tanh(dagga + tilli)
+
+
+def _synth_dholak_ge(n_samples):
+    """Dholak Ge — bass side open palm hit.
+
+    The dholak is lighter and higher-pitched than the dhol, used
+    in folk music and qawwali. Bass side has cotton/thread tuning.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    thump_len = min(int(SAMPLE_RATE * 0.05), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [60, 300], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 25) * 0.7
+    body = numpy.sin(2 * numpy.pi * 90 * t) * _exp_decay(n_samples, 8) * 0.7
+    sub = _sine_f32(55, n_samples) * _exp_decay(n_samples, 10) * 0.4
+    click_len = min(150, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 50) * 0.3
+    result = body + sub
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.3)
+
+
+def _synth_dholak_na(n_samples):
+    """Dholak Na — treble side finger strike."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    thump_len = min(int(SAMPLE_RATE * 0.03), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [250, 1200], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 40) * 0.7
+    ring = numpy.sin(2 * numpy.pi * 400 * t) * _exp_decay(n_samples, 12) * 0.5
+    ring2 = numpy.sin(2 * numpy.pi * 850 * t) * 0.3 * _exp_decay(n_samples, 18)
+    click_len = min(80, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 200) * 0.6
+    result = ring + ring2
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.4)
+
+
+def _synth_dholak_tit(n_samples):
+    """Dholak light tap — fast finger pattern sound."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.05))
+    pop = _noise(min(60, n)) * _exp_decay(min(60, n), 300) * 0.8
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    ring = numpy.sin(2 * numpy.pi * 500 * t) * _exp_decay(n, 30) * 0.4
+    result = ring
+    result[:min(60, n)] += pop
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(result * 1.6)
+    return out
+
+
+def _synth_mridangam_tham(n_samples):
+    """Mridangam Tham — bass stroke on the left head (thoppi).
+
+    The mridangam's left head is tuned with wet wheat paste, giving
+    a darker, more muted bass than tabla's bayan. Clay body resonance.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Membrane with wheat paste — darker character
+    thump_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [40, 200], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 18) * 0.8
+    # Clay body resonance — warmer than metal bayan
+    body = numpy.sin(2 * numpy.pi * 70 * t) * _exp_decay(n_samples, 6) * 0.8
+    clay = numpy.sin(2 * numpy.pi * 140 * t) * 0.25 * _exp_decay(n_samples, 9)
+    click_len = min(200, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 40) * 0.25
+    result = body + clay
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.2)
+
+
+def _synth_mridangam_nam(n_samples):
+    """Mridangam Nam — treble ring on the right head (valanthalai).
+
+    The right head has a permanent syahi (called soru) that gives
+    a clear, bell-like pitch. More overtones than tabla dayan.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    thump_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [200, 900], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 35) * 0.7
+    # Rich overtone ring — more harmonics than tabla
+    ring = numpy.sin(2 * numpy.pi * 300 * t) * _exp_decay(n_samples, 7) * 0.6
+    ring2 = numpy.sin(2 * numpy.pi * 600 * t) * 0.4 * _exp_decay(n_samples, 9)
+    ring3 = numpy.sin(2 * numpy.pi * 920 * t) * 0.25 * _exp_decay(n_samples, 12)
+    ring4 = numpy.sin(2 * numpy.pi * 1250 * t) * 0.15 * _exp_decay(n_samples, 16)
+    click_len = min(100, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 200) * 0.5
+    result = ring + ring2 + ring3 + ring4
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.3)
+
+
+def _synth_mridangam_din(n_samples):
+    """Mridangam Din — both heads simultaneously."""
+    nam = _synth_mridangam_nam(n_samples) * 0.5
+    tham = _synth_mridangam_tham(n_samples) * 0.6
+    return numpy.tanh(nam + tham)
+
+
+def _synth_mridangam_tha(n_samples):
+    """Mridangam Tha — muted treble stroke."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.07))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    thump_len = min(int(SAMPLE_RATE * 0.03), n)
+    thump = _noise(thump_len) * _exp_decay(thump_len, 50) * 0.7
+    body = numpy.sin(2 * numpy.pi * 280 * t) * _exp_decay(n, 22) * 0.5
+    result = body
+    result[:thump_len] += thump
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(result * 1.4)
+    return out
+
+
+def _synth_djembe_bass(n_samples):
+    """Djembe bass — open palm strike in center of goatskin head.
+
+    Deep, warm, round bass. The goblet-shaped wooden body amplifies
+    the low frequencies. Played with a flat palm in the center.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Goatskin membrane — prominent, round
+    thump_len = min(int(SAMPLE_RATE * 0.08), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [50, 250], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 15) * 0.9
+    # Round bass body — goblet resonance
+    body = numpy.sin(2 * numpy.pi * 65 * t) * _exp_decay(n_samples, 6) * 0.9
+    sub = _sine_f32(45, n_samples) * _exp_decay(n_samples, 8) * 0.5
+    # Warm palm attack
+    click_len = min(200, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 35) * 0.25
+    result = body + sub
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.3)
+
+
+def _synth_djembe_tone(n_samples):
+    """Djembe tone — open edge strike, fingers together.
+
+    Clear, pitched, ringing. Fingers strike the edge of the head with
+    the palm off the surface so the head rings freely.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Goatskin membrane at the edge — brighter than center
+    thump_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [150, 800], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 35) * 0.7
+    # Clear pitched ring
+    ring = numpy.sin(2 * numpy.pi * 250 * t) * _exp_decay(n_samples, 8) * 0.6
+    ring2 = numpy.sin(2 * numpy.pi * 500 * t) * 0.3 * _exp_decay(n_samples, 12)
+    click_len = min(100, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 150) * 0.5
+    result = ring + ring2
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.3)
+
+
+def _synth_djembe_slap(n_samples):
+    """Djembe slap — edge strike with fingers spread, sharp crack.
+
+    The highest, sharpest djembe sound. Fingers fan out on contact
+    creating a loud crack with minimal sustain.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Sharp crack — mostly noise
+    crack_len = min(int(SAMPLE_RATE * 0.02), n_samples)
+    crack = _noise(crack_len) * _exp_decay(crack_len, 100) * 1.0
+    # Brief high-pitched ring
+    ring = numpy.sin(2 * numpy.pi * 600 * t) * _exp_decay(n_samples, 25) * 0.4
+    ring2 = numpy.sin(2 * numpy.pi * 1200 * t) * 0.2 * _exp_decay(n_samples, 35)
+    # Brief membrane pop
+    thump_len = min(int(SAMPLE_RATE * 0.02), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [300, 2000], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 80) * 0.8
+    result = ring + ring2
+    result[:crack_len] += crack
+    result[:thump_len] += thump
+    return numpy.tanh(result * 1.7)
+
+
 def _synth_guiro(n_samples):
     """Guiro: scraped ridged surface — rhythmic noise bursts."""
     wave = numpy.zeros(n_samples, dtype=numpy.float32)
@@ -1124,6 +1408,23 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.TABLA_DHA.value: lambda n: _synth_tabla_dha(n),
         DrumSound.TABLA_TIT.value: lambda n: _synth_tabla_tit(n),
         DrumSound.TABLA_KE.value: lambda n: _synth_tabla_ke(n),
+        # Dhol
+        DrumSound.DHOL_DAGGA.value: lambda n: _synth_dhol_dagga(n),
+        DrumSound.DHOL_TILLI.value: lambda n: _synth_dhol_tilli(n),
+        DrumSound.DHOL_BOTH.value: lambda n: _synth_dhol_both(n),
+        # Dholak
+        DrumSound.DHOLAK_GE.value: lambda n: _synth_dholak_ge(n),
+        DrumSound.DHOLAK_NA.value: lambda n: _synth_dholak_na(n),
+        DrumSound.DHOLAK_TIT.value: lambda n: _synth_dholak_tit(n),
+        # Mridangam
+        DrumSound.MRIDANGAM_THAM.value: lambda n: _synth_mridangam_tham(n),
+        DrumSound.MRIDANGAM_NAM.value: lambda n: _synth_mridangam_nam(n),
+        DrumSound.MRIDANGAM_DIN.value: lambda n: _synth_mridangam_din(n),
+        DrumSound.MRIDANGAM_THA.value: lambda n: _synth_mridangam_tha(n),
+        # Djembe
+        DrumSound.DJEMBE_BASS.value: lambda n: _synth_djembe_bass(n),
+        DrumSound.DJEMBE_TONE.value: lambda n: _synth_djembe_tone(n),
+        DrumSound.DJEMBE_SLAP.value: lambda n: _synth_djembe_slap(n),
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
@@ -2592,6 +2893,23 @@ def render_score(score):
         DrumSound.TABLA_GE.value: -0.2,
         DrumSound.TABLA_KE.value: -0.2,
         DrumSound.TABLA_DHA.value: 0.0,   # both drums = center
+        # Dhol: bass left, treble right
+        DrumSound.DHOL_DAGGA.value: -0.2,
+        DrumSound.DHOL_TILLI.value: 0.2,
+        DrumSound.DHOL_BOTH.value: 0.0,
+        # Dholak: similar to dhol
+        DrumSound.DHOLAK_GE.value: -0.15,
+        DrumSound.DHOLAK_NA.value: 0.15,
+        DrumSound.DHOLAK_TIT.value: 0.2,
+        # Mridangam: bass left, treble right
+        DrumSound.MRIDANGAM_THAM.value: -0.2,
+        DrumSound.MRIDANGAM_NAM.value: 0.2,
+        DrumSound.MRIDANGAM_DIN.value: 0.0,
+        DrumSound.MRIDANGAM_THA.value: 0.15,
+        # Djembe: centered (single drum)
+        DrumSound.DJEMBE_BASS.value: 0.0,
+        DrumSound.DJEMBE_TONE.value: 0.1,
+        DrumSound.DJEMBE_SLAP.value: -0.1,
     }
 
     # Render all drum Parts (may be one "drums" or split into kick/snare/hats/etc.)
