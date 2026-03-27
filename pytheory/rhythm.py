@@ -1399,6 +1399,8 @@ class Part:
         self.pan = pan
         self.spread = spread
         self.notes: list[Note] = []
+        self._drum_hits: list[_Hit] = []
+        self._drum_pattern_beats: float = 0.0
         self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
     def add(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100) -> "Part":
@@ -1691,11 +1693,20 @@ class Part:
         return self
 
     @property
+    def is_drums(self) -> bool:
+        """True if this part contains drum hits."""
+        return len(self._drum_hits) > 0
+
+    @property
     def total_beats(self) -> float:
-        return sum(n.beats for n in self.notes)
+        note_beats = sum(n.beats for n in self.notes)
+        if self._drum_hits:
+            drum_beats = self._drum_pattern_beats
+            return max(note_beats, drum_beats)
+        return note_beats
 
     def __len__(self):
-        return len(self.notes)
+        return len(self.notes) + len(self._drum_hits)
 
     def __iter__(self):
         return iter(self.notes)
@@ -1784,14 +1795,64 @@ class Score:
         self.bpm = bpm
         self.swing = swing
         self._drum_humanize = drum_humanize
-        self.drum_effects: dict = {}
         self.notes: list[Note] = []
         self.parts: dict[str, Part] = {}
-        self._drum_hits: list[_Hit] = []
-        self._drum_pattern_beats: float = 0.0
         self._tempo_changes: list[tuple[float, int]] = []
         self._sections: dict[str, Section] = {}
         self._current_section: Optional[Section] = None
+
+    def _ensure_drums_part(self) -> Part:
+        """Get or create the drums Part."""
+        if "drums" not in self.parts:
+            self.parts["drums"] = Part("drums", synth="sine", volume=0.7)
+        return self.parts["drums"]
+
+    @property
+    def _drum_hits(self) -> list:
+        """Proxy: drum hits live on the drums Part."""
+        return self._ensure_drums_part()._drum_hits
+
+    @property
+    def _drum_pattern_beats(self) -> float:
+        """Proxy: drum pattern beats live on the drums Part."""
+        return self._ensure_drums_part()._drum_pattern_beats
+
+    @_drum_pattern_beats.setter
+    def _drum_pattern_beats(self, value: float):
+        self._ensure_drums_part()._drum_pattern_beats = value
+
+    @property
+    def drum_effects(self) -> dict:
+        """Proxy: drum effects are just the drums Part's effect settings."""
+        p = self._ensure_drums_part()
+        return {
+            "reverb_mix": p.reverb_mix, "reverb_decay": p.reverb_decay,
+            "reverb_type": p.reverb_type,
+            "delay_mix": p.delay_mix, "delay_time": p.delay_time,
+            "delay_feedback": p.delay_feedback,
+            "lowpass": p.lowpass, "lowpass_q": p.lowpass_q,
+            "distortion_mix": p.distortion_mix,
+            "distortion_drive": p.distortion_drive,
+            "chorus_mix": p.chorus_mix,
+        }
+
+    def set_drum_effects(self, **kwargs) -> "Score":
+        """Set effects on the drum bus.
+
+        The drums Part is a real Part — set effects the same way
+        you would on any other part.
+
+        Example::
+
+            score.set_drum_effects(reverb=0.2, reverb_type="plate")
+        """
+        p = self._ensure_drums_part()
+        param_map = {"reverb": "reverb_mix", "delay": "delay_mix",
+                     "distortion": "distortion_mix", "chorus": "chorus_mix"}
+        for k, v in kwargs.items():
+            attr = param_map.get(k, k)
+            setattr(p, attr, v)
+        return self
 
     def part(self, name: str, *, synth: str = "sine",
              envelope: str = "piano", volume: float = 0.5,
@@ -1905,28 +1966,6 @@ class Score:
         fill_pattern = Pattern.fill(name)
         return self.add_pattern(fill_pattern, repeats=1)
 
-    def set_drum_effects(self, **kwargs) -> "Score":
-        """Set effects on the drum bus.
-
-        Uses the same parameters as Part effects — reverb, delay,
-        lowpass, distortion, chorus. Applied to the entire drum mix
-        before stereo panning.
-
-        Example::
-
-            score.set_drum_effects(reverb=0.2, reverb_type="plate",
-                                   lowpass=8000, distortion=0.1)
-
-        Returns:
-            Self for chaining.
-        """
-        # Map shorthand names
-        param_map = {"reverb": "reverb_mix", "delay": "delay_mix",
-                     "distortion": "distortion_mix", "chorus": "chorus_mix"}
-        for k, v in kwargs.items():
-            key = param_map.get(k, k)
-            self.drum_effects[key] = v
-        return self
 
     def drums(self, preset: str, repeats: int = 4, fill: str = None,
               fill_every: int = None) -> "Score":

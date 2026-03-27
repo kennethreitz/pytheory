@@ -1836,6 +1836,8 @@ def render_score(score):
     # Named parts — each rendered to own buffer for per-part effects
     _pending_sidechain = []
     for part in score.parts.values():
+        if part.is_drums:
+            continue  # drums are rendered separately via _drum_hits
         if part.notes:
             part_buf = numpy.zeros(total_samples, dtype=numpy.float32)
             synth_fn = _resolve_synth(part.synth)
@@ -1989,12 +1991,15 @@ def render_score(score):
         panned = _pan_to_stereo(mono_hit, pan)
         drum_stereo[start:start + hit_len] += panned
 
-    # Apply drum bus effects (reverb, delay, etc.) to the stereo drum mix
-    if score.drum_effects:
-        fx = score.drum_effects
-        # Apply to each stereo channel using the same effects engine
-        for ch in range(2):
-            drum_stereo[:, ch] = _apply_effects_with_params(drum_stereo[:, ch], fx)
+    # Apply drum Part effects through the same pipeline as any other Part
+    drums_part = score.parts.get("drums")
+    if drums_part:
+        has_drum_fx = (drums_part.lowpass > 0 or drums_part.delay_mix > 0
+                       or drums_part.reverb_mix > 0 or drums_part.distortion_mix > 0
+                       or drums_part.chorus_mix > 0)
+        if has_drum_fx:
+            for ch in range(2):
+                drum_stereo[:, ch] = _apply_part_effects(drum_stereo[:, ch], drums_part)
 
     # Apply sidechain compression to parts that request it
     for part, part_buf in _pending_sidechain:
@@ -2008,7 +2013,7 @@ def render_score(score):
     if score.notes:
         stereo_buf += _pan_to_stereo(buf, 0.0)
 
-    # Drums: stereo panned
+    # Drums: stereo panned (with effects already applied)
     stereo_buf += drum_stereo
 
     # Master bus compressor/limiter (per channel)
