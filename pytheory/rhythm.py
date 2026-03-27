@@ -2074,7 +2074,7 @@ class Score:
 
     def __init__(self, time_signature="4/4", bpm=120, swing: float = 0.0,
                  drum_humanize: float = 0.15, system: str = "western",
-                 temperament: str = "equal"):
+                 temperament: str = "equal", reference_pitch: float = 440.0):
         if isinstance(time_signature, str):
             self.time_signature = TimeSignature.from_string(time_signature)
         else:
@@ -2083,6 +2083,7 @@ class Score:
         self.swing = swing
         self.system = system
         self.temperament = temperament
+        self.reference_pitch = reference_pitch
         self._drum_humanize = drum_humanize
         self.notes: list[Note] = []
         self.parts: dict[str, Part] = {}
