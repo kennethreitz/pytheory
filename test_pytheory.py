@@ -4248,7 +4248,7 @@ def test_parallel_modes_g_major():
 @needs_portaudio
 def test_envelope_enum_presets():
     from pytheory.play import Envelope
-    assert len(Envelope) == 9
+    assert len(Envelope) == 10
     for e in Envelope:
         a, d, s, r = e.value
         assert a >= 0
@@ -6513,7 +6513,7 @@ def test_instrument_effects():
     assert p.reverb_mix == 0.3
     assert p.reverb_type == "plate"
     assert p.synth == "fm"
-    assert p.envelope == "bell"
+    assert p.envelope == "mallet"
 
 
 def test_instrument_808_bass():

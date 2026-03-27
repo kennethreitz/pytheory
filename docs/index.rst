@@ -78,11 +78,13 @@ What's Inside
 - **Sequencing** — Score, Parts, arpeggiator, legato/glide, velocity,
   swing, humanize, tempo changes, song sections with repeat
 - **Synthesis** — 13 waveforms (including Karplus-Strong pluck, Hammond organ,
-  string ensemble), 8 envelopes, 38 instrument presets, detune, stereo
-  pan/spread, 58 drum patterns (stereo panned), 21 fills
+  bowed string), 10 envelopes, 38 instrument presets, configurable FM,
+  sub-oscillator, noise layer, filter envelope, velocity-to-brightness,
+  detune, stereo pan/spread, 58 drum patterns (stereo panned), 21 fills
 - **Effects** — reverb (algorithmic + 7 convolution IRs, stereo), delay,
-  lowpass (with resonance), distortion, chorus, sidechain compression,
-  automation, LFOs. Master bus compressor/limiter
+  lowpass/highpass (with resonance), distortion, saturation, chorus,
+  phaser, tremolo, sidechain compression, automation, LFOs. Master bus
+  compressor/limiter
 - **Instruments** — 25 presets with fingering generation
 - **Output** — stereo playback, WAV export, MIDI import/export
 - **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``

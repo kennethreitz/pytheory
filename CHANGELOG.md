@@ -2,6 +2,29 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.32.0
+
+- **8 new synth engine features:**
+  - Filter envelope: per-note lowpass sweep (`filter_amount`, `filter_attack`, `filter_decay`, `filter_sustain`)
+  - Velocity → brightness: harder notes = brighter filter (`vel_to_filter`)
+  - Sub-oscillator: octave-below sine for bass weight (`sub_osc`)
+  - Tremolo: amplitude LFO modulation (`tremolo_depth`, `tremolo_rate`)
+  - Saturation: even-harmonic tape/tube warmth (`saturation`)
+  - Noise layer: per-note breath/air texture (`noise_mix`)
+  - Phaser: swept allpass filter chain (`phaser`, `phaser_rate`)
+  - Configurable FM: `fm_ratio` and `fm_index` params
+- **Highpass filter** (12 dB/oct biquad) on any part
+- **2 new envelopes:** `bowed` (bow attack with sustain), `mallet` (strike with ringing sustain)
+- **Improved `strings_synth`:** additive synthesis with body resonance curve, per-harmonic phase randomization, delayed vibrato onset, bow pressure variation
+- **Instrument preset overhaul:** every preset sanity-checked against real instrument behavior
+  - Mallet instruments (vibraphone, celesta, music box, glockenspiel, tubular bells) now ring properly
+  - Trumpet uses sustaining envelope instead of pluck
+  - Woodwinds have breath noise, brass has velocity brightness
+  - Bass instruments have sub-oscillators, synth presets have filter envelopes
+  - Piano has velocity-to-brightness and subtle hammer noise
+- Signal chain: saturation → tremolo → distortion → chorus → phaser → highpass → lowpass → delay → reverb
+- Song #21: Cinematic Showcase (Orchestral)
+
 ## 0.31.0
 
 - 3 new synth engines: Karplus-Strong pluck, Hammond organ, string ensemble with body formants

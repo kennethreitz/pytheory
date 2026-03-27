@@ -15,30 +15,36 @@ INSTRUMENTS = {
     # ── Keys ──
     "piano": {
         "synth": "fm", "envelope": "piano",
+        "fm_ratio": 1.0, "fm_index": 1.5,
         "detune": 5, "chorus": 0.1, "chorus_rate": 0.3,
-        "lowpass": 6000,
+        "lowpass": 6000, "saturation": 0.1,
+        "vel_to_filter": 3000, "noise_mix": 0.02,
     },
     "electric_piano": {  # Rhodes/Wurlitzer
         "synth": "fm", "envelope": "piano",
+        "fm_ratio": 1.0, "fm_index": 2.0,
         "detune": 6, "chorus": 0.2, "chorus_rate": 1.0,
-        "lowpass": 4000,
+        "lowpass": 4000, "saturation": 0.15,
+        "tremolo_depth": 0.15, "tremolo_rate": 4.5,
     },
     "organ": {
         "synth": "organ_synth", "envelope": "organ",
         "chorus": 0.2, "chorus_rate": 5.5,
         "lowpass": 5000,
+        "phaser": 0.15, "phaser_rate": 0.4,
     },
     "harpsichord": {
         "synth": "pluck_synth", "envelope": "none",
         "lowpass": 3500,
     },
     "celesta": {
-        "synth": "fm", "envelope": "bell",
+        "synth": "fm", "envelope": "mallet",
+        "fm_ratio": 3.0, "fm_index": 5.0,
         "lowpass": 8000,
         "reverb": 0.3, "reverb_type": "plate",
     },
     "music_box": {
-        "synth": "sine", "envelope": "bell",
+        "synth": "sine", "envelope": "mallet",
         "lowpass": 6000,
         "reverb": 0.25, "reverb_type": "plate",
     },
@@ -47,73 +53,86 @@ INSTRUMENTS = {
     "violin": {
         "synth": "strings_synth", "envelope": "bowed",
         "detune": 2, "lowpass": 5000,
-        "humanize": 0.15,
+        "humanize": 0.15, "vel_to_filter": 1500,
+        "noise_mix": 0.03,
     },
     "viola": {
         "synth": "strings_synth", "envelope": "bowed",
         "detune": 2, "lowpass": 3500,
-        "humanize": 0.15,
+        "humanize": 0.15, "vel_to_filter": 1200,
+        "noise_mix": 0.03,
     },
     "cello": {
         "synth": "strings_synth", "envelope": "bowed",
         "detune": 2, "lowpass": 2500,
-        "humanize": 0.15,
+        "humanize": 0.15, "vel_to_filter": 1000,
+        "noise_mix": 0.02,
     },
     "contrabass": {
         "synth": "strings_synth", "envelope": "bowed",
         "detune": 2, "lowpass": 1500,
-        "humanize": 0.1,
+        "humanize": 0.1, "vel_to_filter": 800,
+        "sub_osc": 0.15,
     },
     "string_ensemble": {
         "synth": "strings_synth", "envelope": "pad",
         "detune": 10, "spread": 0.5,
         "chorus": 0.2, "chorus_rate": 0.5,
         "lowpass": 4000,
+        "noise_mix": 0.02, "saturation": 0.05,
     },
 
     # ── Woodwinds ──
     "flute": {
         "synth": "sine", "envelope": "strings",
         "lowpass": 4000,
-        "humanize": 0.2,
+        "humanize": 0.2, "noise_mix": 0.08,
+        "vel_to_filter": 2000,
     },
     "clarinet": {
         "synth": "square", "envelope": "strings",
         "lowpass": 3000,
-        "humanize": 0.15,
+        "humanize": 0.15, "noise_mix": 0.05,
+        "vel_to_filter": 1500,
     },
     "oboe": {
         "synth": "saw", "envelope": "strings",
         "lowpass": 3500, "lowpass_q": 1.2,
-        "humanize": 0.15,
+        "humanize": 0.15, "noise_mix": 0.04,
+        "vel_to_filter": 1000,
     },
     "bassoon": {
         "synth": "saw", "envelope": "strings",
         "lowpass": 2000,
-        "humanize": 0.15,
+        "humanize": 0.15, "noise_mix": 0.04,
+        "vel_to_filter": 800,
     },
 
     # ── Brass ──
     "trumpet": {
-        "synth": "saw", "envelope": "pluck",
+        "synth": "saw", "envelope": "bowed",
         "detune": 3, "lowpass": 4000, "lowpass_q": 1.1,
-        "humanize": 0.15,
+        "humanize": 0.15, "vel_to_filter": 2000,
+        "saturation": 0.1,
     },
     "trombone": {
         "synth": "saw", "envelope": "strings",
         "detune": 3, "lowpass": 2500,
-        "humanize": 0.15,
+        "humanize": 0.15, "vel_to_filter": 1500,
+        "saturation": 0.1,
     },
     "french_horn": {
         "synth": "saw", "envelope": "strings",
         "detune": 4, "lowpass": 2000,
         "chorus": 0.1,
-        "humanize": 0.15,
+        "humanize": 0.15, "vel_to_filter": 1200,
+        "saturation": 0.1,
     },
     "tuba": {
         "synth": "saw", "envelope": "strings",
         "detune": 3, "lowpass": 1200,
-        "humanize": 0.1,
+        "humanize": 0.1, "vel_to_filter": 600,
+        "sub_osc": 0.2,
     },
     "brass_ensemble": {
         "synth": "saw", "envelope": "strings",
@@ -136,18 +155,18 @@ INSTRUMENTS = {
     "distorted_guitar": {
         "synth": "saw", "envelope": "pluck",
         "detune": 8, "distortion": 0.6, "distortion_drive": 5.0,
-        "lowpass": 3000,
+        "lowpass": 3000, "saturation": 0.3,
         "humanize": 0.15,
     },
     "bass_guitar": {
         "synth": "triangle", "envelope": "pluck",
         "lowpass": 1000,
-        "humanize": 0.1,
+        "humanize": 0.1, "sub_osc": 0.2,
     },
     "upright_bass": {
-        "synth": "sine", "envelope": "pluck",
+        "synth": "triangle", "envelope": "pluck",
         "lowpass": 800,
-        "humanize": 0.15,
+        "humanize": 0.15, "saturation": 0.1,
     },
     "harp": {
         "synth": "pluck_synth", "envelope": "none",
@@ -170,49 +189,65 @@ INSTRUMENTS = {
         "synth": "saw", "envelope": "pluck",
         "detune": 8, "lowpass": 3000,
         "delay": 0.2, "delay_time": 0.25, "delay_feedback": 0.3,
+        "filter_attack": 0.01, "filter_decay": 0.3,
+        "filter_sustain": 0.2, "filter_amount": 3000,
     },
     "synth_pad": {
         "synth": "supersaw", "envelope": "pad",
         "detune": 12, "spread": 0.6,
         "chorus": 0.2,
+        "phaser": 0.3, "phaser_rate": 0.3,
+        "sub_osc": 0.2,
     },
     "synth_bass": {
         "synth": "saw", "envelope": "pluck",
         "lowpass": 800, "lowpass_q": 1.3,
+        "filter_attack": 0.005, "filter_decay": 0.2,
+        "filter_sustain": 0.0, "filter_amount": 2000,
+        "sub_osc": 0.4,
     },
     "acid_bass": {
         "synth": "saw", "envelope": "pad",
         "legato": True, "glide": 0.03,
         "distortion": 0.7, "distortion_drive": 8.0,
         "lowpass": 800, "lowpass_q": 5.0,
+        "filter_attack": 0.005, "filter_decay": 0.15,
+        "filter_sustain": 0.0, "filter_amount": 4000,
+        "vel_to_filter": 3000,
     },
     "808_bass": {
         "synth": "sine", "envelope": "pluck",
         "distortion": 0.4, "distortion_drive": 2.5,
         "lowpass": 200, "lowpass_q": 1.5,
+        "sub_osc": 0.5, "saturation": 0.2,
     },
 
     # ── Percussion / Mallet ──
     "vibraphone": {
-        "synth": "fm", "envelope": "bell",
+        "synth": "fm", "envelope": "mallet",
+        "fm_ratio": 1.0, "fm_index": 1.0,
         "lowpass": 5000,
+        "tremolo_depth": 0.3, "tremolo_rate": 5.5,
         "reverb": 0.3, "reverb_type": "plate",
     },
     "marimba": {
-        "synth": "sine", "envelope": "pluck",
+        "synth": "sine", "envelope": "mallet",
         "lowpass": 3000,
     },
     "xylophone": {
         "synth": "fm", "envelope": "pluck",
+        "fm_ratio": 3.0, "fm_index": 5.0,
         "lowpass": 6000,
     },
     "glockenspiel": {
-        "synth": "fm", "envelope": "bell",
+        "synth": "fm", "envelope": "mallet",
+        "fm_ratio": 4.0, "fm_index": 6.0,
         "lowpass": 8000,
         "reverb": 0.2,
     },
     "tubular_bells": {
-        "synth": "fm", "envelope": "bell",
+        "synth": "fm", "envelope": "mallet",
+        "fm_ratio": 2.0, "fm_index": 3.0,
         "reverb": 0.4, "reverb_type": "cathedral",
     },
 }
@@ -1583,7 +1618,22 @@ class Part:
                  sidechain_release: float = 0.1,
                  detune: float = 0.0,
                  pan: float = 0.0,
-                 spread: float = 0.0):
+                 spread: float = 0.0,
+                 # ── New synth engine params ──
+                 sub_osc: float = 0.0,
+                 noise_mix: float = 0.0,
+                 filter_attack: float = 0.01,
+                 filter_decay: float = 0.3,
+                 filter_sustain: float = 0.0,
+                 filter_amount: float = 0.0,
+                 vel_to_filter: float = 0.0,
+                 saturation: float = 0.0,
+                 tremolo_depth: float = 0.0,
+                 tremolo_rate: float = 5.0,
+                 phaser: float = 0.0,
+                 phaser_rate: float = 0.5,
+                 fm_ratio: float = 2.0,
+                 fm_index: float = 3.0):
         self.name = name
         self.synth = synth
         self.envelope = envelope
@@ -1612,6 +1662,21 @@ class Part:
         self.detune = detune
         self.pan = pan
         self.spread = spread
+        # New synth engine params
+        self.sub_osc = sub_osc
+        self.noise_mix = noise_mix
+        self.filter_attack = filter_attack
+        self.filter_decay = filter_decay
+        self.filter_sustain = filter_sustain
+        self.filter_amount = filter_amount
+        self.vel_to_filter = vel_to_filter
+        self.saturation = saturation
+        self.tremolo_depth = tremolo_depth
+        self.tremolo_rate = tremolo_rate
+        self.phaser_mix = phaser
+        self.phaser_rate = phaser_rate
+        self.fm_ratio = fm_ratio
+        self.fm_index = fm_index
         self.notes: list[Note] = []
         self._drum_hits: list[_Hit] = []
         self._drum_pattern_beats: float = 0.0
@@ -1676,6 +1741,8 @@ class Part:
                 mapped["distortion_mix"] = v
             elif k == "chorus":
                 mapped["chorus_mix"] = v
+            elif k == "phaser":
+                mapped["phaser_mix"] = v
             else:
                 mapped[k] = v
         self._automation.append((beat_pos, mapped))
@@ -1686,10 +1753,13 @@ class Part:
         # Start with initial values
         params = {
             "volume": self.volume,
+            "saturation": self.saturation,
+            "tremolo_depth": self.tremolo_depth, "tremolo_rate": self.tremolo_rate,
             "reverb_mix": self.reverb_mix, "reverb_decay": self.reverb_decay,
             "reverb_type": self.reverb_type,
             "delay_mix": self.delay_mix, "delay_time": self.delay_time,
             "delay_feedback": self.delay_feedback,
+            "phaser_mix": self.phaser_mix, "phaser_rate": self.phaser_rate,
             "highpass": self.highpass, "highpass_q": self.highpass_q,
             "lowpass": self.lowpass, "lowpass_q": self.lowpass_q,
             "distortion_mix": self.distortion_mix,
@@ -2091,7 +2161,22 @@ class Score:
              sidechain_release: float = None,
              detune: float = None,
              pan: float = None,
-             spread: float = None) -> Part:
+             spread: float = None,
+             # New synth engine params
+             sub_osc: float = None,
+             noise_mix: float = None,
+             filter_attack: float = None,
+             filter_decay: float = None,
+             filter_sustain: float = None,
+             filter_amount: float = None,
+             vel_to_filter: float = None,
+             saturation: float = None,
+             tremolo_depth: float = None,
+             tremolo_rate: float = None,
+             phaser: float = None,
+             phaser_rate: float = None,
+             fm_ratio: float = None,
+             fm_index: float = None) -> Part:
         """Create a named part with its own synth voice and effects.
 
         Args:
@@ -2193,6 +2278,14 @@ class Score:
             "swing": swing, "humanize": humanize,
             "sidechain": sidechain, "sidechain_release": sidechain_release,
             "detune": detune, "pan": pan, "spread": spread,
+            "sub_osc": sub_osc, "noise_mix": noise_mix,
+            "filter_attack": filter_attack, "filter_decay": filter_decay,
+            "filter_sustain": filter_sustain, "filter_amount": filter_amount,
+            "vel_to_filter": vel_to_filter,
+            "saturation": saturation,
+            "tremolo_depth": tremolo_depth, "tremolo_rate": tremolo_rate,
+            "phaser": phaser, "phaser_rate": phaser_rate,
+            "fm_ratio": fm_ratio, "fm_index": fm_index,
         }
         for k, v in _locals.items():
             if v is not None:

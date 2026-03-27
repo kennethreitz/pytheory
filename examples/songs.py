@@ -1116,6 +1116,94 @@ def temple_bell():
     play_song(score)
 
 
+def cinematic_showcase():
+    """Cinematic orchestral showcase — tubular bells, strings, organ, harp, acid bass."""
+    score = Score("4/4", bpm=100)
+
+    # Tubular bells — dramatic intro
+    bells = score.part("bells", instrument="tubular_bells",
+                       reverb=0.5, reverb_type="cathedral")
+    bells.add("A3", Duration.WHOLE)
+    for _ in range(7):
+        bells.rest(Duration.WHOLE)
+
+    # String ensemble — lush wide pad
+    strings = score.part("strings", instrument="string_ensemble",
+                         reverb=0.4, reverb_type="hall")
+    strings.rest(Duration.WHOLE)
+    for sym in ["Am", "F", "C", "G", "Dm", "Am", "E"]:
+        strings.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    # Cello — deep foundation
+    cello = score.part("cello", instrument="cello",
+                       reverb=0.3, reverb_type="hall")
+    cello.rest(Duration.WHOLE)
+    for n in ["A2", "F2", "C3", "G2", "D3", "A2", "E2"]:
+        cello.add(n, Duration.WHOLE)
+
+    # Violin — legato melody enters bar 3
+    violin = score.part("violin", instrument="violin",
+                        reverb=0.25, reverb_type="hall", legato=True)
+    violin.rest(Duration.WHOLE)
+    violin.rest(Duration.WHOLE)
+    for note, dur in [
+        ("E5", Duration.HALF), ("C5", Duration.HALF),
+        ("D5", Duration.QUARTER), ("E5", Duration.QUARTER), ("G5", Duration.HALF),
+        ("A5", Duration.HALF), ("G5", Duration.QUARTER), ("E5", Duration.QUARTER),
+        ("F5", Duration.WHOLE),
+        ("E5", Duration.HALF), ("D5", Duration.HALF),
+        ("C5", Duration.HALF), ("B4", Duration.HALF),
+        ("A4", Duration.WHOLE),
+    ]:
+        violin.add(note, dur)
+
+    # Organ — enters halfway, cathedral weight
+    organ = score.part("organ", instrument="organ",
+                       reverb=0.3, reverb_type="cathedral")
+    for _ in range(4):
+        organ.rest(Duration.WHOLE)
+    for sym in ["Dm", "Am", "E", "Am"]:
+        organ.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    # Harp — arpeggiated flourishes bars 3-4
+    harp = score.part("harp", instrument="harp")
+    harp.rest(Duration.WHOLE)
+    harp.rest(Duration.WHOLE)
+    for n in ["A3", "C4", "E4", "A4", "C5", "E5", "A5", "E5",
+              "G3", "B3", "D4", "G4", "B4", "D5", "G5", "D5"]:
+        harp.add(n, Duration.EIGHTH)
+    for _ in range(4):
+        harp.rest(Duration.WHOLE)
+
+    # Vibraphone — shimmer in last bars with delay
+    vib = score.part("vib", instrument="vibraphone",
+                     delay=0.25, delay_time=0.375, delay_feedback=0.35)
+    for _ in range(5):
+        vib.rest(Duration.WHOLE)
+    for note, dur in [
+        ("E5", Duration.QUARTER), ("D5", Duration.QUARTER),
+        ("C5", Duration.QUARTER), ("A4", Duration.QUARTER),
+        ("B4", Duration.HALF), ("E5", Duration.HALF),
+        ("A5", Duration.WHOLE),
+    ]:
+        vib.add(note, dur)
+
+    # Acid bass — gritty texture bars 4-5
+    acid = score.part("acid", instrument="acid_bass")
+    for _ in range(3):
+        acid.rest(Duration.WHOLE)
+    for n in ["C2", "C2", "E2", "G2", "G2", "G2", "A2", "E2",
+              "D2", "D2", "F2", "A2", "A2", "A2", "E2", "E2"]:
+        acid.add(n, Duration.EIGHTH)
+    for _ in range(2):
+        acid.rest(Duration.WHOLE)
+
+    # Half time drums
+    score.drums("half time", repeats=8)
+
+    play_song(score, "Cinematic Showcase — A minor")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1137,6 +1225,7 @@ SONGS = {
     "18": ("Glass and Silk (Sine+Triangle)", glass_and_silk),
     "19": ("Dance Party at the Reitz House", dance_party),
     "20": ("Temple Bell (Japanese)", temple_bell),
+    "21": ("Cinematic Showcase (Orchestral)", cinematic_showcase),
 }
 
 if __name__ == "__main__":
@@ -1150,7 +1239,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-20, or 'all'): ").strip()
+        choice = input("  Pick a song (1-21, or 'all'): ").strip()
         print()
 
         if choice == "all":

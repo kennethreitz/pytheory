@@ -1,7 +1,7 @@
 Synthesizers
 ============
 
-PyTheory includes 10 built-in waveforms and 8 ADSR envelope presets.
+PyTheory includes 13 built-in waveforms and 10 ADSR envelope presets.
 Every sound is generated from scratch -- no samples or external audio
 files needed.
 
@@ -247,6 +247,8 @@ PyTheory includes 8 presets:
    play(tone, envelope=Envelope.ORGAN)     # Instant on/off, no shaping
    play(tone, envelope=Envelope.BELL)      # Instant attack, long ring
    play(tone, envelope=Envelope.STRINGS)   # Gradual bow attack
+   play(tone, envelope=Envelope.BOWED)     # Bow bite into sustain
+   play(tone, envelope=Envelope.MALLET)    # Strike with ringing sustain
    play(tone, envelope=Envelope.STACCATO)  # Short and punchy
    play(tone, envelope=Envelope.NONE)      # Raw waveform, no shaping
 
@@ -260,8 +262,10 @@ Name             Character
 ``"pluck"``      Sharp attack, fast decay -- guitar pick, harp
 ``"pad"``        Slow fade in, lush sustain -- strings, synth pads
 ``"organ"``      Instant on/off -- Hammond organ, no shaping
-``"bell"``       Instant attack, long ring -- vibraphone, tubular
+``"bell"``       Instant attack, no sustain -- short metallic ring
 ``"strings"``    Gradual bow attack -- orchestral strings, slow
+``"bowed"``      Bow bite into sustain -- solo strings, brass
+``"mallet"``     Strike with ringing sustain -- vibraphone, celesta
 ``"staccato"``   Short and punchy -- funk stabs, percussive hits
 ``"none"``       Raw waveform, no amplitude shaping at all
 ===============  ================================================

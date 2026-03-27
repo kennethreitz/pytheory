@@ -377,6 +377,7 @@ class Envelope(Enum):
     STRINGS = (0.15, 0.1, 0.8, 0.3)
     BOWED = (0.04, 0.08, 0.75, 0.25)
     BELL = (0.001, 0.3, 0.0, 0.5)
+    MALLET = (0.002, 0.05, 0.6, 0.8)
     STACCATO = (0.005, 0.05, 0.0, 0.02)
 
 
@@ -1568,6 +1569,171 @@ def _apply_chorus(samples, mix=0.5, rate=1.5, depth=0.003,
     return samples * (1 - mix * 0.5) + wet * mix * 0.5
 
 
+def _apply_filter_envelope(samples, base_cutoff, amount, f_attack, f_decay,
+                           f_sustain, q=0.707, vel_cutoff_boost=0.0,
+                           sample_rate=SAMPLE_RATE):
+    """Apply a per-note filter envelope — cutoff sweeps over time.
+
+    This is the core of subtractive synthesis: the filter opens on the
+    attack and closes during decay, giving notes a characteristic
+    "bwow" or "wah" shape.
+
+    Uses block-based processing (64-sample blocks) with biquad coefficient
+    interpolation for efficiency and smooth sweeps.
+    """
+    n = len(samples)
+    if n == 0 or amount <= 0:
+        return samples
+
+    block_size = 64
+    out = numpy.empty_like(samples)
+
+    # Build the filter cutoff envelope
+    a_samps = int(f_attack * sample_rate)
+    d_samps = int(f_decay * sample_rate)
+    sustain_level = f_sustain * amount
+
+    cutoff_env = numpy.full(n, sustain_level + base_cutoff + vel_cutoff_boost,
+                            dtype=numpy.float64)
+    # Attack ramp: 0 → amount
+    if a_samps > 0:
+        a_end = min(a_samps, n)
+        cutoff_env[:a_end] = (base_cutoff + vel_cutoff_boost +
+                              numpy.linspace(0, amount, a_end))
+    # Decay ramp: amount → sustain_level
+    if d_samps > 0:
+        d_start = min(a_samps, n)
+        d_end = min(a_samps + d_samps, n)
+        if d_end > d_start:
+            cutoff_env[d_start:d_end] = (base_cutoff + vel_cutoff_boost +
+                                         numpy.linspace(amount, sustain_level,
+                                                        d_end - d_start))
+
+    # Clamp cutoff to valid range
+    cutoff_env = numpy.clip(cutoff_env, 20.0, sample_rate / 2 - 1)
+
+    # Block-based biquad processing with varying cutoff
+    # State variables for the filter
+    x1 = x2 = y1 = y2 = 0.0
+    pos = 0
+    while pos < n:
+        end = min(pos + block_size, n)
+        block = samples[pos:end]
+        # Use cutoff at block midpoint
+        mid = (pos + end) // 2
+        fc = cutoff_env[mid]
+        # Compute biquad coefficients
+        w0 = 2 * numpy.pi * fc / sample_rate
+        sin_w0 = numpy.sin(w0)
+        cos_w0 = numpy.cos(w0)
+        alpha = sin_w0 / (2 * q)
+        b0 = (1 - cos_w0) / 2
+        b1 = 1 - cos_w0
+        b2 = (1 - cos_w0) / 2
+        a0 = 1 + alpha
+        a1 = -2 * cos_w0
+        a2 = 1 - alpha
+        # Normalize
+        b0 /= a0; b1 /= a0; b2 /= a0
+        a1 /= a0; a2 /= a0
+        # Process block sample by sample (maintaining state)
+        out_block = numpy.empty(len(block), dtype=numpy.float32)
+        for i in range(len(block)):
+            x0 = float(block[i])
+            y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+            out_block[i] = y0
+            x2 = x1; x1 = x0
+            y2 = y1; y1 = y0
+        out[pos:end] = out_block
+        pos = end
+
+    return out
+
+
+def _apply_saturation(samples, amount=0.5):
+    """Apply tape/tube saturation — subtle even-harmonic warmth.
+
+    Unlike distortion (tanh, odd harmonics), saturation uses a
+    polynomial waveshaper that adds 2nd and 4th harmonics — the
+    warm, pleasing character of analog tape and tube preamps.
+    """
+    if amount <= 0:
+        return samples
+    # Asymmetric polynomial: x + k*x^2 adds even harmonics
+    driven = samples + amount * samples * samples
+    # Normalize to prevent gain buildup
+    driven = driven / (1.0 + amount)
+    # Soft clip any overs
+    return numpy.clip(driven, -1.0, 1.0).astype(numpy.float32)
+
+
+def _apply_tremolo(samples, depth=0.5, rate=5.0, sample_rate=SAMPLE_RATE):
+    """Apply tremolo — amplitude modulation by a sine LFO.
+
+    The classic vibrating amp sound. Essential for vibraphone,
+    electric guitar, and organ Leslie speaker simulation.
+    """
+    if depth <= 0:
+        return samples
+    t = numpy.arange(len(samples), dtype=numpy.float64) / sample_rate
+    lfo = 1.0 - depth * 0.5 * (1.0 + numpy.sin(2 * numpy.pi * rate * t))
+    return (samples * lfo).astype(numpy.float32)
+
+
+def _apply_phaser(samples, mix=0.5, rate=0.5, stages=4,
+                  sample_rate=SAMPLE_RATE):
+    """Apply phaser — swept allpass filter chain.
+
+    Creates moving notches in the frequency spectrum by passing
+    the signal through a chain of allpass filters whose center
+    frequencies are modulated by an LFO. Classic effect for
+    electric piano, pads, and guitar.
+    """
+    if mix <= 0:
+        return samples
+    n = len(samples)
+    block_size = 64
+    t = numpy.arange(n, dtype=numpy.float64) / sample_rate
+
+    # LFO sweeps center frequency between 200Hz and 4000Hz (log scale)
+    lfo = 0.5 + 0.5 * numpy.sin(2 * numpy.pi * rate * t)
+    center_freqs = 200.0 * (20.0 ** lfo)  # 200Hz to 4000Hz
+
+    # Process through allpass stages
+    wet = samples.copy().astype(numpy.float64)
+    for _stage in range(stages):
+        out = numpy.empty(n, dtype=numpy.float64)
+        # Allpass state
+        x1 = x2 = y1 = y2 = 0.0
+        pos = 0
+        while pos < n:
+            end = min(pos + block_size, n)
+            mid = (pos + end) // 2
+            fc = center_freqs[mid]
+            # Allpass biquad coefficients
+            w0 = 2 * numpy.pi * fc / sample_rate
+            alpha = numpy.sin(w0) / 2.0  # Q=0.5 for wide sweep
+            cos_w0 = numpy.cos(w0)
+            b0 = 1 - alpha
+            b1 = -2 * cos_w0
+            b2 = 1 + alpha
+            a0 = 1 + alpha
+            a1 = -2 * cos_w0
+            a2 = 1 - alpha
+            b0 /= a0; b1 /= a0; b2 /= a0
+            a1 /= a0; a2 /= a0
+            for i in range(pos, end):
+                x0 = wet[i]
+                y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+                out[i] = y0
+                x2 = x1; x1 = x0
+                y2 = y1; y1 = y0
+            pos = end
+        wet = out
+
+    return (samples * (1 - mix) + wet.astype(numpy.float32) * mix).astype(numpy.float32)
+
+
 def _apply_distortion(samples, drive=1.0, mix=1.0):
     """Apply soft-clip distortion (tanh waveshaping).
 
@@ -1599,7 +1765,13 @@ def _apply_distortion(samples, drive=1.0, mix=1.0):
 
 def _apply_effects_with_params(samples, params, skip_reverb=False):
     """Apply effects using a params dict. Used for both static and automated rendering."""
-    # Signal chain: distortion → chorus → highpass → lowpass → delay → reverb
+    # Signal chain: saturation → tremolo → distortion → chorus → phaser
+    #             → highpass → lowpass → delay → reverb
+    if params.get("saturation", 0) > 0:
+        samples = _apply_saturation(samples, amount=params["saturation"])
+    if params.get("tremolo_depth", 0) > 0:
+        samples = _apply_tremolo(samples, depth=params["tremolo_depth"],
+                                 rate=params.get("tremolo_rate", 5.0))
     if params.get("distortion_mix", 0) > 0:
         samples = _apply_distortion(samples,
                                     drive=params.get("distortion_drive", 3.0),
@@ -1609,6 +1781,9 @@ def _apply_effects_with_params(samples, params, skip_reverb=False):
                                 mix=params["chorus_mix"],
                                 rate=params.get("chorus_rate", 1.5),
                                 depth=params.get("chorus_depth", 0.003))
+    if params.get("phaser_mix", 0) > 0:
+        samples = _apply_phaser(samples, mix=params["phaser_mix"],
+                                rate=params.get("phaser_rate", 0.5))
     if params.get("highpass", 0) > 0:
         samples = _apply_highpass(samples, params["highpass"],
                                   params.get("highpass_q", 0.707))
@@ -1636,11 +1811,16 @@ def _apply_effects_with_params(samples, params, skip_reverb=False):
 def _apply_part_effects(samples, part):
     """Apply all effects configured on a Part to a float32 buffer."""
     params = {
+        "saturation": part.saturation,
+        "tremolo_depth": part.tremolo_depth,
+        "tremolo_rate": part.tremolo_rate,
         "distortion_mix": part.distortion_mix,
         "distortion_drive": part.distortion_drive,
         "chorus_mix": part.chorus_mix,
         "chorus_rate": part.chorus_rate,
         "chorus_depth": part.chorus_depth,
+        "phaser_mix": part.phaser_mix,
+        "phaser_rate": part.phaser_rate,
         "highpass": part.highpass,
         "highpass_q": part.highpass_q,
         "lowpass": part.lowpass,
@@ -1786,11 +1966,17 @@ def _total_samples_from_tempo_map(total_beats, tempo_map):
 def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          synth_fn, envelope_tuple, volume, bpm,
                          swing=0.0, tempo_map=None, humanize=0.0,
-                         detune=0.0, spread=0.0, stereo_buf=None):
+                         detune=0.0, spread=0.0, stereo_buf=None,
+                         sub_osc=0.0, noise_mix=0.0,
+                         filter_attack=0.01, filter_decay=0.3,
+                         filter_sustain=0.0, filter_amount=0.0,
+                         vel_to_filter=0.0, filter_q=0.707,
+                         synth_kwargs=None):
     """Render a list of Notes into an existing buffer at the correct positions."""
     import random as _rnd
 
     a, d, s, r = envelope_tuple
+    _skw = synth_kwargs or {}
     beat_pos = 0.0
     for note_index, note in enumerate(notes):
         if note.tone is not None:
@@ -1817,8 +2003,14 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     pitches = [t.pitch() for t in note.tone.tones]
                 else:
                     pitches = [note.tone.pitch()]
-                # Render oscillators
-                waves = [synth_fn(hz, n_samples=n_samples) for hz in pitches]
+                # Render oscillators (pass synth_kwargs for FM etc.)
+                waves = [synth_fn(hz, n_samples=n_samples, **_skw)
+                         for hz in pitches]
+                # Sub-oscillator: octave-below sine
+                if sub_osc > 0:
+                    for hz in pitches:
+                        sub = sine_wave(hz / 2, n_samples=n_samples)
+                        waves.append(sub)
                 # Detune: add oscillators shifted by ±cents
                 detune_up = None
                 detune_down = None
@@ -1828,8 +2020,8 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     for hz in pitches:
                         hz_up = hz * (2 ** (detune / 1200))
                         hz_down = hz * (2 ** (-detune / 1200))
-                        up_waves.append(synth_fn(hz_up, n_samples=n_samples))
-                        down_waves.append(synth_fn(hz_down, n_samples=n_samples))
+                        up_waves.append(synth_fn(hz_up, n_samples=n_samples, **_skw))
+                        down_waves.append(synth_fn(hz_down, n_samples=n_samples, **_skw))
                     if spread > 0 and stereo_buf is not None:
                         # Spread: detuned oscillators go to opposite channels
                         detune_up = sum(w.astype(numpy.float32) for w in up_waves) / SAMPLE_PEAK
@@ -1838,14 +2030,44 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                         waves.extend(up_waves + down_waves)
                 n_osc = len(waves)
                 mixed = sum(w.astype(numpy.float32) for w in waves) / (SAMPLE_PEAK * max(1, n_osc))
+                # Mix sub-oscillator with appropriate gain
+                if sub_osc > 0:
+                    # Sub was already included in waves; scale the mix
+                    # Boost the sub contribution relative to main
+                    sub_count = len(pitches)
+                    main_count = n_osc - sub_count
+                    if main_count > 0:
+                        # Re-render: main only + sub at controlled level
+                        main_waves = waves[:n_osc - sub_count]
+                        sub_waves = waves[n_osc - sub_count:]
+                        main_mix = sum(w.astype(numpy.float32) for w in main_waves) / (SAMPLE_PEAK * max(1, len(main_waves)))
+                        sub_mix = sum(w.astype(numpy.float32) for w in sub_waves) / (SAMPLE_PEAK * max(1, len(sub_waves)))
+                        mixed = main_mix * (1.0 - sub_osc * 0.3) + sub_mix * sub_osc * 0.3
+                # Noise layer: add noise following the note
+                if noise_mix > 0:
+                    noise = numpy.random.uniform(-1, 1, n_samples).astype(numpy.float32)
+                    mixed = mixed * (1.0 - noise_mix * 0.5) + noise * noise_mix * 0.5
+                # Amplitude envelope
                 if a > 0 or d > 0 or s < 1.0 or r > 0:
                     mixed = _apply_envelope(mixed, a, d, s, r)
-                # Apply per-note velocity scaling + humanize velocity
+                # Per-note velocity
                 vel = getattr(note, 'velocity', 100)
                 if humanize > 0.0:
                     vel_jitter = int(humanize * 15)
                     vel = max(1, min(127, vel + _rnd.randint(-vel_jitter, vel_jitter)))
                 vel_scale = vel / 127.0
+                # Filter envelope (per-note subtractive filter sweep)
+                if filter_amount > 0:
+                    base_cut = 200.0  # base cutoff before envelope opens it
+                    vel_boost = vel_to_filter * vel_scale if vel_to_filter > 0 else 0.0
+                    mixed = _apply_filter_envelope(
+                        mixed, base_cut, filter_amount,
+                        filter_attack, filter_decay, filter_sustain,
+                        q=filter_q, vel_cutoff_boost=vel_boost)
+                elif vel_to_filter > 0:
+                    # Velocity brightness without filter envelope
+                    vel_cutoff = vel_to_filter * vel_scale + 1000
+                    mixed = _apply_lowpass(mixed, vel_cutoff, q=filter_q)
                 end = min(start + len(mixed), total_samples)
                 buf[start:end] += mixed[:end - start] * volume * vel_scale
                 # Spread detuned oscillators into stereo L/R
@@ -2010,6 +2232,11 @@ def render_score(score):
             env_tuple = _resolve_envelope(part.envelope)
             # Use part swing if set, otherwise score swing
             effective_swing = part.swing if part.swing is not None else score.swing
+            # Build synth-specific kwargs (e.g. FM ratio/index)
+            synth_kwargs = {}
+            if part.synth in ("fm",):
+                synth_kwargs["mod_ratio"] = part.fm_ratio
+                synth_kwargs["mod_index"] = part.fm_index
             if part.legato:
                 _render_legato_to_buf(
                     part.notes, part_buf, samples_per_beat, total_samples,
@@ -2025,7 +2252,16 @@ def render_score(score):
                     humanize=part.humanize,
                     detune=part.detune,
                     spread=part.spread,
-                    stereo_buf=stereo_buf)
+                    stereo_buf=stereo_buf,
+                    sub_osc=part.sub_osc,
+                    noise_mix=part.noise_mix,
+                    filter_attack=part.filter_attack,
+                    filter_decay=part.filter_decay,
+                    filter_sustain=part.filter_sustain,
+                    filter_amount=part.filter_amount,
+                    vel_to_filter=part.vel_to_filter,
+                    filter_q=part.lowpass_q,
+                    synth_kwargs=synth_kwargs)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()
@@ -2043,8 +2279,10 @@ def render_score(score):
                     params = part._get_params_at(seg_start_beat)
                     segment = part_buf[seg_start:seg_end].copy()
                     has_fx = any(params.get(k, 0) > 0 for k in
-                                ["distortion_mix", "chorus_mix", "highpass",
-                                 "lowpass", "delay_mix", "reverb_mix"])
+                                ["saturation", "tremolo_depth",
+                                 "distortion_mix", "chorus_mix", "phaser_mix",
+                                 "highpass", "lowpass", "delay_mix",
+                                 "reverb_mix"])
                     if has_fx:
                         segment = _apply_effects_with_params(segment, params)
                     # Apply volume automation
@@ -2053,9 +2291,11 @@ def render_score(score):
                         segment = segment * (seg_vol / part.volume) if part.volume > 0 else segment
                     part_buf[seg_start:seg_end] = segment
             else:
-                has_fx = (part.highpass > 0 or part.lowpass > 0
-                          or part.delay_mix > 0 or part.reverb_mix > 0
-                          or part.distortion_mix > 0 or part.chorus_mix > 0)
+                has_fx = (part.saturation > 0 or part.tremolo_depth > 0
+                          or part.distortion_mix > 0 or part.chorus_mix > 0
+                          or part.phaser_mix > 0 or part.highpass > 0
+                          or part.lowpass > 0 or part.delay_mix > 0
+                          or part.reverb_mix > 0)
                 if has_fx:
                     part_buf = _apply_part_effects(part_buf, part)
             # Apply sidechain compression if enabled
@@ -2162,7 +2402,10 @@ def render_score(score):
             part_stereo[start:start + hit_len] += panned
 
         # Apply this drum Part's effects
-        has_drum_fx = (drum_part.highpass > 0 or drum_part.lowpass > 0 or drum_part.delay_mix > 0
+        has_drum_fx = (drum_part.saturation > 0 or drum_part.tremolo_depth > 0
+                          or drum_part.phaser_mix > 0
+                          or drum_part.highpass > 0 or drum_part.lowpass > 0
+                          or drum_part.delay_mix > 0
                        or drum_part.reverb_mix > 0 or drum_part.distortion_mix > 0
                        or drum_part.chorus_mix > 0)
         if has_drum_fx:

@@ -32,13 +32,26 @@ It's a well-tested order that sounds good by default.
 
 Effects are applied in this fixed order::
 
-    Signal --> Distortion --> Chorus --> Lowpass Filter --> Delay --> Reverb --> Mix
+    Signal --> Saturation --> Tremolo --> Distortion --> Chorus --> Phaser
+          --> Highpass --> Lowpass --> Delay --> Reverb --> Mix
 
-- **Distortion** first: drives the raw signal before filtering (like
-  plugging a guitar into a fuzz pedal before the amp).
-- **Chorus** second: thickens the distorted signal.
-- **Lowpass** third: shapes the tone (like a tone knob on an amp).
-- **Delay** fourth: echoes the shaped signal (tap delay / tape echo).
+Additionally, these per-note effects are applied before the part effects chain:
+
+- **Sub-oscillator**: octave-below sine mixed in at the oscillator stage
+- **Noise layer**: filtered noise mixed per-note for breath/transients
+- **Filter envelope**: per-note lowpass sweep (attack/decay/sustain)
+- **Velocity → brightness**: harder velocity = brighter filter cutoff
+
+Part-level effects:
+
+- **Saturation** first: subtle even-harmonic warmth (tape/tube color).
+- **Tremolo** second: amplitude LFO modulation.
+- **Distortion** third: drives the signal before filtering.
+- **Chorus** fourth: thickens the signal.
+- **Phaser** fifth: swept allpass notches.
+- **Highpass** sixth: removes low-frequency mud.
+- **Lowpass** seventh: shapes the tone (like a tone knob on an amp).
+- **Delay** eighth: echoes the shaped signal (tap delay / tape echo).
 - **Reverb** last: places everything in a space (room / hall).
 
 Distortion
@@ -498,6 +511,221 @@ whole mix will gasp for air:
        delay=0.2,
    )
 
+Saturation
+----------
+
+Saturation is the warm, subtle harmonic enhancement of analog tape
+machines and tube preamps. Unlike distortion (which uses ``tanh`` and
+adds harsh odd harmonics), saturation uses a polynomial waveshaper
+that adds even harmonics -- 2nd and 4th -- which the ear perceives as
+warmth and fullness. It's why records mixed through a Neve console
+sound "bigger" than the same mix done in the box.
+
+Parameters:
+
+- ``saturation``: Amount, 0.0--1.0 (default 0, off).
+
+  - 0.05--0.15 = subtle analog warmth (tape machine)
+  - 0.2--0.4 = noticeable color (tube preamp)
+  - 0.5+ = heavy coloring
+
+.. code-block:: python
+
+   # Warm up a bass
+   bass = score.part("bass", synth="saw", saturation=0.2)
+
+   # Glue a string ensemble
+   strings = score.part("strings", instrument="string_ensemble",
+                        saturation=0.1)
+
+Tremolo
+-------
+
+Amplitude modulation by a sine LFO. The classic vibrating-amp sound.
+Essential for vibraphone (the rotating discs in the resonator tubes),
+Rhodes electric piano, and surf guitar. Not to be confused with
+vibrato (pitch modulation).
+
+Parameters:
+
+- ``tremolo_depth``: Modulation depth, 0.0--1.0 (default 0, off).
+- ``tremolo_rate``: LFO speed in Hz (default 5.0).
+
+  - 3--5 Hz = classic tremolo
+  - 5--7 Hz = vibraphone motor speed
+  - 8+ Hz = ring-mod territory
+
+.. code-block:: python
+
+   # Classic Fender amp tremolo
+   guitar = score.part("guitar", synth="saw", envelope="pluck",
+                       tremolo_depth=0.3, tremolo_rate=4.0)
+
+   # Vibraphone with motor
+   vib = score.part("vib", instrument="vibraphone")  # built in
+
+Phaser
+------
+
+A chain of allpass filters whose center frequencies are swept by an
+LFO, creating moving notches in the spectrum. The classic "jet
+engine" or "underwater" effect. Think Small Stone, MXR Phase 90, or
+the intro to "Eruption." Different from chorus -- chorus adds a
+detuned copy, phaser cancels specific frequencies.
+
+Parameters:
+
+- ``phaser``: Wet/dry mix, 0.0--1.0 (default 0, off).
+- ``phaser_rate``: LFO sweep speed in Hz (default 0.5).
+
+  - 0.1--0.3 = slow, lush sweep
+  - 0.5--1.0 = classic phaser
+  - 2.0+ = fast, Leslie-like
+
+.. code-block:: python
+
+   # Slow sweep on a pad
+   pad = score.part("pad", synth="supersaw", envelope="pad",
+                    phaser=0.4, phaser_rate=0.2)
+
+   # Leslie sim on organ (built in)
+   organ = score.part("organ", instrument="organ")
+
+Highpass Filter
+---------------
+
+The opposite of lowpass -- removes low-frequency content below the
+cutoff. Useful for cleaning up mud from pads, keeping multiple bass
+parts from masking each other, or thinning out a sound to sit better
+in a mix.
+
+Parameters:
+
+- ``highpass``: Cutoff frequency in Hz (0 = off).
+
+  - 80--150 Hz = clean up sub rumble
+  - 200--400 Hz = thin out a pad
+  - 500+ Hz = telephone / radio effect
+
+- ``highpass_q``: Resonance / Q factor (default 0.707).
+
+.. code-block:: python
+
+   # Clean up sub rumble from a pad
+   pad = score.part("pad", synth="supersaw", highpass=120)
+
+   # Thin out rhythm guitar to leave room for bass
+   rhythm = score.part("rhythm", synth="saw", highpass=250)
+
+Filter Envelope
+---------------
+
+A per-note lowpass filter whose cutoff sweeps over time. This is the
+core of subtractive synthesis -- the reason a Moog bass goes "bwow"
+instead of "boop." The filter opens on the attack and closes during
+decay, giving each note a distinctive timbral shape.
+
+Parameters:
+
+- ``filter_amount``: Sweep range in Hz (0 = off). How far the filter
+  opens above the base cutoff.
+- ``filter_attack``: Time to reach peak cutoff, in seconds (default 0.01).
+- ``filter_decay``: Time to fall to sustain level (default 0.3).
+- ``filter_sustain``: Sustain level as fraction of amount, 0.0--1.0
+  (default 0.0 = filter closes completely after decay).
+
+.. code-block:: python
+
+   # Classic synth bass "bwow"
+   bass = score.part("bass", instrument="synth_bass")  # built in
+
+   # Acid squelch
+   acid = score.part("acid", instrument="acid_bass")  # built in
+
+   # Custom filter sweep on a lead
+   lead = score.part("lead", synth="saw",
+                     filter_amount=4000, filter_attack=0.01,
+                     filter_decay=0.4, filter_sustain=0.1)
+
+Velocity to Brightness
+~~~~~~~~~~~~~~~~~~~~~~
+
+Real instruments get brighter when played harder. ``vel_to_filter``
+maps note velocity to filter cutoff boost, so louder notes have more
+high-frequency content.
+
+- ``vel_to_filter``: Cutoff boost in Hz at max velocity (default 0, off).
+
+.. code-block:: python
+
+   # Piano: soft = mellow, loud = bright
+   piano = score.part("piano", instrument="piano")  # built in
+
+   # Manual: custom velocity mapping on a lead
+   lead = score.part("lead", synth="saw", vel_to_filter=3000)
+
+Sub-Oscillator
+--------------
+
+An octave-below sine wave mixed in with the main oscillator. Adds
+low-end weight without muddiness -- the sub fills in the fundamental
+while the main oscillator provides harmonic character above.
+
+- ``sub_osc``: Mix level, 0.0--1.0 (default 0, off).
+
+  - 0.1--0.2 = subtle weight (tuba, bass guitar)
+  - 0.3--0.5 = heavy sub (808, synth bass)
+
+.. code-block:: python
+
+   # Fat 808 kick-bass
+   bass = score.part("bass", instrument="808_bass")  # built in
+
+   # Add weight to any part
+   lead = score.part("lead", synth="saw", sub_osc=0.3)
+
+Noise Layer
+-----------
+
+White noise mixed into each note, following the same amplitude
+envelope. Adds breath for woodwinds, hammer/felt noise for piano,
+bow rosin for strings, and attack transients for percussion.
+
+- ``noise_mix``: Mix level, 0.0--1.0 (default 0, off).
+
+  - 0.02--0.04 = subtle texture (strings, piano)
+  - 0.05--0.08 = noticeable breath (woodwinds)
+  - 0.1+ = heavy air/texture
+
+.. code-block:: python
+
+   # Breathy flute
+   flute = score.part("flute", instrument="flute")  # noise_mix=0.08
+
+   # Add air to any synth
+   pad = score.part("pad", synth="supersaw", noise_mix=0.05)
+
+Configurable FM
+---------------
+
+The FM synth now accepts ``fm_ratio`` and ``fm_index`` parameters,
+letting you dial in specific FM timbres instead of using the defaults.
+
+- ``fm_ratio``: Modulator frequency as multiple of carrier (default 2.0).
+  Integer ratios = harmonic timbres; non-integer = metallic/inharmonic.
+- ``fm_index``: Modulation depth (default 3.0). Higher = more harmonics.
+
+.. code-block:: python
+
+   # Warm electric piano (low ratio, low index)
+   ep = score.part("ep", synth="fm", fm_ratio=1.0, fm_index=1.5)
+
+   # Bright metallic bell (high ratio, high index)
+   bell = score.part("bell", synth="fm", fm_ratio=3.5, fm_index=5.0)
+
+   # Glockenspiel
+   glock = score.part("glock", instrument="glockenspiel")  # built in
+
 Automation
 ----------
 
@@ -528,9 +756,10 @@ processes each section independently:
    lead.set(lowpass=4000, distortion=0.7, reverb=0.3)
    lead.arpeggio("Gm", bars=4, pattern="updown", octaves=2)
 
-Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``reverb``,
-``reverb_decay``, ``delay``, ``delay_time``, ``delay_feedback``,
-``distortion``, ``distortion_drive``, ``chorus``, ``volume``.
+Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``highpass``,
+``reverb``, ``reverb_decay``, ``delay``, ``delay_time``, ``delay_feedback``,
+``distortion``, ``distortion_drive``, ``chorus``, ``phaser``, ``phaser_rate``,
+``saturation``, ``tremolo_depth``, ``tremolo_rate``, ``volume``.
 
 LFO Automation
 --------------
