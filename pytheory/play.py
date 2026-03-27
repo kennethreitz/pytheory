@@ -442,7 +442,7 @@ def flute_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
     # Vibrato — develops after ~200ms
     vib_onset = numpy.clip(t / 0.2, 0.0, 1.0)
-    vib = hz * 0.0015 * vib_onset * numpy.sin(2 * numpy.pi * 5.0 * t)
+    vib = hz * 0.0008 * vib_onset * numpy.sin(2 * numpy.pi * 5.0 * t)
 
     # Tube resonance — mostly fundamental + weak odd harmonics
     wave = numpy.sin(2 * numpy.pi * (hz + vib) * t) * 0.7
