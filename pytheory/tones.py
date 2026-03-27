@@ -89,6 +89,35 @@ class Tone:
                     if octave is None:
                         octave = parsed_octave
 
+        # Octave boundary fix: B#→C should increment octave,
+        # Cb→B should decrement octave (scientific pitch changes at C).
+        # Only applies to Western-style systems with letter names.
+        if octave is not None and name and name[0].isalpha():
+            if isinstance(system, str):
+                from .systems import SYSTEMS
+                _sys_check = SYSTEMS.get(system)
+            else:
+                _sys_check = system
+            if _sys_check is not None:
+                resolved = _sys_check.resolve_name(name)
+                if resolved is not None and resolved != name:
+                    orig_letter = name[0].upper()
+                    res_letter = resolved[0].upper()
+                    # Sharp crossing B→C: B# resolves to C, octave up
+                    if orig_letter == 'B' and res_letter == 'C' and '#' in name:
+                        octave += 1
+                    # Double sharp: A## resolves to B — no boundary cross
+                    # But B## resolves to C# — boundary cross
+                    if orig_letter == 'B' and res_letter not in ('B', 'A') and '##' in name:
+                        octave += 1
+                    # Flat crossing C→B: Cb resolves to B, octave down
+                    if orig_letter == 'C' and res_letter == 'B' and 'b' in name and name != 'C':
+                        octave -= 1
+                    # Double flat: D♭♭ resolves to C — no boundary cross
+                    # But C♭♭ resolves to Bb — boundary cross
+                    if orig_letter == 'C' and res_letter not in ('C', 'D') and 'bb' in name:
+                        octave -= 1
+
         self.name = name
         self.octave = octave
         self.alt_names = alt_names
