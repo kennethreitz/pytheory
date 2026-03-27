@@ -1316,7 +1316,7 @@ def journey():
     tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
                           detune=3, lowpass=1000, volume=0.12,
                           reverb=0.5, reverb_type=REV)
-    for _ in range(28):
+    for _ in range(32):
         tanpura.add("A2", Duration.WHOLE)
 
     # ── Bars 1-8: Piano alone, then cello ──
@@ -1416,7 +1416,7 @@ def journey():
     for n in ["A1","A1","F1","F1","G1","G1","E1","E1"] * 2:
         sub.add(n, Duration.HALF)
 
-    sitar2 = score.part("sitar2", instrument="sitar", volume=0.22,
+    sitar2 = score.part("sitar2", instrument="sitar", volume=0.4,
                          reverb=0.3, reverb_type=REV)
     for _ in range(22):
         sitar2.rest(Duration.WHOLE)
@@ -1456,6 +1456,38 @@ def journey():
         _Hit(DH, 7.0, 85),
     ])
     score.add_pattern(p_tab, repeats=2)
+
+    # Tabla solo — everything drops out, just tabla and drone
+    KE = DrumSound.TABLA_KE
+    TI = DrumSound.TABLA_TIN
+    GE = DrumSound.TABLA_GE
+    T3 = 1.0 / 12.0  # 32nd triplet
+    p_solo = Pattern(name="solo", time_signature="4/4", beats=16.0, hits=[
+        # Gentle opening
+        _Hit(DH, 0.0, 90), _Hit(TT, 0.5, 35), _Hit(NA, 1.0, 72),
+        _Hit(NA, 2.0, 65), _Hit(DH, 3.0, 88),
+        # Ghost notes building
+        _Hit(DH, 4.0, 95), _Hit(TT, 4.25, 38), _Hit(TT, 4.5, 42),
+        _Hit(NA, 5.0, 75), _Hit(TT, 5.5, 35),
+        _Hit(NA, 6.0, 70), _Hit(TT, 6.5, 30), _Hit(DH, 7.0, 95),
+        # Double time burst
+        _Hit(TT, 8.0, 50), _Hit(TT, 8.125, 38), _Hit(TT, 8.25, 45),
+        _Hit(KE, 8.5, 55), _Hit(NA, 8.75, 82),
+        _Hit(DH, 9.0, 110), _Hit(TT, 9.25, 40), _Hit(DH, 9.5, 72),
+        _Hit(NA, 9.75, 62),
+        # 32nd triplet cascade
+        *[_Hit(TT, 10.0 + i * T3, 35 + i * 3) for i in range(12)],
+        _Hit(DH, 11.0, 115), _Hit(GB, 11.5, 105),
+        # Tihai
+        _Hit(DH, 12.0, 110), _Hit(NA, 12.25, 78), _Hit(TT, 12.5, 52),
+        _Hit(KE, 12.75, 58), _Hit(DH, 13.0, 105),
+        _Hit(DH, 13.5, 112), _Hit(NA, 13.75, 78), _Hit(TT, 14.0, 55),
+        _Hit(KE, 14.25, 60), _Hit(DH, 14.5, 108),
+        # Silence... then slam into EDM
+        _Hit(GB, 15.5, 120), _Hit(DH, 15.75, 127),
+    ])
+    score.add_pattern(p_solo, repeats=1)
+
     score.drums("house", repeats=8)
     score.set_drum_effects(reverb=0.3, reverb_type=REV)
 
