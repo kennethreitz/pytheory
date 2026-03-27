@@ -310,6 +310,79 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def sitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Sitar — Karplus-Strong with jawari bridge buzz and sympathetic strings.
+
+    The sitar's distinctive sound comes from three things:
+    1. The jawari (bridge) — a wide, curved bridge where the string
+       buzzes against the surface, creating rich harmonics and that
+       characteristic "zzz" tone. Modeled as a soft-clip nonlinearity
+       applied inside the delay loop.
+    2. Sympathetic strings (taraf) — strings that resonate in sympathy
+       with the played note, adding a shimmering halo.
+    3. Sharp mizrab (plectrum) attack with moderate decay — plucky,
+       not sustained like a bowed instrument.
+    """
+    period = int(SAMPLE_RATE / hz)
+    if period < 2:
+        period = 2
+
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Initial pluck — bright metallic mizrab strike
+    buf = rng.uniform(-1.0, 1.0, period).astype(numpy.float64)
+
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Two-pass Karplus-Strong for richer timbre:
+    # The sitar string has two decay rates — high frequencies die fast
+    # (like the initial "tang" of the mizrab), while the fundamental
+    # rings longer. We model this with a variable damping factor.
+    for i in range(n_samples):
+        sample = buf[i % period]
+
+        # Jawari bridge: gentle one-sided soft clip.
+        # String grazes the curved bridge on positive excursions,
+        # adding subtle even harmonics (the sitar "buzz").
+        if sample > 0.25:
+            sample = 0.25 + (sample - 0.25) * 0.5
+
+        out[i] = sample
+
+        # Variable damping: higher damping early (brightness fades),
+        # lower damping later (fundamental sustains).
+        # The 0.4/0.6 averaging weights give a brighter initial tone
+        # than the standard 0.5/0.5 Karplus-Strong.
+        next_idx = (i + 1) % period
+        decay = 0.9992 if i < SAMPLE_RATE * 0.3 else 0.9996
+        buf[i % period] = (0.4 * sample + 0.6 * buf[next_idx]) * decay
+
+    # Chikari shimmer — the 3 high drone strings that ring sympathetically
+    # These are tuned to the tonic (Sa) and its octave
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    chikari = (numpy.sin(2 * numpy.pi * hz * 2 * t) * 0.04 +
+               numpy.sin(2 * numpy.pi * hz * 3 * t) * 0.025)
+    chikari *= numpy.exp(-2.0 * t)  # gentle fade
+
+    # Sympathetic taraf strings — very quiet harmonic halo
+    for harmonic in [2, 3, 4, 5]:
+        sym_hz = hz * harmonic
+        if sym_hz > SAMPLE_RATE / 2:
+            break
+        sym_period = max(2, int(SAMPLE_RATE / sym_hz))
+        if sym_period < n_samples:
+            chikari[sym_period:] += out[:-sym_period] * 0.04
+
+    out = out + chikari
+
+    # Normalize
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+
+    return (peak * out).astype(numpy.int16)
+
+
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
     """Apply an ADSR amplitude envelope to a sample array.
 
@@ -416,6 +489,7 @@ class Synth(Enum):
     PLUCK = "pluck_synth"
     ORGAN = "organ_synth"
     STRINGS = "strings_synth"
+    SITAR = "sitar_synth"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
@@ -428,7 +502,7 @@ _SYNTH_FUNCTIONS = {
     "noise": noise_wave, "supersaw": supersaw_wave,
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
     "pluck_synth": pluck_wave, "organ_synth": organ_wave,
-    "strings_synth": strings_wave,
+    "strings_synth": strings_wave, "sitar_synth": sitar_wave,
 }
 
 
@@ -840,6 +914,147 @@ def _synth_agogo(hz, n_samples):
     return out
 
 
+def _synth_tabla_na(n_samples):
+    """Tabla Na — sharp dayan (wooden shell) rim strike.
+
+    The goatskin head struck near the rim + syahi edge. Wooden shell
+    gives a dry, snappy resonance. Membrane thump is the foundation.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Goatskin membrane thump — bandpass filtered noise for drum body
+    thump_len = min(int(SAMPLE_RATE * 0.05), n_samples)
+    thump_raw = _noise(thump_len)
+    # Bandpass 200-800 Hz — goatskin membrane character
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [200, 800], btype='band', fs=SAMPLE_RATE)
+        thump_padded = numpy.pad(thump_raw, (0, max(0, n_samples - thump_len)))
+        thump = scipy.signal.lfilter(bl, al, thump_padded)[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 40) * 0.8
+    # Wooden shell resonance — short, dry
+    wood = numpy.sin(2 * numpy.pi * 800 * t[:thump_len]) * _exp_decay(thump_len, 50) * 0.2
+    thump[:len(wood)] += wood
+    # Syahi pitch ring on top
+    ring = numpy.sin(2 * numpy.pi * 330 * t) * _exp_decay(n_samples, 9) * 0.6
+    ring2 = numpy.sin(2 * numpy.pi * 680 * t) * 0.3 * _exp_decay(n_samples, 12)
+    ring3 = numpy.sin(2 * numpy.pi * 1050 * t) * 0.15 * _exp_decay(n_samples, 16)
+    # Sharp finger attack
+    click_len = min(100, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 250) * 0.7
+    result = ring + ring2 + ring3
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.4)
+
+
+def _synth_tabla_tin(n_samples):
+    """Tabla Tin/Tun — open dayan ring.
+
+    Full open stroke on the wooden dayan. Goatskin membrane body with
+    long syahi ring. The most "singing" dayan sound.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Membrane body — fuller than Na
+    thump_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [150, 600], btype='band', fs=SAMPLE_RATE)
+        thump_padded = numpy.pad(thump_raw, (0, max(0, n_samples - thump_len)))
+        thump = scipy.signal.lfilter(bl, al, thump_padded)[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 30) * 0.6
+    # Long singing ring
+    ring = numpy.sin(2 * numpy.pi * 340 * t) * _exp_decay(n_samples, 5) * 0.7
+    ring2 = numpy.sin(2 * numpy.pi * 700 * t) * 0.35 * _exp_decay(n_samples, 6)
+    ring3 = numpy.sin(2 * numpy.pi * 1060 * t) * 0.2 * _exp_decay(n_samples, 8)
+    click_len = min(80, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 180) * 0.35
+    result = ring + ring2 + ring3
+    result[:thump_len] += thump
+    result[:click_len] += click
+    return numpy.tanh(result * 1.1)
+
+
+def _synth_tabla_ge(n_samples):
+    """Tabla Ge/Ghe — deep bayan (metal/copper shell) bass stroke.
+
+    Palm strike on the metal bayan. The copper shell gives a rounder,
+    more resonant bass with metallic sustain. Goatskin membrane provides
+    the initial thud, then the metal body resonates.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Goatskin membrane thud — heavy, bassy
+    thump_len = min(int(SAMPLE_RATE * 0.07), n_samples)
+    thump_raw = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = scipy.signal.butter(2, [40, 250], btype='band', fs=SAMPLE_RATE)
+        thump_padded = numpy.pad(thump_raw, (0, max(0, n_samples - thump_len)))
+        thump = scipy.signal.lfilter(bl, al, thump_padded)[:thump_len]
+    else:
+        thump = thump_raw
+    thump *= _exp_decay(thump_len, 20) * 0.8
+    # Metal shell resonance — longer, rounder than wooden dayan
+    metal_len = min(int(SAMPLE_RATE * 0.1), n_samples)
+    metal = numpy.sin(2 * numpy.pi * 120 * t[:metal_len]) * _exp_decay(metal_len, 12) * 0.3
+    # Pitch sweep body (hand modulates the head)
+    freq = 55 + 100 * numpy.exp(-10 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    body = numpy.sin(phase) * _exp_decay(n_samples, 5) * 0.7
+    # Sub boom from the large cavity
+    sub = _sine_f32(40, n_samples) * _exp_decay(n_samples, 6) * 0.5
+    # Palm attack
+    click_len = min(250, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 35) * 0.3
+    result = body + sub
+    result[:thump_len] += thump
+    result[:metal_len] += metal
+    result[:click_len] += click
+    return numpy.tanh(result * 1.2)
+
+
+def _synth_tabla_dha(n_samples):
+    """Tabla Dha — both drums (Na + Ge). The most common stroke."""
+    na = _synth_tabla_na(n_samples) * 0.5
+    ge = _synth_tabla_ge(n_samples) * 0.6
+    return numpy.tanh(na + ge)
+
+
+def _synth_tabla_tit(n_samples):
+    """Tabla Ti/Tit — super fast light finger tap.
+
+    The rapid-fire dayan sound for tiri-kita, taka-dina patterns.
+    Very short, snappy, mostly attack with brief pitch.
+    """
+    n = min(n_samples, int(SAMPLE_RATE * 0.06))  # 60ms max
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Quick membrane pop
+    pop = _noise(min(80, n)) * _exp_decay(min(80, n), 250) * 0.9
+    # Brief pitched ring
+    ring = numpy.sin(2 * numpy.pi * 500 * t) * _exp_decay(n, 35) * 0.5
+    ring2 = numpy.sin(2 * numpy.pi * 1100 * t) * 0.25 * _exp_decay(n, 45)
+    result = ring + ring2
+    result[:min(80, n)] += pop
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(result * 1.8)
+    return out
+
+
+def _synth_tabla_ke(n_samples):
+    """Tabla Ke/Ka — muted bayan slap. Dead thud, no ring."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.08))  # 80ms max
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    # Muted membrane thud
+    body = numpy.sin(2 * numpy.pi * 80 * t) * _exp_decay(n, 25) * 0.7
+    thump = _noise(min(200, n)) * _exp_decay(min(200, n), 50) * 0.7
+    result = body
+    result[:min(200, n)] += thump
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(result * 1.3)
+    return out
+
+
 def _synth_guiro(n_samples):
     """Guiro: scraped ridged surface — rhythmic noise bursts."""
     wave = numpy.zeros(n_samples, dtype=numpy.float32)
@@ -902,6 +1117,13 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.AGOGO_LOW.value: lambda n: _synth_agogo(700, n),
         DrumSound.GUIRO.value: lambda n: _synth_guiro(n),
         DrumSound.MARACAS.value: lambda n: _synth_shaker(n),
+        # Tabla
+        DrumSound.TABLA_NA.value: lambda n: _synth_tabla_na(n),
+        DrumSound.TABLA_TIN.value: lambda n: _synth_tabla_tin(n),
+        DrumSound.TABLA_GE.value: lambda n: _synth_tabla_ge(n),
+        DrumSound.TABLA_DHA.value: lambda n: _synth_tabla_dha(n),
+        DrumSound.TABLA_TIT.value: lambda n: _synth_tabla_tit(n),
+        DrumSound.TABLA_KE.value: lambda n: _synth_tabla_ke(n),
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
@@ -2363,6 +2585,13 @@ def render_score(score):
         DrumSound.AGOGO_LOW.value: 0.25,
         DrumSound.GUIRO.value: -0.15,
         DrumSound.MARACAS.value: 0.3,
+        # Tabla: dayan (right drum) slightly right, bayan slightly left
+        DrumSound.TABLA_NA.value: 0.2,
+        DrumSound.TABLA_TIN.value: 0.2,
+        DrumSound.TABLA_TIT.value: 0.25,
+        DrumSound.TABLA_GE.value: -0.2,
+        DrumSound.TABLA_KE.value: -0.2,
+        DrumSound.TABLA_DHA.value: 0.0,   # both drums = center
     }
 
     # Render all drum Parts (may be one "drums" or split into kick/snare/hats/etc.)

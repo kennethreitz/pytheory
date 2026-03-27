@@ -183,6 +183,11 @@ INSTRUMENTS = {
         "lowpass": 4000,
         "reverb": 0.2,
     },
+    "sitar": {
+        "synth": "sitar_synth", "envelope": "none",
+        "lowpass": 4500,
+        "humanize": 0.2,
+    },
 
     # ── Synth presets ──
     "synth_lead": {
@@ -376,6 +381,13 @@ class DrumSound(Enum):
     AGOGO_LOW = 68
     GUIRO = 73
     MARACAS = 70
+    # Tabla sounds
+    TABLA_NA = 86       # sharp dayan (right drum) rim hit
+    TABLA_TIN = 87      # open dayan ring
+    TABLA_GE = 88       # deep bayan (left drum) bass
+    TABLA_DHA = 89      # both drums (Na + Ge)
+    TABLA_TIT = 90      # light dayan flick
+    TABLA_KE = 91       # muted bayan slap
 
 
 class _Hit:
@@ -1310,6 +1322,110 @@ Pattern._PRESETS["flamenco"] = dict(
         _h(K, 0.0), _h(K, 1.5),
         # Cajon slap (rimshot) on 1.0 and 2.0
         _h(RS, 1.0), _h(RS, 2.0),
+    ],
+)
+
+# ── Tabla patterns ────────────────────────────────────────────────────────
+# Shortcuts for tabla sounds
+TNA = DrumSound.TABLA_NA
+TTI = DrumSound.TABLA_TIN
+TGE = DrumSound.TABLA_GE
+TDHA = DrumSound.TABLA_DHA
+TTIT = DrumSound.TABLA_TIT
+TKE = DrumSound.TABLA_KE
+
+# Teental — the most common taal (16 beats / 4+4+4+4)
+Pattern._PRESETS["teental"] = dict(
+    name="teental",
+    time_signature="4/4",
+    beats=16.0,
+    hits=[
+        # Vibhag 1: Dha Dhin Dhin Dha
+        _h(TDHA, 0.0), _h(TNA, 1.0), _h(TNA, 2.0), _h(TDHA, 3.0),
+        # Vibhag 2: Dha Dhin Dhin Dha
+        _h(TDHA, 4.0), _h(TNA, 5.0), _h(TNA, 6.0), _h(TDHA, 7.0),
+        # Vibhag 3 (khali): Dha Tin Tin Ta
+        _h(TDHA, 8.0), _h(TTI, 9.0), _h(TTI, 10.0), _h(TNA, 11.0),
+        # Vibhag 4: Dha Dhin Dhin Dha
+        _h(TDHA, 12.0), _h(TNA, 13.0), _h(TNA, 14.0), _h(TDHA, 15.0),
+    ],
+)
+
+# Jhaptaal — 10 beats (2+3+2+3)
+Pattern._PRESETS["jhaptaal"] = dict(
+    name="jhaptaal",
+    time_signature="4/4",
+    beats=10.0,
+    hits=[
+        # Dhi Na | Dhi Dhi Na | Ti Na | Dhi Dhi Na
+        _h(TDHA, 0.0), _h(TNA, 1.0),
+        _h(TDHA, 2.0), _h(TDHA, 3.0), _h(TNA, 4.0),
+        _h(TTI, 5.0), _h(TNA, 6.0),
+        _h(TDHA, 7.0), _h(TDHA, 8.0), _h(TNA, 9.0),
+    ],
+)
+
+# Rupak taal — 7 beats (3+2+2), starts on khali (unusual)
+Pattern._PRESETS["rupak"] = dict(
+    name="rupak",
+    time_signature="7/4",
+    beats=7.0,
+    hits=[
+        # Tin Tin Na | Dhi Na | Dhi Na
+        _h(TTI, 0.0), _h(TTI, 1.0), _h(TNA, 2.0),
+        _h(TDHA, 3.0), _h(TNA, 4.0),
+        _h(TDHA, 5.0), _h(TNA, 6.0),
+    ],
+)
+
+# Dadra — 6 beats (3+3), light and folk
+Pattern._PRESETS["dadra"] = dict(
+    name="dadra",
+    time_signature="6/4",
+    beats=6.0,
+    hits=[
+        # Dha Dhi Na | Dha Tin Na
+        _h(TDHA, 0.0), _h(TNA, 1.0), _h(TNA, 2.0),
+        _h(TDHA, 3.0), _h(TTI, 4.0), _h(TNA, 5.0),
+    ],
+)
+
+# Keherwa — 8 beats (4+4), the most common light taal
+Pattern._PRESETS["keherwa"] = dict(
+    name="keherwa",
+    time_signature="4/4",
+    beats=8.0,
+    hits=[
+        # Dha Ge Na Ti | Na Ke Dhi Na
+        _h(TDHA, 0.0), _h(TGE, 1.0), _h(TNA, 2.0), _h(TTIT, 3.0),
+        _h(TNA, 4.0), _h(TKE, 5.0), _h(TDHA, 6.0), _h(TNA, 7.0),
+    ],
+)
+
+# Tabla solo theka — fast 16th note pattern for rhythmic display
+Pattern._PRESETS["tabla solo"] = dict(
+    name="tabla solo",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(TDHA, 0.0), _h(TTIT, 0.25), _h(TTIT, 0.5), _h(TKE, 0.75),
+        _h(TNA, 1.0), _h(TTIT, 1.25), _h(TGE, 1.5), _h(TNA, 1.75),
+        _h(TDHA, 2.0), _h(TNA, 2.25), _h(TTI, 2.5), _h(TNA, 2.75),
+        _h(TDHA, 3.0), _h(TTIT, 3.5), _h(TGE, 3.75),
+    ],
+)
+
+# Tabla tiri-kita — rapid 16th-note dayan patter
+Pattern._PRESETS["tiri kita"] = dict(
+    name="tiri kita",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Ti ri ki ta | dha ti ri ki | ta ka dhi na | dha — ti dha
+        _h(TTIT, 0.0), _h(TTIT, 0.25), _h(TKE, 0.5), _h(TNA, 0.75),
+        _h(TDHA, 1.0), _h(TTIT, 1.25), _h(TTIT, 1.5), _h(TKE, 1.75),
+        _h(TNA, 2.0), _h(TKE, 2.25), _h(TDHA, 2.5), _h(TNA, 2.75),
+        _h(TDHA, 3.0), _h(TTIT, 3.5), _h(TDHA, 3.75),
     ],
 )
 
