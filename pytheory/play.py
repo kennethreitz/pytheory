@@ -1984,8 +1984,9 @@ def render_score(score):
             vel = max(1, min(127, vel + _drum_rnd.randint(-vel_jitter, vel_jitter)))
         vel_scale = vel / 127.0
         mono_hit = wave * vel_scale * 0.7
-        # Mono sidechain trigger (always center)
-        drum_buf[start:start + hit_len] += mono_hit
+        # Sidechain trigger — kick only (not hats, snare, etc.)
+        if hit.sound.value == DrumSound.KICK.value:
+            drum_buf[start:start + hit_len] += mono_hit
         # Stereo panned output
         pan = _DRUM_PAN.get(hit.sound.value, 0.0)
         panned = _pan_to_stereo(mono_hit, pan)
