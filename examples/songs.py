@@ -1401,24 +1401,27 @@ def journey():
     ]:
         sitar.add(note, dur, velocity=vel)
 
-    # ── Bars 21-28: EDM section — sitar over house beat ──
+    # ── EDM section — sitar over house beat ──
+    # Solo sections: 8+8+8+12 = 36 beats = 9 bars
+    # Total bars before EDM: 8 piano + 6 harp + 6 djembe + 4 tabla + 9 solo = 33
+    edm_start = 33
     pad = score.part("pad", instrument="synth_pad", volume=0.18,
                       reverb=0.45, reverb_type=REV,
                       sidechain=0.6, sidechain_release=0.15)
-    for _ in range(20):
+    for _ in range(edm_start):
         pad.rest(Duration.WHOLE)
     for sym in ["Am", "F", "G", "Em"] * 2:
         pad.add(Chord.from_symbol(sym), Duration.WHOLE)
 
     sub = score.part("sub", instrument="808_bass", volume=0.4)
-    for _ in range(20):
+    for _ in range(edm_start):
         sub.rest(Duration.WHOLE)
     for n in ["A1","A1","F1","F1","G1","G1","E1","E1"] * 2:
         sub.add(n, Duration.HALF)
 
     sitar2 = score.part("sitar2", instrument="sitar", volume=0.4,
                          reverb=0.3, reverb_type=REV)
-    for _ in range(22):
+    for _ in range(edm_start + 2):
         sitar2.rest(Duration.WHOLE)
     for note, dur, vel in [
         ("A4", 0.25, 75), ("C5", 0.25, 78), ("E5", 0.5, 85),
