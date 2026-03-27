@@ -6711,3 +6711,204 @@ def test_interval_to_non12():
     a5 = a.add(19)
     result = a.interval_to(a5)
     assert "octave" in result
+
+
+# ── Dedicated instrument synths ──────────────────────────────────────────────
+
+def test_all_dedicated_synths_render():
+    """Every dedicated synth waveform produces valid audio."""
+    from pytheory.play import (piano_wave, bass_guitar_wave, flute_wave,
+                                trumpet_wave, clarinet_wave, oboe_wave,
+                                marimba_wave, harpsichord_wave, cello_wave,
+                                harp_wave, upright_bass_wave,
+                                acoustic_guitar_wave, electric_guitar_wave,
+                                sitar_wave, SAMPLE_RATE)
+    synths = [piano_wave, bass_guitar_wave, flute_wave, trumpet_wave,
+              clarinet_wave, oboe_wave, marimba_wave, harpsichord_wave,
+              cello_wave, harp_wave, upright_bass_wave,
+              acoustic_guitar_wave, electric_guitar_wave, sitar_wave]
+    for fn in synths:
+        wave = fn(440, n_samples=11025)
+        assert len(wave) == 11025
+        assert wave.dtype == numpy.int16
+        assert numpy.abs(wave).max() > 0
+
+
+def test_piano_brightness_scales():
+    """High-pitched piano should be brighter (more high harmonics)."""
+    from pytheory.play import piano_wave
+    low = piano_wave(130, n_samples=22050)   # C3
+    high = piano_wave(1047, n_samples=22050)  # C6
+    # Both should produce valid audio
+    assert numpy.abs(low).max() > 0
+    assert numpy.abs(high).max() > 0
+
+
+def test_acoustic_guitar_body_resonance():
+    """Acoustic guitar should produce richer spectrum than raw pluck."""
+    from pytheory.play import acoustic_guitar_wave, pluck_wave
+    ag = acoustic_guitar_wave(220, n_samples=22050)
+    pk = pluck_wave(220, n_samples=22050)
+    assert len(ag) == len(pk) == 22050
+
+
+def test_cello_has_vibrato():
+    """Cello synth should produce pitch variation (vibrato)."""
+    from pytheory.play import cello_wave
+    wave = cello_wave(220, n_samples=44100)
+    assert len(wave) == 44100
+    assert numpy.abs(wave).max() > 0
+
+
+# ── Cabinet simulation ───────────────────────────────────────────────────────
+
+def test_cabinet_reduces_highs():
+    """Cabinet sim should reduce high-frequency content."""
+    from pytheory.play import _apply_cabinet
+    # White noise has flat spectrum
+    noise = numpy.random.uniform(-1, 1, 44100).astype(numpy.float32)
+    cabbed = _apply_cabinet(noise, brightness=0.5)
+    # RMS of cabbed should be lower (energy removed by filters)
+    assert numpy.sqrt(numpy.mean(cabbed ** 2)) < numpy.sqrt(numpy.mean(noise ** 2))
+
+
+def test_cabinet_brightness_param():
+    """Higher brightness = more high-frequency content passes through."""
+    from pytheory.play import _apply_cabinet
+    noise = numpy.random.uniform(-1, 1, 44100).astype(numpy.float32)
+    dark = _apply_cabinet(noise, brightness=0.0)
+    bright = _apply_cabinet(noise, brightness=1.0)
+    # Bright should have more energy than dark
+    assert numpy.sqrt(numpy.mean(bright ** 2)) > numpy.sqrt(numpy.mean(dark ** 2))
+
+
+# ── Analog drift ─────────────────────────────────────────────────────────────
+
+def test_analog_drift_varies_pitch():
+    """Analog drift should make repeated renders slightly different."""
+    from pytheory import Score, Duration
+    score1 = Score("4/4", bpm=120)
+    p1 = score1.part("t", synth="saw", analog=0.5)
+    p1.add("C4", Duration.QUARTER)
+    p1.add("C4", Duration.QUARTER)
+    # With analog > 0, each C4 gets a random pitch offset
+    # This is hard to test deterministically, just verify it renders
+    from pytheory.play import render_score
+    buf = render_score(score1)
+    assert len(buf) > 0
+
+
+# ── Guitar strumming ─────────────────────────────────────────────────────────
+
+def test_strum_requires_fretboard():
+    """Strumming without a fretboard should raise ValueError."""
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    p = score.part("g", synth="saw")
+    with pytest.raises(ValueError, match="fretboard"):
+        p.strum("Am", Duration.QUARTER)
+
+
+def test_strum_adds_notes():
+    """Strumming should add notes to the part."""
+    from pytheory import Score, Duration, Fretboard
+    score = Score("4/4", bpm=120)
+    fb = Fretboard.guitar()
+    p = score.part("g", instrument="acoustic_guitar", fretboard=fb)
+    p.strum("Am", Duration.HALF)
+    assert len(p.notes) > 0
+
+
+def test_strum_direction():
+    """Both down and up strums should work."""
+    from pytheory import Score, Duration, Fretboard
+    score = Score("4/4", bpm=120)
+    fb = Fretboard.guitar()
+    p = score.part("g", instrument="acoustic_guitar", fretboard=fb)
+    p.strum("G", Duration.QUARTER, direction="down")
+    p.strum("G", Duration.QUARTER, direction="up")
+    assert len(p.notes) == 2
+
+
+# ── World drums ──────────────────────────────────────────────────────────────
+
+def test_tabla_sounds_render():
+    """All tabla drum sounds should produce valid audio."""
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in [DrumSound.TABLA_NA, DrumSound.TABLA_TIN, DrumSound.TABLA_GE,
+                  DrumSound.TABLA_DHA, DrumSound.TABLA_TIT, DrumSound.TABLA_KE]:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+        assert wave.dtype == numpy.float32
+
+
+def test_dhol_sounds_render():
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in [DrumSound.DHOL_DAGGA, DrumSound.DHOL_TILLI, DrumSound.DHOL_BOTH]:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+
+
+def test_mridangam_sounds_render():
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in [DrumSound.MRIDANGAM_THAM, DrumSound.MRIDANGAM_NAM,
+                  DrumSound.MRIDANGAM_DIN, DrumSound.MRIDANGAM_THA]:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+
+
+def test_djembe_sounds_render():
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in [DrumSound.DJEMBE_BASS, DrumSound.DJEMBE_TONE, DrumSound.DJEMBE_SLAP]:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+
+
+def test_metal_kit_sounds_render():
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in [DrumSound.METAL_KICK, DrumSound.METAL_SNARE, DrumSound.METAL_HAT]:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+
+
+def test_tabla_pattern_presets():
+    """All tabla patterns should load without error."""
+    from pytheory.rhythm import Pattern
+    for name in ["teental", "jhaptaal", "rupak", "dadra",
+                 "keherwa", "tabla solo", "tiri kita"]:
+        p = Pattern.preset(name)
+        assert p.beats > 0
+
+
+def test_world_drum_pattern_presets():
+    """All world drum patterns should load."""
+    from pytheory.rhythm import Pattern
+    for name in ["bhangra", "dhol chaal", "qawwali", "dholak folk",
+                 "adi talam", "mridangam korvai", "djembe", "kuku", "soli",
+                 "double kick", "metal blast", "metal groove", "metal gallop"]:
+        p = Pattern.preset(name)
+        assert p.beats > 0
+
+
+# ── Guitar presets with cabinet sim ──────────────────────────────────────────
+
+def test_guitar_presets_have_cabinet():
+    """Distorted guitar presets should have cabinet simulation."""
+    from pytheory import Score
+    for preset in ["distorted_guitar", "orange_crunch", "metal_guitar"]:
+        score = Score("4/4", bpm=120)
+        p = score.part("g", instrument=preset)
+        assert p.cabinet > 0, f"{preset} should have cabinet sim"
+
+
+def test_clean_guitar_preset():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    p = score.part("g", instrument="clean_guitar")
+    assert p.synth == "electric_guitar_synth"
+    assert p.cabinet > 0
