@@ -1971,7 +1971,7 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          filter_attack=0.01, filter_decay=0.3,
                          filter_sustain=0.0, filter_amount=0.0,
                          vel_to_filter=0.0, filter_q=0.707,
-                         synth_kwargs=None):
+                         synth_kwargs=None, temperament="equal"):
     """Render a list of Notes into an existing buffer at the correct positions."""
     import random as _rnd
 
@@ -2000,9 +2000,9 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
             if n_samples > 0 and start >= 0:
                 # Get pitches
                 if hasattr(note.tone, 'tones'):
-                    pitches = [t.pitch() for t in note.tone.tones]
+                    pitches = [t.pitch(temperament=temperament) for t in note.tone.tones]
                 else:
-                    pitches = [note.tone.pitch()]
+                    pitches = [note.tone.pitch(temperament=temperament)]
                 # Render oscillators (pass synth_kwargs for FM etc.)
                 waves = [synth_fn(hz, n_samples=n_samples, **_skw)
                          for hz in pitches]
@@ -2087,7 +2087,8 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
 
 def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
                           synth_fn, envelope_tuple, volume, bpm,
-                          glide_time=0.0, swing=0.0, tempo_map=None):
+                          glide_time=0.0, swing=0.0, tempo_map=None,
+                          temperament="equal"):
     """Render notes as one continuous waveform with pitch glide.
 
     Instead of rendering each note separately with its own envelope,
@@ -2117,9 +2118,9 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
         vel = getattr(note, 'velocity', 100)
         if note.tone is not None:
             if hasattr(note.tone, 'tones'):
-                hz = note.tone.tones[0].pitch()  # use root for chords
+                hz = note.tone.tones[0].pitch(temperament=temperament)
             else:
-                hz = note.tone.pitch()
+                hz = note.tone.pitch(temperament=temperament)
             events.append((start, end, hz, vel))
         else:
             events.append((start, end, 0, vel))  # rest
@@ -2237,12 +2238,14 @@ def render_score(score):
             if part.synth in ("fm",):
                 synth_kwargs["mod_ratio"] = part.fm_ratio
                 synth_kwargs["mod_index"] = part.fm_index
+            _temperament = getattr(score, 'temperament', 'equal')
             if part.legato:
                 _render_legato_to_buf(
                     part.notes, part_buf, samples_per_beat, total_samples,
                     synth_fn, env_tuple, part.volume, score.bpm,
                     glide_time=part.glide, swing=effective_swing,
-                    tempo_map=tempo_map if has_tempo_changes else None)
+                    tempo_map=tempo_map if has_tempo_changes else None,
+                    temperament=_temperament)
             else:
                 _render_notes_to_buf(
                     part.notes, part_buf, samples_per_beat, total_samples,
@@ -2261,7 +2264,8 @@ def render_score(score):
                     filter_amount=part.filter_amount,
                     vel_to_filter=part.vel_to_filter,
                     filter_q=part.lowpass_q,
-                    synth_kwargs=synth_kwargs)
+                    synth_kwargs=synth_kwargs,
+                    temperament=_temperament)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()

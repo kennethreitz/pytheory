@@ -753,21 +753,32 @@ class Tone:
         precision: Optional[int] = None,
     ) -> float:
         try:
-            tones = len(self.system.tones)
+            tones = len(self.system.tone_names)
         except AttributeError:
             raise ValueError("Pitches can only be computed with an associated system!")
 
-        pitch_scale = TEMPERAMENTS[temperament](tones)
+        # Period ratio: 2.0 for standard octave-based systems,
+        # 3.0 for Bohlen-Pierce (tritave), configurable per system.
+        period = getattr(self.system, 'period', 2.0)
+        c_idx = getattr(self.system, 'c_index', C_INDEX)
+
+        if period != 2.0 and temperament == "equal":
+            # Non-octave period (e.g. Bohlen-Pierce tritave=3.0):
+            # generate ratios as period^(n/tones) instead of 2^(n/tones)
+            import sympy
+            pitch_scale = [period ** sympy.Rational(i, tones) for i in range(tones + 1)]
+        else:
+            pitch_scale = TEMPERAMENTS[temperament](tones)
         octave = self.octave if self.octave is not None else 4
 
-        note_from_c0 = ((self._index - C_INDEX) % tones) + (octave * tones)
-        a4_from_c0 = ((0 - C_INDEX) % tones) + (4 * tones)  # A4
+        note_from_c0 = ((self._index - c_idx) % tones) + (octave * tones)
+        a4_from_c0 = ((0 - c_idx) % tones) + (4 * tones)  # A4
 
         diff = note_from_c0 - a4_from_c0
         octave_shift = diff // tones
         within_octave = diff % tones
 
-        ratio = pitch_scale[within_octave] * (2 ** octave_shift)
+        ratio = pitch_scale[within_octave] * (period ** octave_shift)
 
         if symbolic:
             return reference_pitch * ratio

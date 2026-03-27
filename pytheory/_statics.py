@@ -6,10 +6,42 @@ REFERENCE_A = 440
 # Scientific pitch notation changes octave at C, not A, so this offset
 # is needed for all octave arithmetic.
 C_INDEX = 3
+def _create_just_intonation_scale(n):
+    """5-limit just intonation ratios for 12-tone systems.
+
+    These are the pure frequency ratios derived from the harmonic series —
+    the way intervals "want" to sound before equal temperament imposed
+    compromise. Each ratio is mathematically exact: a perfect fifth is
+    exactly 3/2, a major third is exactly 5/4.
+
+    For non-12 systems, falls back to equal temperament.
+    """
+    from fractions import Fraction
+    if n != 12:
+        return scales.create_edo_scale(n)
+    # Standard 5-limit JI ratios (A-based: A=1/1)
+    ratios = [
+        Fraction(1, 1),       # A  — unison
+        Fraction(16, 15),     # A# — minor second
+        Fraction(9, 8),       # B  — major second
+        Fraction(6, 5),       # C  — minor third
+        Fraction(5, 4),       # C# — major third
+        Fraction(4, 3),       # D  — perfect fourth
+        Fraction(45, 32),     # D# — augmented fourth
+        Fraction(3, 2),       # E  — perfect fifth
+        Fraction(8, 5),       # F  — minor sixth
+        Fraction(5, 3),       # F# — major sixth
+        Fraction(9, 5),       # G  — minor seventh
+        Fraction(15, 8),      # G# — major seventh
+        Fraction(2, 1),       # A  — octave
+    ]
+    return [float(r) for r in ratios]
+
 TEMPERAMENTS = {
     "equal": scales.create_edo_scale,
     "pythagorean": scales.create_pythagorean_scale,
     "meantone": scales.create_quarter_comma_meantone_scale,
+    "just": _create_just_intonation_scale,
 }
 
 TONES = {

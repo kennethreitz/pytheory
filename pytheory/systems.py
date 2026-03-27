@@ -13,11 +13,17 @@ from ._statics import (
 
 
 class System:
-    def __init__(self, *, tone_names, degrees, scales=None, c_index=None):
+    def __init__(self, *, tone_names, degrees, scales=None, c_index=None,
+                 period=2.0):
         self.tone_names = tone_names
 
         self.degrees = degrees
         self._scales = scales
+
+        # Period: the frequency ratio of one "octave" in this system.
+        # 2.0 for standard octave-based systems.
+        # 3.0 for Bohlen-Pierce (tritave).
+        self.period = period
 
         # c_index: the index of the "reference C" in the tone list.
         # For octave arithmetic — scientific pitch changes octave at C.
@@ -212,11 +218,14 @@ class System:
         return f"<System semitones={self.semitones!r}>"
 
 
-def TET(n, *, names=None, reference_index=0):
+def TET(n, *, names=None, reference_index=0, period=2.0):
     """Create an N-tone equal temperament system.
 
-    Each step divides the octave into *n* equal parts. The frequency
-    ratio between adjacent tones is ``2^(1/n)``.
+    Each step divides the period into *n* equal parts. The frequency
+    ratio between adjacent tones is ``period^(1/n)``.
+
+    For standard tunings the period is 2.0 (octave). For exotic systems
+    like Bohlen-Pierce, set ``period=3.0`` (tritave).
 
     Args:
         n: Number of equal divisions of the octave (e.g. 19, 24, 31, 53).
@@ -305,6 +314,7 @@ def TET(n, *, names=None, reference_index=0):
         degrees=degrees,
         scales=scale_data,
         c_index=c_idx,
+        period=period,
     )
 
 
@@ -333,11 +343,11 @@ _31TET_NAMES = [
 
 SYSTEMS = {
     "western": System(tone_names=TONES["western"], degrees=DEGREES["western"]),
-    "indian": System(tone_names=TONES["indian"], degrees=DEGREES["indian"], scales=INDIAN_SCALES[12]),
-    "arabic": System(tone_names=TONES["arabic"], degrees=DEGREES["arabic"], scales=ARABIC_SCALES[12]),
+    "indian": System(tone_names=TONES["indian"], degrees=DEGREES["indian"], scales=INDIAN_SCALES[12], c_index=3),
+    "arabic": System(tone_names=TONES["arabic"], degrees=DEGREES["arabic"], scales=ARABIC_SCALES[12], c_index=3),
     "japanese": System(tone_names=TONES["japanese"], degrees=DEGREES["japanese"], scales=JAPANESE_SCALES[12]),
     "blues": System(tone_names=TONES["blues"], degrees=DEGREES["blues"], scales=BLUES_SCALES[12]),
-    "gamelan": System(tone_names=TONES["gamelan"], degrees=DEGREES["gamelan"], scales=GAMELAN_SCALES[12]),
+    "gamelan": System(tone_names=TONES["gamelan"], degrees=DEGREES["gamelan"], scales=GAMELAN_SCALES[12], c_index=3),
     "19-tet": TET(19, names=_19TET_NAMES),
     "31-tet": TET(31, names=_31TET_NAMES),
     # Microtonal systems with proper intervals (not 12-TET approximations)
@@ -355,4 +365,11 @@ SYSTEMS = {
                     scales=TURKISH_SCALES, c_index=13),
     "carnatic": System(tone_names=TONES_CARNATIC, degrees=DEGREES_CARNATIC,
                        scales=CARNATIC_SCALES, c_index=18),  # Sa ≈ C, 18 steps from A
+    # Bohlen-Pierce: 13 equal divisions of the tritave (3:1).
+    # Genuinely alien — no octaves, no fifths, built on 3:5:7 harmonics.
+    # Used by composers like Heinz Bohlen, Kees van Prooijen, Georg Hajdu.
+    "bohlen-pierce": TET(13, period=3.0, names=[
+        "A", "B", "C", "D", "E", "F", "G",
+        "H", "J", "K", "L", "M", "N",
+    ]),
 }
