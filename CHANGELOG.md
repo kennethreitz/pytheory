@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.29.1
+
+- Rename song.py → songs.py
+- Polish all 20 example songs with stereo, convolution reverb, humanize, detune, sidechain
+
 ## 0.29.0
 
 - Add `Score.from_midi(path)` — import any Standard MIDI File into a Score
