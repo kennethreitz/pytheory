@@ -4248,7 +4248,7 @@ def test_parallel_modes_g_major():
 @needs_portaudio
 def test_envelope_enum_presets():
     from pytheory.play import Envelope
-    assert len(Envelope) == 8
+    assert len(Envelope) == 9
     for e in Envelope:
         a, d, s, r = e.value
         assert a >= 0
@@ -6470,10 +6470,11 @@ def test_instrument_violin():
     from pytheory import Score
     score = Score("4/4", bpm=120)
     p = score.part("v", instrument="violin")
-    assert p.synth == "triangle"
-    assert p.envelope == "strings"
+    assert p.synth == "strings_synth"
+    assert p.envelope == "bowed"
     assert p.humanize == 0.15
     assert p.lowpass == 5000
+    assert p.detune == 2
 
 
 def test_instrument_override():

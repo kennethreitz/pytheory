@@ -243,42 +243,71 @@ def organ_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
 
 def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
-    """String ensemble — filtered saw with body resonance formants.
+    """Bowed string — additive synthesis with natural harmonic rolloff.
 
-    Goes beyond raw sawtooth by modeling the resonant body of a
-    stringed instrument. Two formant peaks (at ~500 Hz and ~1500 Hz)
-    shape the spectrum the way a violin or cello body does — boosting
-    certain frequencies and cutting others.
-
-    The result is warmer and more "wooden" than a raw saw wave,
-    with the characteristic nasal quality of bowed strings.
+    Models bowed string physics:
+    - Additive harmonics with 1/n rolloff shaped by body resonance
+    - Delayed vibrato (develops ~200ms in, like a real player)
+    - Subtle bow pressure variation (amplitude modulation)
+    - Per-harmonic phase randomization for natural timbre
+    - Gentle spectral tilt to avoid synthetic brightness
     """
-    # Base: sawtooth (all harmonics, like a bowed string)
-    length = SAMPLE_RATE / float(hz)
-    omega = numpy.pi * 2 / length
-    xvalues = numpy.arange(int(length)) * omega
-    onecycle = scipy.signal.sawtooth(xvalues, width=1)
-    wave = numpy.resize(onecycle, (n_samples,)).astype(numpy.float64)
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
-    # Body resonance formants — two bandpass peaks
-    # Formant 1: ~500 Hz (body resonance)
-    f1 = 500
-    bw1 = 200
-    b1, a1 = scipy.signal.butter(2, [max(20, f1 - bw1), f1 + bw1],
-                                  btype='band', fs=SAMPLE_RATE)
-    formant1 = scipy.signal.lfilter(b1, a1, wave)
+    # Delayed vibrato: ramps in over ~200ms, like a real bow
+    vib_rate = 5.2 + rng.uniform(-0.3, 0.3)  # slight randomness per note
+    vib_depth = hz * 0.003  # ~5 cents
+    vib_onset = numpy.clip(t / 0.2, 0.0, 1.0)  # ramp over 200ms
+    vibrato = vib_depth * vib_onset * numpy.sin(2 * numpy.pi * vib_rate * t)
 
-    # Formant 2: ~1500 Hz (bridge/top plate)
-    f2 = 1500
-    bw2 = 400
-    b2, a2 = scipy.signal.butter(2, [f2 - bw2, f2 + bw2],
-                                  btype='band', fs=SAMPLE_RATE)
-    formant2 = scipy.signal.lfilter(b2, a2, wave)
+    # Additive synthesis — build harmonics with natural rolloff
+    nyquist = SAMPLE_RATE / 2.0
+    n_harmonics = min(40, int(nyquist / hz))
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
 
-    # Mix: original (attenuated) + formants
-    mixed = wave * 0.3 + formant1 * 0.4 + formant2 * 0.3
+    # Body resonance curve — emphasizes certain harmonic regions
+    # Modeled after violin/cello response: peaks around 300Hz, 1kHz, 2.5kHz
+    def body_response(f):
+        """Approximate string instrument body resonance."""
+        r = 1.0
+        # Main air resonance (~280 Hz for violin, scales with pitch)
+        air_f = max(200, min(400, hz * 1.5))
+        r += 0.6 * numpy.exp(-((f - air_f) / 100) ** 2)
+        # Wood resonance (~1 kHz)
+        r += 0.4 * numpy.exp(-((f - 1000) / 300) ** 2)
+        # Bridge resonance (~2.5 kHz) — the "presence" peak
+        r += 0.3 * numpy.exp(-((f - 2500) / 500) ** 2)
+        return r
 
-    return (peak * mixed).astype(numpy.int16)
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= nyquist:
+            break
+        # Amplitude: 1/n rolloff (sawtooth-like) shaped by body
+        amp = (1.0 / n) * body_response(f_n)
+        # Even harmonics slightly weaker (bowing point ~1/8 from bridge)
+        if n % 2 == 0:
+            amp *= 0.85
+        # Random phase per harmonic — prevents the "buzzy" coherent-phase sound
+        phi = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n * t + vibrato * n / hz) + phi)
+
+    # Normalize
+    max_val = numpy.abs(wave).max()
+    if max_val > 0:
+        wave /= max_val
+
+    # Subtle bow pressure variation — slow amplitude wobble
+    bow_pressure = 1.0 + 0.03 * numpy.sin(2 * numpy.pi * 3.7 * t)
+    wave *= bow_pressure
+
+    # Gentle lowpass — real instruments don't have infinite bandwidth
+    cutoff = min(10000, hz * 10)
+    bl, al = scipy.signal.butter(2, cutoff, btype='low', fs=SAMPLE_RATE)
+    wave = scipy.signal.lfilter(bl, al, wave)
+
+    return (peak * wave).astype(numpy.int16)
 
 
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
@@ -346,6 +375,7 @@ class Envelope(Enum):
     PLUCK = (0.002, 0.15, 0.0, 0.1)
     PAD = (0.4, 0.2, 0.7, 0.5)
     STRINGS = (0.15, 0.1, 0.8, 0.3)
+    BOWED = (0.04, 0.08, 0.75, 0.25)
     BELL = (0.001, 0.3, 0.0, 0.5)
     STACCATO = (0.005, 0.05, 0.0, 0.02)
 
@@ -1458,6 +1488,41 @@ def _apply_lowpass(samples, cutoff, q=0.707, sample_rate=SAMPLE_RATE):
     return scipy.signal.lfilter(b, a, samples).astype(numpy.float32)
 
 
+def _apply_highpass(samples, cutoff, q=0.707, sample_rate=SAMPLE_RATE):
+    """Apply a 2nd-order Butterworth highpass filter (12 dB/octave).
+
+    Removes low-frequency content below the cutoff. Useful for cleaning
+    up mud from pads, keeping bass parts from masking each other, or
+    thinning out a sound.
+
+    Args:
+        samples: Float32 numpy array.
+        cutoff: Cutoff frequency in Hz.
+        q: Resonance / Q factor (default 0.707 = Butterworth flat).
+        sample_rate: Sample rate in Hz.
+
+    Returns:
+        Float32 array with filter applied.
+    """
+    if cutoff <= 0 or cutoff >= sample_rate / 2:
+        return samples
+
+    w0 = 2 * numpy.pi * cutoff / sample_rate
+    alpha = numpy.sin(w0) / (2 * q)
+
+    b0 = (1 + numpy.cos(w0)) / 2
+    b1 = -(1 + numpy.cos(w0))
+    b2 = (1 + numpy.cos(w0)) / 2
+    a0 = 1 + alpha
+    a1 = -2 * numpy.cos(w0)
+    a2 = 1 - alpha
+
+    b = numpy.array([b0/a0, b1/a0, b2/a0])
+    a = numpy.array([1.0, a1/a0, a2/a0])
+
+    return scipy.signal.lfilter(b, a, samples).astype(numpy.float32)
+
+
 def _apply_chorus(samples, mix=0.5, rate=1.5, depth=0.003,
                    sample_rate=SAMPLE_RATE):
     """Apply a chorus effect — slightly detuned delayed copy mixed in.
@@ -1534,7 +1599,7 @@ def _apply_distortion(samples, drive=1.0, mix=1.0):
 
 def _apply_effects_with_params(samples, params, skip_reverb=False):
     """Apply effects using a params dict. Used for both static and automated rendering."""
-    # Signal chain: distortion → chorus → lowpass → delay → reverb
+    # Signal chain: distortion → chorus → highpass → lowpass → delay → reverb
     if params.get("distortion_mix", 0) > 0:
         samples = _apply_distortion(samples,
                                     drive=params.get("distortion_drive", 3.0),
@@ -1544,6 +1609,9 @@ def _apply_effects_with_params(samples, params, skip_reverb=False):
                                 mix=params["chorus_mix"],
                                 rate=params.get("chorus_rate", 1.5),
                                 depth=params.get("chorus_depth", 0.003))
+    if params.get("highpass", 0) > 0:
+        samples = _apply_highpass(samples, params["highpass"],
+                                  params.get("highpass_q", 0.707))
     if params.get("lowpass", 0) > 0:
         samples = _apply_lowpass(samples, params["lowpass"],
                                  params.get("lowpass_q", 0.707))
@@ -1573,6 +1641,8 @@ def _apply_part_effects(samples, part):
         "chorus_mix": part.chorus_mix,
         "chorus_rate": part.chorus_rate,
         "chorus_depth": part.chorus_depth,
+        "highpass": part.highpass,
+        "highpass_q": part.highpass_q,
         "lowpass": part.lowpass,
         "lowpass_q": part.lowpass_q,
         "delay_mix": part.delay_mix,
@@ -1973,8 +2043,8 @@ def render_score(score):
                     params = part._get_params_at(seg_start_beat)
                     segment = part_buf[seg_start:seg_end].copy()
                     has_fx = any(params.get(k, 0) > 0 for k in
-                                ["distortion_mix", "chorus_mix", "lowpass",
-                                 "delay_mix", "reverb_mix"])
+                                ["distortion_mix", "chorus_mix", "highpass",
+                                 "lowpass", "delay_mix", "reverb_mix"])
                     if has_fx:
                         segment = _apply_effects_with_params(segment, params)
                     # Apply volume automation
@@ -1983,9 +2053,9 @@ def render_score(score):
                         segment = segment * (seg_vol / part.volume) if part.volume > 0 else segment
                     part_buf[seg_start:seg_end] = segment
             else:
-                has_fx = (part.lowpass > 0 or part.delay_mix > 0
-                          or part.reverb_mix > 0 or part.distortion_mix > 0
-                          or part.chorus_mix > 0)
+                has_fx = (part.highpass > 0 or part.lowpass > 0
+                          or part.delay_mix > 0 or part.reverb_mix > 0
+                          or part.distortion_mix > 0 or part.chorus_mix > 0)
                 if has_fx:
                     part_buf = _apply_part_effects(part_buf, part)
             # Apply sidechain compression if enabled
@@ -2092,7 +2162,7 @@ def render_score(score):
             part_stereo[start:start + hit_len] += panned
 
         # Apply this drum Part's effects
-        has_drum_fx = (drum_part.lowpass > 0 or drum_part.delay_mix > 0
+        has_drum_fx = (drum_part.highpass > 0 or drum_part.lowpass > 0 or drum_part.delay_mix > 0
                        or drum_part.reverb_mix > 0 or drum_part.distortion_mix > 0
                        or drum_part.chorus_mix > 0)
         if has_drum_fx:

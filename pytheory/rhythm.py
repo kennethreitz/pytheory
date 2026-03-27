@@ -45,23 +45,23 @@ INSTRUMENTS = {
 
     # ── Strings ──
     "violin": {
-        "synth": "triangle", "envelope": "strings",
-        "lowpass": 5000,
+        "synth": "strings_synth", "envelope": "bowed",
+        "detune": 2, "lowpass": 5000,
         "humanize": 0.15,
     },
     "viola": {
-        "synth": "triangle", "envelope": "strings",
-        "lowpass": 3500,
+        "synth": "strings_synth", "envelope": "bowed",
+        "detune": 2, "lowpass": 3500,
         "humanize": 0.15,
     },
     "cello": {
-        "synth": "triangle", "envelope": "strings",
-        "lowpass": 2500,
+        "synth": "strings_synth", "envelope": "bowed",
+        "detune": 2, "lowpass": 2500,
         "humanize": 0.15,
     },
     "contrabass": {
-        "synth": "triangle", "envelope": "strings",
-        "lowpass": 1500,
+        "synth": "strings_synth", "envelope": "bowed",
+        "detune": 2, "lowpass": 1500,
         "humanize": 0.1,
     },
     "string_ensemble": {
@@ -1571,6 +1571,7 @@ class Part:
                  reverb_type: str = "algorithmic",
                  delay: float = 0.0, delay_time: float = 0.375,
                  delay_feedback: float = 0.4,
+                 highpass: float = 0.0, highpass_q: float = 0.707,
                  lowpass: float = 0.0, lowpass_q: float = 0.707,
                  distortion: float = 0.0, distortion_drive: float = 3.0,
                  legato: bool = False, glide: float = 0.0,
@@ -1597,6 +1598,8 @@ class Part:
         self.delay_mix = delay
         self.delay_time = delay_time
         self.delay_feedback = delay_feedback
+        self.highpass = highpass
+        self.highpass_q = highpass_q
         self.lowpass = lowpass
         self.lowpass_q = lowpass_q
         self.distortion_mix = distortion
@@ -1687,6 +1690,7 @@ class Part:
             "reverb_type": self.reverb_type,
             "delay_mix": self.delay_mix, "delay_time": self.delay_time,
             "delay_feedback": self.delay_feedback,
+            "highpass": self.highpass, "highpass_q": self.highpass_q,
             "lowpass": self.lowpass, "lowpass_q": self.lowpass_q,
             "distortion_mix": self.distortion_mix,
             "distortion_drive": self.distortion_drive,
@@ -2075,6 +2079,7 @@ class Score:
              reverb_type: str = None,
              delay: float = None, delay_time: float = None,
              delay_feedback: float = None,
+             highpass: float = None, highpass_q: float = None,
              lowpass: float = None, lowpass_q: float = None,
              distortion: float = None, distortion_drive: float = None,
              legato: bool = None, glide: float = None,
@@ -2179,6 +2184,7 @@ class Score:
             "reverb_type": reverb_type,
             "delay": delay, "delay_time": delay_time,
             "delay_feedback": delay_feedback,
+            "highpass": highpass, "highpass_q": highpass_q,
             "lowpass": lowpass, "lowpass_q": lowpass_q,
             "distortion": distortion, "distortion_drive": distortion_drive,
             "legato": legato, "glide": glide,
