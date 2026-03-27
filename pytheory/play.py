@@ -270,7 +270,7 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
     # Delayed vibrato: ramps in over ~200ms, like a real bow
     vib_rate = 5.2 + rng.uniform(-0.3, 0.3)  # slight randomness per note
-    vib_depth = hz * 0.003  # ~5 cents
+    vib_depth = hz * 0.001  # subtle
     vib_onset = numpy.clip(t / 0.2, 0.0, 1.0)  # ramp over 200ms
     vibrato = vib_depth * vib_onset * numpy.sin(2 * numpy.pi * vib_rate * t)
 
@@ -494,7 +494,7 @@ def trumpet_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
     # Vibrato
     vib_onset = numpy.clip(t / 0.15, 0.0, 1.0)
-    vib = hz * 0.002 * vib_onset * numpy.sin(2 * numpy.pi * 5.5 * t)
+    vib = hz * 0.001 * vib_onset * numpy.sin(2 * numpy.pi * 5.5 * t)
 
     # Lip buzz — additive with brass spectral shape
     # Trumpet has strong even AND odd harmonics (unlike clarinet)
@@ -536,7 +536,7 @@ def clarinet_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
     vib_onset = numpy.clip(t / 0.3, 0.0, 1.0)
-    vib = hz * 0.002 * vib_onset * numpy.sin(2 * numpy.pi * 4.5 * t)
+    vib = hz * 0.001 * vib_onset * numpy.sin(2 * numpy.pi * 4.5 * t)
 
     # Cylindrical bore: odd harmonics dominate
     wave = numpy.zeros(n_samples, dtype=numpy.float64)
@@ -605,7 +605,7 @@ def oboe_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
     vib_onset = numpy.clip(t / 0.2, 0.0, 1.0)
-    vib = hz * 0.002 * vib_onset * numpy.sin(2 * numpy.pi * 5.0 * t)
+    vib = hz * 0.001 * vib_onset * numpy.sin(2 * numpy.pi * 5.0 * t)
 
     wave = numpy.zeros(n_samples, dtype=numpy.float64)
     n_harmonics = min(18, int((SAMPLE_RATE / 2) / hz))
@@ -681,7 +681,7 @@ def cello_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
     # Delayed vibrato
     vib_rate = 5.0 + rng.uniform(-0.3, 0.3)
-    vib_depth = hz * 0.002
+    vib_depth = hz * 0.001
     vib_onset = numpy.clip(t / 0.25, 0.0, 1.0)
     vibrato = vib_depth * vib_onset * numpy.sin(2 * numpy.pi * vib_rate * t)
 
