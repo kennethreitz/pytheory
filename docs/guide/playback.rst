@@ -66,6 +66,17 @@ the mix louder and punchier:
        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
    play_score(score)
 
+The render pipeline respects the Score's ``temperament`` and
+``reference_pitch`` settings, so Baroque or microtonal scores play back
+at the correct tuning:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=80, temperament="meantone", reference_pitch=415.0)
+
+Press **Ctrl+C** at any time during playback to stop — PyTheory catches
+``KeyboardInterrupt`` and stops audio cleanly.
+
 See :doc:`sequencing` for how to build scores and parts.
 
 render_score() -- Headless Rendering
@@ -153,7 +164,7 @@ Play a drum pattern through the speakers:
    play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
    play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
 
-See :doc:`drums` for the full list of 58 presets and 21 fills.
+See :doc:`drums` for the full list of 80+ presets and 21 fills.
 
 play_progression() -- Quick Chord Playback
 ------------------------------------------

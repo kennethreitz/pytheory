@@ -667,8 +667,16 @@ A Score can use any tuning system and temperament:
    # Just intonation — pure intervals
    score = Score("4/4", bpm=90, temperament="just")
 
-Temperaments: ``"equal"`` (default), ``"pythagorean"``, ``"meantone"``,
-``"just"``.
+The Score constructor accepts these tuning parameters:
+
+- ``system``: Musical system name (default ``"western"``). Any system
+  from :doc:`systems` works — ``"indian"``, ``"shruti"``, ``"maqam"``,
+  ``"carnatic"``, etc. Note strings in ``Part.add()`` are parsed against
+  this system.
+- ``temperament``: Tuning temperament — ``"equal"`` (default),
+  ``"pythagorean"``, ``"meantone"``, ``"just"``.
+- ``reference_pitch``: Concert pitch in Hz (default 440.0). Use 415.0
+  for Baroque tuning, 432.0 for "Verdi tuning", etc.
 
 Custom equal temperaments via the ``TET()`` factory:
 

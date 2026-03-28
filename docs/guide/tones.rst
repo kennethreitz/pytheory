@@ -357,6 +357,45 @@ every tone knows its enharmonic spelling:
    >>> Tone.from_string("C4", system="western").enharmonic is None
    True
 
+Extended Enharmonics
+~~~~~~~~~~~~~~~~~~~~
+
+PyTheory supports the full range of enharmonic spellings used in real
+music theory:
+
+- **Cb** and **Fb** — musically valid flats (Cb = B, Fb = E)
+- **E#** and **B#** — musically valid sharps (E# = F, B# = C)
+- **Double sharps** (``##`` or ``x``) — e.g. F## = G
+- **Double flats** (``bb``) — e.g. Dbb = C
+- **Unicode symbols** — ``♯`` (sharp), ``♭`` (flat), ``𝄪`` (double sharp),
+  ``𝄫`` (double flat) are all recognized and normalized to ASCII
+
+.. code-block:: pycon
+
+   >>> Tone.from_string("Cb4")   # resolves to B3 (octave boundary fix)
+   <Tone B3>
+   >>> Tone.from_string("B#4")   # resolves to C5 (octave boundary fix)
+   <Tone C5>
+   >>> Tone.from_string("E#4")   # resolves to F4
+   <Tone F4>
+   >>> Tone.from_string("Fb4")   # resolves to E4
+   <Tone E4>
+
+The octave boundary is correctly handled: B# crosses up to the next
+octave (B#4 = C5), and Cb crosses down (Cb4 = B3), matching standard
+scientific pitch notation where the octave number increments at C.
+
+Tone Validation
+~~~~~~~~~~~~~~~
+
+Tones are validated on construction — if a tone name is not recognized
+in its system, a ``ValueError`` is raised:
+
+.. code-block:: pycon
+
+   >>> Tone.from_string("X4")   # not a valid tone name
+   ValueError: ...
+
 The Circle of Fifths
 --------------------
 

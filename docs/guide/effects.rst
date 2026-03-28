@@ -841,9 +841,11 @@ processes each section independently:
    lead.arpeggio("Gm", bars=4, pattern="updown", octaves=2)
 
 Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``highpass``,
-``reverb``, ``reverb_decay``, ``delay``, ``delay_time``, ``delay_feedback``,
-``distortion``, ``distortion_drive``, ``chorus``, ``phaser``, ``phaser_rate``,
-``saturation``, ``tremolo_depth``, ``tremolo_rate``, ``volume``.
+``reverb``, ``reverb_decay``, ``reverb_type``, ``delay``, ``delay_time``,
+``delay_feedback``, ``distortion``, ``distortion_drive``, ``chorus``,
+``phaser``, ``phaser_rate``, ``saturation``, ``tremolo_depth``,
+``tremolo_rate``, ``cabinet``, ``cabinet_brightness``, ``analog_drift``,
+``volume``.
 
 LFO Automation
 --------------

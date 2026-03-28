@@ -322,6 +322,14 @@ against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
    >>> Chord.from_tones("Bb", "D", "F").identify()
    'Bb major'
 
+Enharmonic spellings are fully supported — Cb, Fb, E#, B#, double
+sharps/flats, and unicode symbols (see :doc:`tones` for details):
+
+.. code-block:: pycon
+
+   >>> Chord.from_tones("Cb", "Eb", "Gb").identify()
+   'B minor'
+
 You can also access the root and quality separately:
 
 .. code-block:: pycon

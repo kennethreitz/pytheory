@@ -1,10 +1,11 @@
 Musical Systems
 ===============
 
-PyTheory supports **six musical systems**, each with its own tone names,
-scale patterns, and centuries of tradition behind them. Every system
-maps onto the same 12-tone equal temperament backbone, so you can
-compare scales across cultures and even combine them in your own music.
+PyTheory supports **16 musical systems** — 6 core systems mapped onto
+12-tone equal temperament, plus 10 microtonal systems with their own
+native tunings. The core systems let you compare scales across cultures;
+the microtonal systems go beyond 12-TET into genuinely different pitch
+universes.
 
 Western
 -------
@@ -270,5 +271,118 @@ produce the same pitches:
    261.6255653005986
    >>> do4.frequency
    261.6255653005986
+
+Microtonal Systems
+------------------
+
+Beyond the six 12-TET core systems, PyTheory includes 10 microtonal
+systems that use their own native tunings — more notes per octave,
+just intonation ratios, or entirely alien pitch structures.
+
+Shruti (22 tones per octave)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Indian 22-shruti system divides the octave into 22 unequal steps
+using just intonation ratios. These microtonal inflections are what
+give classical Indian music its characteristic expressiveness — pitches
+that fall "between the cracks" of the piano.
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=75, system="shruti")
+
+Maqam (24 tones per octave)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Arabic 24-tone system adds Zalzalian quarter-tone intervals
+(derived from just intonation ratios of 11 and 13) to the standard
+12 tones. These "neutral" intervals — halfway between major and minor —
+are the soul of maqam music.
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=90, system="maqam")
+
+Slendro (5-TET)
+~~~~~~~~~~~~~~~~
+
+The Javanese slendro scale — 5 equal divisions of the octave. Each
+step is 240 cents, wider than any Western interval. Ethereal and
+floating.
+
+Pelog (9-TET)
+~~~~~~~~~~~~~
+
+Approximation of the Javanese pelog tuning as 9 equal divisions of
+the octave.
+
+Thai (7-TET)
+~~~~~~~~~~~~~
+
+Thai classical music divides the octave into 7 equal steps of ~171
+cents each — every interval is the same size.
+
+Makam (53-TET)
+~~~~~~~~~~~~~~
+
+Turkish makam music uses 53 equal divisions of the octave — fine
+enough to approximate virtually any just interval. The system that
+underlies Ottoman classical music.
+
+Carnatic (72-TET)
+~~~~~~~~~~~~~~~~~
+
+South Indian Carnatic music theory describes 72 melakarta ragas.
+The 72-TET system provides enough resolution to represent all the
+microtonal inflections of Carnatic practice.
+
+19-TET and 31-TET
+~~~~~~~~~~~~~~~~~~
+
+Extended equal temperaments that offer better approximations of
+just intonation intervals than 12-TET. 19-TET has excellent major
+thirds; 31-TET closely matches quarter-comma meantone.
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=100, system="19-tet")
+
+Bohlen-Pierce (13 equal divisions of the tritave)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A genuinely alien tuning system — 13 equal divisions of the
+**tritave** (3:1 ratio) instead of the octave (2:1). No octaves, no
+fifths, built on 3:5:7 harmonics. Used by experimental composers.
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=100, system="bohlen-pierce")
+
+The TET() Factory
+~~~~~~~~~~~~~~~~~
+
+Create any equal temperament on the fly with the ``TET()`` factory:
+
+.. code-block:: python
+
+   from pytheory import TET
+
+   edo19 = TET(19)   # 19-tone equal temperament
+   edo31 = TET(31)   # 31-tone equal temperament
+   score = Score("4/4", bpm=100, system=edo19)
+
+Tone names in custom TET systems are integers (0, 1, 2, ..., n-1).
+
+System.tone() Method
+~~~~~~~~~~~~~~~~~~~~
+
+Any system can create a Tone directly:
+
+.. code-block:: python
+
+   from pytheory import SYSTEMS
+
+   western = SYSTEMS["western"]
+   c4 = western.tone("C", octave=4)
 
 Music is universal, but every culture hears it differently. These systems are different maps of the same territory -- explore one you've never played in before and see what you find.

@@ -18,8 +18,8 @@ Theory
 ------
 
 The theory layer works everywhere Python runs — no audio setup needed.
-Tones, scales, chords, keys, intervals, harmony, 6 musical systems,
-25 instruments:
+Tones, scales, chords, keys, intervals, harmony, 16 musical systems,
+60+ instruments:
 
 .. code-block:: pycon
 
@@ -72,25 +72,29 @@ every time::
 What's Inside
 -------------
 
-- **Theory** — tones, scales (40+ across 6 systems), chords (17 types),
+- **Theory** — tones, scales (40+ across 16 systems), chords (17 types),
   keys, Roman numeral analysis, figured bass, pitch class sets (Forte
-  numbers), scale recommendation, modulation, voice leading
+  numbers), scale recommendation, modulation, voice leading, enharmonic
+  support (Cb, Fb, E#, B#, double sharps/flats, unicode symbols)
 - **Sequencing** — Score, Parts, arpeggiator, legato/glide, velocity,
-  swing, humanize, tempo changes, song sections with repeat
+  swing, humanize, tempo changes, song sections with repeat, strumming,
+  pitch bends (3 types), rolls, tuning systems (TET factory, 4
+  temperaments, reference_pitch)
 - **Synthesis** — 41 waveforms (including Karplus-Strong pluck, Hammond organ,
-  bowed string, and 14 dedicated instrument synths), 10 envelopes, 40+
-  instrument presets, configurable FM, sub-oscillator, noise layer, filter
-  envelope, velocity-to-brightness, analog oscillator drift, detune, stereo
-  pan/spread, strumming, 80+ drum patterns (stereo panned, including world
-  percussion), 21 fills
+  bowed string, granular, vocal/formant, and 31 dedicated instrument synths),
+  10 envelopes, 60+ instrument presets, configurable FM, sub-oscillator,
+  noise layer, filter envelope, velocity-to-brightness, analog oscillator
+  drift, detune, stereo pan/spread, 80+ drum patterns (stereo panned,
+  including world percussion and cajón), 21 fills, 11 microtonal systems
 - **Effects** — reverb (algorithmic + 7 convolution IRs, stereo), delay,
-  lowpass/highpass (with resonance), distortion, cabinet simulation,
+  lowpass/highpass (with resonance), distortion, guitar cabinet simulation,
   saturation, chorus, phaser, tremolo, analog drift, sidechain compression,
   automation, LFOs. Master bus compressor/limiter
-- **Instruments** — 49 presets with fingering generation, guitar strumming,
-  pitch bends
+- **Instruments** — 60+ presets with fingering generation, guitar strumming,
+  pitch bends, note choking
 - **Output** — stereo playback, WAV export, MIDI import/export
-- **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``
+- **Interface** — REPL with tab completion, CLI (15 commands), ``pytheory demo``,
+  KeyboardInterrupt handling for clean stop
 - **AI-friendly** — Claude Code can compose
   and play music through PyTheory from natural language
 

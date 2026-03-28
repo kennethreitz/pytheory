@@ -390,7 +390,7 @@ Dedicated Instrument Synths
 --------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
-24 dedicated instrument synths. Each one uses tailored synthesis
+31 dedicated instrument synths. Each one uses tailored synthesis
 techniques -- additive harmonics, formant shaping, body resonance
 modeling, and specialized envelopes -- to capture the character of a
 specific acoustic instrument. These are the waveforms that bring the
@@ -715,7 +715,7 @@ Instrument Presets
 ------------------
 
 Instead of choosing synth + envelope + effects manually, use an
-instrument preset — 40+ predefined combinations that approximate real
+instrument preset — 60+ predefined combinations that approximate real
 instruments:
 
 .. code-block:: python
@@ -728,20 +728,28 @@ instruments:
 
 Available instruments:
 
-**Keys**: piano, electric_piano, organ, harpsichord, celesta, music_box
+**Keys**: piano, electric_piano, organ, harpsichord, celesta, music_box,
+accordion
 
 **Strings**: violin, viola, cello, contrabass, string_ensemble
 
-**Woodwinds**: flute, clarinet, oboe, bassoon
+**Woodwinds**: flute, clarinet, oboe, bassoon, saxophone, alto_sax,
+tenor_sax, bari_sax
 
 **Brass**: trumpet, trombone, french_horn, tuba, brass_ensemble
 
-**Plucked**: acoustic_guitar, electric_guitar, distorted_guitar,
-bass_guitar, upright_bass, harp, sitar, koto
+**Plucked**: acoustic_guitar, electric_guitar, clean_guitar, crunch_guitar,
+distorted_guitar, orange_crunch, metal_guitar, bass_guitar, upright_bass,
+harp, sitar, koto, banjo, mandolin, mandola, ukulele
 
-**Synth**: synth_lead, synth_pad, synth_bass, acid_bass, 808_bass
+**World/Exotic**: pedal_steel, theremin, kalimba, steel_drum, didgeridoo,
+bagpipe
 
-**Percussion**: vibraphone, marimba, xylophone, glockenspiel, tubular_bells
+**Synth**: synth_lead, synth_pad, synth_bass, acid_bass, 808_bass,
+granular_pad, granular_texture, vocal, choir
+
+**Percussion**: vibraphone, marimba, xylophone, glockenspiel, tubular_bells,
+timpani
 
 Explicit kwargs override preset defaults:
 

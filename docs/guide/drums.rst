@@ -9,7 +9,7 @@ in Atlanta. Over a dancehall pattern, you're in Kingston. The drums ARE
 the genre -- they tell the listener's body how to move before a single
 melodic note is played.
 
-PyTheory includes a complete drum system -- 27 synthesized percussion
+PyTheory includes a complete drum system -- 51 synthesized percussion
 sounds, 80+ pattern presets across dozens of genres, and 21 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
@@ -91,7 +91,7 @@ The ``DrumSound`` enum maps to General MIDI percussion note numbers:
    >>> DrumSound.CLOSED_HAT.value
    42
 
-All 27 sounds, organized by type:
+All 51 sounds, organized by type:
 
 **Kicks:** KICK (36)
 
@@ -106,7 +106,24 @@ All 27 sounds, organized by type:
 **Percussion:** COWBELL (56), CLAVE (75), SHAKER (70), TAMBOURINE (54),
 CONGA_HIGH (63), CONGA_LOW (64), BONGO_HIGH (60), BONGO_LOW (61),
 TIMBALE_HIGH (65), TIMBALE_LOW (66), AGOGO_HIGH (67), AGOGO_LOW (68),
-GUIRO (73), MARACAS (70)
+GUIRO (73)
+
+**Tabla:** TABLA_NA (86), TABLA_TIN (87), TABLA_GE (88), TABLA_DHA (89),
+TABLA_TIT (90), TABLA_KE (91), TABLA_GE_BEND (108 -- bayan with upward
+pitch bend from palm pressing into the head)
+
+**Dhol:** DHOL_DAGGA (92), DHOL_TILLI (93), DHOL_BOTH (94)
+
+**Dholak:** DHOLAK_GE (95), DHOLAK_NA (96), DHOLAK_TIT (97)
+
+**Mridangam:** MRIDANGAM_THAM (98), MRIDANGAM_NAM (99), MRIDANGAM_DIN (100),
+MRIDANGAM_THA (101)
+
+**Djembe:** DJEMBE_BASS (102), DJEMBE_TONE (103), DJEMBE_SLAP (104)
+
+**Cajón:** CAJON_SLAP (109), CAJON_TAP (110)
+
+**Metal Kit:** METAL_KICK (105), METAL_SNARE (106), METAL_HAT (107)
 
 Drum Synthesis
 --------------
@@ -200,8 +217,8 @@ everything to its essentials. The metal kit adds 3 dedicated sounds
 (double kick, china cymbal, stack) and 4 patterns for extreme metal
 subgenres.
 
-**World Percussion:** tabla, dhol, dholak, mridangam, djembe -- Deep
-traditions from across the globe, each with authentic sound sets and
+**World Percussion:** tabla, dhol, dholak, mridangam, djembe, cajón --
+Deep traditions from across the globe, each with authentic sound sets and
 idiomatic patterns. See the World Percussion section below for details.
 
 **Other:** funk, hip hop, bo diddley, second line, new orleans, waltz,
@@ -330,8 +347,10 @@ most expressive percussion instruments ever created. A single tabla
 player can produce an astonishing range of tones by varying finger
 placement, pressure, and striking technique.
 
-**6 sounds** -- covering the primary tabla strokes (na, tin, tun, ge,
-ke, and ti-ra-ki-ta combinations).
+**7 sounds** -- covering the primary tabla strokes (na, tin, tun, ge,
+dha, ke, tit) plus a bayan pitch bend sound (TABLA_GE_BEND) that
+models the technique of pressing the palm into the bayan head to bend
+the pitch upward.
 
 **7 patterns:** teental (16 beats, the most common taal), jhaptaal
 (10 beats), rupak (7 beats), dadra (6 beats), keherwa (8 beats, folk
@@ -432,6 +451,23 @@ classic triplet-feel gallop rhythm).
 
    score = Score("4/4", bpm=200)
    score.drums("metal blast", repeats=4)
+
+Cajón
+~~~~~
+
+The cajón is a box-shaped percussion instrument from Peru, now
+ubiquitous in acoustic and unplugged settings worldwide. Players sit
+on the box and strike the front face with their hands.
+
+**2 sounds** -- slap (sharp, snare-like) and tap (bass-like).
+
+**3 patterns:** cajon (basic groove), cajon rumba (flamenco-style rumba),
+and cajon folk (folk/acoustic pattern).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=100)
+   score.drums("cajon", repeats=4)
 
 MIDI Export
 -----------
