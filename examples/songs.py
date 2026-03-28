@@ -1843,6 +1843,190 @@ def acoustic_ensemble():
     play_song(score, "Acoustic Ensemble — Guitar, Uke, Mandolin, Cajón")
 
 
+def ascent():
+    """Ascent — from the deep to the sky, theremin solo, tabla solo."""
+    import random
+    from pytheory import Fretboard
+    random.seed(13)
+    score = Score("4/4", bpm=80)
+    REV = "cathedral"
+    T3 = 1.0 / 12.0
+    T9 = 1.0 / 9.0
+
+    NA = DrumSound.TABLA_NA; DH_ = DrumSound.TABLA_DHA
+    TT_ = DrumSound.TABLA_TIT; KE_ = DrumSound.TABLA_KE
+    GB_ = DrumSound.TABLA_GE_BEND; GE_ = DrumSound.TABLA_GE
+    DJB_ = DrumSound.DJEMBE_BASS; DJT_ = DrumSound.DJEMBE_TONE
+    DJS_ = DrumSound.DJEMBE_SLAP
+    CB_ = DrumSound.CAJON_BASS; CSL_ = DrumSound.CAJON_SLAP
+    CT_ = DrumSound.CAJON_TAP
+
+    # Didgeridoo drone
+    didg = score.part("didg", instrument="didgeridoo", volume=0.15)
+    for _ in range(32):
+        didg.add("E1", 4.0, velocity=52)
+
+    # 1: THE DEEP (1-4)
+    grain = score.part("grain", synth="granular_synth", envelope="pad",
+                        lowpass=800, reverb=0.55, reverb_type="cave", volume=0.12)
+    for note in ["E2", "B2", "E2", "G2"]:
+        grain.add(note, 4.0, velocity=40)
+
+    # 2: LIGHT (3-6)
+    kal = score.part("kalimba", instrument="kalimba", volume=0.2,
+                      delay=0.2, delay_time=0.375, delay_feedback=0.4,
+                      reverb=0.45, reverb_type=REV)
+    kal.rest(8.0)
+    for note, vel in [("B4",58),("E5",62),("G5",65),("B5",68),
+                       ("G5",62),("E5",58),("B4",55),("E4",52)]:
+        kal.add(note, Duration.QUARTER, velocity=vel)
+    kal.rest(4.0)
+    for note, vel in [("E5",60),("G5",65),("B5",70),("E6",72),
+                       ("B5",65),("G5",60),("E5",58),("B4",55)]:
+        kal.add(note, Duration.QUARTER, velocity=vel)
+
+    # 3: SURFACING (5-8)
+    cello = score.part("cello", instrument="cello", volume=0.22,
+                        reverb=0.4, reverb_type=REV)
+    cello.rest(16.0)
+    for note, dur, vel in [("E2",4.0,52),("G2",4.0,55),("B2",4.0,58),("E3",4.0,62)]:
+        cello.add(note, dur, velocity=vel)
+
+    # 4: AIR (7-10) — piano + quiet uke
+    piano = score.part("piano", instrument="piano", volume=0.28,
+                        reverb=0.35, reverb_type=REV)
+    piano.rest(24.0)
+    for notes in [
+        ["E3","B3","E4","G4","B4","G4","E4","B3"],
+        ["C3","G3","C4","E4","G4","E4","C4","G3"],
+        ["A2","E3","A3","C4","E4","C4","A3","E3"],
+        ["B2","F#3","B3","D4","F#4","D4","B3","F#3"],
+    ]:
+        for n in notes:
+            piano.add(n, Duration.EIGHTH, velocity=random.randint(58, 70))
+
+    fb = Fretboard.ukulele()
+    uke = score.part("uke", instrument="ukulele", fretboard=fb,
+                      reverb=0.4, reverb_type=REV, humanize=0.2,
+                      pan=-0.2, volume=0.15)
+    uke.rest(28.0)
+    for sym in ["Em", "C", "Am", "B"]:
+        vd = random.randint(60, 75)
+        vu = random.randint(45, 62)
+        uke.strum(sym, Duration.QUARTER, direction="down", velocity=vd)
+        uke.strum(sym, Duration.EIGHTH, direction="up", velocity=vu)
+        uke.strum(sym, Duration.EIGHTH, direction="down", velocity=vd - 8)
+        uke.strum(sym, Duration.QUARTER, direction="up", velocity=vu)
+        uke.strum(sym, Duration.QUARTER, direction="down", velocity=vd)
+
+    # 5: THEREMIN SOLO (11-16)
+    steel = score.part("steel", instrument="pedal_steel", volume=0.16,
+                        reverb=0.4, reverb_type=REV, pan=0.2)
+    steel.rest(36.0)
+    for note, dur, vel in [("B4",3.0,58),("A4",1.0,50),("G4",2.0,55),("E4",2.0,52)]:
+        steel.add(note, dur, velocity=vel)
+
+    theremin = score.part("theremin", instrument="theremin", volume=0.3,
+                           reverb=0.45, reverb_type=REV,
+                           delay=0.15, delay_time=0.375, delay_feedback=0.3)
+    theremin.rest(40.0)
+    for note, dur, vel in [
+        ("E4",2.0,62),("G4",1.0,58),("B4",1.0,62),
+        ("A4",2.0,65),("G4",1.0,58),("E4",1.0,55),("D4",3.0,60),("E4",1.0,58),
+        ("G4",1.0,62),("B4",1.5,68),("D5",0.5,65),
+        ("E5",2.0,72),("D5",1.0,65),("B4",1.0,62),
+        ("G4",1.0,60),("A4",1.0,62),("B4",2.0,68),
+        ("E5",1.5,75),("G5",1.5,80),("B5",2.0,85),
+        ("A5",1.0,78),("G5",1.0,72),("E5",2.0,75),
+        ("D5",1.0,68),("B4",1.0,62),("E4",4.0,70),
+    ]:
+        theremin.add(note, dur, velocity=vel)
+
+    strings = score.part("strings", instrument="string_ensemble", volume=0.15,
+                          reverb=0.45, reverb_type=REV)
+    strings.rest(40.0)
+    for sym, vel in [("Em",52),("C",55),("Am",58),("B",55),("Em",60),("C",62)]:
+        strings.add(Chord.from_symbol(sym), 4.0, velocity=vel)
+
+    # 6: THE PEAK (17-18)
+    flute = score.part("flute", instrument="flute", volume=0.2, reverb=0.4, reverb_type=REV)
+    flute.rest(64.0)
+    for note, dur, vel in [
+        ("B5",2.0,55),("A5",1.0,50),("G5",1.0,52),
+        ("E5",2.0,55),("D5",1.0,50),("E5",1.0,52),
+    ]:
+        flute.add(note, dur, velocity=vel)
+
+    harp = score.part("harp", instrument="harp", volume=0.16, reverb=0.4, reverb_type=REV)
+    harp.rest(68.0)
+    for n in ["B5","G5","E5","B4","G4","E4","B3","E3"]:
+        harp.add(n, Duration.QUARTER, velocity=random.randint(48, 58))
+
+    timp = score.part("timp", instrument="timpani")
+    timp.rest(64.0)
+    timp.roll("E2", 4.0, velocity_start=20, velocity_end=95, speed=0.125)
+    timp.add("E2", 4.0, velocity=105)
+
+    # Drums: silence → cajón → djembe → tabla solo
+    score.add_pattern(Pattern(name="s", time_signature="4/4", beats=16.0, hits=[]),
+                      repeats=1)
+    p_caj = Pattern(name="caj", time_signature="4/4", beats=4.0, hits=[
+        _Hit(CB_, 0.0, 58), _Hit(CT_, 0.5, 22), _Hit(CSL_, 1.0, 50),
+        _Hit(CT_, 1.5, 20), _Hit(CB_, 2.0, 55), _Hit(CT_, 2.5, 22),
+        _Hit(CSL_, 3.0, 52),
+    ])
+    score.add_pattern(p_caj, repeats=4)
+    p_dj = Pattern(name="dj", time_signature="4/4", beats=4.0, hits=[
+        _Hit(DJB_, 0.0, 42), _Hit(DJT_, 1.0, 35), _Hit(DJT_, 1.5, 30),
+        _Hit(DJS_, 2.0, 38), _Hit(DJT_, 3.0, 35),
+    ])
+    score.add_pattern(p_dj, repeats=10)
+
+    # 7: TABLA SOLO (bars 19-26)
+    score.add_pattern(Pattern(name="ts1", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH_, 0.0, 72), _Hit(NA, 2.5, 48),
+        _Hit(DH_, 4.0, 75), _Hit(TT_, 5.5, 25), _Hit(NA, 6.0, 45),
+        _Hit(DH_, 7.5, 72),
+    ]), repeats=1)
+    score.add_pattern(Pattern(name="ts2", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH_, 0.0, 85), _Hit(TT_, 0.25, 30), _Hit(TT_, 0.5, 32),
+        _Hit(NA, 1.0, 62), _Hit(TT_, 1.25, 25), _Hit(NA, 2.0, 58),
+        _Hit(TT_, 2.5, 28), _Hit(DH_, 3.0, 82),
+        _Hit(DH_, 4.0, 90), _Hit(TT_, 4.25, 32), _Hit(TT_, 4.5, 35),
+        _Hit(NA, 5.0, 68), _Hit(KE_, 5.5, 35), _Hit(NA, 6.0, 62),
+        _Hit(KE_, 6.5, 38), _Hit(DH_, 7.0, 92), _Hit(GB_, 7.5, 85),
+    ]), repeats=1)
+    score.add_pattern(Pattern(name="ts3", time_signature="4/4", beats=8.0, hits=[
+        _Hit(NA, 0.0, 108), _Hit(NA, 0.25, 52), _Hit(TT_, 0.5, 35),
+        _Hit(NA, 0.75, 100),
+        _Hit(GE_, 1.0, 98), _Hit(GE_, 1.25, 48), _Hit(GB_, 1.5, 90),
+        _Hit(GE_, 1.75, 42),
+        _Hit(NA, 2.0, 110), _Hit(TT_, 2.125, 28), _Hit(TT_, 2.25, 32),
+        _Hit(NA, 2.5, 102), _Hit(TT_, 2.625, 30), _Hit(TT_, 2.75, 35),
+        _Hit(GB_, 3.0, 110), _Hit(KE_, 3.25, 45), _Hit(GE_, 3.5, 65),
+        _Hit(DH_, 4.0, 112),
+        *[_Hit(TT_ if i % 2 == 0 else KE_, 5.0 + i * T9, 35 + i * 5)
+          for i in range(9)],
+        _Hit(DH_, 7.0, 115),
+    ]), repeats=1)
+    score.add_pattern(Pattern(name="ts4", time_signature="4/4", beats=8.0, hits=[
+        *[_Hit(TT_, i * T3, 32 + i * 2) for i in range(12)],
+        _Hit(DH_, 1.0, 115), _Hit(GB_, 1.5, 105),
+        _Hit(NA, 2.0, 108), _Hit(KE_, 2.125, 42), _Hit(NA, 2.25, 102),
+        _Hit(KE_, 2.375, 45), _Hit(NA, 2.5, 105), _Hit(KE_, 2.625, 48),
+        _Hit(NA, 2.75, 110), _Hit(DH_, 3.0, 118),
+        *[_Hit(TT_, 3.5 + i * T3, 30 + i * 4) for i in range(12)],
+        _Hit(DH_, 4.5, 120), _Hit(DH_, 4.75, 115), _Hit(GB_, 5.0, 112),
+        _Hit(GE_, 5.5, 85), _Hit(GE_, 6.5, 82),
+        *[_Hit(NA if i % 3 == 0 else TT_, 5.5 + i * (2.0 / 9.0),
+               40 + (i % 3) * 12) for i in range(9)],
+        _Hit(DH_, 7.5, 127), _Hit(GB_, 7.875, 127),
+    ]), repeats=1)
+    score.set_drum_effects(reverb=0.3, reverb_type=REV)
+
+    play_song(score, "Ascent — Deep → Sky → Theremin Solo → Tabla Solo")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -1870,6 +2054,7 @@ SONGS = {
     "24": ("Journey (Western → World → Indian)", journey),
     "25": ("Epic Bhairav (Orchestral + Tabla)", epic_bhairav),
     "26": ("Acoustic Ensemble (Guitar+Uke+Mando+Cajón)", acoustic_ensemble),
+    "27": ("Ascent (Deep → Sky → Tabla Solo)", ascent),
 }
 
 if __name__ == "__main__":
@@ -1883,7 +2068,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-26, or 'all'): ").strip()
+        choice = input("  Pick a song (1-27, or 'all'): ").strip()
         print()
 
         if choice == "all":
