@@ -1,7 +1,7 @@
 Synthesizers
 ============
 
-PyTheory includes 30 built-in waveforms and 10 ADSR envelope presets.
+PyTheory includes 41 built-in waveforms and 10 ADSR envelope presets.
 Every sound is generated from scratch -- no samples or external audio
 files needed.
 
@@ -390,11 +390,11 @@ Dedicated Instrument Synths
 --------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
-17 dedicated instrument synths. Each one uses tailored synthesis
+24 dedicated instrument synths. Each one uses tailored synthesis
 techniques -- additive harmonics, formant shaping, body resonance
 modeling, and specialized envelopes -- to capture the character of a
 specific acoustic instrument. These are the waveforms that bring the
-total count to 30.
+total count to 41.
 
 Piano Synth
 ~~~~~~~~~~~
@@ -557,6 +557,107 @@ mids, reed buzz, and brass body warmth. Four presets: ``saxophone``,
 .. code-block:: python
 
    sax = score.part("sax", instrument="tenor_sax")
+
+Pedal Steel Synth
+~~~~~~~~~~~~~~~~~
+
+The Nashville crying sound — singing harmonics with slow vibrato
+and long sustain. Pairs naturally with spring reverb.
+
+.. code-block:: python
+
+   steel = score.part("steel", instrument="pedal_steel")
+
+Theremin Synth
+~~~~~~~~~~~~~~
+
+Pure sine with natural hand wobble — the eerie sci-fi sound.
+Best used with legato and glide for continuous pitch.
+
+.. code-block:: python
+
+   theremin = score.part("theremin", instrument="theremin")
+
+Kalimba Synth
+~~~~~~~~~~~~~
+
+Metal tines on a wooden body. Bright, bell-like attack with
+inharmonic overtones (modes at 1x, 2.92x, 5.4x).
+
+.. code-block:: python
+
+   kalimba = score.part("kalimba", instrument="kalimba")
+
+Steel Drum Synth
+~~~~~~~~~~~~~~~~
+
+Hammered metal pan with bright, ringing, tropical character.
+Inharmonic partials at 2.0x, 3.01x, 4.1x, 5.3x.
+
+.. code-block:: python
+
+   pan = score.part("pan", instrument="steel_drum")
+
+Accordion Synth
+~~~~~~~~~~~~~~~
+
+Musette-tuned doubled reeds — two slightly detuned reed sets
+create natural beating. Bellows pressure swell modulates amplitude.
+
+.. code-block:: python
+
+   acc = score.part("acc", instrument="accordion")
+
+Didgeridoo Synth
+~~~~~~~~~~~~~~~~
+
+Deep cylindrical drone with shifting formant overtones. The
+overtone singing effect sweeps a resonant peak between 500-1500Hz.
+Best with cave reverb.
+
+.. code-block:: python
+
+   didg = score.part("didg", instrument="didgeridoo")
+
+Bagpipe Synth
+~~~~~~~~~~~~~
+
+Bright chanter reed with constant bag pressure. All harmonics
+peaked around 3-7 (the piercing brightness). No dynamics — always ff.
+
+.. code-block:: python
+
+   pipes = score.part("pipes", instrument="bagpipe")
+
+Banjo Synth
+~~~~~~~~~~~
+
+Steel strings on a drum-head membrane body. The membrane gives
+nasal, ringy resonance with faster decay than guitar.
+
+.. code-block:: python
+
+   banjo = score.part("banjo", instrument="banjo")
+
+Mandolin Synth
+~~~~~~~~~~~~~~
+
+Paired steel strings in 4 courses — natural chorus from the
+doubled unison strings. Bright, ringing, fast attack.
+
+.. code-block:: python
+
+   mando = score.part("mando", instrument="mandolin")
+
+Ukulele Synth
+~~~~~~~~~~~~~
+
+Nylon strings on a small body. Mid-heavy resonance (no deep bass),
+softer attack than guitar, shorter sustain.
+
+.. code-block:: python
+
+   uke = score.part("uke", instrument="ukulele")
 
 Granular Synth
 ~~~~~~~~~~~~~~
