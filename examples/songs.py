@@ -52,24 +52,26 @@ def bossa_nova_girl():
     lead = score.part("lead", instrument="flute",
                       volume=0.45, pan=0.3,
                       delay=0.25, delay_time=0.32, delay_feedback=0.35,
-                      reverb=0.2, reverb_type="plate")
+                      reverb=0.2, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="upright_bass",
-                      volume=0.45, pan=0.0, lowpass=600)
+                      volume=0.45, pan=0.0, lowpass=600,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
         rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("E5",.67),("D5",.33),("C5",.67),("B4",.33),("A4",1),("C5",.67),("E5",.33),
-        ("D5",.67),("C5",.33),("A4",1),(None,1),
-        ("F5",.67),("E5",.33),("D5",.67),("C5",.33),("D5",1),("F5",.67),("A5",.33),
-        ("G5",.67),("F5",.33),("D5",1),(None,1),
-        ("G#5",.67),("F5",.33),("E5",.67),("D5",.33),("E5",1),(None,.5),("B4",.5),
-        ("D5",.67),("E5",.33),("G#4",1),(None,1),
-        ("A4",1),("C5",.67),("E5",.33),("A5",1.5),(None,.5),
-        ("G5",.67),("E5",.33),("C5",.67),("A4",.33),("A4",2),
+    for n, d, v in [
+        ("E5",.67,85),("D5",.33,75),("C5",.67,80),("B4",.33,70),("A4",1,85),("C5",.67,78),("E5",.33,82),
+        ("D5",.67,78),("C5",.33,72),("A4",1,80),(None,1,0),
+        ("F5",.67,88),("E5",.33,78),("D5",.67,82),("C5",.33,72),("D5",1,80),("F5",.67,85),("A5",.33,90),
+        ("G5",.67,82),("F5",.33,75),("D5",1,78),(None,1,0),
+        ("G#5",.67,92),("F5",.33,78),("E5",.67,85),("D5",.33,75),("E5",1,82),(None,.5,0),("B4",.5,72),
+        ("D5",.67,78),("E5",.33,82),("G#4",1,75),(None,1,0),
+        ("A4",1,80),("C5",.67,78),("E5",.33,85),("A5",1.5,95),(None,.5,0),
+        ("G5",.67,82),("E5",.33,78),("C5",.67,75),("A4",.33,70),("A4",2,85),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["A2","E2","A2","C3","D2","A2","D2","F2",
               "E2","B2","E2","G#2","A2","E2","A2","C3",
@@ -95,32 +97,34 @@ def bebop_in_bb():
                       volume=0.4, pan=0.25,
                       lowpass=4000, lowpass_q=1.1,
                       delay=0.15, delay_time=0.19, delay_feedback=0.25,
-                      reverb=0.15, reverb_type="plate")
+                      reverb=0.15, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="upright_bass",
-                      volume=0.4, pan=0.0, lowpass=500)
+                      volume=0.4, pan=0.0, lowpass=500,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["Bb", "Gm", "Cm", "F7"] * 2:
         rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("Bb4",.67),("D5",.33),("F5",.67),("D5",.33),
-        ("Bb4",.67),("C5",.33),("D5",.67),("F5",.33),
-        ("G5",.67),("F5",.33),("D5",.67),("Bb4",.33),
-        ("A4",.67),("Bb4",.33),("D5",.67),("G4",.33),
-        ("C5",.67),("Eb5",.33),("G5",.67),("Eb5",.33),
-        ("C5",.67),("D5",.33),("Eb5",.67),("F5",.33),
-        ("A5",.67),("G5",.33),("F5",.67),("Eb5",.33),
-        ("D5",.67),("C5",.33),("A4",.5),(None,.5),
-        ("Bb4",1),("D5",.67),("F5",.33),
-        ("G5",.67),("F5",.33),("D5",.67),("Bb4",.33),
-        ("Bb5",.67),("A5",.33),("G5",.67),("F5",.33),
-        ("Eb5",.67),("D5",.33),("Bb4",.67),("G4",.33),
-        ("C5",.5),(None,.5),("Eb5",.67),("G5",.33),
-        ("F5",.67),("Eb5",.33),("D5",.67),("C5",.33),
-        ("A4",.67),("C5",.33),("Eb5",.67),("F5",.33),
-        ("G5",.67),("A5",.33),("Bb5",1),
+    for n, d, v in [
+        ("Bb4",.67,82),("D5",.33,75),("F5",.67,88),("D5",.33,78),
+        ("Bb4",.67,80),("C5",.33,72),("D5",.67,82),("F5",.33,85),
+        ("G5",.67,90),("F5",.33,78),("D5",.67,82),("Bb4",.33,72),
+        ("A4",.67,78),("Bb4",.33,72),("D5",.67,85),("G4",.33,70),
+        ("C5",.67,82),("Eb5",.33,78),("G5",.67,92),("Eb5",.33,80),
+        ("C5",.67,78),("D5",.33,75),("Eb5",.67,82),("F5",.33,85),
+        ("A5",.67,95),("G5",.33,82),("F5",.67,85),("Eb5",.33,78),
+        ("D5",.67,80),("C5",.33,72),("A4",.5,75),(None,.5,0),
+        ("Bb4",1,85),("D5",.67,80),("F5",.33,88),
+        ("G5",.67,90),("F5",.33,82),("D5",.67,78),("Bb4",.33,72),
+        ("Bb5",.67,95),("A5",.33,85),("G5",.67,88),("F5",.33,80),
+        ("Eb5",.67,82),("D5",.33,75),("Bb4",.67,78),("G4",.33,70),
+        ("C5",.5,78),(None,.5,0),("Eb5",.67,82),("G5",.33,88),
+        ("F5",.67,85),("Eb5",.33,78),("D5",.67,82),("C5",.33,75),
+        ("A4",.67,78),("C5",.33,80),("Eb5",.67,85),("F5",.33,88),
+        ("G5",.67,92),("A5",.33,88),("Bb5",1,95),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["Bb2","D3","F3","A3","G3","F3","D3","Bb2",
               "C3","Eb3","G3","Bb3","F3","A3","C4","Eb3",
@@ -146,29 +150,31 @@ def salsa_descarga():
     lead = score.part("lead", instrument="trumpet",
                       volume=0.4, pan=0.3,
                       delay=0.2, delay_time=0.167, delay_feedback=0.3,
-                      reverb=0.15, reverb_type="plate")
+                      reverb=0.15, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="synth_bass",
-                      volume=0.45, pan=0.0, lowpass=500, lowpass_q=1.3)
+                      volume=0.45, pan=0.0, lowpass=500, lowpass_q=1.3,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["Em7b5", "A7", "Dm7", "Bbmaj7"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("E5",.67),("G5",.33),("Bb5",.67),("A5",.33),
-        ("G5",.67),("F5",.33),("E5",.67),("D5",.33),
-        ("C#5",.67),("D5",.33),("E5",.67),("G5",.33),
-        ("F5",.67),("E5",.33),("C#5",.5),(None,.5),
-        ("D5",.5),(None,.17),("F5",.67),("A5",.33),
-        ("G5",.67),("F5",.33),("E5",.67),("D5",.33),
-        ("Bb4",1),("D5",.67),("F5",.33),("A5",1),(None,1),
-        ("E5",.5),("F5",.5),("G5",.67),("A5",.33),
-        ("Bb5",.67),("A5",.33),("G5",.67),("E5",.33),
-        ("C#5",.67),("E5",.33),("A5",.67),("G5",.33),
-        ("F5",.67),("E5",.33),("C#5",.67),("A4",.33),
-        ("D5",1),("F5",.67),("A5",.33),("G5",.67),("F5",.33),("D5",1),(None,1),
-        ("Bb4",.67),("D5",.33),("F5",.67),("Bb5",.33),("A5",1.5),(None,.5),
+    for n, d, v in [
+        ("E5",.67,85),("G5",.33,78),("Bb5",.67,92),("A5",.33,82),
+        ("G5",.67,85),("F5",.33,78),("E5",.67,82),("D5",.33,75),
+        ("C#5",.67,80),("D5",.33,75),("E5",.67,85),("G5",.33,80),
+        ("F5",.67,82),("E5",.33,78),("C#5",.5,75),(None,.5,0),
+        ("D5",.5,78),(None,.17,0),("F5",.67,85),("A5",.33,90),
+        ("G5",.67,88),("F5",.33,80),("E5",.67,82),("D5",.33,75),
+        ("Bb4",1,78),("D5",.67,82),("F5",.33,88),("A5",1,95),(None,1,0),
+        ("E5",.5,80),("F5",.5,82),("G5",.67,88),("A5",.33,85),
+        ("Bb5",.67,95),("A5",.33,85),("G5",.67,88),("E5",.33,78),
+        ("C#5",.67,80),("E5",.33,82),("A5",.67,92),("G5",.33,85),
+        ("F5",.67,82),("E5",.33,78),("C#5",.67,75),("A4",.33,70),
+        ("D5",1,82),("F5",.67,85),("A5",.33,92),("G5",.67,88),("F5",.33,80),("D5",1,78),(None,1,0),
+        ("Bb4",.67,75),("D5",.33,80),("F5",.67,88),("Bb5",.33,95),("A5",1.5,90),(None,.5,0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["E2","E3","A2","A3","D2","D3","Bb2","Bb3"] * 4:
         bass.add(n, Duration.QUARTER)
@@ -192,23 +198,25 @@ def afrobeat_groove():
                       volume=0.4, pan=0.3,
                       lowpass=3000, lowpass_q=1.0,
                       delay=0.2, delay_time=0.26, delay_feedback=0.3,
-                      reverb=0.15, reverb_type="plate")
+                      reverb=0.15, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="bass_guitar",
-                      volume=0.5, pan=0.0, lowpass=500)
+                      volume=0.5, pan=0.0, lowpass=500,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["Em", "Am", "D", "C"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    riff = [("E5",.5),("G5",.5),("A5",.5),("G5",.5),
-            ("E5",.5),("D5",.5),("E5",1),
-            ("E5",.5),("G5",.5),("A5",.5),("B5",.5),
-            ("A5",.5),("G5",.5),("E5",1),
-            (None,.5),("A5",.5),("G5",.5),("E5",.5),
-            ("D5",1),("E5",.5),("G5",.5),
-            ("A5",.5),("B5",.5),("A5",.5),("G5",.5),
-            ("E5",1.5),(None,.5)]
-    for n, d in riff * 2:
-        lead.rest(d) if n is None else lead.add(n, d)
+    riff = [("E5",.5,82),("G5",.5,78),("A5",.5,88),("G5",.5,80),
+            ("E5",.5,78),("D5",.5,72),("E5",1,85),
+            ("E5",.5,80),("G5",.5,78),("A5",.5,88),("B5",.5,92),
+            ("A5",.5,85),("G5",.5,78),("E5",1,82),
+            (None,.5,0),("A5",.5,85),("G5",.5,80),("E5",.5,75),
+            ("D5",1,78),("E5",.5,80),("G5",.5,82),
+            ("A5",.5,88),("B5",.5,92),("A5",.5,85),("G5",.5,80),
+            ("E5",1.5,82),(None,.5,0)]
+    for n, d, v in riff * 2:
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["E2","E2","G2","A2","A2","G2","E2","D2",
               "D2","D2","F#2","A2","C3","C3","B2","G2"] * 2:
@@ -234,24 +242,26 @@ def reggae_one_drop():
     lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.35, delay_time=0.5625, delay_feedback=0.45,
-                      reverb=0.3, reverb_type="cathedral")
+                      reverb=0.3, reverb_type="cathedral",
+                      humanize=0.2)
     bass = score.part("bass", instrument="bass_guitar",
-                      volume=0.55, pan=0.0, lowpass=400, lowpass_q=1.3)
+                      volume=0.55, pan=0.0, lowpass=400, lowpass_q=1.3,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["G", "C", "D", "C"] * 2:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("G5",1.5),(None,.5),("B5",1),("A5",1),
-        ("G5",2),("E5",1),("D5",1),
-        ("C5",1.5),(None,.5),("E5",1),("G5",1),
-        ("A5",1.5),(None,.5),("G5",2),
-        ("D5",1.5),(None,.5),("E5",1),("G5",1),
-        ("A5",2),("B5",1),("A5",1),
-        ("G5",1.5),(None,.5),("E5",1),("D5",1),
-        ("G4",3),(None,1),
+    for n, d, v in [
+        ("G5",1.5,85),(None,.5,0),("B5",1,90),("A5",1,82),
+        ("G5",2,80),("E5",1,75),("D5",1,72),
+        ("C5",1.5,78),(None,.5,0),("E5",1,80),("G5",1,85),
+        ("A5",1.5,88),(None,.5,0),("G5",2,82),
+        ("D5",1.5,78),(None,.5,0),("E5",1,80),("G5",1,85),
+        ("A5",2,90),("B5",1,92),("A5",1,85),
+        ("G5",1.5,82),(None,.5,0),("E5",1,78),("D5",1,72),
+        ("G4",3,75),(None,1,0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["G2","G2","B2","D3","C3","C3","E3","G3",
               "D3","D3","F#3","A3","C3","C3","E3","G3",
@@ -278,30 +288,32 @@ def funk_workout():
                       volume=0.4, pan=0.35,
                       lowpass=3500, lowpass_q=1.5,
                       delay=0.15, delay_time=0.15, delay_feedback=0.25,
-                      reverb=0.1, reverb_type="plate")
+                      reverb=0.1, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="synth_bass",
-                      volume=0.5, pan=0.0, lowpass=600, lowpass_q=1.2)
+                      volume=0.5, pan=0.0, lowpass=600, lowpass_q=1.2,
+                      humanize=0.2, reverb=0.15)
 
     for sym in ["Em", "Am", "D", "B7"] * 2:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("E5",.25),("E5",.25),(None,.25),("G5",.25),
-        (None,.25),("A5",.25),("G5",.25),("E5",.25),
-        ("D5",.5),("E5",.5),(None,.5),("B4",.5),
-        ("E5",.25),("E5",.25),(None,.25),("G5",.25),
-        (None,.25),("A5",.25),("B5",.25),("A5",.25),
-        ("G5",.5),("E5",.5),(None,1),
-        ("A4",.25),("C5",.25),("E5",.25),("A5",.25),
-        ("G5",.5),("E5",.5),(None,.5),("C5",.5),
-        ("A4",.5),("C5",.5),("D5",.5),("E5",.5),
-        ("E5",1),(None,1),
-        ("D5",.25),("F#5",.25),("A5",.25),("D5",.25),
-        ("F#5",.5),("D5",.5),("A4",.5),("D5",.5),
-        ("D#5",.5),("F#5",.5),("B4",.5),("D#5",.5),
-        ("F#5",1),(None,1),
+    for n, d, v in [
+        ("E5",.25,90),("E5",.25,78),(None,.25,0),("G5",.25,85),
+        (None,.25,0),("A5",.25,88),("G5",.25,82),("E5",.25,78),
+        ("D5",.5,80),("E5",.5,85),(None,.5,0),("B4",.5,72),
+        ("E5",.25,88),("E5",.25,78),(None,.25,0),("G5",.25,85),
+        (None,.25,0),("A5",.25,90),("B5",.25,92),("A5",.25,85),
+        ("G5",.5,82),("E5",.5,78),(None,1,0),
+        ("A4",.25,80),("C5",.25,82),("E5",.25,88),("A5",.25,92),
+        ("G5",.5,85),("E5",.5,78),(None,.5,0),("C5",.5,75),
+        ("A4",.5,78),("C5",.5,80),("D5",.5,82),("E5",.5,85),
+        ("E5",1,82),(None,1,0),
+        ("D5",.25,82),("F#5",.25,85),("A5",.25,90),("D5",.25,78),
+        ("F#5",.5,85),("D5",.5,78),("A4",.5,75),("D5",.5,80),
+        ("D#5",.5,82),("F#5",.5,88),("B4",.5,78),("D#5",.5,82),
+        ("F#5",1,85),(None,1,0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["E2","E2","G2","E2","A2","A2","C3","A2",
               "D2","D2","F#2","D2","B1","B1","D#2","F#2"] * 2:
@@ -313,7 +325,7 @@ def funk_workout():
 def blues_shuffle():
     """12/8 blues in A — slow shuffle with wailing lead."""
     print("  12/8 Blues Shuffle in A")
-    print("  12/8 blues drums | saw lead + reverb + delay | sine bass + LP 500Hz")
+    print("  12/8 blues drums | saxophone lead + reverb + delay | upright bass + LP 500Hz")
 
     score = Score("12/8", bpm=70)
     score.drums("12/8 blues", repeats=6)
@@ -321,32 +333,34 @@ def blues_shuffle():
     chords = score.part("chords", instrument="electric_piano",
                         volume=0.3, pan=-0.3,
                         reverb=0.3, reverb_decay=1.5, reverb_type="plate")
-    lead = score.part("lead", instrument="trumpet",
+    lead = score.part("lead", instrument="saxophone",
                       volume=0.45, pan=0.25,
                       reverb=0.3, reverb_decay=1.2, reverb_type="plate",
                       delay=0.2, delay_time=0.43, delay_feedback=0.3,
-                      lowpass=3500)
+                      lowpass=3500,
+                      humanize=0.2)
     bass = score.part("bass", instrument="upright_bass",
-                      volume=0.5, pan=0.0, lowpass=500)
+                      volume=0.5, pan=0.0, lowpass=500,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["A", "A", "D", "D", "E7", "A"]:
         chords.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
         chords.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
 
-    for n, d in [
-        ("A4",1),("C5",.67),("A4",.33),("E4",1),
-        (None,.5),("A4",.5),("C5",.67),("D5",.33),
-        ("E5",1.5),("D5",.5),("C5",.5),("A4",.5),
-        ("E4",1.5),(None,.5),("A4",1),
-        ("D5",1),("F5",.67),("D5",.33),("A4",1),
-        (None,1),("D5",.67),("F5",.33),("A5",1),
-        ("G5",.67),("F5",.33),("D5",1),(None,1),
-        ("E5",.67),("G#4",.33),("B4",.67),("E5",.33),
-        ("D5",1),("A4",1),(None,1),
-        ("A4",.67),("C5",.33),("E5",.67),("A5",.33),
-        ("A5",2),(None,1),
+    for n, d, v in [
+        ("A4",1,80),("C5",.67,85),("A4",.33,75),("E4",1,78),
+        (None,.5,0),("A4",.5,80),("C5",.67,85),("D5",.33,82),
+        ("E5",1.5,92),("D5",.5,80),("C5",.5,78),("A4",.5,75),
+        ("E4",1.5,72),(None,.5,0),("A4",1,80),
+        ("D5",1,85),("F5",.67,90),("D5",.33,78),("A4",1,80),
+        (None,1,0),("D5",.67,82),("F5",.33,88),("A5",1,95),
+        ("G5",.67,88),("F5",.33,80),("D5",1,78),(None,1,0),
+        ("E5",.67,85),("G#4",.33,72),("B4",.67,80),("E5",.33,85),
+        ("D5",1,82),("A4",1,78),(None,1,0),
+        ("A4",.67,78),("C5",.33,82),("E5",.67,90),("A5",.33,95),
+        ("A5",2,92),(None,1,0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["A1","A1","E2","A2","A1","A1","E2","A2","A1","A1","E2","A2",
               "D2","D2","A2","D2","D2","D2","A2","D2",
@@ -372,25 +386,27 @@ def samba_de_janeiro():
     lead = score.part("lead", instrument="flute",
                       volume=0.45, pan=0.3,
                       delay=0.2, delay_time=0.176, delay_feedback=0.3,
-                      reverb=0.15, reverb_type="plate")
+                      reverb=0.15, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="bass_guitar",
-                      volume=0.45, pan=0.0, lowpass=500)
+                      volume=0.45, pan=0.0, lowpass=500,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["G", "Em", "Am", "D7"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("B5",.33),("A5",.33),("G5",.34),("F#5",.5),("E5",.5),
-        ("D5",.5),("G5",.5),("B5",.5),("A5",.5),
-        ("G5",.67),("E5",.33),("D5",.67),("B4",.33),("G4",1),(None,1),
-        ("E5",.5),("G5",.5),("B5",.5),("A5",.5),
-        ("G5",.67),("F#5",.33),("E5",.67),("D5",.33),("E5",1),(None,1),
-        ("A5",.5),("C6",.5),("B5",.5),("A5",.5),
-        ("G5",.67),("E5",.33),("C5",.67),("A4",.33),("A4",1),(None,1),
-        ("D5",.5),("F#5",.5),("A5",.5),("C5",.5),
-        ("B4",.67),("A4",.33),("G4",.67),("F#4",.33),("G4",2),(None,2),
+    for n, d, v in [
+        ("B5",.33,88),("A5",.33,82),("G5",.34,78),("F#5",.5,82),("E5",.5,75),
+        ("D5",.5,72),("G5",.5,80),("B5",.5,88),("A5",.5,82),
+        ("G5",.67,85),("E5",.33,78),("D5",.67,75),("B4",.33,70),("G4",1,72),(None,1,0),
+        ("E5",.5,80),("G5",.5,85),("B5",.5,90),("A5",.5,82),
+        ("G5",.67,85),("F#5",.33,80),("E5",.67,78),("D5",.33,72),("E5",1,80),(None,1,0),
+        ("A5",.5,85),("C6",.5,92),("B5",.5,88),("A5",.5,82),
+        ("G5",.67,85),("E5",.33,78),("C5",.67,75),("A4",.33,70),("A4",1,72),(None,1,0),
+        ("D5",.5,78),("F#5",.5,85),("A5",.5,90),("C5",.5,75),
+        ("B4",.67,78),("A4",.33,72),("G4",.67,70),("F#4",.33,68),("G4",2,75),(None,2,0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["G2","B2","D3","G2","E2","G2","B2","E2",
               "A2","C3","E3","A2","D2","F#2","A2","D3"] * 2:
@@ -413,26 +429,28 @@ def jazz_waltz():
     lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.25,
                       reverb=0.3, reverb_decay=1.5, reverb_type="plate",
-                      delay=0.2, delay_time=0.4, delay_feedback=0.3)
+                      delay=0.2, delay_time=0.4, delay_feedback=0.3,
+                      humanize=0.2)
     bass = score.part("bass", instrument="upright_bass",
-                      volume=0.4, pan=0.0, lowpass=500)
+                      volume=0.4, pan=0.0, lowpass=500,
+                      humanize=0.2, reverb=0.2)
 
     for _ in range(2):
         for sym in ["Fmaj7", "Gm", "C7", "Fmaj7"]:
             for _ in range(4):
                 rhodes.add(Chord.from_symbol(sym), Duration.DOTTED_HALF)
 
-    for n, d in [
-        ("A5",1.5),("G5",.5),("F5",1),("E5",1),("C5",1),("F5",1),
-        ("A5",2),(None,1),("G5",2),(None,1),
-        ("Bb5",1),("A5",.5),("G5",.5),("F5",1),("D5",1),("G5",1),
-        ("Bb5",2),(None,1),("A5",1.5),("G5",.5),("F5",1),
-        ("E5",1),("G5",1),("Bb5",1),("A5",1.5),("G5",.5),("E5",1),
-        ("C5",2),(None,1),("E5",1),("G5",1),("C5",1),
-        ("F5",2),("A5",1),("C6",2),(None,1),
-        ("A5",1),("F5",1),("C5",1),("F5",3),
+    for n, d, v in [
+        ("A5",1.5,85),("G5",.5,78),("F5",1,80),("E5",1,75),("C5",1,72),("F5",1,80),
+        ("A5",2,88),(None,1,0),("G5",2,82),(None,1,0),
+        ("Bb5",1,90),("A5",.5,82),("G5",.5,78),("F5",1,80),("D5",1,75),("G5",1,82),
+        ("Bb5",2,90),(None,1,0),("A5",1.5,85),("G5",.5,78),("F5",1,80),
+        ("E5",1,78),("G5",1,82),("Bb5",1,88),("A5",1.5,85),("G5",.5,78),("E5",1,75),
+        ("C5",2,72),(None,1,0),("E5",1,78),("G5",1,82),("C5",1,72),
+        ("F5",2,82),("A5",1,88),("C6",2,92),(None,1,0),
+        ("A5",1,85),("F5",1,80),("C5",1,72),("F5",3,82),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["F2","A2","C3","G2","Bb2","D3","C2","E2","G2","F2","A2","C3"] * 4:
         bass.add(n, Duration.QUARTER)
@@ -461,7 +479,8 @@ def house_anthem():
                       reverb=0.15, reverb_type="plate")
     bass = score.part("bass", instrument="808_bass",
                       volume=0.55, pan=0.0,
-                      sidechain=0.5)
+                      sidechain=0.5,
+                      reverb=0.1)
 
     for sym in ["Cm", "Ab", "Bb", "Cm"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -518,9 +537,11 @@ def dub_kingston():
     lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.45, delay_time=0.625, delay_feedback=0.5,
-                      reverb=0.35, reverb_decay=2.0, reverb_type="cathedral")
+                      reverb=0.35, reverb_decay=2.0, reverb_type="cathedral",
+                      humanize=0.2)
     bass = score.part("bass", instrument="bass_guitar",
-                      volume=0.6, pan=0.0, lowpass=400, lowpass_q=1.5)
+                      volume=0.6, pan=0.0, lowpass=400, lowpass_q=1.5,
+                      humanize=0.2)
     siren = score.part("siren", synth="pwm_slow", envelope="pad",
                        volume=0.15, pan=0.5,
                        reverb=0.7, reverb_decay=3.0, reverb_type="cathedral",
@@ -529,13 +550,13 @@ def dub_kingston():
     for sym in ["Am", "Am", "Dm", "Dm", "Am", "Am", "Em", "Am"]:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("A4", 2), (None, 2), ("C5", 1.5), (None, 2.5),
-        ("D5", 1), ("C5", 1), ("A4", 2), (None, 4),
-        ("E5", 2), (None, 2), ("D5", 1.5), ("C5", 1.5), (None, 3),
-        ("A4", 1), ("G4", 1), ("A4", 3), (None, 3),
+    for n, d, v in [
+        ("A4", 2, 78), (None, 2, 0), ("C5", 1.5, 82), (None, 2.5, 0),
+        ("D5", 1, 85), ("C5", 1, 78), ("A4", 2, 75), (None, 4, 0),
+        ("E5", 2, 88), (None, 2, 0), ("D5", 1.5, 82), ("C5", 1.5, 78), (None, 3, 0),
+        ("A4", 1, 75), ("G4", 1, 70), ("A4", 3, 78), (None, 3, 0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["A1","A1","A1","A1","D1","D1","D1","D1",
               "A1","A1","A1","A1","E1","E1","A1","A1"]:
@@ -573,7 +594,8 @@ def techno_minimal():
                       humanize=0.2)
     bass = score.part("bass", instrument="808_bass",
                       volume=0.55, pan=0.0,
-                      sidechain=0.5)
+                      sidechain=0.5,
+                      reverb=0.1)
 
     for sym in ["Fm", "Db", "Eb", "Fm"] * 2:
         pad.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -605,31 +627,33 @@ def gospel_shuffle():
     lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.2, delay_time=0.278, delay_feedback=0.3,
-                      reverb=0.2, reverb_type="plate")
+                      reverb=0.2, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="upright_bass",
-                      volume=0.45, pan=0.0, lowpass=500)
+                      volume=0.45, pan=0.0, lowpass=500,
+                      humanize=0.2, reverb=0.2)
 
     for sym in ["C", "Am", "F", "G"] * 2:
         organ.add(Chord.from_symbol(sym), Duration.WHOLE)
 
-    for n, d in [
-        ("E5",.67),("G5",.33),("C6",1),("B5",.67),("A5",.33),
-        ("G5",1),(None,1),
-        ("A5",.67),("C6",.33),("E5",1),("D5",.67),("C5",.33),
-        ("A4",1),(None,1),
-        ("F5",.67),("A5",.33),("C6",1),("B5",.67),("A5",.33),
-        ("G5",.67),("E5",.33),("C5",1),(None,1),
-        ("D5",.67),("E5",.33),("G5",.67),("B5",.33),
-        ("C6",2),(None,2),
+    for n, d, v in [
+        ("E5",.67,82),("G5",.33,78),("C6",1,92),("B5",.67,85),("A5",.33,80),
+        ("G5",1,82),(None,1,0),
+        ("A5",.67,85),("C6",.33,88),("E5",1,80),("D5",.67,78),("C5",.33,72),
+        ("A4",1,75),(None,1,0),
+        ("F5",.67,82),("A5",.33,85),("C6",1,92),("B5",.67,88),("A5",.33,82),
+        ("G5",.67,80),("E5",.33,75),("C5",1,72),(None,1,0),
+        ("D5",.67,78),("E5",.33,80),("G5",.67,85),("B5",.33,88),
+        ("C6",2,92),(None,2,0),
         # Second half: more intense
-        ("C6",.67),("B5",.33),("A5",.67),("G5",.33),
-        ("E5",1),("C5",.67),("E5",.33),
-        ("A5",1),("G5",.67),("E5",.33),("C5",1),(None,1),
-        ("F5",1),("A5",.67),("C6",.33),("E6",2),
-        ("D6",.67),("C6",.33),("B5",.67),("G5",.33),
-        ("C6",3),(None,1),
+        ("C6",.67,95),("B5",.33,88),("A5",.67,90),("G5",.33,82),
+        ("E5",1,85),("C5",.67,78),("E5",.33,82),
+        ("A5",1,90),("G5",.67,85),("E5",.33,78),("C5",1,75),(None,1,0),
+        ("F5",1,85),("A5",.67,90),("C6",.33,95),("E6",2,100),
+        ("D6",.67,92),("C6",.33,88),("B5",.67,90),("G5",.33,82),
+        ("C6",3,95),(None,1,0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     for n in ["C2","E2","G2","C3","A1","C2","E2","A2",
               "F2","A2","C3","F2","G2","B2","D3","G2"] * 2:
@@ -664,7 +688,8 @@ def dub_delay_madness():
                         reverb=0.7, reverb_decay=3.0, reverb_type="cathedral",
                         lowpass=1200, detune=8, humanize=0.2)
     bass = score.part("bass", instrument="bass_guitar",
-                      volume=0.6, pan=0.0, lowpass=350, lowpass_q=1.5)
+                      volume=0.6, pan=0.0, lowpass=350, lowpass_q=1.5,
+                      humanize=0.2)
     siren = score.part("siren", synth="pwm_slow", envelope="pad",
                        volume=0.12, pan=0.5,
                        reverb=0.8, reverb_decay=4.0, reverb_type="cathedral",
@@ -674,7 +699,8 @@ def dub_delay_madness():
     melodica = score.part("melodica", instrument="flute",
                           volume=0.35, pan=0.3,
                           delay=0.6, delay_time=0.66, delay_feedback=0.55,
-                          reverb=0.5, reverb_decay=2.5, reverb_type="cathedral")
+                          reverb=0.5, reverb_decay=2.5, reverb_type="cathedral",
+                          humanize=0.2)
 
     for sym in ["Em", "Em", "Am", "Am", "Em", "Em", "Bm", "Em"]:
         chords.add(Chord.from_symbol(sym), Duration.WHOLE)
@@ -684,13 +710,13 @@ def dub_delay_madness():
         bass.add(n, Duration.HALF)
 
     # Melodica: very sparse — let the delay do the work
-    for n, d in [
-        ("E5", 1.5), (None, 6.5),
-        ("G5", 1), ("A5", 1), (None, 6),
-        (None, 4), ("B5", 2), (None, 6),
-        ("E5", 1), (None, 3), ("D5", 1.5), (None, 2.5),
+    for n, d, v in [
+        ("E5", 1.5, 78), (None, 6.5, 0),
+        ("G5", 1, 82), ("A5", 1, 85), (None, 6, 0),
+        (None, 4, 0), ("B5", 2, 88), (None, 6, 0),
+        ("E5", 1, 75), (None, 3, 0), ("D5", 1.5, 72), (None, 2.5, 0),
     ]:
-        melodica.rest(d) if n is None else melodica.add(n, d)
+        melodica.rest(d) if n is None else melodica.add(n, d, velocity=v)
 
     # Siren: long notes that disappear into the void
     for n, d in [
@@ -718,25 +744,27 @@ def drum_and_bass():
     lead = score.part("lead", instrument="flute",
                       volume=0.4, pan=0.3,
                       delay=0.3, delay_time=0.172, delay_feedback=0.4,
-                      reverb=0.25, reverb_type="plate")
+                      reverb=0.25, reverb_type="plate",
+                      humanize=0.2)
     bass = score.part("bass", instrument="808_bass",
-                      volume=0.55, pan=0.0)
+                      volume=0.55, pan=0.0,
+                      reverb=0.1)
 
     for sym in ["Am", "F", "C", "G"] * 2:
         pads.add(Chord.from_symbol(sym), Duration.WHOLE)
 
     # Liquid melody — flowing, emotional
-    for n, d in [
-        ("A5", 1), ("G5", .5), ("E5", .5), ("C5", 1), (None, 1),
-        ("D5", .5), ("E5", .5), ("G5", 1), ("A5", 1.5), (None, .5),
-        ("C6", 1), ("B5", .5), ("A5", .5), ("G5", 1), ("E5", 1),
-        ("F5", .5), ("G5", .5), ("A5", 1.5), (None, .5), ("G5", 1),
-        ("A5", 1), ("G5", .5), ("E5", .5), ("C5", 1), (None, 1),
-        ("E5", .5), ("G5", .5), ("B5", 1), ("A5", 2),
-        ("G5", 1), ("E5", .5), ("D5", .5), ("C5", 1.5), (None, .5),
-        ("E5", .5), ("G5", .5), ("A5", 2), (None, 1),
+    for n, d, v in [
+        ("A5", 1, 85), ("G5", .5, 78), ("E5", .5, 72), ("C5", 1, 75), (None, 1, 0),
+        ("D5", .5, 72), ("E5", .5, 78), ("G5", 1, 82), ("A5", 1.5, 88), (None, .5, 0),
+        ("C6", 1, 92), ("B5", .5, 85), ("A5", .5, 80), ("G5", 1, 82), ("E5", 1, 75),
+        ("F5", .5, 78), ("G5", .5, 82), ("A5", 1.5, 88), (None, .5, 0), ("G5", 1, 80),
+        ("A5", 1, 85), ("G5", .5, 78), ("E5", .5, 72), ("C5", 1, 75), (None, 1, 0),
+        ("E5", .5, 78), ("G5", .5, 82), ("B5", 1, 90), ("A5", 2, 85),
+        ("G5", 1, 80), ("E5", .5, 75), ("D5", .5, 70), ("C5", 1.5, 72), (None, .5, 0),
+        ("E5", .5, 78), ("G5", .5, 82), ("A5", 2, 88), (None, 1, 0),
     ]:
-        lead.rest(d) if n is None else lead.add(n, d)
+        lead.rest(d) if n is None else lead.add(n, d, velocity=v)
 
     # Sub bass — half note roots, deep
     for n in ["A1","A1","F1","F1","C1","C1","G1","G1"] * 2:
@@ -762,7 +790,8 @@ def drake_vibes():
     bells = score.part("bells", instrument="vibraphone",
                        volume=0.3, pan=0.4,
                        reverb=0.4, reverb_decay=2.0, reverb_type="plate",
-                       delay=0.25, delay_time=0.44, delay_feedback=0.35)
+                       delay=0.25, delay_time=0.44, delay_feedback=0.35,
+                       humanize=0.2)
     lead = score.part("lead", synth="pwm_slow", envelope="strings",
                       volume=0.35, pan=-0.2,
                       reverb=0.3, reverb_type="cathedral", lowpass=2000,
@@ -994,10 +1023,12 @@ def dance_party():
 
     bass = score.part("bass", instrument="synth_bass",
                       volume=0.45, lowpass=500, lowpass_q=1.3,
-                      sidechain=0.75, sidechain_release=0.12)
+                      sidechain=0.75, sidechain_release=0.12,
+                      reverb=0.15)
     sparkle = score.part("sparkle", instrument="vibraphone",
                          volume=0.3, pan=0.4, reverb=0.3, reverb_decay=1.5,
-                         delay=0.2, delay_time=0.234, delay_feedback=0.3)
+                         delay=0.2, delay_time=0.234, delay_feedback=0.3,
+                         humanize=0.2)
     chords_part = score.part("chords", instrument="synth_pad",
                              volume=0.2,
                              reverb=0.4, reverb_type="plate", sidechain=0.7)
