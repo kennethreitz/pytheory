@@ -2027,6 +2027,182 @@ def ascent():
     play_song(score, "Ascent — Deep → Sky → Theremin Solo → Tabla Solo")
 
 
+def descent():
+    """Descent — generative, different every time. From sky to deep."""
+    import random
+    import time
+    from pytheory import Fretboard, TonedScale
+
+    # No seed — truly random every play
+    random.seed(int(time.time() * 1000) % 2**31)
+
+    # Random key — always minor, always dark
+    roots = ["A", "B", "C", "D", "E", "F", "G"]
+    root = random.choice(roots)
+    mode = random.choice(["minor", "harmonic minor"])
+    key = Key(root, mode)
+    scale_tones = [t.name for t in key.scale.tones[:-1]]
+
+    bpm = random.randint(65, 85)
+    score = Score("4/4", bpm=bpm)
+    REV = random.choice(["cathedral", "taj_mahal", "cave"])
+
+    T3 = 1.0 / 12.0
+    NA = DrumSound.TABLA_NA; DH_ = DrumSound.TABLA_DHA
+    TT_ = DrumSound.TABLA_TIT; KE_ = DrumSound.TABLA_KE
+    GB_ = DrumSound.TABLA_GE_BEND; GE_ = DrumSound.TABLA_GE
+
+    print(f"     {root} {mode} | {bpm} bpm | {REV}")
+
+    # ── Pad drone — random synth, the whole piece ──
+    pad_synth = random.choice(["strings_synth", "granular_synth", "vocal_synth"])
+    pad = score.part("pad", synth=pad_synth, envelope="pad",
+                      detune=random.randint(6, 14), spread=0.4,
+                      reverb=0.5, reverb_type=REV, volume=0.15,
+                      analog=random.uniform(0.1, 0.4))
+    prog = key.progression("i", "iv", "V", "i")
+    for _ in range(6):
+        for chord in prog:
+            pad.add(chord, Duration.WHOLE, velocity=random.randint(48, 62))
+
+    # ── 1: HIGH — theremin or flute, random melody from scale ──
+    lead_synth = random.choice(["theremin", "flute", "pedal_steel"])
+    lead = score.part("lead", instrument=lead_synth, volume=0.25,
+                       reverb=0.4, reverb_type=REV,
+                       delay=0.2, delay_time=random.uniform(0.2, 0.5),
+                       delay_feedback=random.uniform(0.2, 0.4))
+    lead.rest(4.0)
+    # Generate melody by WALKING the scale — stepwise with occasional leaps
+    # Real melodies move to neighboring notes, not random jumps
+    scale_idx = len(scale_tones) - 1  # start high
+    octave = 5
+    for _ in range(random.randint(10, 16)):
+        note = scale_tones[scale_idx]
+        dur = random.choice([1.5, 2.0, 3.0, 4.0])
+        vel = random.randint(58, 70)
+        lead.add(f"{note}{octave}", dur, velocity=vel)
+        # Mostly step down (descent!), sometimes hold, rare leap
+        r = random.random()
+        if r < 0.5:  # step down
+            scale_idx -= 1
+        elif r < 0.65:  # step up (tension)
+            scale_idx += 1
+        elif r < 0.8:  # leap down
+            scale_idx -= random.randint(2, 3)
+        # else hold same note
+        # Wrap octaves
+        if scale_idx < 0:
+            scale_idx += len(scale_tones)
+            octave -= 1
+        elif scale_idx >= len(scale_tones):
+            scale_idx -= len(scale_tones)
+            octave += 1
+        octave = max(3, min(5, octave))
+
+    # ── 2: Kalimba or steel drum — random arpeggios ──
+    sparkle_inst = random.choice(["kalimba", "steel_drum", "vibraphone", "harp"])
+    sparkle = score.part("sparkle", instrument=sparkle_inst, volume=0.18,
+                          delay=0.2, delay_time=random.uniform(0.15, 0.4),
+                          delay_feedback=random.uniform(0.3, 0.5),
+                          reverb=0.4, reverb_type=REV)
+    sparkle.rest(8.0)
+    # Arpeggios — walk chord tones in patterns, not random
+    for chord in prog * 3:
+        chord_tones = [t.name for t in chord.tones]
+        pattern_type = random.choice(["up", "down", "updown"])
+        oct = random.choice([4, 5])
+        if pattern_type == "up":
+            seq = chord_tones + [chord_tones[0]]
+        elif pattern_type == "down":
+            seq = list(reversed(chord_tones)) + [chord_tones[-1]]
+        else:
+            seq = chord_tones + list(reversed(chord_tones[1:-1]))
+        # Pad to 8 notes
+        while len(seq) < 8:
+            seq = seq + seq
+        seq = seq[:8]
+        for i, n in enumerate(seq):
+            o = oct + (1 if i >= 4 and pattern_type == "up" else 0)
+            sparkle.add(f"{n}{o}", Duration.EIGHTH,
+                        velocity=random.randint(48, 58))
+
+    # ── 3: Piano — random broken chords ──
+    piano = score.part("piano", instrument="piano", volume=0.22,
+                        reverb=0.35, reverb_type=REV)
+    piano.rest(random.uniform(8.0, 16.0))
+    for chord in prog * 2:
+        chord_tones = [t.name for t in chord.tones]
+        oct = random.choice([3, 4])
+        # Walk up the chord then back down
+        up = [f"{n}{oct}" for n in chord_tones]
+        up.append(f"{chord_tones[0]}{oct+1}")
+        down = [f"{n}{oct}" for n in reversed(chord_tones[:-1])]
+        arp = (up + down)[:8]
+        for n in arp:
+            piano.add(n, Duration.EIGHTH,
+                      velocity=random.randint(58, 65))
+
+    # ── 4: Cello — descending long notes ──
+    cello = score.part("cello", instrument="cello", volume=0.2,
+                        reverb=0.4, reverb_type=REV)
+    cello.rest(16.0)
+    oct = 3
+    for _ in range(8):
+        note = random.choice(scale_tones)
+        cello.add(f"{note}{oct}", 4.0, velocity=random.randint(48, 62))
+        if random.random() < 0.4 and oct > 2:
+            oct -= 1
+
+    # ── 5: Bass — deep, sparse ──
+    bass_inst = random.choice(["upright_bass", "didgeridoo"])
+    bass = score.part("bass", instrument=bass_inst, volume=0.18)
+    bass.rest(random.uniform(4.0, 12.0))
+    for chord in prog * 4:
+        r = chord.root
+        if r:
+            oct = 2 if bass_inst == "upright_bass" else 1
+            bass.add(f"{r.name}{oct}", 4.0,
+                     velocity=random.randint(50, 65))
+
+    # ── Drums: random combination ──
+    drum_start = random.randint(2, 5) * 4  # 8-20 beats silence
+    score.add_pattern(Pattern(name="s", time_signature="4/4",
+                              beats=float(drum_start), hits=[]),
+                      repeats=1)
+
+    # Pick random world drum combo
+    drum_choice = random.choice(["cajon folk", "djembe", "keherwa", "dadra"])
+    score.drums(drum_choice, repeats=random.randint(6, 12))
+
+    # Tabla solo at the end — always
+    score.add_pattern(Pattern(name="ts1", time_signature="4/4", beats=8.0, hits=[
+        _Hit(DH_, 0.0, 72), _Hit(NA, 2.5, 48),
+        _Hit(DH_, 4.0, 75), _Hit(TT_, 5.5, 25), _Hit(NA, 6.0, 45),
+        _Hit(DH_, 7.5, 72),
+    ]), repeats=1)
+
+    # Generate random tabla solo — different every time
+    solo_hits = []
+    beat = 0.0
+    while beat < 16.0:
+        stroke = random.choice([DH_, NA, TT_, KE_, GB_, GE_])
+        vel = random.randint(35, 120)
+        # Ghost notes are quiet, accents are loud
+        if stroke == TT_:
+            vel = random.randint(25, 50)
+        elif stroke in (DH_, GB_):
+            vel = random.randint(70, 120)
+        solo_hits.append(_Hit(stroke, beat, vel))
+        # Random spacing — mix of tight and open
+        beat += random.choice([0.125, 0.25, 0.25, 0.5, 0.5, 1.0])
+
+    score.add_pattern(Pattern(name="ts_rand", time_signature="4/4",
+                              beats=16.0, hits=solo_hits), repeats=1)
+    score.set_drum_effects(reverb=0.3, reverb_type=REV)
+
+    play_song(score, f"Descent — {root} {mode} (generative, {REV})")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -2055,6 +2231,7 @@ SONGS = {
     "25": ("Epic Bhairav (Orchestral + Tabla)", epic_bhairav),
     "26": ("Acoustic Ensemble (Guitar+Uke+Mando+Cajón)", acoustic_ensemble),
     "27": ("Ascent (Deep → Sky → Tabla Solo)", ascent),
+    "28": ("Descent (Generative — different every time)", descent),
 }
 
 if __name__ == "__main__":
@@ -2068,7 +2245,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-27, or 'all'): ").strip()
+        choice = input("  Pick a song (1-28, or 'all'): ").strip()
         print()
 
         if choice == "all":
