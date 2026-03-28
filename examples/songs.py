@@ -2324,6 +2324,122 @@ def sitar_drone():
     play_song(score, "Sitar Drone — Raga Bhairav (22-Shruti JI, hold() polyphony)")
 
 
+def acid_tabla():
+    """Acid Tabla — 303 filter automation meets Indian percussion."""
+    score = Score("4/4", bpm=132)
+
+    # ── House drums ──
+    score.drums("house", repeats=20, fill="house", fill_every=8)
+    score.set_drum_effects(volume=0.45)
+
+    # ── 303 acid bass ──
+    acid = score.part("acid", synth="saw", volume=0.75,
+                      legato=True, glide=0.035,
+                      distortion=0.35, distortion_drive=4.5,
+                      saturation=0.15, humanize=0.05)
+
+    # Intro (4 bars): filter closed, high resonance
+    acid.set(lowpass=600, lowpass_q=12.0)
+    for _ in range(4):
+        for n in ["C3","C3","C2","C3","Eb3","C2","G2","C3"]:
+            acid.add(n, Duration.EIGHTH)
+
+    # Build (4 bars): filter opens
+    acid.ramp(over=Duration.WHOLE * 4, curve="ease_in", lowpass=4500)
+    for _ in range(4):
+        for n in ["C2","G2","C3","Eb3","C2","Bb2","G2","C3"]:
+            acid.add(n, Duration.EIGHTH)
+
+    # Peak (4 bars): wide open, wilder pattern
+    acid.set(lowpass=7000, lowpass_q=7.0)
+    for _ in range(2):
+        for n in ["C2","C3","Eb3","G3","C2","Bb2","G2","Eb3"]:
+            acid.add(n, Duration.EIGHTH)
+    for _ in range(2):
+        for n in ["C2","Eb3","C3","G3","Bb2","C3","G2","C2"]:
+            acid.add(n, Duration.EIGHTH)
+
+    # Tabla section (4 bars): filter pulls back
+    acid.set(lowpass=3000, lowpass_q=5.0)
+    for _ in range(4):
+        for n in ["C2","G2","C3","C2","Eb2","G2","Bb2","C2"]:
+            acid.add(n, Duration.EIGHTH)
+
+    # Outro (4 bars): filter closes
+    acid.ramp(over=Duration.WHOLE * 4, curve="ease_out", lowpass=400, lowpass_q=15.0)
+    for _ in range(4):
+        for n in ["C3","G2","C2","C3","C2","G2","Eb2","C2"]:
+            acid.add(n, Duration.EIGHTH)
+
+    # ── Tabla: enters bar 9, rides through to the end ──
+    tabla = score.part("tabla", synth="sine", volume=0.55, reverb=0.15)
+
+    # 8 bars rest
+    for _ in range(64):
+        tabla.rest(Duration.EIGHTH)
+
+    # Bars 9-12: keherwa groove
+    for _ in range(4):
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=100, articulation="accent")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=55)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=50)
+        tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=88)
+        tabla.hit(DrumSound.TABLA_TIN, Duration.EIGHTH, velocity=82)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=52)
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=95, articulation="accent")
+        tabla.hit(DrumSound.TABLA_GE, Duration.EIGHTH, velocity=78)
+
+    # Bars 13-14: busier with 16ths
+    for _ in range(2):
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=105, articulation="marcato")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=48)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=52)
+        tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=90)
+        tabla.hit(DrumSound.TABLA_TIN, Duration.EIGHTH, velocity=85)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=48)
+        tabla.hit(DrumSound.TABLA_NA, Duration.SIXTEENTH, velocity=58)
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=100, articulation="accent")
+        tabla.hit(DrumSound.TABLA_GE_BEND, Duration.EIGHTH, velocity=88)
+
+    # Bars 15-16: tihai crescendo ending
+    for vel in [85, 90, 95]:
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=vel, articulation="accent")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=int(vel * 0.6))
+        tabla.hit(DrumSound.TABLA_NA, Duration.SIXTEENTH, velocity=int(vel * 0.75))
+    for vel in [100, 105, 110]:
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=vel, articulation="marcato")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=int(vel * 0.55))
+        tabla.hit(DrumSound.TABLA_NA, Duration.SIXTEENTH, velocity=int(vel * 0.7))
+    tabla.hit(DrumSound.TABLA_DHA, Duration.QUARTER, velocity=127, articulation="fermata")
+    tabla.hit(DrumSound.TABLA_GE_BEND, Duration.QUARTER, velocity=110)
+    tabla.rest(Duration.HALF)
+
+    # Bars 17-20: tabla continues through outro, lighter
+    for _ in range(4):
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=85, articulation="accent")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=45)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=42)
+        tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=75)
+        tabla.hit(DrumSound.TABLA_TIN, Duration.EIGHTH, velocity=70)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=42)
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=80)
+        tabla.hit(DrumSound.TABLA_GE, Duration.EIGHTH, velocity=65)
+
+    # ── Pad: enters at peak, fades during outro ──
+    pad = score.part("pad", synth="supersaw", envelope="pad", volume=0.0,
+                     reverb=0.4, chorus=0.2, detune=10, lowpass=2500)
+    for _ in range(32):
+        pad.rest(Duration.QUARTER)
+    pad.ramp(over=Duration.WHOLE * 2, volume=0.18)
+    for sym in ["Cm", "Ab", "Eb", "Bb"] * 3:
+        pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+    pad.ramp(over=Duration.WHOLE * 2, curve="ease_out", volume=0.0)
+    for sym in ["Cm", "Cm"]:
+        pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+
+    play_song(score, "Acid Tabla — 303 filter automation + tabla (ramp, articulations, Part.hit)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -2355,6 +2471,7 @@ SONGS = {
     "28": ("Descent (Generative — different every time)", descent),
     "29": ("Pop Rock (I-V-vi-IV)", pop_rock),
     "30": ("Sitar Drone (Bhairav, hold() polyphony)", sitar_drone),
+    "31": ("Acid Tabla (303 + tabla, ramp, articulations)", acid_tabla),
 }
 
 if __name__ == "__main__":
@@ -2368,7 +2485,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-30, or 'all'): ").strip()
+        choice = input("  Pick a song (1-31, or 'all'): ").strip()
         print()
 
         if choice == "all":
