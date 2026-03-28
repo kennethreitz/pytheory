@@ -2573,21 +2573,7 @@ class Part:
         from .chords import Chord as ChordClass
         chord_obj = ChordClass(tones=strum_tones)
 
-        # Strum sweep: quick individual string hits before the chord.
-        # Only the first 2-3 strings get a tiny grace note, the rest
-        # ring together as the full chord. Gives the strum feel without
-        # sounding like separate plucks.
-        n_strings = len(strum_tones)
-        if strum_time > 0.02 and n_strings >= 3:
-            n_grace = min(2, n_strings - 1)
-            per_grace = strum_time / n_grace
-            grace_vel = max(1, int(velocity * 0.25))
-            for i in range(n_grace):
-                self.add(strum_tones[i], per_grace, velocity=grace_vel)
-            ring = max(0.1, total_beats - strum_time)
-            self.add(chord_obj, ring, velocity=velocity)
-        else:
-            self.add(chord_obj, total_beats, velocity=velocity)
+        self.add(chord_obj, total_beats, velocity=velocity)
 
         return self
 
