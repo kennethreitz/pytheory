@@ -1237,6 +1237,47 @@ def steel_drum_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def harmonium_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Harmonium — Indian pump organ, single free reed per note.
+
+    Unlike accordion (doubled musette reeds), the harmonium has one
+    reed per note — no beating, just a pure, nasal, reedy tone.
+    Constant bellows pressure, warm but slightly buzzy. The sound
+    of kirtan, qawwali, and devotional music.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Single reed — odd harmonics stronger (like clarinet but warmer)
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    for n in range(1, 12):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        amp = (1.0 / n) * (1.0 if n % 2 == 1 else 0.5)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase)
+
+    # Bellows pressure — gentle swell, slower than accordion
+    bellows = 0.9 + 0.1 * numpy.sin(2 * numpy.pi * 0.5 * t)
+    wave *= bellows
+
+    # Nasal character — slight midrange boost
+    import scipy.signal as _sig
+    center = min(1200, hz * 3)
+    lo = max(20, int(center - 300))
+    hi = min(SAMPLE_RATE // 2 - 1, int(center + 300))
+    if lo < hi:
+        bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        nasal = _sig.lfilter(bp, ap, wave) * 0.2
+        wave += nasal
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
 def accordion_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Accordion — bellows-driven free reeds.
 
@@ -1794,6 +1835,7 @@ class Synth(Enum):
     THEREMIN = "theremin_synth"
     KALIMBA = "kalimba_synth"
     STEEL_DRUM = "steel_drum_synth"
+    HARMONIUM = "harmonium_synth"
     ACCORDION = "accordion_synth"
     DIDGERIDOO = "didgeridoo_synth"
     BAGPIPE = "bagpipe_synth"
@@ -1825,7 +1867,7 @@ _SYNTH_FUNCTIONS = {
     "granular_synth": granular_wave, "vocal_synth": vocal_wave,
     "pedal_steel_synth": pedal_steel_wave, "theremin_synth": theremin_wave,
     "kalimba_synth": kalimba_wave, "steel_drum_synth": steel_drum_wave,
-    "accordion_synth": accordion_wave, "didgeridoo_synth": didgeridoo_wave,
+    "harmonium_synth": harmonium_wave, "accordion_synth": accordion_wave, "didgeridoo_synth": didgeridoo_wave,
     "bagpipe_synth": bagpipe_wave,
     "banjo_synth": banjo_wave, "mandolin_synth": mandolin_wave,
     "ukulele_synth": ukulele_wave,
@@ -2584,6 +2626,52 @@ def _synth_mridangam_tha(n_samples):
     return out
 
 
+def _synth_doumbek_dum(n_samples):
+    """Doumbek Dum — open center strike, deep and round."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    freq = 80 + 40 * numpy.exp(-25 * t)
+    phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
+    body = numpy.sin(phase) * _exp_decay(n_samples, 8) * 0.8
+    thump_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+    import scipy.signal as _sig
+    thump = _noise(thump_len)
+    if thump_len > 20:
+        bl, al = _sig.butter(2, [50, 250], btype='band', fs=SAMPLE_RATE)
+        thump = _sig.lfilter(bl, al, numpy.pad(thump, (0, max(0, n_samples - thump_len))))[:thump_len].astype(numpy.float32)
+    thump *= _exp_decay(thump_len, 22) * 0.7
+    body[:thump_len] += thump
+    return numpy.tanh(body * 1.3).astype(numpy.float32)
+
+
+def _synth_doumbek_tek(n_samples):
+    """Doumbek Tek — sharp edge strike, bright and cutting."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    ring = numpy.sin(2 * numpy.pi * 400 * t) * _exp_decay(n_samples, 22) * 0.5
+    ring2 = numpy.sin(2 * numpy.pi * 900 * t) * 0.3 * _exp_decay(n_samples, 30)
+    click_len = min(int(SAMPLE_RATE * 0.005), n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 300) * 0.9
+    import scipy.signal as _sig
+    if click_len > 10:
+        bl, al = _sig.butter(2, [2000, min(8000, SAMPLE_RATE // 2 - 1)], btype='band', fs=SAMPLE_RATE)
+        click = _sig.lfilter(bl, al, numpy.pad(click, (0, max(0, n_samples - click_len))))[:click_len].astype(numpy.float32)
+    result = ring + ring2
+    result[:click_len] += click
+    return numpy.tanh(result * 1.8).astype(numpy.float32)
+
+
+def _synth_doumbek_ka(n_samples):
+    """Doumbek Ka — muted edge slap, short and dry."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.04))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    body = numpy.sin(2 * numpy.pi * 350 * t) * _exp_decay(n, 30) * 0.4
+    slap = _noise(min(80, n)) * _exp_decay(min(80, n), 200) * 0.7
+    result = body
+    result[:min(80, n)] += slap
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = numpy.tanh(result * 1.5)
+    return out
+
+
 def _synth_cajon_bass(n_samples):
     """Cajón bass — palm strike on center of the face.
 
@@ -2914,6 +3002,10 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.DJEMBE_BASS.value: lambda n: _synth_djembe_bass(n),
         DrumSound.DJEMBE_TONE.value: lambda n: _synth_djembe_tone(n),
         DrumSound.DJEMBE_SLAP.value: lambda n: _synth_djembe_slap(n),
+        # Doumbek
+        DrumSound.DOUMBEK_DUM.value: lambda n: _synth_doumbek_dum(n),
+        DrumSound.DOUMBEK_TEK.value: lambda n: _synth_doumbek_tek(n),
+        DrumSound.DOUMBEK_KA.value: lambda n: _synth_doumbek_ka(n),
         # Cajon
         DrumSound.CAJON_BASS.value: lambda n: _synth_cajon_bass(n),
         DrumSound.CAJON_SLAP.value: lambda n: _synth_cajon_slap(n),
@@ -4510,6 +4602,10 @@ def render_score(score):
         DrumSound.DJEMBE_BASS.value: 0.0,
         DrumSound.DJEMBE_TONE.value: 0.1,
         DrumSound.DJEMBE_SLAP.value: -0.1,
+        # Doumbek
+        DrumSound.DOUMBEK_DUM.value: 0.0,
+        DrumSound.DOUMBEK_TEK.value: 0.1,
+        DrumSound.DOUMBEK_KA.value: -0.1,
         # Cajon — centered (single instrument)
         DrumSound.CAJON_BASS.value: 0.0,
         DrumSound.CAJON_SLAP.value: 0.0,

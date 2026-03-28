@@ -5320,7 +5320,7 @@ def test_supersaw_wave():
 @needs_portaudio
 def test_all_synths_in_enum():
     from pytheory.play import Synth
-    assert len(Synth) == 41
+    assert len(Synth) == 42
     for s in Synth:
         wave = s(440, n_samples=1000)
         assert len(wave) == 1000
@@ -7142,7 +7142,7 @@ def test_score_system_propagates():
 
 def test_synth_enum_count():
     from pytheory.play import Synth
-    assert len(Synth) == 41
+    assert len(Synth) == 42
 
 
 def test_all_synths_render_and_enum_match():

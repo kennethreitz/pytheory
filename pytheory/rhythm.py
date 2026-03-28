@@ -213,6 +213,11 @@ INSTRUMENTS = {
         "synth": "steel_drum_synth", "envelope": "none",
         "reverb": 0.3, "reverb_type": "plate",
     },
+    "harmonium": {
+        "synth": "harmonium_synth", "envelope": "organ",
+        "reverb": 0.2, "reverb_type": "taj_mahal",
+        "humanize": 0.15,
+    },
     "accordion": {
         "synth": "accordion_synth", "envelope": "organ",
         "humanize": 0.15,
@@ -528,6 +533,10 @@ class DrumSound(Enum):
     DJEMBE_BASS = 102    # open bass (center of head)
     DJEMBE_TONE = 103    # open tone (edge, fingers together)
     DJEMBE_SLAP = 104    # slap (edge, fingers spread, sharp crack)
+    # Doumbek (darbuka) sounds
+    DOUMBEK_DUM = 112    # center of head, deep bass
+    DOUMBEK_TEK = 113    # edge of head, sharp high
+    DOUMBEK_KA = 114     # muted edge slap
     # Cajon sounds
     CAJON_BASS = 108     # center of face, deep thump
     CAJON_SLAP = 109     # top edge, snare wires buzz
@@ -1563,6 +1572,61 @@ Pattern._PRESETS["tabla solo"] = dict(
     ],
 )
 
+# ── Doumbek patterns ──────────────────────────────────────────────────────
+DKD = DrumSound.DOUMBEK_DUM
+DKT = DrumSound.DOUMBEK_TEK
+DKK = DrumSound.DOUMBEK_KA
+
+# Maqsoum — the most common Arabic rhythm (4/4)
+Pattern._PRESETS["maqsoum"] = dict(
+    name="maqsoum",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(DKD, 0.0, 85), _h(DKT, 0.5, 65),
+        _h(DKT, 1.0, 68), _h(DKD, 1.5, 80),
+        _h(DKT, 2.0, 65), _h(DKT, 2.5, 62),
+        _h(DKT, 3.0, 68), _h(DKT, 3.5, 62),
+    ],
+)
+
+# Baladi — heavy, earthy, belly dance
+Pattern._PRESETS["baladi"] = dict(
+    name="baladi",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(DKD, 0.0, 88), _h(DKD, 0.5, 78),
+        _h(DKT, 1.0, 70), _h(DKD, 1.5, 82),
+        _h(DKT, 2.0, 68), _h(DKT, 2.5, 62),
+        _h(DKT, 3.0, 68), _h(DKK, 3.25, 45), _h(DKT, 3.5, 65),
+    ],
+)
+
+# Saidi — Upper Egyptian, strong and driving
+Pattern._PRESETS["saidi"] = dict(
+    name="saidi",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(DKD, 0.0, 88), _h(DKT, 0.5, 65),
+        _h(DKD, 1.0, 82), _h(DKD, 1.5, 78),
+        _h(DKT, 2.0, 70), _h(DKT, 2.5, 62),
+        _h(DKT, 3.0, 68), _h(DKT, 3.5, 62),
+    ],
+)
+
+# Ayoub — simple 2/4, trance-like repetition
+Pattern._PRESETS["ayoub"] = dict(
+    name="ayoub",
+    time_signature="2/4",
+    beats=2.0,
+    hits=[
+        _h(DKD, 0.0, 85), _h(DKK, 0.5, 45),
+        _h(DKT, 1.0, 70), _h(DKT, 1.5, 62),
+    ],
+)
+
 # ── Cajón patterns ────────────────────────────────────────────────────────
 CB = DrumSound.CAJON_BASS
 CSL = DrumSound.CAJON_SLAP
@@ -2090,6 +2154,38 @@ Pattern._FILLS["second line"] = dict(
         # Press roll buzz: snare at 16ths with ascending velocity
         *[_h(S, i * 0.25, 30 + int(i * 60 / 10)) for i in range(11)],
         _h(K, 3.0), _h(CR, 3.75),
+    ],
+)
+
+# ── Doumbek fills ────────────────────────────────────────────────────────
+_DKD = DrumSound.DOUMBEK_DUM
+_DKT = DrumSound.DOUMBEK_TEK
+_DKK = DrumSound.DOUMBEK_KA
+
+# Doumbek roll — rapid teks building to dum
+Pattern._FILLS["doumbek roll"] = dict(
+    name="doumbek roll fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        *[_h(_DKT, i * 0.125, 40 + i * 4) for i in range(16)],
+        _h(_DKD, 2.0, 100), _h(_DKT, 2.25, 65), _h(_DKT, 2.5, 68),
+        _h(_DKD, 3.0, 110), _h(_DKD, 3.25, 105),
+        _h(_DKD, 3.5, 115), _h(_DKT, 3.75, 80),
+    ],
+)
+
+# Doumbek accent — syncopated dum-tek-ka pattern
+Pattern._FILLS["doumbek accent"] = dict(
+    name="doumbek accent fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(_DKD, 0.0, 95), _h(_DKT, 0.25, 65), _h(_DKK, 0.5, 50),
+        _h(_DKT, 0.75, 68), _h(_DKD, 1.0, 90),
+        _h(_DKT, 1.5, 72), _h(_DKK, 1.75, 52), _h(_DKD, 2.0, 100),
+        _h(_DKT, 2.25, 68), _h(_DKT, 2.5, 70), _h(_DKT, 2.75, 72),
+        _h(_DKD, 3.0, 110), _h(_DKD, 3.5, 115),
     ],
 )
 
