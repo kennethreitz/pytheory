@@ -357,6 +357,15 @@ the pitch upward.
 and light classical), tabla solo, and tiri kita (fast ornamental
 pattern).
 
+**5 fills:** tihai (3x crescendo landing on sam), chakkardar (32nd
+triplet cascade into slam), tiri kita (rapid 16th-note dayan burst),
+bayan (deep bass bends showcase), tabla call (dayan/bayan call-and-response).
+
+.. code-block:: python
+
+   score.drums("teental", repeats=4, fill="tihai")
+   score.drums("keherwa", repeats=4, fill="chakkardar")
+
 .. code-block:: python
 
    score = Score("4/4", bpm=80)
