@@ -2935,6 +2935,79 @@ class Part:
         points = sorted(set(beat for beat, _ in self._automation))
         return points
 
+    def ramp(self, over: float = 4.0, resolution: float = 0.25,
+             curve: str = "linear", **params) -> "Part":
+        """Smoothly ramp parameters from their current values to new targets.
+
+        Generates interpolated automation points — like turning a knob
+        gradually instead of jumping to a new position. Works for any
+        parameter that ``.set()`` accepts.
+
+        Args:
+            over: Duration of the ramp in beats (default 4.0 = 1 bar).
+                Use ``Duration.WHOLE * 4`` for a 4-bar ramp, etc.
+            resolution: How often to insert points, in beats (default 0.25).
+                Lower = smoother but more points.
+            curve: Interpolation shape — ``"linear"`` (default),
+                ``"ease_in"`` (slow start, fast end),
+                ``"ease_out"`` (fast start, slow end),
+                ``"ease_in_out"`` (slow start and end).
+            **params: Target values for any parameter. The ramp starts
+                from the parameter's current value at this beat position.
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            >>> lead = score.part("lead", synth="saw", lowpass=200)
+            >>> # Open the filter over 4 bars
+            >>> lead.ramp(over=Duration.WHOLE * 4, lowpass=8000)
+            >>> # Fade reverb in over 2 bars
+            >>> pad.ramp(over=Duration.WHOLE * 2, reverb=0.5)
+            >>> # Multiple params at once with easing
+            >>> lead.ramp(over=8.0, curve="ease_in", lowpass=6000, distortion=0.4)
+        """
+        current_beat = sum(n.beats for n in self.notes)
+
+        # Map param names to internal names
+        param_map = {
+            "reverb": "reverb_mix", "delay": "delay_mix",
+            "distortion": "distortion_mix", "chorus": "chorus_mix",
+            "phaser": "phaser_mix",
+        }
+
+        # Get current values for each param
+        current_params = self._get_params_at(current_beat)
+        ramps = {}
+        for param, target in params.items():
+            internal = param_map.get(param, param)
+            start = current_params.get(internal, getattr(self, internal, 0.0))
+            ramps[internal] = (float(start), float(target))
+
+        # Generate interpolated points
+        beat = 0.0
+        while beat <= over:
+            t = beat / over if over > 0 else 1.0
+            t = max(0.0, min(1.0, t))
+
+            # Apply curve
+            if curve == "ease_in":
+                t = t * t
+            elif curve == "ease_out":
+                t = 1.0 - (1.0 - t) ** 2
+            elif curve == "ease_in_out":
+                t = 3 * t * t - 2 * t * t * t
+
+            point = {}
+            for internal, (start, end) in ramps.items():
+                point[internal] = start + (end - start) * t
+
+            self._automation.append((current_beat + beat, point))
+            beat += resolution
+
+        return self
+
     def lfo(self, param: str, *, rate: float = 0.5, min: float = 0.0,
             max: float = 1.0, bars: float = 4, shape: str = "sine",
             resolution: float = 0.25) -> "Part":

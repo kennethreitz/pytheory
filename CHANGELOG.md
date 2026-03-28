@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.38.2
+
+- **`Part.ramp()`** — smooth parameter automation from current value to
+  target over a duration. Works for lowpass, reverb, distortion, chorus,
+  delay, volume, and any `.set()` parameter. Four interpolation curves:
+  linear, ease_in, ease_out, ease_in_out.
+
 ## 0.38.1
 
 - **Dynamic curves** — `Part.crescendo()`, `Part.decrescendo()`,

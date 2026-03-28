@@ -586,6 +586,50 @@ integrate naturally with the rest of the automation system:
    pad.rest(Duration.WHOLE)
    pad.rest(Duration.WHOLE)
 
+Parameter Ramps
+---------------
+
+Fades only control volume. ``Part.ramp()`` smoothly sweeps *any*
+parameter from its current value to a target — filters, reverb,
+distortion, chorus, delay, anything ``.set()`` accepts. This is how
+you build filter sweeps, gradual effect sends, and EDM buildups.
+
+.. code-block:: python
+
+   lead = score.part("lead", synth="saw", lowpass=200, lowpass_q=3.0)
+
+   # Open the filter over 8 bars
+   lead.ramp(over=Duration.WHOLE * 8, lowpass=8000)
+
+   # Ramp multiple params at once
+   pad.ramp(over=Duration.WHOLE * 4, reverb=0.5, chorus=0.3)
+
+   # Close the filter with distortion fading in
+   lead.ramp(over=Duration.WHOLE * 4, lowpass=400, distortion=0.5)
+
+Four interpolation curves:
+
+- **linear** — constant rate of change (default).
+- **ease_in** — starts slow, accelerates. Good for buildups.
+- **ease_out** — starts fast, decelerates. Good for releases.
+- **ease_in_out** — slow at both ends. Smooth and natural.
+
+.. code-block:: python
+
+   # EDM buildup: slow start, accelerating filter sweep
+   lead.ramp(over=Duration.WHOLE * 8, curve="ease_in", lowpass=8000)
+
+   # Smooth reverb wash fading in and settling
+   pad.ramp(over=Duration.WHOLE * 4, curve="ease_in_out", reverb=0.6)
+
+``ramp()`` generates automation points every quarter-beat by default.
+Set ``resolution=0.125`` for smoother curves (every 32nd note), or
+``resolution=1.0`` for lighter automation (every beat).
+
+Combine with ``lfo()`` for cyclic modulation and ``ramp()`` for
+one-shot sweeps — together they cover the full range of parameter
+automation.
+
 Humanize
 --------
 
