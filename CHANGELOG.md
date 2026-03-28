@@ -2,6 +2,22 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.39.0
+
+- **Dropped `numeral` dependency** — Roman numeral helpers inlined,
+  reducing supply chain surface (#47)
+- **`Part.ramp()`** — smooth parameter automation with 4 interpolation
+  curves (linear, ease_in, ease_out, ease_in_out)
+- **Articulations** — staccato, legato, marcato, tenuto, accent, fermata
+- **Dynamic curves** — crescendo(), decrescendo(), swell(), dynamics()
+- **`Part.hit()`** — individual drum sounds with articulation support
+- **Cross-choke drum damping** — djembe, hi-hats, cajón, doumbek
+- **5 new djembe patterns** + 3 djembe fills (30 fills total)
+- **6 new drum fills** — 3 cajón, 3 metal
+- **Duration arithmetic** — multiply, divide, add
+- **Improved djembe slap** synthesis
+- Song #31: Acid Tabla
+
 ## 0.38.2
 
 - **`Part.ramp()`** — smooth parameter automation from current value to
