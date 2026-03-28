@@ -2603,6 +2603,13 @@ class Part:
         from .chords import Chord as ChordClass
         chord_obj = ChordClass(tones=strum_tones)
 
+        # Strum: hold a quiet leading string simultaneously with the
+        # full chord using hold(). No timing gap — both start at the
+        # same beat position. The leading string adds strum texture.
+        n_strings = len(strum_tones)
+        if strum_time > 0 and n_strings >= 3:
+            grace_vel = max(1, int(velocity * 0.15))
+            self.hold(strum_tones[0], total_beats, velocity=grace_vel)
         self.add(chord_obj, total_beats, velocity=velocity)
 
         return self
