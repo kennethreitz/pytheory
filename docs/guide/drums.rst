@@ -10,7 +10,7 @@ the genre -- they tell the listener's body how to move before a single
 melodic note is played.
 
 PyTheory includes a complete drum system -- 51 synthesized percussion
-sounds, 80+ pattern presets across dozens of genres, and 21 fill presets.
+sounds, 80+ pattern presets across dozens of genres, and 27 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
 Drum Sounds
@@ -252,14 +252,16 @@ ending and a new one is about to begin. Without fills, a drum pattern
 just loops. With them, it breathes and has structure.
 
 ``Pattern.fill()`` loads a 1-bar drum fill -- a short break that
-transitions between sections. 21 fill presets are available:
+transitions between sections. 27 fill presets are available:
 
 .. code-block:: pycon
 
    >>> Pattern.list_fills()
    ['afrobeat', 'blast', 'bossa nova', 'breakdown', 'buildup',
+    'cajon breakdown', 'cajon flam', 'cajon rumble',
     'cumbia', 'disco', 'funk', 'highlife', 'hip hop', 'house',
-    'jazz', 'jazz brush', 'metal', 'reggae', 'rock', 'rock crash',
+    'jazz', 'jazz brush', 'metal', 'metal blast', 'metal cascade',
+    'metal triplet', 'reggae', 'rock', 'rock crash',
     'salsa', 'samba', 'second line', 'trap']
 
    >>> fill = Pattern.fill("rock")
@@ -456,10 +458,15 @@ metal blast (blast beat with china cymbal accents), metal groove (a
 half-time groove with double kick fills), and metal gallop (the
 classic triplet-feel gallop rhythm).
 
+**4 fills:** metal (double kick 16ths with descending toms), metal triplet
+(double kick triplets with snare accents), metal blast (alternating
+snare/kick 32nds into half-time crash), metal cascade (descending snare
+roll → kick roll → alternating → crash ending).
+
 .. code-block:: python
 
    score = Score("4/4", bpm=200)
-   score.drums("metal blast", repeats=4)
+   score.drums("metal blast", repeats=8, fill="metal cascade", fill_every=4)
 
 Cajón
 ~~~~~
@@ -468,15 +475,20 @@ The cajón is a box-shaped percussion instrument from Peru, now
 ubiquitous in acoustic and unplugged settings worldwide. Players sit
 on the box and strike the front face with their hands.
 
-**2 sounds** -- slap (sharp, snare-like) and tap (bass-like).
+**3 sounds** -- bass (deep center thump), slap (sharp, snare-like edge
+hit with wire buzz), and tap (light finger tap).
 
 **3 patterns:** cajon (basic groove), cajon rumba (flamenco-style rumba),
 and cajon folk (folk/acoustic pattern).
 
+**3 fills:** cajon flam (slaps accelerating into bass hits), cajon rumble
+(fast taps building to slap accents), cajon breakdown (syncopated
+bass-slap groove).
+
 .. code-block:: python
 
    score = Score("4/4", bpm=100)
-   score.drums("cajon", repeats=4)
+   score.drums("cajon", repeats=8, fill="cajon flam", fill_every=4)
 
 MIDI Export
 -----------

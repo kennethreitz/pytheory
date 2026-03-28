@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.36.6
+
+- **6 new drum fills** — 3 cajón (flam, rumble, breakdown) and 3 metal
+  (triplet, blast, cascade). 27 fills total.
+- Updated drums documentation with fill lists and examples
+
 ## 0.36.5
 
 - **Duration arithmetic** — `Duration.WHOLE * 2`, `Duration.HALF + Duration.QUARTER`,

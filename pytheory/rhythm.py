@@ -2292,6 +2292,109 @@ Pattern._FILLS["tabla call"] = dict(
     ],
 )
 
+# ── Cajón fills ──────────────────────────────────────────────────────────
+
+# Cajón flam run — slaps accelerating into bass hit
+Pattern._FILLS["cajon flam"] = dict(
+    name="cajon flam fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(CSL, 0.0, 95), _h(CT, 0.125, 45), _h(CSL, 0.25, 90),
+        _h(CB, 0.5, 100), _h(CT, 0.75, 50),
+        _h(CSL, 1.0, 88), _h(CT, 1.125, 42), _h(CSL, 1.25, 92),
+        _h(CT, 1.5, 55), _h(CSL, 1.75, 85),
+        _h(CB, 2.0, 105), _h(CSL, 2.25, 75), _h(CT, 2.5, 48),
+        _h(CSL, 2.75, 80), _h(CT, 2.875, 40),
+        _h(CB, 3.0, 110), _h(CSL, 3.25, 90), _h(CSL, 3.5, 95),
+        _h(CB, 3.75, 120),
+    ],
+)
+
+# Cajón rumble — fast taps building to slap accents
+Pattern._FILLS["cajon rumble"] = dict(
+    name="cajon rumble fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        *[_h(CT, i * 0.125, 35 + i * 3) for i in range(16)],
+        _h(CSL, 2.0, 95), _h(CSL, 2.5, 100),
+        _h(CB, 3.0, 108), _h(CSL, 3.25, 88),
+        _h(CB, 3.5, 112), _h(CSL, 3.75, 95),
+    ],
+)
+
+# Cajón breakdown — syncopated bass-slap groove
+Pattern._FILLS["cajon breakdown"] = dict(
+    name="cajon breakdown fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(CB, 0.0, 100), _h(CT, 0.25, 45), _h(CSL, 0.5, 85),
+        _h(CB, 1.0, 95), _h(CSL, 1.25, 78), _h(CT, 1.5, 50),
+        _h(CSL, 1.75, 82),
+        _h(CB, 2.0, 105), _h(CT, 2.125, 40), _h(CT, 2.25, 42),
+        _h(CSL, 2.5, 90), _h(CT, 2.75, 48),
+        _h(CB, 3.0, 115), _h(CSL, 3.25, 95),
+        _h(CB, 3.5, 110), _h(CSL, 3.75, 100),
+    ],
+)
+
+# ── Metal fills (using metal kit) ────────────────────────────────────────
+
+# Metal triplet — double kick triplets with snare accents
+Pattern._FILLS["metal triplet"] = dict(
+    name="metal triplet fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Triplet kick pattern (12 kicks across 4 beats = triplet 8ths)
+        *[_h(MK, i * (1/3), 95 + (i % 3 == 0) * 15) for i in range(12)],
+        # Snare accents on downbeats
+        _h(MS, 0.0, 110), _h(MS, 1.0, 105),
+        _h(MS, 2.0, 110), _h(MS, 3.0, 115),
+        # Hat on upbeats
+        _h(MH, 0.5, 60), _h(MH, 1.5, 60),
+        _h(MH, 2.5, 65), _h(MH, 3.5, 70),
+    ],
+)
+
+# Metal blastbeat variant — alternating snare/kick 32nds
+Pattern._FILLS["metal blast"] = dict(
+    name="metal blast fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Alternating kick-snare at 32nd note speed for 2 beats
+        *[_h(MK if i % 2 == 0 else MS, i * 0.125, 100 + i) for i in range(16)],
+        # Then crash into half-time for 2 beats
+        _h(MK, 2.0, 120), _h(MS, 2.5, 115),
+        _h(MK, 3.0, 120), _h(MH, 3.25, 80),
+        _h(MS, 3.5, 120),
+    ],
+)
+
+# Metal cascade — descending snare/kick rolls
+Pattern._FILLS["metal cascade"] = dict(
+    name="metal cascade fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Fast snare roll beat 1
+        *[_h(MS, i * 0.125, 80 + i * 5) for i in range(8)],
+        # Double kick beat 2
+        *[_h(MK, 1.0 + i * 0.125, 90 + i * 3) for i in range(8)],
+        # Alternating beat 3
+        _h(MS, 2.0, 105), _h(MK, 2.125, 95),
+        _h(MS, 2.25, 108), _h(MK, 2.375, 98),
+        _h(MS, 2.5, 110), _h(MK, 2.625, 100),
+        _h(MS, 2.75, 112), _h(MK, 2.875, 102),
+        # Crash ending
+        _h(MK, 3.0, 120), _h(MS, 3.0, 120),
+        _h(MK, 3.5, 120), _h(MS, 3.5, 120),
+    ],
+)
+
 
 class Part:
     """A named voice within a Score, with its own synth, envelope, and effects.
