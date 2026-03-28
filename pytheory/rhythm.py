@@ -2720,6 +2720,138 @@ class Part:
                                velocity=velocity, articulation=articulation))
         return self
 
+    def crescendo(self, notes, duration=Duration.QUARTER, *,
+                  start_vel: int = 40, end_vel: int = 110,
+                  articulation: str = "") -> "Part":
+        """Add notes with velocity ramping up (getting louder).
+
+        Args:
+            notes: List of note strings (e.g. ``["C4", "D4", "E4"]``).
+            duration: Duration for each note.
+            start_vel: Starting velocity (quiet).
+            end_vel: Ending velocity (loud).
+            articulation: Optional articulation for all notes.
+
+        Example::
+
+            >>> piano.crescendo(["C4","D4","E4","F4","G4"], Duration.QUARTER,
+            ...                 start_vel=40, end_vel=110)
+        """
+        return self.dynamics(notes, duration, velocities=(start_vel, end_vel),
+                             articulation=articulation)
+
+    def decrescendo(self, notes, duration=Duration.QUARTER, *,
+                    start_vel: int = 110, end_vel: int = 40,
+                    articulation: str = "") -> "Part":
+        """Add notes with velocity ramping down (getting quieter).
+
+        Args:
+            notes: List of note strings.
+            duration: Duration for each note.
+            start_vel: Starting velocity (loud).
+            end_vel: Ending velocity (quiet).
+            articulation: Optional articulation for all notes.
+
+        Example::
+
+            >>> piano.decrescendo(["G4","F4","E4","D4","C4"], Duration.QUARTER,
+            ...                   start_vel=110, end_vel=40)
+        """
+        return self.dynamics(notes, duration, velocities=(start_vel, end_vel),
+                             articulation=articulation)
+
+    def dynamics(self, notes, duration=Duration.QUARTER, *,
+                 velocities=None, articulation: str = "") -> "Part":
+        """Add notes with a velocity curve.
+
+        Args:
+            notes: List of note strings or Tone/Chord objects.
+            duration: Duration for each note (or list of durations).
+            velocities: Velocity curve — either a ``(start, end)`` tuple
+                for a linear ramp, or a list of ints (one per note).
+            articulation: Optional articulation for all notes (or list).
+
+        Example::
+
+            >>> # Linear ramp
+            >>> piano.dynamics(["C4","E4","G4","C5"], Duration.QUARTER,
+            ...                velocities=(50, 120))
+            >>> # Custom curve (swell and fade)
+            >>> piano.dynamics(["C4","D4","E4","F4","G4","F4","E4","D4"],
+            ...                Duration.EIGHTH,
+            ...                velocities=[50, 70, 90, 110, 110, 90, 70, 50])
+        """
+        n = len(notes)
+        if n == 0:
+            return self
+
+        # Resolve velocities
+        if velocities is None:
+            vels = [100] * n
+        elif isinstance(velocities, (tuple, list)) and len(velocities) == 2 and isinstance(velocities[0], (int, float)):
+            # (start, end) tuple — linear ramp
+            start_v, end_v = velocities
+            if n == 1:
+                vels = [int(start_v)]
+            else:
+                vels = [int(start_v + (end_v - start_v) * i / (n - 1))
+                        for i in range(n)]
+        else:
+            vels = list(velocities)
+
+        # Resolve durations
+        if isinstance(duration, (list, tuple)):
+            durs = list(duration)
+        else:
+            durs = [duration] * n
+
+        # Resolve articulations
+        if isinstance(articulation, (list, tuple)):
+            arts = list(articulation)
+        else:
+            arts = [articulation] * n
+
+        for note, vel, dur, art in zip(notes, vels, durs, arts):
+            vel = max(1, min(127, vel))
+            self.add(note, dur, velocity=vel, articulation=art)
+
+        return self
+
+    def swell(self, notes, duration=Duration.QUARTER, *,
+              low_vel: int = 40, peak_vel: int = 110,
+              articulation: str = "") -> "Part":
+        """Add notes that swell up then fade back down (< > shape).
+
+        The velocity ramps up to the midpoint then back down,
+        creating the classic orchestral swell.
+
+        Args:
+            notes: List of note strings.
+            duration: Duration for each note.
+            low_vel: Velocity at start and end.
+            peak_vel: Velocity at the peak (midpoint).
+            articulation: Optional articulation.
+
+        Example::
+
+            >>> strings.swell(["C4","D4","E4","F4","G4","F4","E4","D4"],
+            ...               Duration.QUARTER, low_vel=40, peak_vel=110)
+        """
+        n = len(notes)
+        if n <= 2:
+            return self.dynamics(notes, duration, velocities=[peak_vel] * n,
+                                 articulation=articulation)
+        mid = n // 2
+        vels = []
+        for i in range(n):
+            if i <= mid:
+                v = low_vel + (peak_vel - low_vel) * i / mid
+            else:
+                v = peak_vel - (peak_vel - low_vel) * (i - mid) / (n - 1 - mid)
+            vels.append(int(v))
+        return self.dynamics(notes, duration, velocities=vels,
+                             articulation=articulation)
+
     def set(self, **params) -> "Part":
         """Change effect parameters at the current beat position.
 

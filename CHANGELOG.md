@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.38.1
+
+- **Dynamic curves** — `Part.crescendo()`, `Part.decrescendo()`,
+  `Part.swell()`, and `Part.dynamics()` for velocity ramps and custom
+  curves across a sequence of notes
+
 ## 0.38.0
 
 - **Articulations** — `staccato`, `legato`, `marcato`, `tenuto`, `accent`,
