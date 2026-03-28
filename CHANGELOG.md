@@ -2,6 +2,17 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.36.1
+
+- **7 new instrument synths:** pedal steel guitar, theremin, kalimba/thumb
+  piano, steel drum/pan, accordion (musette reeds), didgeridoo (drone +
+  shifting formants), bagpipes (chanter reed)
+- **9 new demo moods** in ``pytheory demo``: Theremin Noir, Caribbean,
+  Accordion Waltz, Kalimba Dreams, Outback Drone, Highland, Nashville
+  Tears, Tabla Fusion
+- Improved existing songs with dedicated instrument synths
+- 41 synth waveforms, 26+ songs, 21 demo moods
+
 ## 0.36.0
 
 - **Banjo synth** — steel strings on drum-head body, nasal twang,
