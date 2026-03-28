@@ -77,6 +77,7 @@ def cmd_help(session, args):
   Parts:
     part lead saw pluck         score.part("lead", synth="saw", envelope="pluck")
     part bass sine              score.part("bass", synth="sine")
+    part lead instrument piano  score.part("lead", instrument="piano")
     part                        list all parts
 
   Notes (on active part):
@@ -85,6 +86,12 @@ def cmd_help(session, args):
     rest 2                      part.rest(2.0)
     arp Am updown 2 2           part.arpeggio("Am", pattern="updown", bars=2, octaves=2)
     prog I V vi IV              part adds key.progression(...)
+    strum Am 2 down             part.strum("Am", 2, direction="down")
+    strum G 2 up 0.1            lazy strum (strum_time=0.1)
+    roll C3 4                   part.roll("C3", 4) — timpani/tremolo
+    roll C3 4 30 110            roll with velocity ramp
+    bend C5 1 2                 part.add("C5", 1, bend=2) — bend up 2 semitones
+    bend C5 1 -1                bend down a half step
 
   Effects (on active part):
     reverb 0.4                  reverb=0.4
@@ -109,6 +116,12 @@ def cmd_help(session, args):
   Guitar:
     fingering Am                guitar chord fingering
     diagram [mode] [frets]      scale diagram on guitar
+
+  Tuning:
+    temperament equal           set temperament (equal/pythagorean/meantone/just)
+    temperament                 show current temperament
+    reference 432               set reference pitch (default 440)
+    instruments                 list all available instruments
 
   Session:
     show                        score info
@@ -197,12 +210,22 @@ def cmd_part(session, args):
         return
 
     name = args[0]
-    synth = args[1] if len(args) > 1 else "saw"
-    envelope = args[2] if len(args) > 2 else "pluck"
 
     if name not in session.parts:
-        session.parts[name] = session.score.part(name, synth=synth, envelope=envelope)
-        print(f"  score.part(\"{name}\", synth=\"{synth}\", envelope=\"{envelope}\")")
+        # Check if second arg is "instrument" keyword or an instrument name
+        if len(args) > 1 and args[1] == "instrument" and len(args) > 2:
+            instrument = args[2]
+            session.parts[name] = session.score.part(name, instrument=instrument)
+            print(f"  score.part(\"{name}\", instrument=\"{instrument}\")")
+        elif len(args) > 1 and args[1] in _INSTRUMENT_NAMES:
+            instrument = args[1]
+            session.parts[name] = session.score.part(name, instrument=instrument)
+            print(f"  score.part(\"{name}\", instrument=\"{instrument}\")")
+        else:
+            synth = args[1] if len(args) > 1 else "saw"
+            envelope = args[2] if len(args) > 2 else "pluck"
+            session.parts[name] = session.score.part(name, synth=synth, envelope=envelope)
+            print(f"  score.part(\"{name}\", synth=\"{synth}\", envelope=\"{envelope}\")")
     else:
         print(f"  → {name}")
     session.current_part = session.parts[name]
@@ -534,6 +557,97 @@ def cmd_identify(session, args):
         print(f"  error: {e}")
 
 
+def cmd_strum(session, args):
+    """Strum a chord on a fretboard-equipped part."""
+    if not args:
+        print("  usage: strum Am [beats] [down|up] [strum_time]")
+        return
+    part = _require_part(session)
+    chord_name = args[0]
+    beats = float(args[1]) if len(args) > 1 else 1.0
+    direction = args[2] if len(args) > 2 else "down"
+    strum_time = float(args[3]) if len(args) > 3 else 0.05
+    try:
+        part.strum(chord_name, beats, direction=direction, strum_time=strum_time)
+        print(f"  .strum(\"{chord_name}\", {beats}, direction=\"{direction}\", "
+              f"strum_time={strum_time})")
+    except Exception as e:
+        print(f"  error: {e}")
+
+
+def cmd_roll(session, args):
+    """Play a roll (rapid repeated notes with velocity ramp)."""
+    if not args:
+        print("  usage: roll C3 [beats] [vel_start] [vel_end]")
+        return
+    part = _require_part(session)
+    tone = args[0]
+    beats = float(args[1]) if len(args) > 1 else 4.0
+    vel_start = int(args[2]) if len(args) > 2 else 40
+    vel_end = int(args[3]) if len(args) > 3 else 100
+    try:
+        part.roll(tone, beats, velocity_start=vel_start, velocity_end=vel_end)
+        print(f"  .roll(\"{tone}\", {beats}, velocity_start={vel_start}, "
+              f"velocity_end={vel_end})")
+    except Exception as e:
+        print(f"  error: {e}")
+
+
+def cmd_bend(session, args):
+    """Add a note with pitch bend."""
+    if len(args) < 3:
+        print("  usage: bend C5 1 2       (note, beats, semitones)")
+        print("         bend C5 1 -1      (bend down)")
+        return
+    part = _require_part(session)
+    note = args[0]
+    beats = float(args[1])
+    bend = float(args[2])
+    bend_type = args[3] if len(args) > 3 else "smooth"
+    try:
+        part.add(note, beats, bend=bend, bend_type=bend_type)
+        print(f"  .add(\"{note}\", {beats}, bend={bend}, bend_type=\"{bend_type}\")")
+    except Exception as e:
+        print(f"  error: {e}")
+
+
+def cmd_temperament(session, args):
+    """Set or show the tuning temperament."""
+    if not args:
+        temp = getattr(session.score, 'temperament', 'equal')
+        ref = getattr(session.score, 'reference_pitch', 440.0)
+        print(f"  temperament={temp}  reference={ref} Hz")
+        print(f"  available: equal, pythagorean, meantone, just")
+        return
+    temp = args[0]
+    valid = ["equal", "pythagorean", "meantone", "just"]
+    if temp not in valid:
+        print(f"  unknown temperament: {temp}")
+        print(f"  available: {', '.join(valid)}")
+        return
+    session.score.temperament = temp
+    print(f"  temperament={temp}")
+
+
+def cmd_reference(session, args):
+    """Set the reference pitch (A4 frequency)."""
+    if not args:
+        ref = getattr(session.score, 'reference_pitch', 440.0)
+        print(f"  reference={ref} Hz")
+        return
+    ref = float(args[0])
+    session.score.reference_pitch = ref
+    print(f"  reference={ref} Hz")
+
+
+def cmd_instruments(session, args):
+    """List all available instruments."""
+    cols = 3
+    for i in range(0, len(_INSTRUMENT_NAMES), cols):
+        row = _INSTRUMENT_NAMES[i:i + cols]
+        print("  " + "  ".join(f"{name:<22s}" for name in row))
+
+
 def cmd_circle(session, args):
     """Show circle of fifths."""
     tonic = args[0] if args else session.key.tonic_name
@@ -560,7 +674,10 @@ def cmd_clear(session, args):
 def cmd_status(session, args):
     parts = ", ".join(session.parts.keys()) if session.parts else "none"
     active = session.current_part.name if session.current_part else "none"
+    temp = getattr(session.score, 'temperament', 'equal')
+    ref = getattr(session.score, 'reference_pitch', 440.0)
     print(f"  key={session.key}  bpm={session.bpm}  swing={session.swing}")
+    print(f"  temperament={temp}  reference={ref} Hz")
     print(f"  drums={session._drum_preset or 'none'}  parts=[{parts}]  active={active}")
 
 
@@ -607,6 +724,12 @@ COMMANDS = {
     "interval": cmd_interval,
     "identify": cmd_identify, "id": cmd_identify,
     "circle": cmd_circle,
+    "strum": cmd_strum,
+    "roll": cmd_roll,
+    "bend": cmd_bend,
+    "temperament": cmd_temperament, "temp": cmd_temperament,
+    "reference": cmd_reference, "ref": cmd_reference,
+    "instruments": cmd_instruments,
     "clear": cmd_clear,
     "status": cmd_status,
 }
@@ -653,9 +776,43 @@ def _prompt(session):
 # ── Tab completion ─────────────────────────────────────────────────────────
 
 _SYNTH_NAMES = ["sine", "saw", "triangle", "square", "pulse", "fm",
-                "noise", "supersaw", "pwm_slow", "pwm_fast"]
+                "noise", "supersaw", "pwm_slow", "pwm_fast",
+                "pedal_steel_synth", "theremin_synth", "kalimba_synth",
+                "steel_drum_synth", "accordion_synth", "didgeridoo_synth",
+                "bagpipe_synth", "banjo_synth", "mandolin_synth",
+                "ukulele_synth", "vocal_synth", "granular_synth",
+                "piano_synth", "organ_synth", "harpsichord_synth",
+                "strings_synth", "cello_synth", "flute_synth",
+                "clarinet_synth", "oboe_synth", "trumpet_synth",
+                "acoustic_guitar_synth", "electric_guitar_synth",
+                "bass_guitar_synth", "upright_bass_synth", "harp_synth",
+                "sitar_synth", "pluck_synth", "saxophone_synth",
+                "marimba_synth", "timpani_synth"]
+_INSTRUMENT_NAMES = [
+    # Keys
+    "piano", "electric_piano", "organ", "harpsichord", "celesta", "music_box",
+    # Strings
+    "violin", "viola", "cello", "contrabass", "string_ensemble",
+    # Woodwinds
+    "flute", "clarinet", "oboe", "bassoon",
+    # Brass
+    "trumpet", "trombone", "french_horn", "tuba", "brass_ensemble",
+    # Plucked
+    "acoustic_guitar", "electric_guitar", "clean_guitar", "crunch_guitar",
+    "distorted_guitar", "orange_crunch", "metal_guitar", "bass_guitar",
+    "upright_bass", "harp", "sitar", "pedal_steel", "theremin", "kalimba",
+    "steel_drum", "accordion", "didgeridoo", "bagpipe", "banjo", "mandolin",
+    "mandola", "ukulele", "koto",
+    # Synth presets
+    "synth_lead", "synth_pad", "synth_bass", "acid_bass",
+    "granular_pad", "vocal", "choir", "granular_texture", "808_bass",
+    # Percussion / Mallet
+    "vibraphone", "marimba", "xylophone", "glockenspiel", "tubular_bells", "timpani",
+    # Woodwinds (continued)
+    "saxophone", "alto_sax", "tenor_sax", "bari_sax",
+]
 _ENVELOPE_NAMES = ["piano", "pluck", "pad", "organ", "bell", "strings",
-                   "staccato", "none"]
+                   "staccato", "bowed", "mallet", "none"]
 _ARP_PATTERNS = ["up", "down", "updown", "downup", "random"]
 _LFO_SHAPES = ["sine", "triangle", "saw", "square"]
 _SYSTEMS = ["western", "indian", "arabic", "japanese", "blues", "gamelan"]
@@ -667,7 +824,7 @@ _CHORD_SUFFIXES = ["", "m", "7", "m7", "maj7", "dim", "aug", "sus2", "sus4",
 # Context-aware completions for the second word
 _ARG_COMPLETIONS = {
     "drums": lambda: Pattern.list_presets(),
-    "part": lambda: _SYNTH_NAMES,
+    "part": lambda: _SYNTH_NAMES + _INSTRUMENT_NAMES,
     "key": lambda: [f"{n}m" for n in _NOTE_NAMES[:12]] + _NOTE_NAMES[:12],
     "arp": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:6]],
     "add": lambda: [f"{n}{o}" for n in _NOTE_NAMES[:12] for o in ["3", "4", "5"]],
@@ -679,6 +836,12 @@ _ARG_COMPLETIONS = {
                     "lowpass_q", "reverb_decay", "delay_time", "delay_feedback",
                     "distortion_drive"],
     "identify": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:6]],
+    "strum": lambda: [f"{n}{s}" for n in _NOTE_NAMES[:7] for s in _CHORD_SUFFIXES[:6]],
+    "roll": lambda: [f"{n}{o}" for n in _NOTE_NAMES[:12] for o in ["2", "3", "4", "5"]],
+    "bend": lambda: [f"{n}{o}" for n in _NOTE_NAMES[:12] for o in ["3", "4", "5"]],
+    "temperament": lambda: ["equal", "pythagorean", "meantone", "just"],
+    "reference": lambda: ["440", "432", "415", "444"],
+    "instruments": lambda: _INSTRUMENT_NAMES,
 }
 
 
@@ -705,6 +868,12 @@ def _completer(text, state):
         elif cmd == "arp" and len(tokens) == 3:
             # Pattern for arp
             options = [p for p in _ARP_PATTERNS if p.startswith(text)]
+        elif cmd == "strum" and len(tokens) == 4:
+            # Direction for strum
+            options = [d for d in ["down", "up"] if d.startswith(text)]
+        elif cmd == "bend" and len(tokens) == 5:
+            # Bend type
+            options = [t for t in ["smooth", "linear", "late"] if t.startswith(text)]
         elif cmd == "lfo" and len(tokens) >= 7:
             # Shape for lfo
             options = [s for s in _LFO_SHAPES if s.startswith(text)]
