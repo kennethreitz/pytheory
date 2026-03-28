@@ -2890,29 +2890,27 @@ def _synth_djembe_tone(n_samples):
 def _synth_djembe_slap(n_samples):
     """Djembe slap — edge strike with fingers spread, sharp crack.
 
-    The highest, sharpest djembe sound. Fingers fan out on contact
-    creating a loud crack with minimal sustain.
+    The highest, sharpest djembe sound. A dry, high-pitched pop from
+    goatskin membrane — NOT a snare. Tight attack, very short decay,
+    skin character rather than wire rattle.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Sharp crack — mostly noise
-    crack_len = min(int(SAMPLE_RATE * 0.02), n_samples)
-    crack = _noise(crack_len) * _exp_decay(crack_len, 100) * 1.0
-    # Brief high-pitched ring
-    ring = numpy.sin(2 * numpy.pi * 600 * t) * _exp_decay(n_samples, 25) * 0.4
-    ring2 = numpy.sin(2 * numpy.pi * 1200 * t) * 0.2 * _exp_decay(n_samples, 35)
-    # Brief membrane pop
-    thump_len = min(int(SAMPLE_RATE * 0.02), n_samples)
-    thump_raw = _noise(thump_len)
-    if thump_len > 20:
-        bl, al = scipy.signal.butter(2, [300, 2000], btype='band', fs=SAMPLE_RATE)
-        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
+    # High membrane pop — goatskin resonance, much higher than snare
+    pop = numpy.sin(2 * numpy.pi * 900 * t) * _exp_decay(n_samples, 50) * 0.5
+    pop2 = numpy.sin(2 * numpy.pi * 1600 * t) * _exp_decay(n_samples, 60) * 0.25
+    pop3 = numpy.sin(2 * numpy.pi * 2400 * t) * _exp_decay(n_samples, 80) * 0.12
+    # Very short filtered click — hand-on-skin transient, not noise rattle
+    click_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    click_raw = _noise(click_len)
+    if click_len > 20:
+        bl, al = scipy.signal.butter(2, 1800 / (SAMPLE_RATE / 2), btype='high')
+        click = scipy.signal.lfilter(bl, al, numpy.pad(click_raw, (0, max(0, n_samples - click_len))))[:click_len]
     else:
-        thump = thump_raw
-    thump *= _exp_decay(thump_len, 80) * 0.8
-    result = ring + ring2
-    result[:crack_len] += crack
-    result[:thump_len] += thump
-    return numpy.tanh(result * 1.7)
+        click = click_raw
+    click *= _exp_decay(click_len, 150) * 0.6
+    result = pop + pop2 + pop3
+    result[:click_len] += click
+    return numpy.tanh(result * 1.5)
 
 
 def _synth_guiro(n_samples):
@@ -4660,6 +4658,35 @@ def render_score(score):
                     for ch in range(2):
                         part_stereo[fade_start:start, ch] *= fade
             _last_hit_start[sound_id] = start
+
+            # Cross-choke: a new hit on one sound dampens the ring of
+            # related sounds on the same instrument (e.g. djembe slap
+            # kills the bass resonance, closed hat kills open hat).
+            _CHOKE_GROUPS = {
+                # Djembe — any strike dampens the others
+                DrumSound.DJEMBE_BASS.value: (DrumSound.DJEMBE_TONE.value, DrumSound.DJEMBE_SLAP.value),
+                DrumSound.DJEMBE_TONE.value: (DrumSound.DJEMBE_BASS.value, DrumSound.DJEMBE_SLAP.value),
+                DrumSound.DJEMBE_SLAP.value: (DrumSound.DJEMBE_BASS.value, DrumSound.DJEMBE_TONE.value),
+                # Hi-hats — closed chokes open
+                DrumSound.CLOSED_HAT.value: (DrumSound.OPEN_HAT.value,),
+                DrumSound.PEDAL_HAT.value: (DrumSound.OPEN_HAT.value,),
+                # Cajón — slap dampens bass ring
+                DrumSound.CAJON_SLAP.value: (DrumSound.CAJON_BASS.value,),
+                DrumSound.CAJON_TAP.value: (DrumSound.CAJON_BASS.value,),
+                # Doumbek — tek/ka dampen dum
+                DrumSound.DOUMBEK_TEK.value: (DrumSound.DOUMBEK_DUM.value,),
+                DrumSound.DOUMBEK_KA.value: (DrumSound.DOUMBEK_DUM.value,),
+            }
+            choke_targets = _CHOKE_GROUPS.get(sound_id, ())
+            for target_id in choke_targets:
+                if target_id in _last_hit_start:
+                    prev_start = _last_hit_start[target_id]
+                    fade_len = min(int(SAMPLE_RATE * 0.004), max(0, start - prev_start))
+                    if fade_len > 0 and start > 0:
+                        fade = numpy.linspace(1.0, 0.0, fade_len).astype(numpy.float32)
+                        fade_start = max(0, start - fade_len)
+                        for ch in range(2):
+                            part_stereo[fade_start:start, ch] *= fade
 
             remaining = total_samples - start
             hit_len = min(int(SAMPLE_RATE * 0.5), remaining)

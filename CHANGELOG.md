@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.37.0
+
+- **5 new djembe patterns** — dununba, tiriba, yankadi, djansa, mendiani
+- **3 new djembe fills** — djembe call, djembe roll, djembe break (30 fills total)
+- **Cross-choke drum damping** — striking one sound on a hand drum fades
+  out the ring of related sounds (djembe slap kills bass resonance, closed
+  hat chokes open hat, cajón slap dampens bass, doumbek tek dampens dum)
+- **Improved djembe slap** — dry, high-pitched goatskin pop instead of
+  snare-like noise rattle
+
 ## 0.36.6
 
 - **6 new drum fills** — 3 cajón (flam, rumble, breakdown) and 3 metal

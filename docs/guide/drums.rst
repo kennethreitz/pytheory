@@ -10,7 +10,7 @@ the genre -- they tell the listener's body how to move before a single
 melodic note is played.
 
 PyTheory includes a complete drum system -- 51 synthesized percussion
-sounds, 80+ pattern presets across dozens of genres, and 27 fill presets.
+sounds, 85+ pattern presets across dozens of genres, and 30 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
 Drum Sounds
@@ -252,14 +252,15 @@ ending and a new one is about to begin. Without fills, a drum pattern
 just loops. With them, it breathes and has structure.
 
 ``Pattern.fill()`` loads a 1-bar drum fill -- a short break that
-transitions between sections. 27 fill presets are available:
+transitions between sections. 30 fill presets are available:
 
 .. code-block:: pycon
 
    >>> Pattern.list_fills()
    ['afrobeat', 'blast', 'bossa nova', 'breakdown', 'buildup',
     'cajon breakdown', 'cajon flam', 'cajon rumble',
-    'cumbia', 'disco', 'funk', 'highlife', 'hip hop', 'house',
+    'cumbia', 'disco', 'djembe break', 'djembe call', 'djembe roll',
+    'funk', 'highlife', 'hip hop', 'house',
     'jazz', 'jazz brush', 'metal', 'metal blast', 'metal cascade',
     'metal triplet', 'reggae', 'rock', 'rock crash',
     'salsa', 'samba', 'second line', 'trap']
@@ -435,14 +436,19 @@ central to the drum ensemble traditions of Mali, Guinea, and Senegal.
 **3 sounds** -- bass (open center strike), tone (edge strike), and
 slap (sharp edge strike).
 
-**3 patterns:** djembe (a basic accompanying rhythm), kuku (a
-traditional rhythm from Guinea associated with fishing), and soli (a
-solo/celebration rhythm).
+**8 patterns:** djembe (basic accompanying rhythm), kuku (Guinean harvest
+dance), soli (powerful Mandinka rhythm), dununba (heavy bass-driven),
+tiriba (joyful Susu rhythm), yankadi (gentle greeting/welcome), djansa
+(fast Malinke dance), mendiani (women's celebratory dance).
+
+**3 fills:** djembe call (bass-tone-slap conversation building to climax),
+djembe roll (rapid slaps accelerating into bass), djembe break (syncopated
+West African-style break).
 
 .. code-block:: python
 
    score = Score("4/4", bpm=120)
-   score.drums("djembe", repeats=4)
+   score.drums("djembe", repeats=8, fill="djembe call", fill_every=4)
 
 Metal Kit
 ~~~~~~~~~

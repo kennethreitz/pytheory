@@ -1907,6 +1907,74 @@ Pattern._PRESETS["soli"] = dict(
     ],
 )
 
+# Dununba — heavy bass-driven rhythm (accompaniment djembe part)
+Pattern._PRESETS["dununba"] = dict(
+    name="dununba",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0, 110), _h(JB, 0.5, 95),
+        _h(JT, 1.0, 75), _h(JB, 1.5, 100),
+        _h(JB, 2.0, 108), _h(JT, 2.5, 70),
+        _h(JB, 3.0, 105), _h(JB, 3.5, 90), _h(JT, 3.75, 65),
+    ],
+)
+
+# Tiriba — joyful Susu rhythm from Guinea
+Pattern._PRESETS["tiriba"] = dict(
+    name="tiriba",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JT, 0.0, 85), _h(JS, 0.25, 95), _h(JT, 0.5, 80),
+        _h(JB, 1.0, 100), _h(JT, 1.5, 75),
+        _h(JS, 2.0, 92), _h(JT, 2.25, 78), _h(JT, 2.5, 80),
+        _h(JB, 3.0, 105), _h(JS, 3.5, 88), _h(JT, 3.75, 72),
+    ],
+)
+
+# Yankadi — gentle greeting/welcome rhythm from Guinea
+Pattern._PRESETS["yankadi"] = dict(
+    name="yankadi",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0, 90), _h(JT, 0.5, 70),
+        _h(JT, 1.0, 72), _h(JS, 1.5, 85),
+        _h(JB, 2.0, 88), _h(JT, 2.5, 68),
+        _h(JS, 3.0, 82), _h(JT, 3.5, 65),
+    ],
+)
+
+# Djansa — fast Malinke dance rhythm
+Pattern._PRESETS["djansa"] = dict(
+    name="djansa",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JS, 0.0, 100), _h(JT, 0.25, 72), _h(JT, 0.5, 70),
+        _h(JB, 0.75, 95),
+        _h(JS, 1.0, 98), _h(JT, 1.25, 68), _h(JB, 1.5, 92),
+        _h(JS, 2.0, 102), _h(JT, 2.25, 75), _h(JT, 2.5, 72),
+        _h(JB, 2.75, 90),
+        _h(JS, 3.0, 105), _h(JT, 3.25, 70), _h(JB, 3.5, 95),
+        _h(JS, 3.75, 88),
+    ],
+)
+
+# Mendiani — women's dance rhythm, celebratory
+Pattern._PRESETS["mendiani"] = dict(
+    name="mendiani",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0, 100), _h(JT, 0.25, 65), _h(JS, 0.5, 90),
+        _h(JT, 1.0, 70), _h(JB, 1.5, 95), _h(JT, 1.75, 68),
+        _h(JS, 2.0, 92), _h(JT, 2.5, 72), _h(JS, 2.75, 85),
+        _h(JB, 3.0, 105), _h(JT, 3.25, 65), _h(JS, 3.5, 95),
+    ],
+)
+
 # ── Fill presets ──────────────────────────────────────────────────────────
 
 Pattern._FILLS["rock"] = dict(
@@ -2289,6 +2357,57 @@ Pattern._FILLS["tabla call"] = dict(
         _h(_TNA, 2.5, 100),
         _h(_TGB, 3.0, 112), _h(_TKE, 3.25, 48),
         _h(_TDH, 3.5, 120),
+    ],
+)
+
+# ── Djembe fills ─────────────────────────────────────────────────────────
+
+# Djembe call — bass-tone-slap conversation building to climax
+Pattern._FILLS["djembe call"] = dict(
+    name="djembe call fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0, 100), _h(JT, 0.25, 70), _h(JT, 0.5, 72),
+        _h(JS, 0.75, 90),
+        _h(JB, 1.0, 95), _h(JT, 1.25, 68), _h(JS, 1.5, 88),
+        _h(JT, 1.75, 75),
+        _h(JS, 2.0, 100), _h(JS, 2.25, 95), _h(JT, 2.5, 78),
+        _h(JB, 2.75, 105),
+        _h(JS, 3.0, 110), _h(JT, 3.25, 80), _h(JS, 3.5, 112),
+        _h(JB, 3.75, 120),
+    ],
+)
+
+# Djembe roll — rapid slaps accelerating into bass
+Pattern._FILLS["djembe roll"] = dict(
+    name="djembe roll fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Accelerating slap roll
+        *[_h(JS, i * 0.125, 50 + i * 4) for i in range(16)],
+        # Bass accents punching through
+        _h(JB, 2.0, 105), _h(JB, 2.5, 108),
+        _h(JB, 3.0, 112), _h(JT, 3.25, 85),
+        _h(JB, 3.5, 115), _h(JS, 3.75, 100),
+    ],
+)
+
+# Djembe break — syncopated West African-style break
+Pattern._FILLS["djembe break"] = dict(
+    name="djembe break fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(JB, 0.0, 105), _h(JT, 0.25, 65), _h(JS, 0.5, 90),
+        _h(JT, 0.75, 70), _h(JB, 1.0, 100),
+        _h(JS, 1.25, 85), _h(JS, 1.5, 88),
+        _h(JB, 1.75, 95), _h(JT, 2.0, 72),
+        _h(JS, 2.25, 92), _h(JB, 2.5, 108),
+        _h(JT, 2.75, 68), _h(JS, 2.875, 55),
+        _h(JB, 3.0, 115), _h(JS, 3.25, 100),
+        _h(JB, 3.5, 118), _h(JB, 3.75, 120),
     ],
 )
 
