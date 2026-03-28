@@ -2271,6 +2271,59 @@ def pop_rock():
     play_song(score, "Pop Rock — G D Em C (I-V-vi-IV)")
 
 
+def sitar_drone():
+    """Sitar Drone — Raga Bhairav with hold() polyphony, 22-shruti JI."""
+    shruti = SYSTEMS["shruti"]
+    score = Score("4/4", bpm=72, system=shruti)
+
+    ts = TonedScale(system=shruti, tonic=Tone("Sa", octave=4, system=shruti))
+    bh = list(ts["bhairav"].tones)
+    S, kR, G, M, P, kD, N, S2 = bh
+
+    sitar = score.part("sitar", instrument="sitar", volume=0.3,
+                        reverb=0.4, reverb_type="taj_mahal")
+    # Sa drone held — rings under the whole melody
+    sitar.hold(Tone("Sa", octave=3, system=shruti), 32.0, velocity=60)
+    sitar.rest(Duration.WHOLE)
+    for tone, dur, vel in [
+        (S, 2.0, 72), (kR, 0.5, 62), (S, 0.5, 68),
+        (G, 2.0, 78), (kR, 0.5, 60), (G, 0.5, 70),
+        (M, 1.5, 75), (P, 2.5, 82),
+        (kD, 0.5, 65), (P, 1.0, 75), (M, 0.5, 65),
+        (G, 0.5, 68), (kR, 0.5, 60), (S, 2.0, 78),
+        (kR, 0.25, 62), (G, 0.25, 65), (M, 0.25, 70), (P, 0.25, 75),
+        (kD, 0.25, 70), (N, 0.25, 78), (S2, 0.5, 85),
+        (N, 0.25, 68), (kD, 0.25, 62), (P, 0.5, 68),
+        (M, 0.5, 62), (G, 0.5, 65), (kR, 0.5, 58),
+        (S, 4.0, 80),
+    ]:
+        sitar.add(tone, dur, velocity=vel)
+
+    tanpura = score.part("tanpura", synth="strings_synth", envelope="pad",
+                          detune=3, lowpass=900, volume=0.12,
+                          reverb=0.5, reverb_type="taj_mahal")
+    tanpura_pa = score.part("tanpura_pa", synth="strings_synth", envelope="pad",
+                             detune=3, lowpass=1200, volume=0.1,
+                             reverb=0.5, reverb_type="taj_mahal")
+    for _ in range(8):
+        tanpura.add(Tone("Sa", octave=3, system=shruti), Duration.WHOLE)
+        tanpura_pa.add(Tone("Pa", octave=3, system=shruti), Duration.WHOLE)
+
+    NA = DrumSound.TABLA_NA
+    DH_ = DrumSound.TABLA_DHA
+    TT_ = DrumSound.TABLA_TIT
+    silence = Pattern(name="s", time_signature="4/4", beats=8.0, hits=[])
+    score.add_pattern(silence, repeats=1)
+    p = Pattern(name="t", time_signature="4/4", beats=4.0, hits=[
+        _Hit(DH_, 0.0, 68), _Hit(TT_, 0.5, 25), _Hit(NA, 1.0, 55),
+        _Hit(NA, 2.0, 52), _Hit(DH_, 3.0, 68),
+    ])
+    score.add_pattern(p, repeats=6)
+    score.set_drum_effects(reverb=0.25, reverb_type="taj_mahal")
+
+    play_song(score, "Sitar Drone — Raga Bhairav (22-Shruti JI, hold() polyphony)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -2301,6 +2354,7 @@ SONGS = {
     "27": ("Ascent (Deep → Sky → Tabla Solo)", ascent),
     "28": ("Descent (Generative — different every time)", descent),
     "29": ("Pop Rock (I-V-vi-IV)", pop_rock),
+    "30": ("Sitar Drone (Bhairav, hold() polyphony)", sitar_drone),
 }
 
 if __name__ == "__main__":
@@ -2314,7 +2368,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-29, or 'all'): ").strip()
+        choice = input("  Pick a song (1-30, or 'all'): ").strip()
         print()
 
         if choice == "all":

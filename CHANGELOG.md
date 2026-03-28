@@ -2,6 +2,20 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.36.3
+
+- **`Part.hold()`** — polyphonic overlap on a single part. Add notes
+  without advancing the beat position so they play simultaneously.
+  Enables: piano sustain, sitar drone under melody, guitar strum texture.
+- **Strum uses hold()** — leading string plays simultaneously with chord,
+  no more timing gaps or choppiness
+- **Improved songs** 1-16: humanize, velocity dynamics, reverb, saxophone
+  for blues
+- **Ctrl-C handling** — clean stop on all playback functions
+- **REPL updates** — strum, roll, bend, temperament, reference commands
+- Song #28 Descent (generative), #29 Pop Rock, #30 Sitar Drone
+- 862 tests
+
 ## 0.36.1
 
 - **7 new instrument synths:** pedal steel guitar, theremin, kalimba/thumb
