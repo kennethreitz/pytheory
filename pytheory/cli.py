@@ -423,7 +423,10 @@ def cmd_demo(args):
     print(f"     {mood['drums']} | {lead_synth} lead | {pad_synth} pad | {mood['reverb_type']} reverb")
     print()
 
-    play_score(score)
+    try:
+        play_score(score)
+    except KeyboardInterrupt:
+        pass
     print("  ♫")
 
 

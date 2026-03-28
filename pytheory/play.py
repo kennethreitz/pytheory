@@ -1741,8 +1741,11 @@ def _play_for(sample_wave, ms):
     """Play the given NumPy sample array through the speakers."""
     normalized_wave = sample_wave.astype(numpy.float32) / SAMPLE_PEAK
     _sd = _get_sd()
-    _sd.play(normalized_wave, SAMPLE_RATE)
-    _sd.wait()
+    try:
+        _sd.play(normalized_wave, SAMPLE_RATE)
+        _sd.wait()
+    except KeyboardInterrupt:
+        _sd.stop()
 
 
 class Synth(Enum):
@@ -4634,8 +4637,11 @@ def play_score(score):
     """
     buf = render_score(score)
     _sd = _get_sd()
-    _sd.play(buf, SAMPLE_RATE)
-    _sd.wait()
+    try:
+        _sd.play(buf, SAMPLE_RATE)
+        _sd.wait()
+    except KeyboardInterrupt:
+        _sd.stop()
 
 
 # ── MIDI export ─────────────────────────────────────────────────────────────
