@@ -4869,6 +4869,19 @@ def test_duration_values():
     assert abs(Duration.TRIPLET_QUARTER.value - 2 / 3) < 1e-9
 
 
+def test_duration_arithmetic():
+    # Multiplication
+    assert Duration.WHOLE * 2 == 8.0
+    assert 2 * Duration.HALF == 4.0
+    assert Duration.QUARTER * 3 == 3.0
+    # Division
+    assert Duration.WHOLE / 2 == 2.0
+    # Addition
+    assert Duration.HALF + Duration.QUARTER == 3.0
+    assert Duration.HALF + 1.0 == 3.0
+    assert 1.0 + Duration.HALF == 3.0
+
+
 def test_time_signature_from_string_4_4():
     ts = TimeSignature.from_string("4/4")
     assert ts.beats == 4

@@ -388,6 +388,24 @@ class Duration(Enum):
     DOTTED_QUARTER = 1.5
     TRIPLET_QUARTER = 2 / 3
 
+    # Arithmetic — lets you write ``Duration.WHOLE * 2`` → 8.0 beats.
+    def __mul__(self, other):
+        return self.value * other
+
+    def __rmul__(self, other):
+        return self.value * other
+
+    def __truediv__(self, other):
+        return self.value / other
+
+    def __add__(self, other):
+        if isinstance(other, Duration):
+            return self.value + other.value
+        return self.value + other
+
+    def __radd__(self, other):
+        return other + self.value
+
 
 class TimeSignature:
     """A musical time signature like 4/4 or 6/8."""

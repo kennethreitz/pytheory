@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.36.5
+
+- **Duration arithmetic** — `Duration.WHOLE * 2`, `Duration.HALF + Duration.QUARTER`,
+  division, and reverse multiply all work now (previously raised TypeError)
+
 ## 0.36.3
 
 - **`Part.hold()`** — polyphonic overlap on a single part. Add notes
