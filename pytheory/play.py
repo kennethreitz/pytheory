@@ -4145,10 +4145,48 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 start += _rnd.randint(-max_offset, max_offset)
                 start = max(0, start)
             dur_ms = note.beats * 60_000 / bpm
+            # Articulation: adjust duration and velocity
+            art = getattr(note, 'articulation', '')
+            art_vel_mult = 1.0
+            art_attack_mult = 1.0  # multiplier for envelope attack
+            if art == 'staccato':
+                dur_ms *= 0.4  # short and bouncy
+            elif art == 'legato':
+                dur_ms *= 1.15  # slight overlap into next note
+            elif art == 'marcato':
+                art_vel_mult = 1.25  # heavier
+                art_attack_mult = 0.3  # sharper attack
+            elif art == 'tenuto':
+                art_attack_mult = 1.8  # softer attack, full duration
+            elif art == 'accent':
+                art_vel_mult = 1.2
+            elif art == 'fermata':
+                dur_ms *= 1.5  # held longer
             n_samples = int(SAMPLE_RATE * dur_ms / 1000)
             if start + n_samples > total_samples:
                 n_samples = total_samples - start
             if n_samples > 0 and start >= 0:
+                # Drum hit via Part.hit() — use drum synth directly
+                from .rhythm import _DrumTone
+                if isinstance(note.tone, _DrumTone):
+                    drum_wave = _render_drum_hit(note.tone.sound.value, n_samples)
+                    mixed = drum_wave.astype(numpy.float32)
+                    # Staccato fade-out for drums
+                    if art == 'staccato':
+                        fade_len = min(int(SAMPLE_RATE * 0.01), len(mixed))
+                        if fade_len > 0:
+                            mixed[-fade_len:] *= numpy.linspace(1.0, 0.0, fade_len).astype(numpy.float32)
+                    vel = getattr(note, 'velocity', 100)
+                    vel = min(127, int(vel * art_vel_mult))
+                    if humanize > 0.0:
+                        vel_jitter = int(humanize * 15)
+                        vel = max(1, min(127, vel + _rnd.randint(-vel_jitter, vel_jitter)))
+                    vel_scale = vel / 127.0
+                    end = min(start + len(mixed), total_samples)
+                    buf[start:end] += mixed[:end - start] * volume * vel_scale
+                    if not getattr(note, '_hold', False):
+                        beat_pos += note.beats
+                    continue
                 # Get pitches
                 if hasattr(note.tone, 'tones'):
                     pitches = [t.pitch(temperament=temperament, reference_pitch=reference_pitch) for t in note.tone.tones]
@@ -4249,11 +4287,18 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 if noise_mix > 0:
                     noise = numpy.random.uniform(-1, 1, n_samples).astype(numpy.float32)
                     mixed = mixed * (1.0 - noise_mix * 0.5) + noise * noise_mix * 0.5
-                # Amplitude envelope
-                if a > 0 or d > 0 or s < 1.0 or r > 0:
-                    mixed = _apply_envelope(mixed, a, d, s, r)
-                # Per-note velocity
+                # Amplitude envelope (articulation may adjust attack)
+                art_a = a * art_attack_mult
+                if art_a > 0 or d > 0 or s < 1.0 or r > 0:
+                    mixed = _apply_envelope(mixed, art_a, d, s, r)
+                # Staccato: apply a quick fade-out at the end
+                if art == 'staccato':
+                    fade_len = min(int(SAMPLE_RATE * 0.01), len(mixed))
+                    if fade_len > 0:
+                        mixed[-fade_len:] *= numpy.linspace(1.0, 0.0, fade_len).astype(numpy.float32)
+                # Per-note velocity (articulation may boost)
                 vel = getattr(note, 'velocity', 100)
+                vel = min(127, int(vel * art_vel_mult))
                 if humanize > 0.0:
                     vel_jitter = int(humanize * 15)
                     vel = max(1, min(127, vel + _rnd.randint(-vel_jitter, vel_jitter)))

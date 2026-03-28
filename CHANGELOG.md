@@ -2,6 +2,18 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.38.0
+
+- **Articulations** — `staccato`, `legato`, `marcato`, `tenuto`, `accent`,
+  `fermata` via `articulation=` on `Part.add()` and `Part.hold()`
+- **`Part.hit()`** — place individual drum sounds in a Part's note stream
+  with articulation, velocity, and effects support
+- **5 new djembe patterns** — dununba, tiriba, yankadi, djansa, mendiani
+- **3 new djembe fills** — djembe call, djembe roll, djembe break (30 fills total)
+- **Cross-choke drum damping** — striking one sound fades out related sounds
+  (djembe, hi-hats, cajón, doumbek)
+- **Improved djembe slap** — dry goatskin pop instead of snare-like noise
+
 ## 0.37.0
 
 - **5 new djembe patterns** — dununba, tiriba, yankadi, djansa, mendiani

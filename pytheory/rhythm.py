@@ -449,6 +449,7 @@ class Note:
     bend: float = 0.0
     bend_type: str = "smooth"  # "smooth" (log), "linear", "late"
     lyric: str = ""  # syllable for vocal synth
+    articulation: str = ""  # "", "staccato", "legato", "marcato", "tenuto", "accent", "fermata"
     _hold: bool = False  # if True, don't advance beat position
 
     @property
@@ -563,6 +564,17 @@ class DrumSound(Enum):
     METAL_KICK = 105     # clicky, punchy, tight
     METAL_SNARE = 106    # crack, bright, cutting
     METAL_HAT = 107      # tight, short, precise
+
+
+class _DrumTone:
+    """Wrapper so a DrumSound can be placed in a Part's note list."""
+    __slots__ = ('sound',)
+
+    def __init__(self, sound: DrumSound):
+        self.sound = sound
+
+    def pitch(self, **kwargs):
+        return -self.sound.value
 
 
 class _Hit:
@@ -2624,7 +2636,8 @@ class Part:
         self._automation: list[tuple[float, dict]] = []  # (beat, {param: value})
 
     def add(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100,
-            bend: float = 0.0, bend_type: str = "smooth", lyric: str = "") -> "Part":
+            bend: float = 0.0, bend_type: str = "smooth", lyric: str = "",
+            articulation: str = "") -> "Part":
         """Add a note. Accepts Tone/Chord objects or note strings like ``"E5"``.
 
         Duration can be a ``Duration`` enum or a raw float (beats).
@@ -2632,6 +2645,10 @@ class Part:
         Bend specifies a pitch bend in semitones over the note duration
         (e.g. ``bend=2`` bends up a whole step, ``bend=-1`` bends down
         a half step). Used for guitar bends, sitar meends, slides.
+        Articulation changes how the note is played: ``"staccato"`` (short,
+        ~40% duration), ``"legato"`` (overlaps next note), ``"marcato"``
+        (heavy accent), ``"tenuto"`` (full duration, soft attack),
+        ``"accent"`` (velocity bump), ``"fermata"`` (held ~50% longer).
 
         Returns self for chaining.
         """
@@ -2642,11 +2659,13 @@ class Part:
             duration = _RawDuration(duration)
         self.notes.append(Note(tone=tone_or_string, duration=duration,
                                velocity=velocity, bend=bend,
-                               bend_type=bend_type, lyric=lyric))
+                               bend_type=bend_type, lyric=lyric,
+                               articulation=articulation))
         return self
 
     def hold(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100,
-             bend: float = 0.0, bend_type: str = "smooth", lyric: str = "") -> "Part":
+             bend: float = 0.0, bend_type: str = "smooth", lyric: str = "",
+             articulation: str = "") -> "Part":
         """Add a note without advancing the beat position.
 
         The note plays at the current position but the next note
@@ -2671,7 +2690,34 @@ class Part:
             duration = _RawDuration(duration)
         self.notes.append(Note(tone=tone_or_string, duration=duration,
                                velocity=velocity, bend=bend,
-                               bend_type=bend_type, lyric=lyric, _hold=True))
+                               bend_type=bend_type, lyric=lyric,
+                               articulation=articulation, _hold=True))
+        return self
+
+    def hit(self, sound, duration=Duration.EIGHTH, *, velocity: int = 100,
+            articulation: str = "") -> "Part":
+        """Add a drum hit to this part.
+
+        Places a drum sound into the note stream so it goes through the
+        normal renderer — meaning articulations, humanize, and effects
+        all work on individual hits.
+
+        Args:
+            sound: A :class:`DrumSound` enum member (e.g. ``DrumSound.KICK``).
+            duration: How long the hit occupies in the timeline (default 8th note).
+            velocity: Hit loudness 1-127.
+            articulation: ``"accent"``, ``"staccato"``, ``"marcato"``, etc.
+
+        Example::
+
+            >>> drums = score.part("kit", synth="sine")
+            >>> drums.hit(DrumSound.KICK, Duration.QUARTER, articulation="accent")
+            >>> drums.hit(DrumSound.CLOSED_HAT, Duration.EIGHTH)
+        """
+        if isinstance(duration, (int, float)):
+            duration = _RawDuration(duration)
+        self.notes.append(Note(tone=_DrumTone(sound), duration=duration,
+                               velocity=velocity, articulation=articulation))
         return self
 
     def set(self, **params) -> "Part":
