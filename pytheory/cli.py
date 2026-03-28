@@ -303,7 +303,7 @@ def cmd_demo(args):
          "fill": "rock", "bpm": 85,
          "prog": ("i", "iv", "V", "i"),
          "lead": ("theremin_synth", "pad", 0.4, 0.0),
-         "pad": ("granular_synth", "pad", 0.0),
+         "pad": ("strings_synth", "pad", 0.0),
          "bass_lp": 300, "reverb_type": "cave"},
         {"name": "Caribbean", "key": ("C", "major"), "drums": "reggae",
          "fill": "reggae", "bpm": 110,
