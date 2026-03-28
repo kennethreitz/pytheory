@@ -4200,7 +4200,9 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     # Right channel gets up-detuned, left gets down-detuned
                     stereo_buf[start:end, 1] += up_env * gain * spread_amt
                     stereo_buf[start:end, 0] += down_env * gain * spread_amt
-        beat_pos += note.beats
+        # hold() notes don't advance the beat position
+        if not getattr(note, '_hold', False):
+            beat_pos += note.beats
 
 
 def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
@@ -4242,7 +4244,8 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
             events.append((start, end, hz, vel))
         else:
             events.append((start, end, 0, vel))  # rest
-        beat_pos += note.beats
+        if not getattr(note, '_hold', False):
+            beat_pos += note.beats
 
     if not events:
         return

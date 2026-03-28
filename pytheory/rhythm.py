@@ -426,6 +426,7 @@ class Note:
     bend: float = 0.0
     bend_type: str = "smooth"  # "smooth" (log), "linear", "late"
     lyric: str = ""  # syllable for vocal synth
+    _hold: bool = False  # if True, don't advance beat position
 
     @property
     def beats(self) -> float:
@@ -2221,6 +2222,35 @@ class Part:
         self.notes.append(Note(tone=tone_or_string, duration=duration,
                                velocity=velocity, bend=bend,
                                bend_type=bend_type, lyric=lyric))
+        return self
+
+    def hold(self, tone_or_string, duration=Duration.QUARTER, *, velocity: int = 100,
+             bend: float = 0.0, bend_type: str = "smooth", lyric: str = "") -> "Part":
+        """Add a note without advancing the beat position.
+
+        The note plays at the current position but the next note
+        starts at the *same* time — enabling polyphonic overlap
+        on a single part.
+
+        Use this for: piano sustain pedal (bass note rings while
+        melody plays above), guitar strumming with individual
+        string timing, held drone notes under a melody.
+
+        Example::
+
+            >>> piano = score.part("piano", instrument="piano")
+            >>> piano.hold("C3", Duration.WHOLE)   # bass rings for 4 beats
+            >>> piano.add("E4", Duration.HALF)     # starts at same time as C3
+            >>> piano.add("G4", Duration.HALF)     # starts at beat 2
+        """
+        if isinstance(tone_or_string, str):
+            from .tones import Tone
+            tone_or_string = Tone.from_string(tone_or_string, system=self._system)
+        if isinstance(duration, (int, float)):
+            duration = _RawDuration(duration)
+        self.notes.append(Note(tone=tone_or_string, duration=duration,
+                               velocity=velocity, bend=bend,
+                               bend_type=bend_type, lyric=lyric, _hold=True))
         return self
 
     def set(self, **params) -> "Part":
