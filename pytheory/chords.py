@@ -849,7 +849,7 @@ class Chord:
             >>> Chord([D4, F4, A4]).analyze("C")
             'ii'
         """
-        import numeral as numeral_mod
+        from ._statics import int2roman
         from .scales import TonedScale
         from .systems import SYSTEMS
         from .tones import Tone
@@ -874,7 +874,7 @@ class Chord:
         scale_names = [t.name for t in scale.tones[:-1]]
 
         def _build_numeral(root, quality, degree_idx, prefix=""):
-            numeral_str = numeral_mod.int2roman(degree_idx + 1, only_ascii=True)
+            numeral_str = int2roman(degree_idx + 1)
             suffix = ""
             if "minor" in quality:
                 numeral_str = numeral_str.lower()

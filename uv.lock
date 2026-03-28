@@ -487,14 +487,6 @@ wheels = [
 ]
 
 [[package]]
-name = "numeral"
-version = "0.1.0.17"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/0d/ac6a186e169fcbdfea316f78fb5e34981bcf8d5c1d7cc8b6581f597e1e4c/numeral-0.1.0.17-py2.py3-none-any.whl", hash = "sha256:7dff0c1efb9b3655c9c1dc93b4666993741b15abcac0dc01dcb96b21cc20f6ae", size = 22066, upload-time = "2020-04-12T08:24:59.129Z" },
-]
-
-[[package]]
 name = "numpy"
 version = "2.2.6"
 source = { registry = "https://pypi.org/simple" }
@@ -701,7 +693,6 @@ name = "pytheory"
 version = "0.38.2"
 source = { editable = "." }
 dependencies = [
-    { name = "numeral" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sounddevice" },
@@ -721,7 +712,6 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "numeral" },
     { name = "scipy" },
     { name = "sounddevice" },
 ]

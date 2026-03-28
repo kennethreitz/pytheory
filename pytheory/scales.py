@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-import numeral
-
 from .systems import SYSTEMS, System
 from .tones import Tone
 
@@ -49,7 +47,8 @@ class Scale:
     def __repr__(self) -> str:
         r = []
         for (i, tone) in enumerate(self.tones):
-            degree = numeral.int2roman(i + 1, only_ascii=True)
+            from ._statics import int2roman
+            degree = int2roman(i + 1)
             r += [f"{degree}={tone.full_name}"]
 
         r = " ".join(r)
@@ -200,7 +199,7 @@ class Scale:
             >>> scale.progression("I", "IV", "V", "I")
             [<Chord (C,E,G)>, <Chord (F,A,C)>, <Chord (G,B,D)>, <Chord (C,E,G)>]
         """
-        import numeral as numeral_mod
+        from ._statics import roman2int
         chords = []
         for num in numerals:
             is_seventh = num.endswith("7")
@@ -213,7 +212,7 @@ class Scale:
             elif clean.startswith("#") and len(clean) > 1:
                 clean = clean[1:]
                 flat_offset = 1  # one semitone up
-            degree = numeral_mod.roman2int(clean.upper()) - 1
+            degree = roman2int(clean.upper()) - 1
             if is_seventh:
                 chord = self.seventh(degree)
             else:
@@ -406,7 +405,8 @@ class Scale:
         if isinstance(item, str):
             degrees = []
             for (i, tone) in enumerate(self.tones):
-                degrees.append(numeral.int2roman(i + 1, only_ascii=True))
+                from ._statics import int2roman
+                degrees.append(int2roman(i + 1))
 
             if item in degrees:
                 item = degrees.index(item)

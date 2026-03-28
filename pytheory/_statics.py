@@ -2,6 +2,43 @@ import math
 
 REFERENCE_A = 440
 
+# ── Roman numeral helpers (replaces `numeral` package) ───────────────────
+
+_ROMAN_MAP = [
+    (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+    (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+    (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+]
+
+_ROMAN_VALUES = {
+    "I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000,
+}
+
+
+def int2roman(n: int) -> str:
+    """Convert an integer to an uppercase Roman numeral string."""
+    result = []
+    for value, numeral in _ROMAN_MAP:
+        while n >= value:
+            result.append(numeral)
+            n -= value
+    return "".join(result)
+
+
+def roman2int(s: str) -> int:
+    """Convert a Roman numeral string (case-insensitive) to an integer."""
+    s = s.upper()
+    total = 0
+    prev = 0
+    for ch in reversed(s):
+        val = _ROMAN_VALUES.get(ch, 0)
+        if val < prev:
+            total -= val
+        else:
+            total += val
+        prev = val
+    return total
+
 # Index of C in the Western tone list (A=0, A#=1, B=2, C=3, ...).
 # Scientific pitch notation changes octave at C, not A, so this offset
 # is needed for all octave arithmetic.
