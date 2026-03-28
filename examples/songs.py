@@ -2203,6 +2203,74 @@ def descent():
     play_song(score, f"Descent — {root} {mode} (generative, {REV})")
 
 
+def pop_rock():
+    """Pop Rock — the I-V-vi-IV progression that launched a thousand hits."""
+    import random
+    from pytheory import Fretboard
+    random.seed(42)
+    score = Score("4/4", bpm=120)
+    fb = Fretboard.guitar()
+
+    guitar = score.part("guitar", instrument="acoustic_guitar", fretboard=fb,
+                         reverb=0.2, reverb_type="plate", humanize=0.15, pan=-0.2)
+    bass = score.part("bass", instrument="bass_guitar", volume=0.35, humanize=0.1)
+    lead = score.part("lead", instrument="electric_guitar",
+                       cabinet=1.0, cabinet_brightness=0.6,
+                       reverb=0.2, reverb_type="plate", pan=0.2)
+    strings = score.part("strings", instrument="string_ensemble", volume=0.12,
+                          reverb=0.35, reverb_type="hall")
+
+    prog = ["G", "D", "Em", "C"]
+
+    # Intro — picked
+    for sym in prog:
+        chord_obj = Chord.from_symbol(sym)
+        tones = [t.name for t in chord_obj.tones]
+        for t in tones:
+            guitar.add(f"{t}3", Duration.QUARTER,
+                       velocity=random.randint(62, 72))
+
+    # Verse — strum
+    for _ in range(2):
+        for sym in prog:
+            vd = random.randint(72, 88)
+            vu = random.randint(55, 70)
+            guitar.strum(sym, Duration.QUARTER, direction="down", velocity=vd)
+            guitar.strum(sym, Duration.EIGHTH, direction="up", velocity=vu)
+            guitar.strum(sym, Duration.EIGHTH, direction="down", velocity=vd - 8)
+            guitar.strum(sym, Duration.QUARTER, direction="up", velocity=vu)
+            guitar.strum(sym, Duration.QUARTER, direction="down", velocity=vd)
+
+    bass_notes = ["G2", "G2", "D2", "D2", "E2", "E2", "C2", "C2"]
+    for _ in range(3):
+        for n in bass_notes:
+            bass.add(n, Duration.HALF, velocity=random.randint(68, 78))
+
+    # Melody
+    for _ in range(4):
+        lead.rest(Duration.WHOLE)
+    for note, dur, vel in [
+        ("B4",0.5,78),("B4",0.5,75),("B4",0.5,78),("B4",0.5,72),
+        ("A4",0.5,75),("A4",0.5,72),("B4",1.0,80),
+        ("B4",0.5,78),("B4",0.5,75),("B4",0.5,78),("D5",0.5,82),
+        ("G4",0.75,72),("G4",0.25,68),("A4",1.0,78),
+        ("B4",0.5,78),("B4",0.5,75),("B4",0.5,78),("B4",0.5,72),
+        ("A4",0.5,75),("A4",0.5,72),("B4",0.5,78),("A4",0.5,72),
+        ("G4",2.0,80),
+    ]:
+        lead.add(note, dur, velocity=vel)
+
+    for _ in range(4):
+        strings.rest(Duration.WHOLE)
+    for sym in prog * 2:
+        strings.add(Chord.from_symbol(sym), Duration.WHOLE,
+                    velocity=random.randint(55, 68))
+
+    score.drums("rock", repeats=6)
+
+    play_song(score, "Pop Rock — G D Em C (I-V-vi-IV)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -2232,6 +2300,7 @@ SONGS = {
     "26": ("Acoustic Ensemble (Guitar+Uke+Mando+Cajón)", acoustic_ensemble),
     "27": ("Ascent (Deep → Sky → Tabla Solo)", ascent),
     "28": ("Descent (Generative — different every time)", descent),
+    "29": ("Pop Rock (I-V-vi-IV)", pop_rock),
 }
 
 if __name__ == "__main__":
@@ -2245,7 +2314,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-28, or 'all'): ").strip()
+        choice = input("  Pick a song (1-29, or 'all'): ").strip()
         print()
 
         if choice == "all":
