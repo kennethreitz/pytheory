@@ -5320,7 +5320,7 @@ def test_supersaw_wave():
 @needs_portaudio
 def test_all_synths_in_enum():
     from pytheory.play import Synth
-    assert len(Synth) == 30
+    assert len(Synth) == 41
     for s in Synth:
         wave = s(440, n_samples=1000)
         assert len(wave) == 1000
@@ -6912,3 +6912,242 @@ def test_clean_guitar_preset():
     p = score.part("g", instrument="clean_guitar")
     assert p.synth == "electric_guitar_synth"
     assert p.cabinet > 0
+
+
+# ── New instrument synths (v0.36+) ──────────────────────────────────────────
+
+def test_new_synths_render():
+    """All 7 new synths produce valid audio."""
+    from pytheory.play import (pedal_steel_wave, theremin_wave, kalimba_wave,
+                                steel_drum_wave, accordion_wave,
+                                didgeridoo_wave, bagpipe_wave,
+                                banjo_wave, mandolin_wave, ukulele_wave,
+                                vocal_wave, SAMPLE_RATE)
+    synths = [pedal_steel_wave, theremin_wave, kalimba_wave, steel_drum_wave,
+              accordion_wave, didgeridoo_wave, bagpipe_wave,
+              banjo_wave, mandolin_wave, ukulele_wave, vocal_wave]
+    for fn in synths:
+        wave = fn(440, n_samples=11025)
+        assert len(wave) == 11025
+        assert wave.dtype == numpy.int16
+        assert numpy.abs(wave).max() > 0
+
+
+def test_vocal_synth_with_lyric():
+    """Vocal synth accepts lyric parameter."""
+    from pytheory.play import vocal_wave
+    for lyric in ["ah", "ee", "oh", "oo", "hi", "la"]:
+        wave = vocal_wave(330, n_samples=11025, lyric=lyric)
+        assert len(wave) == 11025
+        assert numpy.abs(wave).max() > 0
+
+
+def test_vocal_different_vowels_differ():
+    """Different vowels should produce different waveforms."""
+    from pytheory.play import vocal_wave
+    ah = vocal_wave(330, n_samples=22050, lyric="ah")
+    ee = vocal_wave(330, n_samples=22050, lyric="ee")
+    # They should differ (different formant peaks)
+    assert not numpy.array_equal(ah, ee)
+
+
+def test_all_instrument_presets_create():
+    """Every instrument preset in INSTRUMENTS should create a valid Part."""
+    from pytheory import Score
+    from pytheory.rhythm import INSTRUMENTS
+    for name in INSTRUMENTS:
+        score = Score("4/4", bpm=120)
+        p = score.part("test", instrument=name)
+        assert p.synth is not None
+
+
+def test_new_instrument_presets():
+    """New instrument presets have correct synths."""
+    from pytheory import Score
+    presets = {
+        "pedal_steel": "pedal_steel_synth",
+        "theremin": "theremin_synth",
+        "kalimba": "kalimba_synth",
+        "steel_drum": "steel_drum_synth",
+        "accordion": "accordion_synth",
+        "didgeridoo": "didgeridoo_synth",
+        "bagpipe": "bagpipe_synth",
+        "banjo": "banjo_synth",
+        "mandolin": "mandolin_synth",
+        "ukulele": "ukulele_synth",
+    }
+    for name, expected_synth in presets.items():
+        score = Score("4/4", bpm=120)
+        p = score.part("t", instrument=name)
+        assert p.synth == expected_synth, f"{name} has {p.synth}, expected {expected_synth}"
+
+
+# ── Cajón drums ─────────────────────────────────────────────────────────────
+
+def test_cajon_sounds_render():
+    from pytheory.play import _render_drum_hit
+    from pytheory.rhythm import DrumSound
+    for sound in [DrumSound.CAJON_BASS, DrumSound.CAJON_SLAP, DrumSound.CAJON_TAP]:
+        wave = _render_drum_hit(sound.value, 22050)
+        assert len(wave) == 22050
+        assert wave.dtype == numpy.float32
+
+
+def test_cajon_patterns():
+    from pytheory.rhythm import Pattern
+    for name in ["cajon", "cajon rumba", "cajon folk"]:
+        p = Pattern.preset(name)
+        assert p.beats > 0
+
+
+# ── Pitch bends ─────────────────────────────────────────────────────────────
+
+def test_pitch_bend_renders():
+    """Pitch bend should produce valid audio without errors."""
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=120)
+    p = score.part("t", instrument="electric_guitar")
+    p.add("A4", Duration.HALF, bend=2, bend_type="smooth")
+    p.add("A4", Duration.HALF, bend=-1, bend_type="late")
+    p.add("A4", Duration.HALF, bend=3, bend_type="linear")
+    p.add("A4", Duration.HALF)
+    buf = render_score(score)
+    assert len(buf) > 0
+
+
+def test_pitch_bend_types():
+    """All three bend types should work."""
+    from pytheory.rhythm import Note, Duration
+    for bt in ["smooth", "linear", "late"]:
+        n = Note(tone=None, duration=Duration.QUARTER, bend=2, bend_type=bt)
+        assert n.bend_type == bt
+
+
+# ── Roll method ─────────────────────────────────────────────────────────────
+
+def test_roll_adds_notes():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    p = score.part("t", instrument="timpani")
+    p.roll("C3", Duration.WHOLE, velocity_start=30, velocity_end=100)
+    assert len(p.notes) > 4  # should be many 16th notes
+
+
+def test_roll_velocity_ramp():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    p = score.part("t", instrument="timpani")
+    p.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=100)
+    velocities = [n.velocity for n in p.notes]
+    # First should be quieter than last
+    assert velocities[0] < velocities[-1]
+
+
+def test_roll_custom_speed():
+    from pytheory import Score, Duration
+    score = Score("4/4", bpm=120)
+    p = score.part("t", synth="sine")
+    p.roll("A4", Duration.WHOLE, speed=0.125)  # 32nd notes
+    # 4 beats / 0.125 = 32 notes
+    assert len(p.notes) == 32
+
+
+# ── Int tone names ──────────────────────────────────────────────────────────
+
+def test_int_tone_name():
+    from pytheory import Tone, TET
+    edo = TET(22)
+    t = Tone(0, octave=4, system=edo)
+    assert t.name == "0"
+    assert t.frequency == pytest.approx(440.0, rel=1e-3)
+
+
+def test_int_tone_wrapping():
+    from pytheory import Tone, TET
+    edo = TET(22)
+    t = Tone(22, octave=4, system=edo)
+    assert t.name == "0"
+    assert t.octave == 5
+    assert t.frequency == pytest.approx(880.0, rel=1e-3)
+
+
+def test_int_tone_negative():
+    from pytheory import Tone, TET
+    edo = TET(22)
+    t = Tone(-1, octave=4, system=edo)
+    assert t.name == "21"
+    assert t.octave == 3
+
+
+def test_system_tone_method():
+    from pytheory import TET
+    edo = TET(19)
+    t = edo.tone(5, octave=4)
+    assert t.name == "5"
+    assert t.octave == 4
+
+
+# ── B#/Cb octave boundary ──────────────────────────────────────────────────
+
+def test_b_sharp_octave():
+    t = Tone("B#4")
+    assert t.octave == 5
+    assert t.frequency == pytest.approx(Tone("C5").frequency, rel=1e-3)
+
+
+def test_c_flat_octave():
+    t = Tone("Cb4")
+    assert t.octave == 3
+    assert t.frequency == pytest.approx(Tone("B3").frequency, rel=1e-3)
+
+
+# ── Note choking ────────────────────────────────────────────────────────────
+
+def test_note_choking_renders():
+    """Fast repeated notes should render without errors (choking active)."""
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+    score = Score("4/4", bpm=200)
+    p = score.part("t", instrument="piano")
+    for _ in range(32):
+        p.add("C4", Duration.SIXTEENTH)
+    buf = render_score(score)
+    assert len(buf) > 0
+
+
+# ── Score system/temperament ───────────────────────────────────────────────
+
+def test_score_temperament():
+    from pytheory import Score
+    score = Score("4/4", bpm=120, temperament="just")
+    assert score.temperament == "just"
+
+
+def test_score_reference_pitch():
+    from pytheory import Score
+    score = Score("4/4", bpm=120, reference_pitch=415.0)
+    assert score.reference_pitch == 415.0
+
+
+def test_score_system_propagates():
+    from pytheory import Score, SYSTEMS
+    shruti = SYSTEMS["shruti"]
+    score = Score("4/4", bpm=120, system=shruti)
+    p = score.part("t", synth="sine")
+    assert p._system is shruti
+
+
+# ── Synth enum count ────────────────────────────────────────────────────────
+
+def test_synth_enum_count():
+    from pytheory.play import Synth
+    assert len(Synth) == 41
+
+
+def test_all_synths_render_and_enum_match():
+    """Every Synth enum member should render valid audio."""
+    from pytheory.play import Synth
+    for s in Synth:
+        wave = s(440, n_samples=1000)
+        assert len(wave) == 1000
