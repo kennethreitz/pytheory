@@ -47,6 +47,18 @@ A ``Duration`` represents a note length in beats (quarter note = 1 beat):
    >>> Duration.TRIPLET_QUARTER.value
    0.6666666666666666
 
+Duration supports arithmetic — multiply, divide, and add to create
+compound durations:
+
+.. code-block:: pycon
+
+   >>> Duration.WHOLE * 2
+   8.0
+   >>> Duration.HALF + Duration.QUARTER
+   3.0
+   >>> Duration.WHOLE / 2
+   2.0
+
 Time Signatures
 ---------------
 
@@ -398,6 +410,102 @@ The arpeggiator also accepts velocity:
 .. code-block:: python
 
    lead.arpeggio("Am", bars=2, pattern="up", velocity=80)
+
+Articulations
+-------------
+
+Articulations change *how* a note is played — its attack, duration, and
+weight. A staccato note is short and bouncy. A marcato note hits hard.
+A legato note melts into the next one. This is the difference between
+a melody that sounds like a MIDI file and one that sounds like a
+musician played it.
+
+Pass ``articulation=`` to ``Part.add()``:
+
+.. code-block:: python
+
+   piano.add("C4", Duration.QUARTER, articulation="staccato")   # short, bouncy
+   piano.add("D4", Duration.QUARTER, articulation="legato")     # smooth, overlaps
+   piano.add("E4", Duration.QUARTER, articulation="marcato")    # heavy accent
+   piano.add("F4", Duration.QUARTER, articulation="tenuto")     # held, soft attack
+   piano.add("G4", Duration.QUARTER, articulation="accent")     # louder
+   piano.add("C5", Duration.HALF, articulation="fermata")       # held longer
+
+What each articulation does:
+
+- **staccato** — plays ~40% of the note duration with a quick fade-out. Short and detached.
+- **legato** — extends ~15% into the next note. Smooth and connected.
+- **marcato** — 25% velocity boost + sharper attack. Heavy and accented.
+- **tenuto** — full duration with a softer attack ramp. Held and deliberate.
+- **accent** — 20% velocity boost, no duration change.
+- **fermata** — stretches the note 50% longer.
+
+Articulations work on ``Part.hold()`` and ``Part.hit()`` too.
+
+Dynamic Curves
+--------------
+
+Real music breathes — phrases get louder, get quieter, swell and
+recede. Dynamic curves let you shape the velocity across a sequence
+of notes instead of setting each one manually.
+
+.. code-block:: python
+
+   # Crescendo: quiet to loud
+   piano.crescendo(["C4","D4","E4","F4","G4","A4","B4","C5"],
+                   Duration.QUARTER, start_vel=30, end_vel=110)
+
+   # Decrescendo: loud to quiet
+   piano.decrescendo(["C5","B4","A4","G4","F4","E4","D4","C4"],
+                     Duration.QUARTER, start_vel=110, end_vel=30)
+
+   # Swell: up then back down (orchestral < > shape)
+   strings.swell(["C4","D4","E4","F4","G4","F4","E4","D4"],
+                 Duration.QUARTER, low_vel=35, peak_vel=110)
+
+   # Custom curve: explicit velocity per note
+   piano.dynamics(["C4","E4","G4","C5"], Duration.QUARTER,
+                  velocities=[50, 80, 110, 90])
+
+Four methods:
+
+- **crescendo()** — linear velocity ramp from ``start_vel`` to ``end_vel``.
+- **decrescendo()** — same thing, but typically loud to quiet.
+- **swell()** — ramps up to the midpoint, then back down. The classic
+  orchestral crescendo-decrescendo.
+- **dynamics()** — the general form. Pass a ``(start, end)`` tuple for
+  a linear ramp, or a list of velocities for a custom curve.
+
+All four accept ``articulation=`` to combine dynamics with articulations:
+
+.. code-block:: python
+
+   # Staccato crescendo — bouncy notes getting louder
+   piano.crescendo(["C4","E4","G4","C5","E5","G5","C6","E6"],
+                   Duration.EIGHTH, start_vel=40, end_vel=110,
+                   articulation="staccato")
+
+Part.hit() — Manual Drum Placement
+-----------------------------------
+
+The pattern system is great for grooves, but sometimes you want to
+place individual drum hits with full control — articulations, effects,
+and all. ``Part.hit()`` puts a drum sound into a Part's note stream:
+
+.. code-block:: python
+
+   from pytheory import DrumSound
+
+   kit = score.part("kit", synth="sine", volume=0.7)
+
+   kit.hit(DrumSound.KICK, Duration.QUARTER, articulation="accent")
+   kit.hit(DrumSound.CLOSED_HAT, Duration.EIGHTH, velocity=60)
+   kit.hit(DrumSound.SNARE, Duration.EIGHTH, articulation="marcato")
+
+Because hits go through the normal Part renderer, they get humanize,
+effects, and articulations for free. Use this for custom beats that
+don't fit a preset pattern, or for one-shot accent hits layered on
+top of a pattern.
 
 Swing and Groove
 ----------------
