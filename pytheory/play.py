@@ -1130,6 +1130,228 @@ def granular_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     return (peak * out).astype(numpy.int16)
 
 
+def pedal_steel_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Pedal steel guitar — the Nashville crying sound.
+
+    Sustained steel string with natural portamento character,
+    very smooth, lots of harmonics, and a singing quality from
+    the bar sliding on the strings.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    # Slow, singing vibrato — the bar wobbling on the strings
+    vib = hz * 0.002 * numpy.sin(2 * numpy.pi * 4.0 * t)
+    # Rich harmonics — steel bar gives a clear, singing tone
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    for n in range(1, 12):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        amp = 1.0 / n * numpy.exp(-0.08 * n)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
+    # Long sustain envelope
+    wave *= numpy.exp(-0.8 * t)
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
+def theremin_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Theremin — pure sine with natural wobble.
+
+    The theremin's sound is a nearly pure sine wave with slight
+    pitch instability from hand position. The eerie, sci-fi sound
+    comes from this purity combined with continuous pitch.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # Natural hand wobble — slightly irregular vibrato
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    wobble = hz * 0.004 * numpy.sin(2 * numpy.pi * 5.8 * t)
+    wobble += hz * 0.001 * rng.normal(0, 1, n_samples)
+    wave = numpy.sin(2 * numpy.pi * (hz + wobble) * t)
+    # Slight 2nd harmonic — real theremins aren't perfectly pure
+    wave += 0.08 * numpy.sin(2 * numpy.pi * (hz * 2 + wobble * 2) * t)
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
+def kalimba_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Kalimba/thumb piano — metal tines on a wooden body.
+
+    Bright, bell-like attack with inharmonic overtones from the
+    metal tines. The wooden resonator gives warmth underneath.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # Metal tine modes — slightly inharmonic like marimba
+    wave = numpy.sin(2 * numpy.pi * hz * t) * 0.8
+    wave += numpy.sin(2 * numpy.pi * hz * 2.92 * t) * 0.25 * numpy.exp(-12 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 5.4 * t) * 0.1 * numpy.exp(-20 * t)
+    # Two-stage decay: bright attack dies fast, fundamental rings
+    decay = numpy.where(t < 0.1,
+                        numpy.exp(-3 * t),
+                        numpy.exp(-3 * 0.1) * numpy.exp(-1.5 * (t - 0.1)))
+    wave *= decay
+    # Wooden body resonance
+    import scipy.signal as _sig
+    for center, bw, gain in [(300, 100, 0.2), (600, 120, 0.15)]:
+        lo, hi = max(20, center - bw), min(SAMPLE_RATE // 2 - 1, center + bw)
+        if lo < hi:
+            bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            wave += _sig.lfilter(bp, ap, wave) * gain
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
+def steel_drum_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Steel drum/pan — hammered metal with bright, ringing tone.
+
+    The steel pan has specific inharmonic partials from the
+    hand-hammered notes. Bright, tropical, bell-like.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # Steel pan modes — distinctly metallic
+    wave = numpy.sin(2 * numpy.pi * hz * t) * 0.7
+    wave += numpy.sin(2 * numpy.pi * hz * 2.0 * t) * 0.4 * numpy.exp(-5 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 3.01 * t) * 0.25 * numpy.exp(-8 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 4.1 * t) * 0.15 * numpy.exp(-12 * t)
+    wave += numpy.sin(2 * numpy.pi * hz * 5.3 * t) * 0.08 * numpy.exp(-18 * t)
+    # Mallet impact
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    hit_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    hit = rng.uniform(-0.2, 0.2, hit_len) * numpy.exp(-numpy.linspace(0, 12, hit_len))
+    wave[:hit_len] += hit
+    # Two-stage decay
+    decay = numpy.where(t < 0.15,
+                        numpy.exp(-4 * t),
+                        numpy.exp(-4 * 0.15) * numpy.exp(-1.2 * (t - 0.15)))
+    wave *= decay
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
+def accordion_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Accordion — bellows-driven free reeds.
+
+    Two reeds per note slightly detuned (musette tuning) create
+    the characteristic beating/tremolo. Rich in harmonics from
+    the reed vibration.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    # Two reeds slightly detuned — musette beating
+    detune_cents = 8
+    hz2 = hz * (2 ** (detune_cents / 1200))
+    # Reed harmonics — rich, like a square-ish wave but warmer
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    for reed_hz in [hz, hz2]:
+        for n in range(1, 10):
+            f_n = reed_hz * n
+            if f_n >= SAMPLE_RATE / 2:
+                break
+            # Odd harmonics stronger (reed character)
+            amp = (1.0 / n) * (1.2 if n % 2 == 1 else 0.6)
+            phase = rng.uniform(0, 2 * numpy.pi)
+            wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase)
+    wave *= 0.5  # normalize for two reeds
+    # Bellows pressure variation — slow amplitude swell
+    bellows = 0.85 + 0.15 * numpy.sin(2 * numpy.pi * 0.8 * t)
+    wave *= bellows
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
+def didgeridoo_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Didgeridoo — circular breathing drone through a wooden tube.
+
+    Deep fundamental with strong odd harmonics from the cylindrical
+    bore. The overtone singing technique creates shifting formants.
+    Buzzy, droning, primal.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    # Lip buzz source — rich, raw
+    phase = numpy.cumsum(2 * numpy.pi * hz / SAMPLE_RATE * numpy.ones(n_samples))
+    buzz = numpy.zeros(n_samples, dtype=numpy.float64)
+    for n in range(1, 15):
+        if hz * n >= SAMPLE_RATE / 2:
+            break
+        # Odd harmonics stronger (cylindrical bore, like clarinet)
+        amp = (1.0 / n) * (1.0 if n % 2 == 1 else 0.4)
+        buzz += amp * numpy.sin(phase * n + rng.uniform(0, 2 * numpy.pi))
+    # Shifting formant — the overtone singing effect
+    # Sweeps slowly between 500Hz and 1500Hz
+    formant_center = 800 + 400 * numpy.sin(2 * numpy.pi * 0.3 * t)
+    import scipy.signal as _sig
+    # Block-process the formant sweep
+    block = 2048
+    out = numpy.zeros(n_samples, dtype=numpy.float64)
+    for i in range(0, n_samples, block):
+        end = min(i + block, n_samples)
+        fc = formant_center[(i + end) // 2]
+        lo = max(20, int(fc - 300))
+        hi = min(SAMPLE_RATE // 2 - 1, int(fc + 300))
+        if lo < hi:
+            bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            seg = _sig.lfilter(bp, ap, buzz[i:end])
+            out[i:end] = buzz[i:end] * 0.5 + seg * 0.5
+        else:
+            out[i:end] = buzz[i:end]
+    # Breath noise
+    breath = rng.normal(0, 0.04, n_samples)
+    out += breath
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return (peak * out).astype(numpy.int16)
+
+
+def bagpipe_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Bagpipes — chanter reed with constant drone pressure.
+
+    The chanter (melody pipe) uses a double reed like an oboe
+    but with more buzz and brightness. The constant air pressure
+    from the bag means no dynamics — always ff.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    # Chanter — all harmonics, bright and reedy
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    for n in range(1, 18):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Peaked around harmonics 3-7 (the piercing brightness)
+        amp = (1.0 / n) * numpy.exp(-0.03 * (n - 5) ** 2)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase)
+    # Reed buzz — more than oboe
+    reed = rng.normal(0, 0.08, n_samples)
+    import scipy.signal as _sig
+    lo = max(20, int(hz * 2))
+    hi = min(SAMPLE_RATE // 2 - 1, int(hz * 8))
+    if lo < hi:
+        br, ar = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        reed = _sig.lfilter(br, ar, reed).astype(numpy.float64) * 1.5
+    wave += reed
+    # Bag pressure wobble — very subtle
+    bag = 1.0 + 0.02 * numpy.sin(2 * numpy.pi * 1.5 * t)
+    wave *= bag
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
+
+
 def banjo_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Banjo — steel strings on a drum-head body.
 
@@ -1565,6 +1787,13 @@ class Synth(Enum):
     SAXOPHONE = "saxophone_synth"
     GRANULAR = "granular_synth"
     VOCAL = "vocal_synth"
+    PEDAL_STEEL = "pedal_steel_synth"
+    THEREMIN = "theremin_synth"
+    KALIMBA = "kalimba_synth"
+    STEEL_DRUM = "steel_drum_synth"
+    ACCORDION = "accordion_synth"
+    DIDGERIDOO = "didgeridoo_synth"
+    BAGPIPE = "bagpipe_synth"
     BANJO = "banjo_synth"
     MANDOLIN = "mandolin_synth"
     UKULELE = "ukulele_synth"
@@ -1591,6 +1820,10 @@ _SYNTH_FUNCTIONS = {
     "harp_synth": harp_wave, "upright_bass_synth": upright_bass_wave,
     "timpani_synth": timpani_wave, "saxophone_synth": saxophone_wave,
     "granular_synth": granular_wave, "vocal_synth": vocal_wave,
+    "pedal_steel_synth": pedal_steel_wave, "theremin_synth": theremin_wave,
+    "kalimba_synth": kalimba_wave, "steel_drum_synth": steel_drum_wave,
+    "accordion_synth": accordion_wave, "didgeridoo_synth": didgeridoo_wave,
+    "bagpipe_synth": bagpipe_wave,
     "banjo_synth": banjo_wave, "mandolin_synth": mandolin_wave,
     "ukulele_synth": ukulele_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,

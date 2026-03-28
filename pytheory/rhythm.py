@@ -195,6 +195,37 @@ INSTRUMENTS = {
         "detune": 12, "lowpass": 3000, "lowpass_q": 1.5,
         "humanize": 0.2,
     },
+    "pedal_steel": {
+        "synth": "pedal_steel_synth", "envelope": "strings",
+        "reverb": 0.3, "reverb_type": "spring",
+        "humanize": 0.15,
+    },
+    "theremin": {
+        "synth": "theremin_synth", "envelope": "pad",
+        "legato": True, "glide": 0.05,
+        "reverb": 0.3, "reverb_type": "plate",
+    },
+    "kalimba": {
+        "synth": "kalimba_synth", "envelope": "none",
+        "reverb": 0.35, "reverb_type": "plate",
+    },
+    "steel_drum": {
+        "synth": "steel_drum_synth", "envelope": "none",
+        "reverb": 0.3, "reverb_type": "plate",
+    },
+    "accordion": {
+        "synth": "accordion_synth", "envelope": "organ",
+        "humanize": 0.15,
+    },
+    "didgeridoo": {
+        "synth": "didgeridoo_synth", "envelope": "pad",
+        "lowpass": 1500,
+        "reverb": 0.4, "reverb_type": "cave",
+    },
+    "bagpipe": {
+        "synth": "bagpipe_synth", "envelope": "organ",
+        "lowpass": 4000,
+    },
     "banjo": {
         "synth": "banjo_synth", "envelope": "none",
         "humanize": 0.2,
