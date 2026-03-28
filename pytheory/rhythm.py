@@ -2093,6 +2093,91 @@ Pattern._FILLS["second line"] = dict(
     ],
 )
 
+# ── Tabla fills ──────────────────────────────────────────────────────────
+_TNA = DrumSound.TABLA_NA
+_TDH = DrumSound.TABLA_DHA
+_TTT = DrumSound.TABLA_TIT
+_TKE = DrumSound.TABLA_KE
+_TGB = DrumSound.TABLA_GE_BEND
+_TGE = DrumSound.TABLA_GE
+_TTI = DrumSound.TABLA_TIN
+_T3 = 1.0 / 12.0
+
+# Tihai — the classic 3x pattern landing on sam
+Pattern._FILLS["tihai"] = dict(
+    name="tihai fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(_TDH, 0.0, 105), _h(_TNA, 0.25, 72), _h(_TTT, 0.5, 48),
+        _h(_TKE, 0.75, 52), _h(_TDH, 1.0, 100),
+        _h(_TDH, 1.25, 110), _h(_TNA, 1.5, 78), _h(_TTT, 1.75, 52),
+        _h(_TKE, 2.0, 55), _h(_TDH, 2.25, 105),
+        _h(_TDH, 2.5, 118), _h(_TNA, 2.75, 82), _h(_TTT, 3.0, 58),
+        _h(_TKE, 3.25, 60), _h(_TDH, 3.5, 127),
+    ],
+)
+
+# Chakkardar — 32nd triplet cascade into slam
+Pattern._FILLS["chakkardar"] = dict(
+    name="chakkardar fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        *[_h(_TTT, i * _T3, 32 + i * 3) for i in range(12)],
+        _h(_TDH, 1.0, 115), _h(_TGB, 1.5, 108),
+        *[_h(_TTT, 2.0 + i * _T3, 35 + i * 3) for i in range(12)],
+        _h(_TDH, 3.0, 120), _h(_TDH, 3.25, 115),
+        _h(_TGB, 3.5, 120), _h(_TDH, 3.75, 127),
+    ],
+)
+
+# Tiri kita fill — rapid 16th note dayan burst
+Pattern._FILLS["tiri kita"] = dict(
+    name="tiri kita fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(_TTT, 0.0, 50), _h(_TTT, 0.125, 38), _h(_TKE, 0.25, 48),
+        _h(_TNA, 0.5, 72), _h(_TTT, 0.75, 42),
+        _h(_TDH, 1.0, 95), _h(_TTT, 1.25, 38), _h(_TTT, 1.5, 42),
+        _h(_TKE, 1.75, 48), _h(_TNA, 2.0, 75),
+        _h(_TTT, 2.25, 40), _h(_TTT, 2.5, 45), _h(_TKE, 2.75, 50),
+        _h(_TDH, 3.0, 100), _h(_TNA, 3.25, 70),
+        _h(_TDH, 3.5, 110), _h(_TGB, 3.75, 105),
+    ],
+)
+
+# Bayan showcase — deep bass bends
+Pattern._FILLS["bayan"] = dict(
+    name="bayan fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(_TGB, 0.0, 100), _h(_TNA, 0.5, 65),
+        _h(_TGE, 1.0, 85), _h(_TGB, 1.5, 105),
+        _h(_TNA, 2.0, 70), _h(_TKE, 2.25, 48),
+        _h(_TGB, 2.5, 110), _h(_TDH, 3.0, 115),
+        _h(_TGB, 3.5, 120),
+    ],
+)
+
+# Call and response — dayan speaks, bayan answers
+Pattern._FILLS["tabla call"] = dict(
+    name="tabla call fill",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(_TNA, 0.0, 105), _h(_TNA, 0.25, 55), _h(_TTT, 0.5, 38),
+        _h(_TNA, 0.75, 100),
+        _h(_TGE, 1.0, 95), _h(_TGE, 1.25, 48), _h(_TGB, 1.5, 90),
+        _h(_TNA, 2.0, 108), _h(_TTT, 2.125, 30), _h(_TTT, 2.25, 35),
+        _h(_TNA, 2.5, 100),
+        _h(_TGB, 3.0, 112), _h(_TKE, 3.25, 48),
+        _h(_TDH, 3.5, 120),
+    ],
+)
+
 
 class Part:
     """A named voice within a Score, with its own synth, envelope, and effects.
