@@ -23,7 +23,7 @@ __all__ = [
     "PROGRESSIONS", "Chord", "Fretboard", "Fingering", "analyze_progression",
     "System", "SYSTEMS", "TET", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "play_pattern",
-    "play_score", "Synth", "Envelope",
+    "play_score", "render_score", "Synth", "Envelope",
     "Duration", "TimeSignature", "RhythmNote", "Rest", "Score", "Part",
     "DrumSound", "Pattern", "Section", "INSTRUMENTS",
 ]

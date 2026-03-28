@@ -7164,3 +7164,200 @@ def test_all_synths_render_and_enum_match():
     for s in Synth:
         wave = s(440, n_samples=1000)
         assert len(wave) == 1000
+
+
+# ── Articulations ────────────────────────────────────────────────────────
+
+def test_articulation_field_on_note():
+    from pytheory.rhythm import Note, Duration
+    n = Note(tone=None, duration=Duration.QUARTER, articulation="staccato")
+    assert n.articulation == "staccato"
+
+
+def test_articulation_default_empty():
+    from pytheory.rhythm import Note, Duration
+    n = Note(tone=None, duration=Duration.QUARTER)
+    assert n.articulation == ""
+
+
+def test_part_add_articulation():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine")
+    p.add("C4", Duration.QUARTER, articulation="staccato")
+    p.add("D4", Duration.QUARTER, articulation="legato")
+    p.add("E4", Duration.QUARTER, articulation="marcato")
+    p.add("F4", Duration.QUARTER, articulation="tenuto")
+    p.add("G4", Duration.QUARTER, articulation="accent")
+    p.add("A4", Duration.QUARTER, articulation="fermata")
+    assert len(p.notes) == 6
+    assert p.notes[0].articulation == "staccato"
+    assert p.notes[5].articulation == "fermata"
+
+
+@needs_portaudio
+def test_articulations_render():
+    """Articulations should produce audio without errors."""
+    from pytheory.play import render_score
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine", volume=0.3)
+    for art in ["", "staccato", "legato", "marcato", "tenuto", "accent", "fermata"]:
+        p.add("C4", Duration.QUARTER, articulation=art)
+    buf = render_score(score)
+    assert len(buf) > 0
+
+
+# ── Dynamic curves ───────────────────────────────────────────────────────
+
+def test_crescendo_adds_notes():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine")
+    p.crescendo(["C4", "D4", "E4", "F4"], Duration.QUARTER,
+                start_vel=40, end_vel=100)
+    assert len(p.notes) == 4
+    assert p.notes[0].velocity == 40
+    assert p.notes[3].velocity == 100
+
+
+def test_decrescendo_adds_notes():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine")
+    p.decrescendo(["C4", "D4", "E4", "F4"], Duration.QUARTER,
+                  start_vel=110, end_vel=40)
+    assert len(p.notes) == 4
+    assert p.notes[0].velocity == 110
+    assert p.notes[3].velocity == 40
+
+
+def test_swell_velocity_shape():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine")
+    p.swell(["C4", "D4", "E4", "F4", "G4"], Duration.QUARTER,
+            low_vel=30, peak_vel=110)
+    assert len(p.notes) == 5
+    # First and last should be near low_vel
+    assert p.notes[0].velocity == 30
+    assert p.notes[4].velocity == 30
+    # Middle should be at or near peak
+    assert p.notes[2].velocity == 110
+
+
+def test_dynamics_custom_velocities():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine")
+    p.dynamics(["C4", "D4", "E4"], Duration.QUARTER,
+               velocities=[50, 100, 75])
+    assert p.notes[0].velocity == 50
+    assert p.notes[1].velocity == 100
+    assert p.notes[2].velocity == 75
+
+
+def test_dynamics_with_articulation():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="sine")
+    p.crescendo(["C4", "D4"], Duration.QUARTER,
+                start_vel=40, end_vel=100, articulation="staccato")
+    assert p.notes[0].articulation == "staccato"
+    assert p.notes[1].articulation == "staccato"
+
+
+# ── Part.hit() ───────────────────────────────────────────────────────────
+
+def test_part_hit_adds_note():
+    from pytheory.rhythm import DrumSound, _DrumTone
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("kit", synth="sine")
+    p.hit(DrumSound.KICK, Duration.QUARTER, velocity=100)
+    p.hit(DrumSound.SNARE, Duration.QUARTER, velocity=90, articulation="accent")
+    assert len(p.notes) == 2
+    assert isinstance(p.notes[0].tone, _DrumTone)
+    assert p.notes[0].tone.sound == DrumSound.KICK
+    assert p.notes[1].articulation == "accent"
+
+
+@needs_portaudio
+def test_part_hit_renders():
+    """Part.hit() drum sounds should render through the note pipeline."""
+    from pytheory.rhythm import DrumSound
+    from pytheory.play import render_score
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("kit", synth="sine", volume=0.5)
+    p.hit(DrumSound.KICK, Duration.QUARTER)
+    p.hit(DrumSound.SNARE, Duration.QUARTER)
+    p.hit(DrumSound.CLOSED_HAT, Duration.QUARTER)
+    p.hit(DrumSound.CRASH, Duration.QUARTER)
+    buf = render_score(score)
+    assert len(buf) > 0
+
+
+# ── Part.ramp() ──────────────────────────────────────────────────────────
+
+def test_ramp_generates_automation():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="saw", lowpass=200)
+    p.ramp(over=4.0, lowpass=8000)
+    # Should have generated automation points
+    assert len(p._automation) > 0
+    # First point should be near 200, last near 8000
+    first_lp = p._automation[0][1].get("lowpass", 0)
+    last_lp = p._automation[-1][1].get("lowpass", 0)
+    assert first_lp < 1000  # near start
+    assert last_lp > 7000  # near target
+
+
+def test_ramp_easing_curves():
+    score = pytheory.Score("4/4", bpm=120)
+    for curve in ["linear", "ease_in", "ease_out", "ease_in_out"]:
+        p = score.part(f"test_{curve}", synth="saw", lowpass=200)
+        p.ramp(over=4.0, curve=curve, lowpass=8000)
+        assert len(p._automation) > 0
+
+
+def test_ramp_multiple_params():
+    score = pytheory.Score("4/4", bpm=120)
+    p = score.part("test", synth="saw", lowpass=200)
+    p.ramp(over=4.0, lowpass=8000, reverb=0.5)
+    # Should have both params in automation points
+    last_point = p._automation[-1][1]
+    assert "lowpass" in last_point
+    assert "reverb_mix" in last_point  # mapped from "reverb"
+
+
+# ── Cross-choke ──────────────────────────────────────────────────────────
+
+def test_djembe_patterns_exist():
+    from pytheory.rhythm import Pattern
+    for name in ["djembe", "kuku", "soli", "dununba", "tiriba",
+                 "yankadi", "djansa", "mendiani"]:
+        p = Pattern.preset(name)
+        assert p.beats > 0
+        assert len(p.hits) > 0
+
+
+def test_djembe_fills_exist():
+    from pytheory.rhythm import Pattern
+    for name in ["djembe call", "djembe roll", "djembe break"]:
+        f = Pattern.fill(name)
+        assert f.beats == 4.0
+        assert len(f.hits) > 0
+
+
+def test_cajon_fills_exist():
+    from pytheory.rhythm import Pattern
+    for name in ["cajon flam", "cajon rumble", "cajon breakdown"]:
+        f = Pattern.fill(name)
+        assert f.beats == 4.0
+        assert len(f.hits) > 0
+
+
+def test_metal_fills_exist():
+    from pytheory.rhythm import Pattern
+    for name in ["metal triplet", "metal blast", "metal cascade"]:
+        f = Pattern.fill(name)
+        assert f.beats == 4.0
+        assert len(f.hits) > 0
+
+
+# ── render_score in __all__ ──────────────────────────────────────────────
+
+def test_render_score_exported():
+    assert "render_score" in pytheory.__all__
