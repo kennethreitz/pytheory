@@ -352,17 +352,16 @@ class LiveEngine:
 
         now = _time.perf_counter()
         self._clock_times.append(now)
-        if len(self._clock_times) > 96:
-            self._clock_times = self._clock_times[-96:]
-        if len(self._clock_times) >= 96:
-            # Average over 4 quarter notes (96 ticks) for stability
-            total_time = self._clock_times[-1] - self._clock_times[-96]
+        if len(self._clock_times) > 240:
+            self._clock_times = self._clock_times[-240:]
+        # Only update BPM every 24 ticks to avoid jitter
+        if self._clock_count % 24 == 0 and len(self._clock_times) >= 48:
+            # Use as many ticks as we have for best accuracy
+            n = min(len(self._clock_times), 240)
+            total_time = self._clock_times[-1] - self._clock_times[-n]
             if total_time > 0:
-                self._bpm = 60.0 * 4.0 / total_time
-        elif len(self._clock_times) >= 24:
-            quarter_note_time = self._clock_times[-1] - self._clock_times[-24]
-            if quarter_note_time > 0:
-                self._bpm = 60.0 / quarter_note_time
+                ticks = n - 1
+                self._bpm = round(60.0 * ticks / (24.0 * total_time))
 
         # Trigger drum hits at the right time
         if self._drum_pattern and self._drum_channel:
