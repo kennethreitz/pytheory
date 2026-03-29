@@ -33,17 +33,18 @@ class _Voice:
     """A single sounding note — holds a pre-rendered wavetable and
     tracks playback position + envelope state."""
     __slots__ = ('wave', 'pos', 'velocity', 'active', 'releasing',
-                 'release_pos', 'release_len', 'note')
+                 'release_pos', 'release_len', 'note', 'pitch_ratio')
 
     def __init__(self, wave, velocity, note):
         self.wave = wave           # float32 array — one shot or looped
-        self.pos = 0               # current read position
+        self.pos = 0.0             # current read position (float for pitch bend)
         self.velocity = velocity
         self.active = True
         self.releasing = False
         self.release_pos = 0
         self.release_len = int(SAMPLE_RATE * 0.05)  # 50ms release
         self.note = note           # MIDI note number
+        self.pitch_ratio = 1.0     # 1.0 = normal, >1 = up, <1 = down
 
 
 # ── Channel ──────────────────────────────────────────────────────────────
@@ -154,7 +155,7 @@ class _Channel:
                     dead.append(i)
                     continue
 
-                remaining = len(v.wave) - v.pos
+                remaining = len(v.wave) - int(v.pos)
                 chunk = min(n_frames, remaining)
 
                 if chunk <= 0:
@@ -162,7 +163,17 @@ class _Channel:
                     dead.append(i)
                     continue
 
-                samples = v.wave[v.pos:v.pos + chunk] * v.velocity * self.volume
+                # Pitch bend: read at variable rate through the wavetable
+                if abs(v.pitch_ratio - 1.0) > 0.001:
+                    read_positions = v.pos + numpy.arange(chunk) * v.pitch_ratio
+                    read_positions = numpy.clip(read_positions, 0, len(v.wave) - 2)
+                    idx = read_positions.astype(numpy.int64)
+                    frac = (read_positions - idx).astype(numpy.float32)
+                    samples = (v.wave[idx] * (1 - frac) + v.wave[numpy.minimum(idx + 1, len(v.wave) - 1)] * frac)
+                    samples *= v.velocity * self.volume
+                else:
+                    int_pos = int(v.pos)
+                    samples = v.wave[int_pos:int_pos + chunk] * v.velocity * self.volume
 
                 # Release fade
                 if v.releasing:
@@ -180,7 +191,7 @@ class _Channel:
                         samples[fade_chunk:] = 0
 
                 buf[:chunk] += samples
-                v.pos += chunk
+                v.pos += chunk * v.pitch_ratio
 
             # Clean up dead voices
             for i in reversed(dead):
@@ -408,6 +419,18 @@ class LiveEngine:
         elif msg_type == 0xB0:
             # CC message
             self._apply_cc(ch, note, velocity)
+        elif msg_type == 0xE0:
+            # Pitch bend — 14-bit value from two 7-bit bytes
+            bend_raw = (msg[2] << 7) | msg[1]  # 0-16383, center=8192
+            bend_semitones = (bend_raw - 8192) / 8192.0 * 2.0  # ±2 semitones
+            if ch in self.channels:
+                channel = self.channels[ch]
+                # Adjust pitch of all active voices
+                ratio = 2.0 ** (bend_semitones / 12.0)
+                with channel._lock:
+                    for v in channel.voices:
+                        if v.active:
+                            v.pitch_ratio = ratio
 
     def _audio_callback(self, outdata, frames, time_info, status):
         """sounddevice callback — mix all channels."""
