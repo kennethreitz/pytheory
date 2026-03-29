@@ -2792,32 +2792,43 @@ def _synth_doumbek_ka(n_samples):
 
 
 def _synth_cajon_bass(n_samples):
-    """Cajón bass — palm strike on center of the face.
+    """Cajón bass — open palm slaps the center of the plywood face.
 
-    You're hitting a wooden box. The front panel flexes, the air
-    inside resonates, and the whole thing booms with a hollow,
-    boxy midrange character.
+    Two sounds happening at once: the fleshy THUD of the palm
+    hitting wood, then the box resonating. The hand sound is
+    a soft, round impact — skin on plywood — followed by the
+    hollow chamber boom.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Box body resonance — hollow wooden chamber tone
-    body = numpy.sin(2 * numpy.pi * 80 * t) * _exp_decay(n_samples, 6) * 0.7
-    # Box resonance modes — the boxy character
-    box1 = numpy.sin(2 * numpy.pi * 180 * t) * _exp_decay(n_samples, 12) * 0.4
-    box2 = numpy.sin(2 * numpy.pi * 320 * t) * _exp_decay(n_samples, 18) * 0.2
-    # Palm thump on plywood
-    thump_len = min(int(SAMPLE_RATE * 0.08), n_samples)
+    # HAND IMPACT — fleshy palm on wood, round and thuddy
+    hand_len = min(int(SAMPLE_RATE * 0.015), n_samples)
+    hand_raw = _noise(hand_len)
+    if hand_len > 10:
+        # Lowpassed — palm is soft, not bright
+        bl, al = scipy.signal.butter(2, 1500 / (SAMPLE_RATE / 2), btype='low')
+        hand = scipy.signal.lfilter(bl, al, numpy.pad(hand_raw, (0, max(0, n_samples - hand_len))))[:hand_len].astype(numpy.float32)
+    else:
+        hand = hand_raw
+    hand *= _exp_decay(hand_len, 100) * 1.0
+    # BOX RESONANCE — hollow chamber thud
+    body = numpy.sin(2 * numpy.pi * 75 * t) * _exp_decay(n_samples, 5) * 0.7
+    box1 = numpy.sin(2 * numpy.pi * 170 * t) * _exp_decay(n_samples, 10) * 0.4
+    box2 = numpy.sin(2 * numpy.pi * 300 * t) * _exp_decay(n_samples, 16) * 0.2
+    # Panel flex — deep sub thud
+    sub = _sine_f32(45, n_samples) * _exp_decay(n_samples, 6) * 0.5
+    # Broader thump from the air cavity
+    thump_len = min(int(SAMPLE_RATE * 0.1), n_samples)
     thump_raw = _noise(thump_len)
     if thump_len > 20:
-        bl, al = scipy.signal.butter(2, [60, 400], btype='band', fs=SAMPLE_RATE)
+        bl, al = scipy.signal.butter(2, [40, 350], btype='band', fs=SAMPLE_RATE)
         thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len].astype(numpy.float32)
     else:
         thump = thump_raw
-    thump *= _exp_decay(thump_len, 14) * 0.7
-    # Panel flex — low thud
-    sub = _sine_f32(50, n_samples) * _exp_decay(n_samples, 8) * 0.4
+    thump *= _exp_decay(thump_len, 12) * 0.6
     result = body + box1 + box2 + sub
     result[:thump_len] += thump
-    return numpy.tanh(result * 1.4).astype(numpy.float32)
+    result[:hand_len] += hand
+    return numpy.tanh(result * 1.5).astype(numpy.float32)
 
 
 def _synth_cajon_slap(n_samples):
