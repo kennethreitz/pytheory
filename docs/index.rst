@@ -62,7 +62,10 @@ it through your speakers, export MIDI, finish in your DAW:
    lead.arpeggio("Am", bars=4, pattern="updown", octaves=2)
 
    play_score(score)
-   score.save_midi("sketch.mid")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="_static/audio/quickstart.wav" type="audio/wav"></audio>
 
 Or hear a randomly generated track from the command line — different
 every time::
