@@ -396,7 +396,7 @@ lead, and filtered bass:
 
    # Filtered bass
    bass = score.part("bass", synth="triangle", envelope="pluck",
-                     volume=0.45, lowpass=600)
+                     volume=0.45, lowpass=1200)
 
    for chord in Key("G", "major").progression("I", "V", "vi", "IV") * 2:
        piano.add(chord, Duration.WHOLE)

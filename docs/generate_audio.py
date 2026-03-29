@@ -393,7 +393,7 @@ def gen_jazz_ballad():
 
 # ── Synth waveform demos ──────────────────────────────────────────────────
 
-def _synth_demo(name, synth, envelope="pluck", **kwargs):
+def _synth_demo(name, synth, envelope="none", **kwargs):
     """Short C major melody on a given synth."""
     score = Score("4/4", bpm=100)
     p = score.part("demo", synth=synth, envelope=envelope, volume=0.5,
@@ -694,7 +694,7 @@ def gen_complete_rock():
     lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4,
                       delay=0.2, delay_time=0.33, reverb=0.2, lowpass=3000)
     bass = score.part("bass", synth="triangle", envelope="pluck", volume=0.45,
-                      lowpass=600)
+                      lowpass=1200)
     for chord in Key("G", "major").progression("I", "V", "vi", "IV") * 2:
         piano.add(chord, Duration.WHOLE)
     lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
