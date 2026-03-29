@@ -625,10 +625,19 @@ def gen_synth_steel_drum():
     render("synth_steel_drum", score)
 
 def gen_synth_accordion():
-    score = Score("4/4", bpm=100)
+    score = Score("4/4", bpm=110)
     p = score.part("demo", instrument="accordion", volume=0.5, reverb=0.2)
-    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
-        p.add(n, Duration.QUARTER, velocity=85)
+    # Waltz feel with held chords
+    p.hold("C3", Duration.WHOLE, velocity=65)
+    p.hold("E3", Duration.WHOLE, velocity=60)
+    p.hold("G3", Duration.WHOLE, velocity=60)
+    for n in ["E4", "G4", "C5", "G4"]:
+        p.add(n, Duration.QUARTER, velocity=78)
+    p.hold("F3", Duration.WHOLE, velocity=65)
+    p.hold("A3", Duration.WHOLE, velocity=60)
+    p.hold("C4", Duration.WHOLE, velocity=60)
+    for n in ["A4", "C5", "F5", "C5"]:
+        p.add(n, Duration.QUARTER, velocity=78)
     render("synth_accordion", score)
 
 def gen_synth_didgeridoo():
