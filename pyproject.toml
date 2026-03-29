@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "sounddevice",
     "scipy",
+    "python-rtmidi>=1.5.8",
 ]
 
 [project.urls]
