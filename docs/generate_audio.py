@@ -391,6 +391,19 @@ def gen_jazz_ballad():
 
 # ── Quickstart example ───────────────────────────────────────────────────
 
+def gen_arpeggio():
+    score = Score("4/4", bpm=132)
+    score.drums("house", repeats=8)
+    score.set_drum_effects(volume=0.35)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4,
+                      legato=True, glide=0.03, distortion=0.8,
+                      lowpass=1000, lowpass_q=5.0)
+    lead.lfo("lowpass", rate=0.25, min=800, max=3000, bars=8)
+    for sym in ["Cm", "Fm", "Abm", "Gm"]:
+        lead.arpeggio(sym, bars=2, pattern="updown", octaves=2)
+    render("arpeggio", score)
+
+
 def gen_legato_glide():
     score = Score("4/4", bpm=132)
     score.drums("house", repeats=4)
@@ -429,24 +442,27 @@ def gen_quickstart():
 
 # ── Sequencing complete example (bossa nova) ─────────────────────────────
 
-def gen_sequencing_bossa():
-    score = Score("4/4", bpm=140)
-    score.drums("bossa nova", repeats=4)
-    rhodes = score.part("rhodes", synth="fm", envelope="piano", volume=0.3,
-                        reverb=0.4, reverb_decay=1.8)
-    lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.45,
-                      delay=0.25, delay_time=0.32, delay_feedback=0.35, reverb=0.2)
-    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45,
+def gen_complete_rock():
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=8, fill="rock", fill_every=4)
+    piano = score.part("piano", instrument="piano", volume=0.4, reverb=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4,
+                      delay=0.2, delay_time=0.33, reverb=0.2, lowpass=3000)
+    bass = score.part("bass", synth="triangle", envelope="pluck", volume=0.45,
                       lowpass=600)
-    for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
-        rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
-    for n, d in [("E5", 0.67), ("D5", 0.33), ("C5", 0.67), ("B4", 0.33),
-                 ("A4", 1), ("C5", 0.67), ("E5", 0.33), ("D5", 0.67),
-                 ("C5", 0.33), ("A4", 1)]:
-        lead.add(n, d)
-    for n in ["A2", "E2", "A2", "C3", "D2", "A2", "D2", "F2"]:
-        bass.add(n, Duration.QUARTER)
-    render("sequencing_bossa", score)
+    for chord in Key("G", "major").progression("I", "V", "vi", "IV") * 2:
+        piano.add(chord, Duration.WHOLE)
+    lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+    lead.add("G5", 1).add("E5", 1)
+    lead.add("D5", 0.5).add("B4", 0.5).add("A4", 1)
+    lead.add("G4", 2).rest(2)
+    lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+    lead.add("G5", 1).add("A5", 1)
+    lead.add("G5", 0.5).add("E5", 0.5).add("D5", 1)
+    lead.add("B4", 2).rest(2)
+    for n in ["G2", "G2", "D2", "D2", "E2", "E2", "C2", "C2"] * 2:
+        bass.add(n, Duration.HALF)
+    render("complete_rock", score)
 
 
 # ── Drums layering (salsa) ───────────────────────────────────────────────
@@ -524,12 +540,13 @@ GENERATORS = [
     gen_ensemble,
     gen_strum,
     gen_swell,
+    gen_arpeggio,
     gen_legato_glide,
     gen_acid_house,
     gen_dub_reggae,
     gen_jazz_ballad,
     gen_quickstart,
-    gen_sequencing_bossa,
+    gen_complete_rock,
     gen_salsa_layered,
     gen_playback_basic,
     gen_song_sections,

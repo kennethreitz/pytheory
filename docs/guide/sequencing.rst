@@ -317,6 +317,10 @@ Chain arpeggios through a progression:
    for sym in ["Cm", "Fm", "Abm", "Gm"]:
        lead.arpeggio(sym, bars=2, pattern="updown", octaves=2)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/arpeggio.wav" type="audio/wav"></audio>
+
 Combined with legato, glide, distortion, and a resonant lowpass, this
 produces the classic acid/trance arpeggiator sound.
 
@@ -364,66 +368,50 @@ portamento (pitch slides between notes):
 Complete Example
 ----------------
 
-A full multi-part arrangement built from scratch — bossa nova with FM
-rhodes, triangle lead, and filtered bass:
+A full multi-part arrangement — rock beat with piano chords, saw
+lead, and filtered bass:
 
 .. code-block:: python
 
-   from pytheory import Score, Pattern, Key, Duration, Chord
+   from pytheory import Score, Key, Duration, Chord
    from pytheory.play import play_score
 
-   score = Score("4/4", bpm=140)
-   score.drums("bossa nova", repeats=4)
+   score = Score("4/4", bpm=120)
+   score.drums("rock", repeats=8, fill="rock", fill_every=4)
 
-   # FM rhodes with reverb
-   rhodes = score.part(
-       "rhodes",
-       synth="fm",
-       envelope="piano",
-       volume=0.3,
-       reverb=0.4,
-       reverb_decay=1.8,
-   )
+   # Piano chords with reverb
+   piano = score.part("piano", instrument="piano", volume=0.4, reverb=0.3)
 
-   # Triangle lead with delay
+   # Saw lead with delay
    lead = score.part(
-       "lead",
-       synth="triangle",
-       envelope="pluck",
-       volume=0.45,
-       delay=0.25,
-       delay_time=0.32,
-       delay_feedback=0.35,
-       reverb=0.2,
+       "lead", synth="saw", envelope="pluck", volume=0.4,
+       delay=0.2, delay_time=0.33, reverb=0.2, lowpass=3000,
    )
 
    # Filtered bass
-   bass = score.part(
-       "bass",
-       synth="sine",
-       envelope="pluck",
-       volume=0.45,
-       lowpass=600,
-   )
+   bass = score.part("bass", synth="triangle", envelope="pluck",
+                     volume=0.45, lowpass=600)
 
-   for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
-       rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
+   for chord in Key("G", "major").progression("I", "V", "vi", "IV") * 2:
+       piano.add(chord, Duration.WHOLE)
 
-   for n, d in [
-       ("E5", 0.67), ("D5", 0.33), ("C5", 0.67), ("B4", 0.33),
-       ("A4", 1), ("C5", 0.67), ("E5", 0.33), ("D5", 0.67), ("C5", 0.33),
-       ("A4", 1),
-   ]:
-       lead.add(n, d)
+   lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+   lead.add("G5", 1).add("E5", 1)
+   lead.add("D5", 0.5).add("B4", 0.5).add("A4", 1)
+   lead.add("G4", 2).rest(2)
+   lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+   lead.add("G5", 1).add("A5", 1)
+   lead.add("G5", 0.5).add("E5", 0.5).add("D5", 1)
+   lead.add("B4", 2).rest(2)
 
-   for n in ["A2", "E2", "A2", "C3", "D2", "A2", "D2", "F2"]:
-       bass.add(n, Duration.QUARTER)
+   for n in ["G2", "G2", "D2", "D2", "E2", "E2", "C2", "C2"] * 2:
+       bass.add(n, Duration.HALF)
 
    play_score(score)
 
 .. raw:: html
 
-   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/sequencing_bossa.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/complete_rock.wav" type="audio/wav"></audio>
 
 Velocity
 --------
