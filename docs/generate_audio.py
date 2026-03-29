@@ -647,10 +647,16 @@ def gen_synth_didgeridoo():
     render("synth_didgeridoo", score)
 
 def gen_synth_bagpipe():
-    score = Score("4/4", bpm=100)
+    score = Score("4/4", bpm=90)
     p = score.part("demo", instrument="bagpipe", volume=0.4, reverb=0.2)
-    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
-        p.add(n, Duration.QUARTER, velocity=85)
+    # Drone on low A + E (like real Highland pipes)
+    p.hold("A3", Duration.WHOLE * 4, velocity=70)
+    p.hold("E3", Duration.WHOLE * 4, velocity=65)
+    # Chanter melody on top
+    for n, d in [("A4", 1.0), ("B4", 0.5), ("C5", 0.5), ("D5", 1.0),
+                 ("E5", 1.0), ("D5", 0.5), ("C5", 0.5), ("B4", 1.0),
+                 ("A4", 1.0), ("G4", 1.0), ("A4", 2.0)]:
+        p.add(n, d, velocity=80)
     render("synth_bagpipe", score)
 
 def gen_synth_banjo():
