@@ -507,6 +507,47 @@ effects, and articulations for free. Use this for custom beats that
 don't fit a preset pattern, or for one-shot accent hits layered on
 top of a pattern.
 
+Rudiments — Flam, Diddle, Cheese
+---------------------------------
+
+Marching percussion rudiments as methods on any Part:
+
+.. code-block:: python
+
+   from pytheory import DrumSound
+
+   p = score.part("snares", synth="sine", volume=0.9)
+
+   # Flam: grace note + main hit (gap controls tightness)
+   p.flam(DrumSound.MARCH_SNARE, Duration.QUARTER, velocity=120)
+
+   # Diddle: two equal strokes in one note duration
+   p.diddle(DrumSound.MARCH_SNARE, Duration.EIGHTH, velocity=60)
+
+   # Cheese: flam + diddle combined
+   p.cheese(DrumSound.MARCH_SNARE, Duration.QUARTER, velocity=120)
+
+Ensemble
+--------
+
+Any Part can be rendered as an ensemble — multiple players with
+per-player timing tendencies and micro pitch drift:
+
+.. code-block:: python
+
+   # 8-player snare line
+   snares = score.part("snares", synth="sine", volume=0.9, ensemble=8)
+
+   # 20-player string section
+   strings = score.part("strings", instrument="string_ensemble", ensemble=20)
+
+   # Single player (default)
+   solo = score.part("solo", instrument="violin")
+
+Each ensemble voice gets a consistent timing personality (some rush,
+some drag) plus small per-note wobble, and slightly different tuning.
+The result sounds like a real section — together but alive.
+
 Swing and Groove
 ----------------
 

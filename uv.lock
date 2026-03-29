@@ -690,7 +690,7 @@ wheels = [
 
 [[package]]
 name = "pytheory"
-version = "0.39.0"
+version = "0.39.2"
 source = { editable = "." }
 dependencies = [
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },

@@ -10,7 +10,7 @@ the genre -- they tell the listener's body how to move before a single
 melodic note is played.
 
 PyTheory includes a complete drum system -- 51 synthesized percussion
-sounds, 85+ pattern presets across dozens of genres, and 30 fill presets.
+sounds, 95+ pattern presets across dozens of genres, and 30 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
 Drum Sounds
@@ -121,9 +121,17 @@ MRIDANGAM_THA (101)
 
 **Djembe:** DJEMBE_BASS (102), DJEMBE_TONE (103), DJEMBE_SLAP (104)
 
-**Cajón:** CAJON_SLAP (109), CAJON_TAP (110)
+**Cajón:** CAJON_BASS (108), CAJON_SLAP (109), CAJON_TAP (110)
 
 **Metal Kit:** METAL_KICK (105), METAL_SNARE (106), METAL_HAT (107)
+
+**Marching Snare:** MARCH_SNARE (115), MARCH_RIMSHOT (116), MARCH_CLICK (118)
+
+**Quads (Tenors):** QUAD_1 (119), QUAD_2 (120), QUAD_3 (121), QUAD_4 (122),
+QUAD_SPOCK (123)
+
+**Marching Bass:** BASS_1 (124), BASS_2 (125), BASS_3 (126), BASS_4 (127),
+BASS_5 (80)
 
 Drum Synthesis
 --------------
@@ -495,6 +503,54 @@ bass-slap groove).
 
    score = Score("4/4", bpm=100)
    score.drums("cajon", repeats=8, fill="cajon flam", fill_every=4)
+
+Marching Percussion
+~~~~~~~~~~~~~~~~~~~
+
+A full drumline — snare, quads (tenors), and pitched bass drums.
+Every sound is synthesized: kevlar snare heads, aluminum shell ting
+on the quads, felt-beater thwack on the basses.
+
+**Snare** -- 3 sounds: MARCH_SNARE (tight kevlar tap), MARCH_RIMSHOT
+(woody-metallic crack), MARCH_CLICK (stick click for count-offs).
+
+**Quads** -- 5 sounds: QUAD_1 through QUAD_4 (high to low pitched
+tenors) plus QUAD_SPOCK (rim click on the shell).
+
+**Bass drums** -- 5 pitched drums: BASS_1 (highest/smallest) through
+BASS_5 (lowest/biggest), each with a prominent felt-beater thwack.
+
+**6 patterns:** march (basic 4/4), cadence (8-beat street beat),
+march paradiddle, march roll (buzz crescendo), quad sweep (run across
+all 4 drums), quad groove, bass split (cascading across the line),
+bass unison (all 5 hit together), drumline (snare + quads + bass).
+
+**Rudiment methods:** ``Part.flam()``, ``Part.diddle()``, and
+``Part.cheese()`` for marching rudiments on any drum sound.
+
+**Ensemble rendering:** ``ensemble=N`` on any Part duplicates the
+voice with per-player timing tendencies and micro pitch drift.
+``ensemble=8`` for a snare line, ``ensemble=20`` for a massive section.
+
+.. code-block:: python
+
+   # Full drumline with ensemble
+   snares = score.part("snares", synth="sine", volume=0.9,
+                       reverb=0.2, ensemble=8)
+   quads = score.part("quads", synth="sine", volume=0.5,
+                      reverb=0.2, ensemble=4)
+   basses = score.part("basses", synth="sine", volume=0.55,
+                       reverb=0.2, ensemble=5)
+
+   snares.flam(DrumSound.MARCH_SNARE, Duration.QUARTER, velocity=120)
+   snares.diddle(DrumSound.MARCH_SNARE, Duration.EIGHTH, velocity=60)
+
+   # Or use patterns
+   score.drums("drumline", repeats=4)
+
+**Sympathetic resonance:** The marching snare builds up snare wire
+buzz as hits accumulate, and the buzz decays during rests — just like
+a real drum.
 
 MIDI Export
 -----------
