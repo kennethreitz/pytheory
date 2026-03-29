@@ -795,45 +795,49 @@ def cello_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
 
 def harp_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
-    """Harp — plucked string with large resonant soundboard.
+    """Harp — pure, singing tone with gentle pluck and long sustain.
 
-    Warmer than guitar, longer sustain, with the distinctive
-    "bloom" as the soundboard absorbs and re-radiates energy.
+    Nylon/gut strings on a large resonant frame. The tone is warm
+    and clean — mostly fundamental with gentle upper harmonics that
+    decay faster, leaving a pure singing sustain.
     """
-    period = int(SAMPLE_RATE / hz)
-    if period < 2:
-        period = 2
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
     rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
-    # Soft pluck — fingers, not pick
-    buf = rng.uniform(-0.5, 0.5, period).astype(numpy.float64)
-    for _ in range(3):
-        for k in range(period - 1):
-            buf[k] = 0.6 * buf[k] + 0.4 * buf[k + 1]
+    # Long, gentle decay
+    decay = numpy.exp(-1.5 * t)
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        # Long sustain — harp strings ring
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9995
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
 
-    # Large soundboard resonance — bloom effect
-    for center, bw, gain in [(150, 60, 0.3), (350, 100, 0.25), (700, 150, 0.15)]:
-        lo = max(20, center - bw)
-        hi = min(SAMPLE_RATE // 2 - 1, center + bw)
-        if lo < hi:
-            bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
-            out += scipy.signal.lfilter(bp, ap, out) * gain
+    # Clean harmonics — strong fundamental, gentle upper partials
+    n_harmonics = min(10, int((SAMPLE_RATE / 2) / hz))
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Fundamental dominates, upper partials gentle and fast-decaying
+        if n == 1:
+            amp = 1.0
+        elif n == 2:
+            amp = 0.3
+        elif n == 3:
+            amp = 0.15
+        else:
+            amp = 0.06 / n
+        h_decay = decay * numpy.exp(-1.5 * (n - 1) * t)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * h_decay
 
-    # Warm rolloff
-    bl, al = scipy.signal.butter(2, min(5000, hz * 10), btype='low', fs=SAMPLE_RATE)
-    out = scipy.signal.lfilter(bl, al, out)
+    # Soft finger pluck transient
+    pluck_len = min(int(SAMPLE_RATE * 0.006), n_samples)
+    pluck = numpy.sin(2 * numpy.pi * hz * 2.5 * numpy.arange(pluck_len, dtype=numpy.float64) / SAMPLE_RATE)
+    pluck *= numpy.exp(-numpy.linspace(0, 15, pluck_len)) * 0.2
+    wave[:pluck_len] += pluck
 
-    mx = numpy.abs(out).max()
+    mx = numpy.abs(wave).max()
     if mx > 0:
-        out /= mx
-    return (peak * out).astype(numpy.int16)
+        wave /= mx
+    return (peak * wave).astype(numpy.int16)
 
 
 def upright_bass_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
