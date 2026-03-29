@@ -543,7 +543,7 @@ def dub_kingston():
                       volume=0.6, pan=0.0, lowpass=400, lowpass_q=1.5,
                       humanize=0.2)
     siren = score.part("siren", synth="pwm_slow", envelope="pad",
-                       volume=0.15, pan=0.5,
+                       volume=0.15, pan=0.5, ensemble=4,
                        reverb=0.7, reverb_decay=3.0, reverb_type="cathedral",
                        lowpass=1200, detune=10)
 
@@ -1124,14 +1124,14 @@ def cinematic_showcase():
         bells.rest(Duration.WHOLE)
 
     # String ensemble — lush wide pad
-    strings = score.part("strings", instrument="string_ensemble",
+    strings = score.part("strings", instrument="string_ensemble", ensemble=8,
                          reverb=0.4, reverb_type="hall")
     strings.rest(Duration.WHOLE)
     for sym in ["Am", "F", "C", "G", "Dm", "Am", "E"]:
         strings.add(Chord.from_symbol(sym), Duration.WHOLE)
 
     # Cello — deep foundation
-    cello = score.part("cello", instrument="cello",
+    cello = score.part("cello", instrument="cello", ensemble=3,
                        reverb=0.3, reverb_type="hall")
     cello.rest(Duration.WHOLE)
     for n in ["A2", "F2", "C3", "G2", "D3", "A2", "E2"]:
@@ -1629,7 +1629,7 @@ def epic_bhairav():
     timp.add(Tone("Pa", octave=2, system=shruti), Duration.HALF, velocity=115)
 
     # Choir — bar 3
-    choir = score.part("choir", synth="vocal_synth", envelope="pad",
+    choir = score.part("choir", synth="vocal_synth", envelope="pad", ensemble=6,
                         detune=8, spread=0.4, reverb=0.4, reverb_type=REV, volume=0.2)
     for _ in range(2):
         choir.rest(Duration.WHOLE)
@@ -1651,7 +1651,7 @@ def epic_bhairav():
         bansuri.add(tone, dur, velocity=vel)
 
     # Cello — bar 3
-    cello = score.part("cello", instrument="cello", volume=0.22, reverb=0.4, reverb_type=REV)
+    cello = score.part("cello", instrument="cello", volume=0.22, reverb=0.4, reverb_type=REV, ensemble=3)
     for _ in range(2):
         cello.rest(Duration.WHOLE)
     for name, dur, vel in [
@@ -1677,7 +1677,7 @@ def epic_bhairav():
 
     # Strings — bar 13
     strings = score.part("strings", instrument="string_ensemble", volume=0.18,
-                          reverb=0.4, reverb_type=REV)
+                          reverb=0.4, reverb_type=REV, ensemble=10)
     for _ in range(12):
         strings.rest(Duration.WHOLE)
     for name, dur, vel in [("Sa", 4.0, 58), ("Ma", 4.0, 62), ("Pa", 4.0, 68), ("Sa", 4.0, 72)]:
@@ -1887,7 +1887,7 @@ def ascent():
 
     # 3: SURFACING (5-8)
     cello = score.part("cello", instrument="cello", volume=0.22,
-                        reverb=0.4, reverb_type=REV)
+                        reverb=0.4, reverb_type=REV, ensemble=3)
     cello.rest(16.0)
     for note, dur, vel in [("E2",4.0,52),("G2",4.0,55),("B2",4.0,58),("E3",4.0,62)]:
         cello.add(note, dur, velocity=vel)
@@ -1943,7 +1943,7 @@ def ascent():
         theremin.add(note, dur, velocity=vel)
 
     strings = score.part("strings", instrument="string_ensemble", volume=0.15,
-                          reverb=0.45, reverb_type=REV)
+                          reverb=0.45, reverb_type=REV, ensemble=8)
     strings.rest(40.0)
     for sym, vel in [("Em",52),("C",55),("Am",58),("B",55),("Em",60),("C",62)]:
         strings.add(Chord.from_symbol(sym), 4.0, velocity=vel)
@@ -2218,7 +2218,7 @@ def pop_rock():
                        cabinet=1.0, cabinet_brightness=0.6,
                        reverb=0.2, reverb_type="plate", pan=0.2)
     strings = score.part("strings", instrument="string_ensemble", volume=0.12,
-                          reverb=0.35, reverb_type="hall")
+                          reverb=0.35, reverb_type="hall", ensemble=6)
 
     prog = ["G", "D", "Em", "C"]
 
