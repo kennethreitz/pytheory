@@ -22,7 +22,11 @@ wavetable approach.
 import threading
 import numpy
 import sounddevice as sd
-import rtmidi
+
+try:
+    import rtmidi
+except ImportError:
+    rtmidi = None
 
 from .play import (
     _SYNTH_FUNCTIONS, _resolve_synth, _resolve_envelope,
@@ -444,6 +448,8 @@ class LiveEngine:
 
     def list_ports(self):
         """List available MIDI input ports."""
+        if rtmidi is None:
+            raise ImportError("python-rtmidi required. Install with: pip install pytheory[live]")
         midi_in = rtmidi.MidiIn()
         ports = midi_in.get_ports()
         for i, name in enumerate(ports):
@@ -459,6 +465,12 @@ class LiveEngine:
 
         Blocks until Ctrl-C or stop() is called.
         """
+        if rtmidi is None:
+            raise ImportError(
+                "python-rtmidi is required for live MIDI. "
+                "Install it with: pip install pytheory[live]"
+            )
+
         if not self.channels:
             self.channel(1, instrument="electric_piano")
 

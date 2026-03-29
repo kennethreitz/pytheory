@@ -693,10 +693,14 @@ name = "pytheory"
 version = "0.40.0"
 source = { editable = "." }
 dependencies = [
-    { name = "python-rtmidi" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sounddevice" },
+]
+
+[package.optional-dependencies]
+live = [
+    { name = "python-rtmidi" },
 ]
 
 [package.dev-dependencies]
@@ -713,10 +717,11 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "python-rtmidi", specifier = ">=1.5.8" },
+    { name = "python-rtmidi", marker = "extra == 'live'", specifier = ">=1.5.8" },
     { name = "scipy" },
     { name = "sounddevice" },
 ]
+provides-extras = ["live"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]

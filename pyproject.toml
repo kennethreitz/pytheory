@@ -23,8 +23,10 @@ classifiers = [
 dependencies = [
     "sounddevice",
     "scipy",
-    "python-rtmidi>=1.5.8",
 ]
+
+[project.optional-dependencies]
+live = ["python-rtmidi>=1.5.8"]
 
 [project.urls]
 Homepage = "https://github.com/kennethreitz/pytheory"
