@@ -23,7 +23,20 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 
 
 def save_wav(buf, path):
-    """Save a float32 buffer as 16-bit stereo WAV."""
+    """Save a float32 buffer as 16-bit stereo WAV, trimming trailing silence."""
+    # Trim trailing silence (below -60dB threshold)
+    threshold = 0.001
+    if buf.ndim == 2:
+        amplitude = numpy.abs(buf).max(axis=1)
+    else:
+        amplitude = numpy.abs(buf)
+    # Find last sample above threshold
+    above = numpy.where(amplitude > threshold)[0]
+    if len(above) > 0:
+        # Keep 0.2s of tail after last audible sample for natural decay
+        tail = min(int(SAMPLE_RATE * 0.2), len(buf) - above[-1])
+        buf = buf[:above[-1] + tail]
+
     # Handle both mono (n,) and stereo (n, 2) buffers
     if buf.ndim == 1:
         channels = 1
