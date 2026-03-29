@@ -193,9 +193,9 @@ def gen_tabla():
 
 def gen_metal_blast():
     score = Score("4/4", bpm=190)
-    # Showcase all metal patterns: groove → gallop → blast → cascade fill
+    # Showcase all metal patterns: groove → gallop → triplet fill → blast
     score.drums("metal groove", repeats=2)
-    score.drums("metal gallop", repeats=2, fill="metal triplet", fill_every=2)
+    score.drums("metal gallop", repeats=4, fill="metal triplet", fill_every=4)
     score.drums("metal blast", repeats=2, fill="metal cascade", fill_every=2)
     score.drums("double kick", repeats=2, fill="metal blast", fill_every=2)
     render("metal_blast", score)
