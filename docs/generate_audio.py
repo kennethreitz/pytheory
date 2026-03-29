@@ -416,10 +416,24 @@ def gen_synth_square():
     _synth_demo("square", "square")
 
 def gen_synth_piano():
-    _synth_demo("piano", "piano_synth", envelope="none")
+    score = Score("4/4", bpm=85)
+    p = score.part("demo", instrument="piano", volume=0.5, reverb=0.3)
+    # Hold chords with melody on top
+    p.hold("C3", Duration.WHOLE * 2, velocity=60)
+    p.hold("E3", Duration.WHOLE * 2, velocity=55)
+    p.hold("G3", Duration.WHOLE * 2, velocity=55)
+    for n in ["E4", "G4", "C5", "G4", "E4", "D4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=80)
+    render("synth_piano", score)
 
 def gen_synth_acoustic_guitar():
-    _synth_demo("acoustic_guitar", "acoustic_guitar_synth", envelope="none")
+    from pytheory import Fretboard
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="acoustic_guitar", volume=0.5,
+                   reverb=0.25, fretboard=Fretboard.guitar())
+    for ch in ["G", "D", "Em", "C"]:
+        p.strum(ch, Duration.WHOLE, velocity=75)
+    render("synth_acoustic_guitar", score)
 
 def gen_synth_fm():
     _synth_demo("fm", "fm", envelope="piano")
@@ -448,13 +462,33 @@ def gen_synth_oboe():
     _synth_demo("oboe", "oboe_synth", envelope="none")
 
 def gen_synth_cello():
-    _synth_demo("cello", "cello_synth", envelope="bowed")
+    score = Score("4/4", bpm=70)
+    p = score.part("demo", instrument="cello", volume=0.5, reverb=0.3, ensemble=3)
+    for n in ["C3", "E3", "G3", "C4"]:
+        p.add(n, Duration.WHOLE, velocity=80)
+    render("synth_cello", score)
 
 def gen_synth_harpsichord():
-    _synth_demo("harpsichord", "harpsichord_synth", envelope="none")
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="harpsichord_synth", envelope="none",
+                   volume=0.5, reverb=0.25)
+    # Baroque ornamental runs
+    p.hold("C3", Duration.WHOLE, velocity=70)
+    for n in ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]:
+        p.add(n, Duration.EIGHTH, velocity=80)
+    p.hold("G3", Duration.WHOLE, velocity=70)
+    for n in ["C5", "B4", "A4", "G4", "F4", "E4", "D4", "C4"]:
+        p.add(n, Duration.EIGHTH, velocity=78)
+    render("synth_harpsichord", score)
 
 def gen_synth_electric_guitar():
-    _synth_demo("electric_guitar", "electric_guitar_synth", envelope="none")
+    from pytheory import Fretboard
+    score = Score("4/4", bpm=110)
+    p = score.part("demo", instrument="electric_guitar", volume=0.5,
+                   reverb=0.15, fretboard=Fretboard.guitar())
+    for ch in ["Am", "F", "C", "G"]:
+        p.strum(ch, Duration.WHOLE, velocity=80)
+    render("synth_electric_guitar", score)
 
 def gen_synth_kalimba():
     score = Score("4/4", bpm=100)
@@ -470,16 +504,26 @@ def gen_synth_marimba():
     _synth_demo("marimba", "marimba_synth", envelope="mallet")
 
 def gen_synth_sitar():
-    score = Score("4/4", bpm=100)
-    p = score.part("demo", synth="sitar_synth", envelope="none", volume=0.5,
-                   reverb=0.3)
-    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
-        p.add(n, Duration.QUARTER, velocity=85)
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", instrument="sitar", volume=0.4, reverb=0.35)
+    # Drone under melody
+    p.hold("C3", Duration.WHOLE * 4, velocity=55)
+    for n, d in [("C4", 1.0), ("D4", 0.5), ("E4", 0.5), ("G4", 1.0),
+                 ("A4", 0.5), ("G4", 0.5), ("E4", 1.0), ("D4", 0.5),
+                 ("C4", 0.5), ("D4", 1.0), ("C4", 2.0)]:
+        p.add(n, d, velocity=75)
     render("synth_sitar", score)
 
 
 def gen_synth_harp():
-    _synth_demo("harp", "harp_synth", envelope="none")
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", synth="harp_synth", envelope="none",
+                   volume=0.5, reverb=0.3)
+    # Arpeggiated chords with hold — harp style
+    p.hold("C3", Duration.WHOLE * 2, velocity=70)
+    for n in ["E4", "G4", "C5", "E5", "G5", "C5", "G4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=75)
+    render("synth_harp", score)
 
 def gen_synth_upright_bass():
     score = Score("4/4", bpm=100)
@@ -493,7 +537,12 @@ def gen_synth_timpani():
     _synth_demo("timpani", "timpani_synth", envelope="none")
 
 def gen_synth_strings():
-    _synth_demo("strings", "strings_synth", envelope="bowed")
+    score = Score("4/4", bpm=70)
+    p = score.part("demo", synth="strings_synth", envelope="bowed",
+                   volume=0.5, reverb=0.35, ensemble=8)
+    for n in ["C4", "E4", "G4", "C5"]:
+        p.add(n, Duration.WHOLE, velocity=75)
+    render("synth_strings", score)
 
 def gen_synth_saxophone():
     score = Score("4/4", bpm=100)
@@ -544,24 +593,30 @@ def gen_synth_bagpipe():
     render("synth_bagpipe", score)
 
 def gen_synth_banjo():
-    score = Score("4/4", bpm=100)
-    p = score.part("demo", instrument="banjo", volume=0.5, reverb=0.2)
-    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
-        p.add(n, Duration.QUARTER, velocity=85)
+    from pytheory import Fretboard
+    score = Score("4/4", bpm=120)
+    p = score.part("demo", instrument="banjo", volume=0.5, reverb=0.15,
+                   fretboard=Fretboard.guitar())
+    for ch in ["G", "C", "D", "G"]:
+        p.strum(ch, Duration.WHOLE, velocity=80)
     render("synth_banjo", score)
 
 def gen_synth_mandolin():
-    score = Score("4/4", bpm=100)
+    score = Score("4/4", bpm=120)
     p = score.part("demo", instrument="mandolin", volume=0.5, reverb=0.2)
-    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
-        p.add(n, Duration.QUARTER, velocity=85)
+    # Fast tremolo picking
+    for n in ["G4", "G4", "A4", "A4", "B4", "B4", "C5", "C5",
+              "D5", "D5", "C5", "C5", "B4", "B4", "A4", "G4"]:
+        p.add(n, Duration.EIGHTH, velocity=82)
     render("synth_mandolin", score)
 
 def gen_synth_ukulele():
-    score = Score("4/4", bpm=100)
-    p = score.part("demo", instrument="ukulele", volume=0.5, reverb=0.2)
-    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
-        p.add(n, Duration.QUARTER, velocity=85)
+    from pytheory import Fretboard
+    score = Score("4/4", bpm=110)
+    p = score.part("demo", instrument="ukulele", volume=0.5, reverb=0.25,
+                   fretboard=Fretboard.ukulele())
+    for ch in ["C", "Am", "F", "G"]:
+        p.strum(ch, Duration.WHOLE, velocity=72)
     render("synth_ukulele", score)
 
 def gen_synth_granular():
