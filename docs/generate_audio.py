@@ -674,12 +674,16 @@ def gen_synth_banjo():
     render("synth_banjo", score)
 
 def gen_synth_mandolin():
-    score = Score("4/4", bpm=120)
+    score = Score("4/4", bpm=110)
     p = score.part("demo", instrument="mandolin", volume=0.5, reverb=0.2)
-    # Fast tremolo picking
-    for n in ["G4", "G4", "A4", "A4", "B4", "B4", "C5", "C5",
-              "D5", "D5", "C5", "C5", "B4", "B4", "A4", "G4"]:
-        p.add(n, Duration.EIGHTH, velocity=82)
+    # Tremolo rolls on held notes — the mandolin signature
+    p.roll("G4", Duration.WHOLE, velocity_start=65, velocity_end=85, speed=Duration.SIXTEENTH)
+    p.roll("A4", Duration.WHOLE, velocity_start=65, velocity_end=85, speed=Duration.SIXTEENTH)
+    # Quick melody
+    for n in ["B4", "C5", "D5", "C5", "B4", "A4", "G4", "A4"]:
+        p.add(n, Duration.EIGHTH, velocity=80)
+    # End on a roll
+    p.roll("G4", Duration.WHOLE, velocity_start=70, velocity_end=90, speed=Duration.SIXTEENTH)
     render("synth_mandolin", score)
 
 def gen_synth_ukulele():
