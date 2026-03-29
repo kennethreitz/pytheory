@@ -661,11 +661,16 @@ def gen_synth_bagpipe():
 
 def gen_synth_banjo():
     from pytheory import Fretboard
-    score = Score("4/4", bpm=120)
+    score = Score("4/4", bpm=130)
     p = score.part("demo", instrument="banjo", volume=0.5, reverb=0.15,
                    fretboard=Fretboard.guitar())
-    for ch in ["G", "C", "D", "G"]:
-        p.strum(ch, Duration.WHOLE, velocity=80)
+    # Strum into a picking lick
+    p.strum("G", Duration.WHOLE, velocity=80)
+    p.strum("C", Duration.WHOLE, velocity=78)
+    # Bluegrass lick
+    for n in ["G4", "B4", "D5", "G5", "D5", "B4", "A4", "G4",
+              "D4", "G4", "B4", "D5", "B4", "G4", "D4", "G4"]:
+        p.add(n, Duration.EIGHTH, velocity=82)
     render("synth_banjo", score)
 
 def gen_synth_mandolin():
