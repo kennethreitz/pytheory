@@ -143,45 +143,27 @@ chords, melody, bass, each with their own synth and effects:
 
 .. code-block:: python
 
-   from pytheory import Score, Pattern, Key, Duration, Chord
+   from pytheory import Score, Key, Duration
    from pytheory.play import play_score
 
-   score = Score("4/4", bpm=140)
-   score.drums("bossa nova", repeats=4)
+   score = Score("4/4", bpm=120)
+   score.drums("rock", repeats=8, fill="rock", fill_every=4)
 
-   chords = score.part(
-       "chords",
-       synth="fm",
-       envelope="pad",
-       reverb=0.4,
-   )
-   lead = score.part(
-       "lead",
-       synth="saw",
-       envelope="pluck",
-       delay=0.3,
-       lowpass=3000,
-       humanize=0.2,
-   )
-   bass = score.part(
-       "bass",
-       synth="sine",
-       lowpass=500,
-   )
+   piano = score.part("piano", instrument="piano", reverb=0.3)
+   lead = score.part("lead", synth="saw", envelope="pluck",
+                     delay=0.2, reverb=0.2, lowpass=4000)
+   bass = score.part("bass", synth="triangle", lowpass=900)
 
-   key = Key("A", "minor")
-   for chord in key.progression("i", "iv", "V", "i"):
-       chords.add(chord, Duration.WHOLE)
-       chords.add(chord, Duration.WHOLE)
+   for chord in Key("G", "major").progression("I", "V", "vi", "IV") * 2:
+       piano.add(chord, Duration.WHOLE)
 
-   lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
-   lead.arpeggio("Dm", bars=2, pattern="updown", octaves=2)
-   lead.set(lowpass=5000, reverb=0.3)
-   lead.arpeggio("E7", bars=2, pattern="up", octaves=2)
-   lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
+   lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+   lead.add("G5", 1).add("E5", 1)
+   lead.add("D5", 0.5).add("B4", 0.5).add("A4", 1)
+   lead.add("G4", 2).rest(2)
 
-   for n in ["A2", "E2", "A2", "C3"] * 4:
-       bass.add(n, Duration.QUARTER)
+   for n in ["G2", "G2", "D2", "D2", "E2", "E2", "C2", "C2"] * 2:
+       bass.add(n, Duration.HALF)
 
    play_score(score)
 

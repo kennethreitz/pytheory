@@ -419,25 +419,24 @@ def gen_legato_glide():
 
 
 def gen_quickstart():
-    score = Score("4/4", bpm=140)
-    score.drums("bossa nova", repeats=4)
-    chords = score.part("chords", synth="sine", envelope="pad",
-                        reverb=0.4, volume=0.3)
-    lead = score.part("lead", synth="saw", envelope="pluck",
-                      lowpass=2000, lowpass_q=3.0, distortion=0.8,
-                      legato=True, glide=0.03, volume=0.4)
-    bass = score.part("bass", synth="sine", lowpass=500)
-    key = Key("A", "minor")
-    for chord in key.progression("i", "iv", "V", "i"):
-        chords.add(chord, Duration.WHOLE)
-        chords.add(chord, Duration.WHOLE)
-    lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
-    lead.arpeggio("Dm", bars=2, pattern="updown", octaves=2)
-    lead.set(lowpass=5000, reverb=0.3)
-    lead.arpeggio("E7", bars=2, pattern="up", octaves=2)
-    lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
-    for n in ["A2", "E2", "A2", "C3"] * 4:
-        bass.add(n, Duration.QUARTER)
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=8, fill="rock", fill_every=4)
+    piano = score.part("piano", instrument="piano", reverb=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4,
+                      delay=0.2, reverb=0.2, lowpass=4000)
+    bass = score.part("bass", synth="triangle", lowpass=900)
+    for chord in Key("G", "major").progression("I", "V", "vi", "IV") * 2:
+        piano.add(chord, Duration.WHOLE)
+    lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+    lead.add("G5", 1).add("E5", 1)
+    lead.add("D5", 0.5).add("B4", 0.5).add("A4", 1)
+    lead.add("G4", 2).rest(2)
+    lead.add("D5", 1).add("B4", 0.5).add("D5", 0.5)
+    lead.add("G5", 1).add("A5", 1)
+    lead.add("G5", 0.5).add("E5", 0.5).add("D5", 1)
+    lead.add("B4", 2).rest(2)
+    for n in ["G2", "G2", "D2", "D2", "E2", "E2", "C2", "C2"] * 2:
+        bass.add(n, Duration.HALF)
     render("quickstart", score)
 
 
