@@ -291,8 +291,8 @@ def gen_march_snare():
     B4 = DrumSound.BASS_4
     B5 = DrumSound.BASS_5
 
-    # Snare line — 8 players
-    sn = score.part("snares", synth="sine", volume=0.8, reverb=0.2, ensemble=8)
+    # Snare line — 8 players (high volume to compensate for ensemble division)
+    sn = score.part("snares", synth="sine", volume=1.5, reverb=0.2, ensemble=8)
     # Quads — 4 players
     q = score.part("quads", synth="sine", volume=0.5, reverb=0.2, ensemble=4)
     # Basses — 5 players
