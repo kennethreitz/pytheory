@@ -579,12 +579,12 @@ def gen_synth_upright_bass():
     render("synth_upright_bass", score)
 
 def gen_synth_timpani():
-    score = Score("4/4", bpm=80)
+    score = Score("4/4", bpm=140)
     timp = score.part("timp", synth="timpani_synth", volume=0.5, reverb=0.25)
-    timp.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=110)
+    timp.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=110, speed=0.125)
     timp.add("C3", Duration.HALF, velocity=127)
     timp.rest(Duration.HALF)
-    timp.roll("G2", Duration.WHOLE, velocity_start=20, velocity_end=110)
+    timp.roll("G2", Duration.WHOLE, velocity_start=20, velocity_end=110, speed=0.125)
     timp.add("G2", Duration.HALF, velocity=127)
     render("synth_timpani", score)
 
