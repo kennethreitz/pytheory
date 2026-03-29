@@ -249,29 +249,12 @@ Playing Patterns
    play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
    play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
-Rock:
-
 .. raw:: html
 
-   <audio controls style="width:100%;margin:0.5em 0 1em"><source src="../_static/audio/rock_beat.wav" type="audio/wav"></audio>
-
-Bossa nova:
-
-.. raw:: html
-
-   <audio controls style="width:100%;margin:0.5em 0 1em"><source src="../_static/audio/bossa_nova_pattern.wav" type="audio/wav"></audio>
-
-Salsa:
-
-.. raw:: html
-
-   <audio controls style="width:100%;margin:0.5em 0 1em"><source src="../_static/audio/salsa_pattern.wav" type="audio/wav"></audio>
-
-Afrobeat:
-
-.. raw:: html
-
-   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/afrobeat_pattern.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rock_beat.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/bossa_nova_pattern.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/salsa_pattern.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 1.5em"><source src="../_static/audio/afrobeat_pattern.wav" type="audio/wav"></audio>
 
 Fills
 -----
@@ -410,6 +393,12 @@ bayan (deep bass bends showcase), tabla call (dayan/bayan call-and-response).
    score = Score("4/4", bpm=80)
    score.drums("teental", repeats=4)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/tabla_teental.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/tabla_keherwa.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 1.5em"><source src="../_static/audio/tabla_chakradar.wav" type="audio/wav"></audio>
+
 Dhol
 ~~~~
 
@@ -426,6 +415,10 @@ energetic, and physically impossible to sit still to.
 
    score = Score("4/4", bpm=160)
    score.drums("bhangra", repeats=4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/dhol.wav" type="audio/wav"></audio>
 
 Dholak
 ~~~~~~
@@ -444,6 +437,10 @@ music) and dholak folk (a general folk groove).
    score = Score("4/4", bpm=120)
    score.drums("qawwali", repeats=4)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/dholak.wav" type="audio/wav"></audio>
+
 Mridangam
 ~~~~~~~~~
 
@@ -461,6 +458,10 @@ and mridangam korvai (a rhythmic cadence pattern).
 
    score = Score("4/4", bpm=90)
    score.drums("adi talam", repeats=4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/mridangam.wav" type="audio/wav"></audio>
 
 Djembe
 ~~~~~~
@@ -514,6 +515,10 @@ roll → kick roll → alternating → crash ending).
    score = Score("4/4", bpm=200)
    score.drums("metal blast", repeats=8, fill="metal cascade", fill_every=4)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/metal_blast.wav" type="audio/wav"></audio>
+
 Cajón
 ~~~~~
 
@@ -535,6 +540,10 @@ bass-slap groove).
 
    score = Score("4/4", bpm=100)
    score.drums("cajon", repeats=8, fill="cajon flam", fill_every=4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/cajon.wav" type="audio/wav"></audio>
 
 Marching Percussion
 ~~~~~~~~~~~~~~~~~~~

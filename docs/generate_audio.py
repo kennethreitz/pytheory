@@ -168,6 +168,58 @@ def gen_tabla():
 
 # ── Marching snare ───────────────────────────────────────────────────────
 
+def gen_metal_blast():
+    score = Score("4/4", bpm=200)
+    score.drums("metal blast", repeats=8, fill="metal cascade", fill_every=4)
+    render("metal_blast", score)
+
+
+def gen_cajon():
+    score = Score("4/4", bpm=100)
+    score.drums("cajon", repeats=8, fill="cajon flam", fill_every=4)
+    render("cajon", score)
+
+
+def gen_tabla_teental():
+    score = Score("4/4", bpm=160)
+    score.drums("teental", repeats=4)
+    score.set_drum_effects(reverb=0.2)
+    render("tabla_teental", score)
+
+
+def gen_tabla_keherwa():
+    score = Score("4/4", bpm=180)
+    score.drums("keherwa", repeats=4, fill="chakkardar", fill_every=4)
+    score.set_drum_effects(reverb=0.2)
+    render("tabla_keherwa", score)
+
+
+def gen_tabla_chakradar():
+    score = Score("4/4", bpm=200)
+    score.drums("teental", repeats=2)
+    score.drums("chakradar", repeats=1)
+    score.set_drum_effects(reverb=0.2)
+    render("tabla_chakradar", score)
+
+
+def gen_dhol():
+    score = Score("4/4", bpm=160)
+    score.drums("bhangra", repeats=4)
+    render("dhol", score)
+
+
+def gen_dholak():
+    score = Score("4/4", bpm=120)
+    score.drums("qawwali", repeats=4)
+    render("dholak", score)
+
+
+def gen_mridangam():
+    score = Score("4/4", bpm=90)
+    score.drums("adi talam", repeats=4)
+    render("mridangam", score)
+
+
 def gen_march_snare():
     score = Score("4/4", bpm=120)
     p = score.part("snare", synth="sine", volume=0.8, reverb=0.15)
@@ -437,6 +489,14 @@ GENERATORS = [
     gen_bossa_nova,
     gen_djembe,
     gen_tabla,
+    gen_metal_blast,
+    gen_cajon,
+    gen_tabla_teental,
+    gen_tabla_keherwa,
+    gen_tabla_chakradar,
+    gen_dhol,
+    gen_dholak,
+    gen_mridangam,
     gen_march_snare,
     gen_ensemble,
     gen_strum,
