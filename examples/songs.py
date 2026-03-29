@@ -2804,6 +2804,201 @@ def snare_cadence():
     play_song(score, "Snare Cadence — full drumline (8 snares, 4 quads, 5 basses)")
 
 
+def ensemble_showcase():
+    """Ensemble Showcase — acid bass, tabla solo, strings, snare line."""
+    score = Score("4/4", bpm=128)
+
+    # ── Drums: house kit ──
+    score.drums("house", repeats=24, fill="house", fill_every=8)
+    score.set_drum_effects(volume=0.4, reverb=0.1)
+
+    # ── 303 Acid Bass: detuned, spread, LFO filter, ensemble=3 ──
+    acid = score.part("acid", synth="saw", volume=0.55, ensemble=3,
+                      lowpass=400, lowpass_q=10.0, distortion=0.35,
+                      distortion_drive=4.0, legato=True, glide=0.03,
+                      detune=12, spread=0.4, sub_osc=0.15,
+                      sidechain=0.5, sidechain_release=0.08)
+
+    acid.lfo("lowpass", rate=0.5, min=400, max=5000, bars=16, shape="sine")
+    for _ in range(8):
+        for n in ["C2", "C3", "C2", "Eb2", "C2", "G2", "Bb2", "C2"]:
+            acid.add(n, Duration.EIGHTH, velocity=90)
+
+    acid.ramp(over=Duration.WHOLE * 8, curve="ease_in", lowpass=6000)
+    for _ in range(8):
+        for n in ["C2", "Eb3", "C3", "G2", "Bb2", "C3", "G2", "C2"]:
+            acid.add(n, Duration.EIGHTH, velocity=95)
+
+    acid.ramp(over=Duration.WHOLE * 8, curve="ease_out", lowpass=500)
+    for _ in range(8):
+        for n in ["C2", "C3", "C2", "Eb2", "C2", "G2", "Bb2", "C2"]:
+            acid.add(n, Duration.EIGHTH, velocity=88)
+
+    # ── Strings: 16-player ensemble pad ──
+    strings = score.part("strings", instrument="string_ensemble", volume=0.0,
+                         reverb=0.4, ensemble=16, detune=8, spread=0.5)
+
+    for _ in range(32):
+        strings.rest(Duration.QUARTER)
+    strings.ramp(over=Duration.WHOLE * 4, curve="ease_in", volume=0.18)
+    for ch in ["Cm", "Ab", "Eb", "Bb"] * 4:
+        strings.add(Chord.from_symbol(ch), Duration.WHOLE, velocity=55)
+    strings.ramp(over=Duration.WHOLE * 4, curve="ease_out", volume=0.0)
+    for ch in ["Cm", "Ab", "Eb", "Bb"]:
+        strings.add(Chord.from_symbol(ch), Duration.WHOLE, velocity=45)
+    for _ in range(16):
+        strings.rest(Duration.QUARTER)
+
+    # ── Tabla: ensemble=3, enters bar 9 ──
+    tabla = score.part("tabla", synth="sine", volume=0.0, reverb=0.15, ensemble=3)
+
+    for _ in range(32):
+        tabla.rest(Duration.QUARTER)
+    tabla.ramp(over=Duration.WHOLE * 2, volume=0.45)
+
+    # Keherwa groove — 8 bars
+    for _ in range(8):
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=95, articulation="accent")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=50)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=48)
+        tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=82)
+        tabla.hit(DrumSound.TABLA_TIN, Duration.EIGHTH, velocity=78)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=48)
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=88, articulation="accent")
+        tabla.hit(DrumSound.TABLA_GE, Duration.EIGHTH, velocity=72)
+
+    # Tabla solo — getting busier
+    tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=100, articulation="marcato")
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=45)
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=48)
+    tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=85)
+    tabla.hit(DrumSound.TABLA_TIN, Duration.EIGHTH, velocity=80)
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=45)
+    tabla.hit(DrumSound.TABLA_NA, Duration.SIXTEENTH, velocity=55)
+    tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=95, articulation="accent")
+    tabla.hit(DrumSound.TABLA_GE_BEND, Duration.EIGHTH, velocity=82)
+
+    tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=105, articulation="marcato")
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=48)
+    tabla.hit(DrumSound.TABLA_NA, Duration.SIXTEENTH, velocity=55)
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=45)
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=48)
+    tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=88)
+    tabla.hit(DrumSound.TABLA_DHA, Duration.SIXTEENTH, velocity=100)
+    tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=50)
+    tabla.hit(DrumSound.TABLA_GE_BEND, Duration.EIGHTH, velocity=85)
+    tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=108, articulation="accent")
+
+    # Tihai crescendo
+    for vel in [85, 90, 95, 100, 105, 110]:
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=vel, articulation="accent")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.SIXTEENTH, velocity=int(vel * 0.55))
+        tabla.hit(DrumSound.TABLA_NA, Duration.SIXTEENTH, velocity=int(vel * 0.7))
+    tabla.hit(DrumSound.TABLA_DHA, Duration.QUARTER, velocity=125, articulation="fermata")
+    tabla.hit(DrumSound.TABLA_GE_BEND, Duration.QUARTER, velocity=110)
+
+    # Groove out
+    for _ in range(4):
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=88, articulation="accent")
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=45)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=42)
+        tabla.hit(DrumSound.TABLA_NA, Duration.EIGHTH, velocity=75)
+        tabla.hit(DrumSound.TABLA_TIN, Duration.EIGHTH, velocity=70)
+        tabla.hit(DrumSound.TABLA_TIT, Duration.EIGHTH, velocity=42)
+        tabla.hit(DrumSound.TABLA_DHA, Duration.EIGHTH, velocity=80)
+        tabla.hit(DrumSound.TABLA_GE, Duration.EIGHTH, velocity=65)
+
+    # ── Snare line: 8-player ensemble, enters bar 17 ──
+    S = DrumSound.MARCH_SNARE
+    R = DrumSound.MARCH_RIMSHOT
+
+    snares = score.part("snares", synth="sine", volume=0.0, reverb=0.15, ensemble=8)
+
+    for _ in range(64):
+        snares.rest(Duration.QUARTER)
+    snares.ramp(over=Duration.WHOLE * 2, volume=0.7)
+
+    for _ in range(4):
+        snares.hit(R, Duration.SIXTEENTH, velocity=118)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(R, Duration.SIXTEENTH, velocity=115)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+        snares.hit(R, Duration.SIXTEENTH, velocity=118)
+        snares.hit(S, Duration.SIXTEENTH, velocity=35)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(R, Duration.SIXTEENTH, velocity=120)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+
+    # Buzz roll finale
+    for i in range(64):
+        snares.hit(S, 0.0625, velocity=min(20 + i * 1.5, 100))
+    snares.hit(R, Duration.EIGHTH, velocity=127)
+    snares.hit(R, Duration.EIGHTH, velocity=127)
+
+    snares.ramp(over=Duration.WHOLE * 2, curve="ease_out", volume=0.0)
+    for _ in range(2):
+        snares.hit(R, Duration.SIXTEENTH, velocity=110)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+        snares.hit(R, Duration.SIXTEENTH, velocity=108)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+        snares.hit(R, Duration.SIXTEENTH, velocity=105)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+        snares.hit(R, Duration.SIXTEENTH, velocity=100)
+        snares.hit(S, Duration.SIXTEENTH, velocity=30)
+        snares.hit(S, Duration.SIXTEENTH, velocity=28)
+        snares.hit(S, Duration.SIXTEENTH, velocity=32)
+
+    # ── Lead synth: 6-player ensemble, enters bar 5 ──
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.0,
+                      lowpass=3500, detune=6, chorus=0.1, reverb=0.2,
+                      delay=0.15, delay_time=0.33, delay_feedback=0.25,
+                      ensemble=6)
+
+    for _ in range(16):
+        lead.rest(Duration.QUARTER)
+    lead.ramp(over=Duration.WHOLE * 2, volume=0.3)
+
+    for _ in range(2):
+        lead.add("Eb5", Duration.QUARTER, velocity=88)
+        lead.add("G5", Duration.QUARTER, velocity=92)
+        lead.add("Bb5", Duration.HALF, velocity=95, articulation="accent")
+        lead.add("Ab5", Duration.QUARTER, velocity=88)
+        lead.add("G5", Duration.QUARTER, velocity=85)
+        lead.add("Eb5", Duration.QUARTER, velocity=82)
+        lead.add("D5", Duration.QUARTER, velocity=80)
+
+    lead.swell(["Eb5", "G5", "Bb5", "C6", "Bb5", "G5", "Eb5", "D5"],
+               Duration.QUARTER, low_vel=75, peak_vel=105)
+    lead.decrescendo(["Eb5", "D5", "C5", "Bb4"], Duration.HALF,
+                     start_vel=90, end_vel=60)
+
+    for _ in range(16):
+        lead.rest(Duration.QUARTER)
+
+    lead.ramp(over=Duration.WHOLE * 2, volume=0.35)
+    lead.crescendo(["C5", "Eb5", "G5", "Bb5", "C6", "Eb6", "C6", "Bb5"],
+                   Duration.QUARTER, start_vel=80, end_vel=110)
+    lead.add("G5", Duration.HALF, velocity=105, bend=1, bend_type="smooth")
+    lead.add("Eb5", Duration.HALF, velocity=95)
+    lead.decrescendo(["C5", "Bb4", "G4", "Eb4"], Duration.WHOLE,
+                     start_vel=85, end_vel=40)
+
+    play_song(score, "Ensemble Showcase — acid bass, tabla solo, 16-player strings, 8-player snare line")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -2837,6 +3032,7 @@ SONGS = {
     "30": ("Sitar Drone (Bhairav, hold() polyphony)", sitar_drone),
     "31": ("Acid Tabla (303 + tabla, ramp, articulations)", acid_tabla),
     "32": ("Snare Cadence (marching snare, flams, diddles)", snare_cadence),
+    "33": ("Ensemble Showcase (acid+tabla+strings+snare line)", ensemble_showcase),
 }
 
 if __name__ == "__main__":
@@ -2850,7 +3046,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-32, or 'all'): ").strip()
+        choice = input("  Pick a song (1-33, or 'all'): ").strip()
         print()
 
         if choice == "all":
