@@ -2543,34 +2543,36 @@ def _synth_tabla_ke(n_samples):
 
 
 def _synth_dhol_dagga(n_samples):
-    """Dhol dagga — heavy bass side hit with thick stick.
+    """Dhol dagga — thunderous bass side hit with thick stick.
 
     The dhol's bass head is thick goatskin, hit with a heavy curved
-    stick (dagga). Massive low-end punch, the sound of bhangra.
+    stick (dagga). Massive, thunderous low-end — the kind of hit
+    you feel in your chest before you hear it.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Heavy membrane thud
-    thump_len = min(int(SAMPLE_RATE * 0.08), n_samples)
+    # Heavy membrane thud — longer, wider band
+    thump_len = min(int(SAMPLE_RATE * 0.12), n_samples)
     thump_raw = _noise(thump_len)
     if thump_len > 20:
-        bl, al = scipy.signal.butter(2, [30, 180], btype='band', fs=SAMPLE_RATE)
+        bl, al = scipy.signal.butter(2, [25, 150], btype='band', fs=SAMPLE_RATE)
         thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
     else:
         thump = thump_raw
-    thump *= _exp_decay(thump_len, 15) * 1.0
-    # Deep pitched body — lower than tabla bayan
-    freq = 50 + 60 * numpy.exp(-20 * t)
+    thump *= _exp_decay(thump_len, 10) * 1.2
+    # Deep pitched body with pitch sweep — thunderous boom
+    freq = 45 + 80 * numpy.exp(-15 * t)
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    body = numpy.sin(phase) * _exp_decay(n_samples, 8) * 0.9
-    # Sub boom
-    sub = _sine_f32(35, n_samples) * _exp_decay(n_samples, 10) * 0.6
-    # Stick attack — heavier than tabla palm
-    click_len = min(200, n_samples)
-    click = _noise(click_len) * _exp_decay(click_len, 60) * 0.5
-    result = body + sub
+    body = numpy.sin(phase) * _exp_decay(n_samples, 5) * 1.0
+    # Massive sub boom — sustained
+    sub = _sine_f32(30, n_samples) * _exp_decay(n_samples, 4) * 0.8
+    sub2 = _sine_f32(45, n_samples) * _exp_decay(n_samples, 6) * 0.5
+    # Heavy stick impact
+    click_len = min(300, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 40) * 0.6
+    result = body + sub + sub2
     result[:thump_len] += thump
     result[:click_len] += click
-    return numpy.tanh(result * 1.5)
+    return numpy.tanh(result * 1.8)
 
 
 def _synth_dhol_tilli(n_samples):
@@ -2602,10 +2604,10 @@ def _synth_dhol_tilli(n_samples):
 
 
 def _synth_dhol_both(n_samples):
-    """Dhol both sides — full power bhangra hit."""
-    dagga = _synth_dhol_dagga(n_samples) * 0.6
-    tilli = _synth_dhol_tilli(n_samples) * 0.5
-    return numpy.tanh(dagga + tilli)
+    """Dhol both sides — full power bhangra hit. Thunderous."""
+    dagga = _synth_dhol_dagga(n_samples) * 0.7
+    tilli = _synth_dhol_tilli(n_samples) * 0.45
+    return numpy.tanh((dagga + tilli) * 1.2)
 
 
 def _synth_dholak_ge(n_samples):
