@@ -114,6 +114,10 @@ the classic NES-style buzzy tone.
 
    lead = score.part("lead", synth="pulse", envelope="pluck")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_pulse.wav" type="audio/wav"></audio>
+
 FM Synthesis
 ~~~~~~~~~~~~
 
@@ -161,6 +165,10 @@ Useful as a texture layer, a percussion source, or a wind/ocean effect.
        volume=0.1,
        lowpass=2000,
    )
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_noise.wav" type="audio/wav"></audio>
 
 Ensemble Waveforms
 ------------------
@@ -219,6 +227,10 @@ from Boards of Canada to Drake? PWM with a slow LFO.
        reverb=0.4,
    )
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_pwm_slow.wav" type="audio/wav"></audio>
+
 PWM Fast
 ~~~~~~~~
 
@@ -230,6 +242,10 @@ produces a natural chorus/vibrato effect built into the waveform itself.
 .. code-block:: python
 
    lead = score.part("lead", synth="pwm_fast", envelope="pluck", volume=0.5)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_pwm_fast.wav" type="audio/wav"></audio>
 
 ADSR Envelopes
 --------------

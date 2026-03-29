@@ -448,6 +448,22 @@ def gen_synth_acoustic_guitar():
         p.strum(ch, Duration.WHOLE, velocity=75)
     render("synth_acoustic_guitar", score)
 
+def gen_synth_pulse():
+    _synth_demo("pulse", "pulse")
+
+def gen_synth_noise():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="noise", envelope="pad", volume=0.3,
+                   lowpass=2000, reverb=0.3)
+    p.add("C4", Duration.WHOLE * 2, velocity=80)
+    render("synth_noise", score)
+
+def gen_synth_pwm_slow():
+    _synth_demo("pwm_slow", "pwm_slow", envelope="pad")
+
+def gen_synth_pwm_fast():
+    _synth_demo("pwm_fast", "pwm_fast")
+
 def gen_synth_fm():
     _synth_demo("fm", "fm", envelope="piano")
 
@@ -802,6 +818,10 @@ GENERATORS = [
     gen_synth_saw,
     gen_synth_triangle,
     gen_synth_square,
+    gen_synth_pulse,
+    gen_synth_noise,
+    gen_synth_pwm_slow,
+    gen_synth_pwm_fast,
     gen_synth_fm,
     gen_synth_supersaw,
     gen_synth_piano,
