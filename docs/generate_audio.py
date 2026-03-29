@@ -185,7 +185,7 @@ def gen_tabla():
     score = Score("4/4", bpm=80)
     score.drums("teental", repeats=2)
     score.drums("chakradar", repeats=1)
-    score.set_drum_effects(reverb=0.2)
+    score.set_drum_effects(reverb=0.3, reverb_type="hall")
     render("tabla", score)
 
 
@@ -211,14 +211,14 @@ def gen_tabla_teental():
     score = Score("4/4", bpm=160)
     score.drums("teental", repeats=3)
     score.drums("teental", repeats=1, fill="bayan", fill_every=1)
-    score.set_drum_effects(reverb=0.2)
+    score.set_drum_effects(reverb=0.3, reverb_type="hall")
     render("tabla_teental", score)
 
 
 def gen_tabla_keherwa():
     score = Score("4/4", bpm=180)
     # Manual part so we can add ge_bend hits
-    tabla = score.part("tabla", synth="sine", volume=0.5, reverb=0.2)
+    tabla = score.part("tabla", synth="sine", volume=0.5, reverb=0.3, reverb_type="hall")
     DHA = DrumSound.TABLA_DHA
     NA = DrumSound.TABLA_NA
     TIN = DrumSound.TABLA_TIN
@@ -249,10 +249,9 @@ def gen_tabla_keherwa():
 def gen_tabla_chakradar():
     score = Score("4/4", bpm=200)
     score.drums("teental", repeats=1)
-    # Add some bayan bends before chakradar
     score.drums("teental", repeats=1, fill="bayan", fill_every=1)
     score.drums("chakradar", repeats=1)
-    score.set_drum_effects(reverb=0.2)
+    score.set_drum_effects(reverb=0.3, reverb_type="hall")
     render("tabla_chakradar", score)
 
 
