@@ -276,31 +276,120 @@ def gen_mridangam():
 
 def gen_march_snare():
     score = Score("4/4", bpm=120)
-    p = score.part("snare", synth="sine", volume=0.8, reverb=0.15)
+
     S = DrumSound.MARCH_SNARE
     R = DrumSound.MARCH_RIMSHOT
     C = DrumSound.MARCH_CLICK
+    Q1 = DrumSound.QUAD_1
+    Q2 = DrumSound.QUAD_2
+    Q3 = DrumSound.QUAD_3
+    Q4 = DrumSound.QUAD_4
+    QS = DrumSound.QUAD_SPOCK
+    B1 = DrumSound.BASS_1
+    B2 = DrumSound.BASS_2
+    B3 = DrumSound.BASS_3
+    B4 = DrumSound.BASS_4
+    B5 = DrumSound.BASS_5
 
-    for _ in range(4):
-        p.hit(C, Duration.QUARTER, velocity=95)
+    # Snare line — 8 players
+    sn = score.part("snares", synth="sine", volume=0.8, reverb=0.2, ensemble=8)
+    # Quads — 4 players
+    q = score.part("quads", synth="sine", volume=0.5, reverb=0.2, ensemble=4)
+    # Basses — 5 players
+    b = score.part("basses", synth="sine", volume=0.55, reverb=0.2, ensemble=5)
 
+    # Click count-off
     for _ in range(4):
-        p.hit(R, Duration.SIXTEENTH, velocity=118)
-        p.hit(S, Duration.SIXTEENTH, velocity=30)
-        p.hit(S, Duration.SIXTEENTH, velocity=32)
-        p.hit(S, Duration.SIXTEENTH, velocity=28)
-        p.hit(R, Duration.SIXTEENTH, velocity=115)
-        p.hit(S, Duration.SIXTEENTH, velocity=30)
-        p.hit(S, Duration.SIXTEENTH, velocity=28)
-        p.hit(S, Duration.SIXTEENTH, velocity=32)
-        p.hit(R, Duration.SIXTEENTH, velocity=118)
-        p.hit(S, Duration.SIXTEENTH, velocity=35)
-        p.hit(S, Duration.SIXTEENTH, velocity=28)
-        p.hit(S, Duration.SIXTEENTH, velocity=30)
-        p.hit(R, Duration.SIXTEENTH, velocity=120)
-        p.hit(S, Duration.SIXTEENTH, velocity=30)
-        p.hit(S, Duration.SIXTEENTH, velocity=28)
-        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        sn.hit(C, Duration.QUARTER, velocity=95)
+        q.rest(Duration.QUARTER)
+        b.rest(Duration.QUARTER)
+
+    # Bar 1-2: snare groove, quads accent, bass on beats
+    for _ in range(2):
+        sn.hit(R, Duration.SIXTEENTH, velocity=118)
+        sn.hit(S, Duration.SIXTEENTH, velocity=30)
+        sn.hit(S, Duration.SIXTEENTH, velocity=32)
+        sn.hit(S, Duration.SIXTEENTH, velocity=28)
+        sn.hit(R, Duration.SIXTEENTH, velocity=115)
+        sn.hit(S, Duration.SIXTEENTH, velocity=30)
+        sn.hit(S, Duration.SIXTEENTH, velocity=28)
+        sn.hit(S, Duration.SIXTEENTH, velocity=32)
+        sn.hit(R, Duration.SIXTEENTH, velocity=118)
+        sn.hit(S, Duration.SIXTEENTH, velocity=35)
+        sn.hit(S, Duration.SIXTEENTH, velocity=28)
+        sn.hit(S, Duration.SIXTEENTH, velocity=30)
+        sn.hit(R, Duration.SIXTEENTH, velocity=120)
+        sn.hit(S, Duration.SIXTEENTH, velocity=30)
+        sn.hit(S, Duration.SIXTEENTH, velocity=28)
+        sn.hit(S, Duration.SIXTEENTH, velocity=32)
+
+        q.hit(Q1, Duration.SIXTEENTH, velocity=95)
+        q.hit(Q2, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q3, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q4, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q4, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q3, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q2, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q1, Duration.SIXTEENTH, velocity=95)
+        q.hit(QS, Duration.SIXTEENTH, velocity=100)
+        q.hit(Q1, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q3, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q1, Duration.SIXTEENTH, velocity=55)
+        q.hit(QS, Duration.SIXTEENTH, velocity=100)
+        q.hit(Q4, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q2, Duration.SIXTEENTH, velocity=55)
+        q.hit(Q1, Duration.SIXTEENTH, velocity=90)
+
+        b.hit(B3, Duration.QUARTER, velocity=100)
+        b.hit(B1, Duration.EIGHTH, velocity=90)
+        b.hit(B5, Duration.EIGHTH, velocity=95)
+        b.hit(B3, Duration.QUARTER, velocity=100)
+        b.hit(B5, Duration.EIGHTH, velocity=90)
+        b.hit(B1, Duration.EIGHTH, velocity=95)
+
+    # Bar 3: flams + diddles
+    sn.flam(S, Duration.QUARTER, velocity=120)
+    sn.diddle(S, Duration.EIGHTH, velocity=45)
+    sn.hit(S, Duration.SIXTEENTH, velocity=30)
+    sn.hit(S, Duration.SIXTEENTH, velocity=32)
+    sn.flam(S, Duration.QUARTER, velocity=118)
+    sn.diddle(S, Duration.EIGHTH, velocity=42)
+    sn.hit(S, Duration.SIXTEENTH, velocity=28)
+    sn.hit(S, Duration.SIXTEENTH, velocity=30)
+
+    q.hit(Q1, Duration.QUARTER, velocity=95)
+    q.hit(Q3, Duration.EIGHTH, velocity=55)
+    q.hit(Q2, Duration.SIXTEENTH, velocity=55)
+    q.hit(Q4, Duration.SIXTEENTH, velocity=55)
+    q.hit(QS, Duration.QUARTER, velocity=100)
+    q.hit(Q4, Duration.EIGHTH, velocity=55)
+    q.hit(Q1, Duration.EIGHTH, velocity=90)
+
+    b.hit(B5, Duration.QUARTER, velocity=100)
+    b.hit(B3, Duration.QUARTER, velocity=95)
+    b.hit(B1, Duration.QUARTER, velocity=100)
+    b.hit(B3, Duration.QUARTER, velocity=95)
+
+    # Bar 4: buzz roll finale into big hit
+    for i in range(28):
+        sn.hit(S, 0.0625, velocity=min(25 + i * 3, 100))
+    sn.hit(R, Duration.EIGHTH, velocity=125)
+    sn.hit(R, Duration.EIGHTH, velocity=127)
+
+    for i in range(8):
+        q.hit([Q1,Q2,Q3,Q4,Q4,Q3,Q2,Q1][i], Duration.SIXTEENTH, velocity=60+i*4)
+    q.hit(QS, Duration.HALF, velocity=110)
+
+    b.hit(B1, Duration.SIXTEENTH, velocity=90)
+    b.hit(B2, Duration.SIXTEENTH, velocity=90)
+    b.hit(B3, Duration.SIXTEENTH, velocity=90)
+    b.hit(B4, Duration.SIXTEENTH, velocity=90)
+    b.hit(B5, Duration.SIXTEENTH, velocity=95)
+    b.hit(B4, Duration.SIXTEENTH, velocity=90)
+    b.hit(B3, Duration.SIXTEENTH, velocity=90)
+    b.hit(B2, Duration.SIXTEENTH, velocity=90)
+    b.hit(B3, Duration.HALF, velocity=100)
+
     render("march_snare", score)
 
 
