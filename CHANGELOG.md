@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.39.1
+
+- **Chakradar tabla pattern** — 16-beat tihai of tihais composition with
+  3 escalating phrases and a crescendo triplet finale
+
 ## 0.39.0
 
 - **Dropped `numeral` dependency** — Roman numeral helpers inlined,

@@ -1602,6 +1602,59 @@ Pattern._PRESETS["tabla solo"] = dict(
     ],
 )
 
+# Chakradar — tihai of tihais (16 beats / 4 bars)
+# A phrase (Dha Tit Tit Dha Ge Na) is played 3x with increasing intensity,
+# and within each repetition the final 3 hits form a mini-tihai landing on sam.
+_chakra_phrase_a = [
+    # Phrase 1 (4 beats): moderate
+    _h(TDHA, 0.0, 85), _h(TTIT, 0.25, 48), _h(TTIT, 0.5, 50),
+    _h(TDHA, 0.75, 80), _h(TGE, 1.0, 72),
+    _h(TNA, 1.5, 68), _h(TTIT, 1.75, 45),
+    # Mini-tihai: Na Dha, Na Dha, Na Dha
+    _h(TNA, 2.0, 72), _h(TDHA, 2.25, 82),
+    _h(TNA, 2.5, 75), _h(TDHA, 2.75, 85),
+    _h(TNA, 3.0, 78), _h(TDHA, 3.25, 90),
+    _h(TTIT, 3.5, 42), _h(TTIT, 3.75, 45),
+]
+_chakra_phrase_b = [
+    # Phrase 2 (4 beats): louder, busier
+    _h(TDHA, 4.0, 95), _h(TTIT, 4.125, 50), _h(TTIT, 4.25, 52),
+    _h(TKE, 4.375, 48), _h(TDHA, 4.5, 90), _h(TGE, 4.75, 78),
+    _h(TNA, 5.0, 75), _h(TTIT, 5.25, 48), _h(TTIT, 5.5, 50),
+    _h(TNA, 5.75, 72),
+    # Mini-tihai: Na Dha Ge, Na Dha Ge, Na Dha Ge
+    _h(TNA, 6.0, 80), _h(TDHA, 6.25, 92), _h(TGE, 6.5, 78),
+    _h(TNA, 6.75, 82), _h(TDHA, 7.0, 95), _h(TGE, 7.25, 82),
+    _h(TNA, 7.5, 85), _h(TDHA, 7.75, 100),
+]
+_chakra_phrase_c = [
+    # Phrase 3 (4 beats): peak intensity, fastest
+    _h(TDHA, 8.0, 105), _h(TTIT, 8.125, 55), _h(TTIT, 8.25, 58),
+    _h(TKE, 8.375, 52), _h(TNA, 8.5, 85), _h(TTIT, 8.625, 50),
+    _h(TDHA, 8.75, 100), _h(TGE, 9.0, 85),
+    _h(TNA, 9.25, 82), _h(TTIT, 9.5, 55), _h(TTIT, 9.625, 58),
+    _h(TKE, 9.75, 52), _h(TNA, 10.0, 88),
+    # Final tihai — 3x Dha Tit Na Dha landing on sam
+    _h(TDHA, 10.5, 105), _h(TTIT, 10.625, 58), _h(TNA, 10.75, 90),
+    _h(TDHA, 11.0, 108), _h(TTIT, 11.125, 60), _h(TNA, 11.25, 92),
+    _h(TDHA, 11.5, 112), _h(TTIT, 11.625, 62), _h(TNA, 11.75, 95),
+]
+_chakra_finale = [
+    # Bar 4: crescendo triplets into massive sam
+    *[_h(TTIT, 12.0 + i * (1/6), 50 + i * 5) for i in range(12)],
+    _h(TDHA, 14.0, 115), _h(TNA, 14.25, 85), _h(TDHA, 14.5, 118),
+    _h(TNA, 14.75, 88),
+    _h(TDHA, 15.0, 120), _h(TGE, 15.25, 95),
+    _h(TDHA, 15.5, 125), _h(DrumSound.TABLA_GE_BEND, 15.75, 110),
+]
+
+Pattern._PRESETS["chakradar"] = dict(
+    name="chakradar",
+    time_signature="4/4",
+    beats=16.0,
+    hits=_chakra_phrase_a + _chakra_phrase_b + _chakra_phrase_c + _chakra_finale,
+)
+
 # ── Doumbek patterns ──────────────────────────────────────────────────────
 DKD = DrumSound.DOUMBEK_DUM
 DKT = DrumSound.DOUMBEK_TEK
