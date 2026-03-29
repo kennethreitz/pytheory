@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## 0.39.4
+## 0.40.0
 
 - **Rhodes electric piano synth** — tine + tonebar + electromagnetic
   pickup model. `electric_piano` preset now uses dedicated `rhodes_synth`
