@@ -564,6 +564,10 @@ class DrumSound(Enum):
     METAL_KICK = 105     # clicky, punchy, tight
     METAL_SNARE = 106    # crack, bright, cutting
     METAL_HAT = 107      # tight, short, precise
+    # Marching percussion
+    MARCH_SNARE = 115    # tight, high-tension kevlar head, snare buzz
+    MARCH_RIMSHOT = 116  # stick hits rim + head simultaneously, cracking
+    MARCH_CLICK = 118    # stick click — sticks hit together, no drum
 
 
 class _DrumTone:
@@ -1602,6 +1606,77 @@ Pattern._PRESETS["tabla solo"] = dict(
     ],
 )
 
+# ── Marching snare patterns ───────────────────────────────────────────────
+MS = DrumSound.MARCH_SNARE
+MR = DrumSound.MARCH_RIMSHOT
+
+# Marching basic — standard 4/4 march with rimshot accents on 2 and 4
+Pattern._PRESETS["march"] = dict(
+    name="march",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(MS, 0.0, 80), _h(MS, 0.5, 55),
+        _h(MR, 1.0, 100), _h(MS, 1.5, 55),
+        _h(MS, 2.0, 80), _h(MS, 2.5, 55),
+        _h(MR, 3.0, 100), _h(MS, 3.5, 55),
+    ],
+)
+
+# Cadence — 8-beat street beat pattern (the classic drumline cadence)
+Pattern._PRESETS["cadence"] = dict(
+    name="cadence",
+    time_signature="4/4",
+    beats=8.0,
+    hits=[
+        # Bar 1: syncopated groove
+        _h(MR, 0.0, 105), _h(MS, 0.25, 60), _h(MS, 0.5, 65),
+        _h(MS, 0.75, 55), _h(MR, 1.0, 100),
+        _h(MS, 1.5, 60), _h(MS, 1.75, 58),
+        _h(MR, 2.0, 105), _h(MS, 2.5, 62),
+        _h(MS, 2.75, 55), _h(MR, 3.0, 100),
+        _h(MS, 3.25, 58), _h(MS, 3.5, 60), _h(MS, 3.75, 55),
+        # Bar 2: answer phrase with flams
+        _h(MR, 4.0, 110), _h(MS, 4.25, 62), _h(MS, 4.5, 65),
+        _h(MR, 5.0, 105), _h(MS, 5.25, 58),
+        _h(MS, 5.5, 60), _h(MS, 5.75, 55),
+        _h(MR, 6.0, 110), _h(MS, 6.25, 62),
+        _h(MS, 6.5, 65), _h(MS, 6.75, 62),
+        _h(MR, 7.0, 115), _h(MS, 7.25, 60),
+        _h(MR, 7.5, 110), _h(MR, 7.75, 115),
+    ],
+)
+
+# Paradiddle — RLRR LRLL on marching snare
+Pattern._PRESETS["march paradiddle"] = dict(
+    name="march paradiddle",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # RLRR (R=rimshot accent, L=tap)
+        _h(MR, 0.0, 100), _h(MS, 0.25, 58), _h(MR, 0.5, 65), _h(MR, 0.75, 62),
+        # LRLL
+        _h(MS, 1.0, 58), _h(MR, 1.25, 100), _h(MS, 1.5, 58), _h(MS, 1.75, 55),
+        # RLRR
+        _h(MR, 2.0, 102), _h(MS, 2.25, 60), _h(MR, 2.5, 68), _h(MR, 2.75, 65),
+        # LRLL
+        _h(MS, 3.0, 60), _h(MR, 3.25, 102), _h(MS, 3.5, 60), _h(MS, 3.75, 58),
+    ],
+)
+
+# March roll — buzz roll crescendo
+Pattern._PRESETS["march roll"] = dict(
+    name="march roll",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Buzz roll as rapid 32nds, crescendo
+        *[_h(MS, i * 0.125, 40 + i * 3) for i in range(28)],
+        # Land on rimshot
+        _h(MR, 3.5, 115), _h(MR, 3.75, 120),
+    ],
+)
+
 # Chakradar — tihai of tihais (16 beats / 4 bars)
 # A phrase (Dha Tit Tit Dha Ge Na) is played 3x with increasing intensity,
 # and within each repetition the final 3 hits form a mini-tihai landing on sam.
@@ -2633,6 +2708,7 @@ class Part:
                  cabinet: float = 0.0,
                  cabinet_brightness: float = 0.5,
                  analog: float = 0.0,
+                 ensemble: int = 1,
                  fm_ratio: float = 2.0,
                  fm_index: float = 3.0):
         self.name = name
@@ -2679,6 +2755,7 @@ class Part:
         self.cabinet = cabinet
         self.cabinet_brightness = cabinet_brightness
         self.analog = analog
+        self.ensemble = ensemble
         self.fm_ratio = fm_ratio
         self.fm_index = fm_index
         self._system = "western"  # default, overridden by Score.part()
@@ -2771,6 +2848,85 @@ class Part:
             duration = _RawDuration(duration)
         self.notes.append(Note(tone=_DrumTone(sound), duration=duration,
                                velocity=velocity, articulation=articulation))
+        return self
+
+    def flam(self, sound, duration=Duration.QUARTER, *, velocity: int = 110,
+             gap: float = 0.015, grace_vel: float = 0.3,
+             articulation: str = "") -> "Part":
+        """Add a flam — a grace note immediately before the main hit.
+
+        The grace note is nearly simultaneous with the main hit,
+        thickening the attack. Tighter gap = more like one fat hit,
+        wider gap = audible double.
+
+        Args:
+            sound: A :class:`DrumSound` enum member.
+            duration: Total duration the flam occupies.
+            velocity: Main hit velocity.
+            gap: Beats between grace and main (default 0.008 ≈ 4ms at 120).
+            grace_vel: Grace note velocity as fraction of main (default 0.3).
+            articulation: Optional articulation for the main hit.
+
+        Example::
+
+            >>> p.flam(DrumSound.MARCH_SNARE, Duration.QUARTER, velocity=120)
+        """
+        if isinstance(duration, (int, float)):
+            dur_val = duration
+        else:
+            dur_val = duration.value if hasattr(duration, 'value') else float(duration)
+        self.hit(sound, gap, velocity=int(velocity * grace_vel))
+        self.hit(sound, dur_val - gap, velocity=velocity, articulation=articulation)
+        return self
+
+    def diddle(self, sound, duration=Duration.EIGHTH, *,
+               velocity: int = 70) -> "Part":
+        """Add a diddle — two equal strokes in the space of one note.
+
+        A double-stroke roll building block. Two hits split evenly
+        across the duration.
+
+        Args:
+            sound: A :class:`DrumSound` enum member.
+            duration: Total duration (default 8th note). Each stroke
+                gets half.
+            velocity: Velocity for both strokes.
+
+        Example::
+
+            >>> p.diddle(DrumSound.MARCH_SNARE, Duration.EIGHTH, velocity=60)
+        """
+        if isinstance(duration, (int, float)):
+            dur_val = duration
+        else:
+            dur_val = duration.value if hasattr(duration, 'value') else float(duration)
+        half = dur_val / 2
+        self.hit(sound, half, velocity=velocity)
+        self.hit(sound, half, velocity=int(velocity * 0.9))
+        return self
+
+    def cheese(self, sound, duration=Duration.QUARTER, *, velocity: int = 110,
+               gap: float = 0.008, grace_vel: float = 0.3) -> "Part":
+        """Add a cheese — a flam followed by a diddle.
+
+        Common marching rudiment: grace-MAIN-tap-tap.
+
+        Args:
+            sound: A :class:`DrumSound` enum member.
+            duration: Total duration.
+            velocity: Main hit velocity.
+        """
+        if isinstance(duration, (int, float)):
+            dur_val = duration
+        else:
+            dur_val = duration.value if hasattr(duration, 'value') else float(duration)
+        # Flam takes first half, diddle takes second half
+        flam_dur = dur_val * 0.5
+        diddle_dur = dur_val * 0.5
+        self.hit(sound, gap, velocity=int(velocity * grace_vel))
+        self.hit(sound, flam_dur - gap, velocity=velocity)
+        self.hit(sound, diddle_dur / 2, velocity=int(velocity * 0.5))
+        self.hit(sound, diddle_dur / 2, velocity=int(velocity * 0.45))
         return self
 
     def crescendo(self, notes, duration=Duration.QUARTER, *,
@@ -3588,6 +3744,7 @@ class Score:
              cabinet: float = None,
              cabinet_brightness: float = None,
              analog: float = None,
+             ensemble: int = None,
              fm_ratio: float = None,
              fm_index: float = None,
              fretboard=None) -> Part:
@@ -3700,7 +3857,7 @@ class Score:
             "tremolo_depth": tremolo_depth, "tremolo_rate": tremolo_rate,
             "phaser": phaser, "phaser_rate": phaser_rate,
             "cabinet": cabinet, "cabinet_brightness": cabinet_brightness,
-            "analog": analog,
+            "analog": analog, "ensemble": ensemble,
             "fm_ratio": fm_ratio, "fm_index": fm_index,
         }
         for k, v in _locals.items():

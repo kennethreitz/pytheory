@@ -2440,6 +2440,225 @@ def acid_tabla():
     play_song(score, "Acid Tabla — 303 filter automation + tabla (ramp, articulations, Part.hit)")
 
 
+def snare_cadence():
+    """Snare Cadence — marching snare with click count-off, flams, diddles, cheese."""
+    score = Score("4/4", bpm=120)
+    p = score.part("snare", synth="sine", volume=0.8, reverb=0.2)
+
+    S = DrumSound.MARCH_SNARE
+    R = DrumSound.MARCH_RIMSHOT
+    C = DrumSound.MARCH_CLICK
+
+    # ── Click count-off ──
+    for _ in range(4):
+        p.hit(C, Duration.QUARTER, velocity=95)
+
+    _trip = 1.0 / 3  # triplet 8th
+
+    # ── Section 1: 16th note groove (4 bars) ──
+    # 16ths are the baseline — accents give it shape
+    for _ in range(2):
+        p.hit(R, Duration.SIXTEENTH, velocity=115)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.hit(S, Duration.SIXTEENTH, velocity=35)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(R, Duration.SIXTEENTH, velocity=112)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.hit(S, Duration.SIXTEENTH, velocity=28)
+        p.hit(R, Duration.SIXTEENTH, velocity=115)
+        p.hit(S, Duration.SIXTEENTH, velocity=35)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.hit(R, Duration.SIXTEENTH, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=28)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+
+    # 2 bars with triplets mixed in
+    for _ in range(2):
+        p.hit(R, _trip, velocity=115)
+        p.hit(S, _trip, velocity=32)
+        p.hit(S, _trip, velocity=30)
+        p.hit(R, _trip, velocity=112)
+        p.hit(S, _trip, velocity=28)
+        p.hit(S, _trip, velocity=32)
+        p.hit(R, Duration.SIXTEENTH, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.hit(S, Duration.SIXTEENTH, velocity=28)
+        p.hit(R, _trip, velocity=115)
+        p.hit(S, _trip, velocity=30)
+        p.hit(S, _trip, velocity=35)
+
+    # ── Section 2: Add flams + triplets (4 bars) ──
+    for _ in range(2):
+        p.flam(S, Duration.QUARTER, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.hit(R, _trip, velocity=115)
+        p.hit(S, _trip, velocity=28)
+        p.hit(S, _trip, velocity=30)
+        p.flam(S, Duration.QUARTER, velocity=115)
+
+    for _ in range(2):
+        p.hit(S, _trip, velocity=35)
+        p.flam(S, _trip * 2, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.flam(S, Duration.QUARTER, velocity=115)
+        p.hit(S, _trip, velocity=28)
+        p.hit(R, _trip, velocity=120)
+        p.hit(S, _trip, velocity=35)
+
+    # ── Section 3: Flams + diddles + triplets (4 bars) ──
+    for _ in range(2):
+        p.flam(S, Duration.QUARTER, velocity=118)
+        p.diddle(S, Duration.EIGHTH, velocity=45)
+        p.hit(S, _trip, velocity=30)
+        p.hit(S, _trip, velocity=32)
+        p.hit(S, _trip, velocity=28)
+        p.hit(R, Duration.EIGHTH, velocity=120)
+        p.diddle(S, Duration.EIGHTH, velocity=42)
+
+    for _ in range(2):
+        p.diddle(S, Duration.EIGHTH, velocity=45)
+        p.hit(R, _trip, velocity=118)
+        p.hit(S, _trip, velocity=30)
+        p.hit(S, _trip, velocity=32)
+        p.diddle(S, Duration.EIGHTH, velocity=48)
+        p.hit(R, _trip, velocity=115)
+        p.hit(S, _trip, velocity=28)
+        p.hit(S, _trip, velocity=30)
+        p.flam(S, Duration.EIGHTH, velocity=120)
+        p.hit(S, Duration.EIGHTH, velocity=35)
+
+    # ── Section 4: Syncopation + triplet accents (4 bars) ──
+    for _ in range(2):
+        p.hit(R, Duration.SIXTEENTH, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.rest(Duration.SIXTEENTH)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.flam(S, Duration.EIGHTH, velocity=118)
+        p.hit(S, _trip, velocity=28)
+        p.hit(R, _trip, velocity=115)
+        p.hit(S, _trip, velocity=30)
+        p.hit(R, Duration.SIXTEENTH, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=32)
+        p.diddle(S, Duration.EIGHTH, velocity=45)
+        p.hit(R, Duration.EIGHTH, velocity=122)
+
+    # Accent pattern with space
+    p.hit(R, Duration.EIGHTH, velocity=122)
+    p.rest(Duration.EIGHTH)
+    p.hit(R, _trip, velocity=118)
+    p.hit(R, _trip, velocity=115)
+    p.hit(R, _trip, velocity=120)
+    p.rest(Duration.QUARTER)
+    p.hit(R, Duration.EIGHTH, velocity=122)
+    p.rest(Duration.EIGHTH)
+    p.hit(R, Duration.SIXTEENTH, velocity=118)
+    p.hit(R, Duration.SIXTEENTH, velocity=125)
+
+    p.hit(R, Duration.QUARTER, velocity=125)
+    p.rest(Duration.QUARTER)
+    p.hit(R, Duration.QUARTER, velocity=125)
+    p.rest(Duration.EIGHTH)
+    p.diddle(S, Duration.EIGHTH, velocity=52)
+
+    # ── Section 5: Cheese + 32nd bursts (4 bars) ──
+    for _ in range(2):
+        p.cheese(S, Duration.QUARTER, velocity=118)
+        p.hit(S, 0.0625, velocity=30)
+        p.hit(S, 0.0625, velocity=32)
+        p.hit(S, 0.0625, velocity=35)
+        p.hit(S, 0.0625, velocity=30)
+        p.cheese(S, Duration.QUARTER, velocity=115)
+        p.diddle(S, Duration.EIGHTH, velocity=48)
+        p.hit(R, Duration.EIGHTH, velocity=122)
+
+    p.cheese(S, Duration.QUARTER, velocity=120)
+    p.cheese(S, Duration.QUARTER, velocity=118)
+    p.cheese(S, Duration.QUARTER, velocity=122)
+    p.cheese(S, Duration.QUARTER, velocity=125)
+
+    p.flam(S, Duration.EIGHTH, velocity=118)
+    p.diddle(S, Duration.EIGHTH, velocity=50)
+    p.flam(S, Duration.EIGHTH, velocity=120)
+    p.diddle(S, Duration.EIGHTH, velocity=52)
+    p.flam(S, Duration.EIGHTH, velocity=122)
+    p.diddle(S, Duration.EIGHTH, velocity=55)
+    p.hit(R, Duration.EIGHTH, velocity=125)
+    p.hit(S, Duration.EIGHTH, velocity=38)
+
+    # ── Section 6: 16ths with 32nd bursts (4 bars) ──
+    # 16ths with accents, 32nd doubles sprinkled in
+    for _ in range(2):
+        p.hit(R, Duration.SIXTEENTH, velocity=118)
+        p.hit(S, 0.0625, velocity=32)  # 32nd
+        p.hit(S, 0.0625, velocity=35)  # 32nd
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+        p.hit(S, Duration.SIXTEENTH, velocity=38)
+        p.hit(R, Duration.SIXTEENTH, velocity=115)
+        p.hit(S, 0.0625, velocity=32)
+        p.hit(S, 0.0625, velocity=30)
+        p.hit(S, 0.0625, velocity=35)
+        p.hit(S, 0.0625, velocity=32)
+        p.hit(R, Duration.SIXTEENTH, velocity=118)
+        p.hit(S, Duration.SIXTEENTH, velocity=35)
+        p.hit(S, 0.0625, velocity=28)
+        p.hit(S, 0.0625, velocity=32)
+        p.hit(S, 0.0625, velocity=35)
+        p.hit(S, 0.0625, velocity=38)
+        p.hit(R, Duration.SIXTEENTH, velocity=112)
+        p.hit(S, Duration.SIXTEENTH, velocity=30)
+
+    # Triplet bars — 12 hits per beat, accent every 3
+    _trip = 1.0 / 3  # triplet 8th
+    for _ in range(2):
+        for beat in range(4):
+            p.hit(R, _trip, velocity=115)
+            p.hit(S, _trip, velocity=35)
+            p.hit(S, _trip, velocity=32)
+
+    # 32nd note run crescendo into rimshot
+    for i in range(32):
+        p.hit(S, 0.0625, velocity=min(22 + i * 3, 92))
+    p.hit(R, Duration.EIGHTH, velocity=122)
+    p.hit(R, Duration.EIGHTH, velocity=125)
+
+    # Triplet 16ths — 6 per beat, insane
+    _trip16 = 1.0 / 6
+    for _ in range(2):
+        for beat in range(4):
+            p.hit(R, _trip16, velocity=112)
+            p.hit(S, _trip16, velocity=30)
+            p.hit(S, _trip16, velocity=32)
+            p.hit(R, _trip16, velocity=108)
+            p.hit(S, _trip16, velocity=28)
+            p.hit(S, _trip16, velocity=30)
+
+    # ── Section 7: Full send (2 bars) ──
+    # 32nd notes building into the tightest buzz roll
+    for i in range(64):
+        p.hit(S, 0.0625, velocity=min(20 + i * 1.5, 100))
+    p.hit(R, Duration.EIGHTH, velocity=125)
+    p.hit(R, Duration.EIGHTH, velocity=127)
+
+    # ── Ending: big unison hits ──
+    p.hit(R, Duration.EIGHTH, velocity=125)
+    p.rest(Duration.QUARTER + Duration.EIGHTH)
+    p.hit(R, Duration.EIGHTH, velocity=125)
+    p.rest(Duration.QUARTER + Duration.EIGHTH)
+    # Flam into final CRACK
+    p.flam(S, Duration.EIGHTH, velocity=127)
+    p.rest(Duration.QUARTER + Duration.EIGHTH)
+    p.hit(R, Duration.QUARTER, velocity=127)
+    p.rest(Duration.HALF)
+
+    play_song(score, "Snare Cadence — marching snare (flams, diddles, cheese, resonance)")
+
+
 SONGS = {
     "1": ("Bossa Nova in A minor", bossa_nova_girl),
     "2": ("Bebop in Bb major", bebop_in_bb),
@@ -2472,6 +2691,7 @@ SONGS = {
     "29": ("Pop Rock (I-V-vi-IV)", pop_rock),
     "30": ("Sitar Drone (Bhairav, hold() polyphony)", sitar_drone),
     "31": ("Acid Tabla (303 + tabla, ramp, articulations)", acid_tabla),
+    "32": ("Snare Cadence (marching snare, flams, diddles)", snare_cadence),
 }
 
 if __name__ == "__main__":
@@ -2485,7 +2705,7 @@ if __name__ == "__main__":
             print(f"    {key:>2}. {name}")
 
         print()
-        choice = input("  Pick a song (1-31, or 'all'): ").strip()
+        choice = input("  Pick a song (1-32, or 'all'): ").strip()
         print()
 
         if choice == "all":

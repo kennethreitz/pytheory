@@ -2796,6 +2796,83 @@ def _synth_metal_hat(n_samples):
     return out
 
 
+def _synth_march_snare(n_samples):
+    """Marching snare — ultra-tight kevlar head, high and crisp.
+
+    Higher pitched than a kit snare. Very short decay — all attack,
+    no sustain. Tight snare wires give a brief sizzle.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Higher-pitched body — tight kevlar pops high
+    body = numpy.sin(2 * numpy.pi * 450 * t) * _exp_decay(n_samples, 60) * 0.4
+    body2 = numpy.sin(2 * numpy.pi * 700 * t) * _exp_decay(n_samples, 75) * 0.2
+    # Sharp stick pop
+    click_len = min(int(SAMPLE_RATE * 0.001), n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 400) * 1.2
+    # Very tight snare sizzle — higher band, shorter
+    buzz_len = min(int(SAMPLE_RATE * 0.025), n_samples)
+    buzz_raw = _noise(buzz_len)
+    if buzz_len > 20:
+        bl, al = scipy.signal.butter(2, [3500, 8000], btype='band', fs=SAMPLE_RATE)
+        buzz = scipy.signal.lfilter(bl, al, numpy.pad(buzz_raw, (0, max(0, n_samples - buzz_len))))[:buzz_len]
+    else:
+        buzz = buzz_raw
+    buzz *= _exp_decay(buzz_len, 50) * 0.35
+    result = body + body2
+    result[:click_len] += click
+    result[:buzz_len] += buzz
+    return numpy.tanh(result * 2.8)
+
+
+def _synth_march_rimshot(n_samples):
+    """Marching rimshot — woody metallic crack.
+
+    The stick catches the rim — you get the full snare hit plus
+    a bright, woody-metallic crack from the aluminum rim. Short
+    ring that dies fast but gives it that cutting edge.
+    """
+    wave = _synth_march_snare(n_samples)
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Rim crack — bright but short, woody-metallic character
+    rim = numpy.sin(2 * numpy.pi * 1100 * t) * _exp_decay(n_samples, 45) * 0.35
+    rim2 = numpy.sin(2 * numpy.pi * 2200 * t) * _exp_decay(n_samples, 55) * 0.2
+    # Hard transient pop
+    pop_len = min(int(SAMPLE_RATE * 0.002), n_samples)
+    pop = _noise(pop_len) * _exp_decay(pop_len, 350) * 1.5
+    # Extra body punch
+    punch = numpy.sin(2 * numpy.pi * 500 * t) * _exp_decay(n_samples, 65) * 0.3
+    result = wave * 1.4 + rim + rim2 + punch
+    result[:pop_len] += pop
+    return numpy.tanh(result * 2.0)
+
+
+def _synth_march_click(n_samples):
+    """Stick click — taped hickory sticks clocked together.
+
+    Bright wood-on-wood with a slightly dampened attack from the
+    electrical tape. Not as ringy as a clave — the tape absorbs
+    some of the high overtones — but still bright and snappy.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Wood resonance — brighter than before, but tape dampens ring
+    body = numpy.sin(2 * numpy.pi * 1100 * t) * _exp_decay(n_samples, 65) * 0.45
+    body2 = numpy.sin(2 * numpy.pi * 1800 * t) * _exp_decay(n_samples, 80) * 0.25
+    # Woody overtone — gives it that hickory character
+    body3 = numpy.sin(2 * numpy.pi * 2600 * t) * _exp_decay(n_samples, 95) * 0.12
+    # Bright but slightly muffled transient (tape on wood)
+    click_len = min(int(SAMPLE_RATE * 0.001), n_samples)
+    click_raw = _noise(click_len)
+    if click_len > 10:
+        bl, al = scipy.signal.butter(2, [800, 7000], btype='band', fs=SAMPLE_RATE)
+        click = scipy.signal.lfilter(bl, al, numpy.pad(click_raw, (0, max(0, n_samples - click_len))))[:click_len]
+    else:
+        click = click_raw
+    click *= _exp_decay(click_len, 350) * 0.9
+    result = body + body2 + body3
+    result[:click_len] += click
+    return numpy.tanh(result * 2.8)
+
+
 def _synth_tabla_ge_bend(n_samples):
     """Tabla Ge with upward pitch bend — palm pressing into bayan head.
 
@@ -3012,6 +3089,10 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.METAL_KICK.value: lambda n: _synth_metal_kick(n),
         DrumSound.METAL_SNARE.value: lambda n: _synth_metal_snare(n),
         DrumSound.METAL_HAT.value: lambda n: _synth_metal_hat(n),
+        # Marching
+        DrumSound.MARCH_SNARE.value: lambda n: _synth_march_snare(n),
+        DrumSound.MARCH_RIMSHOT.value: lambda n: _synth_march_rimshot(n),
+        DrumSound.MARCH_CLICK.value: lambda n: _synth_march_click(n),
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
@@ -4496,35 +4577,71 @@ def render_score(score):
                 synth_kwargs["mod_index"] = part.fm_index
             _temperament = getattr(score, 'temperament', 'equal')
             _ref_pitch = getattr(score, 'reference_pitch', 440.0)
-            if part.legato:
-                _render_legato_to_buf(
-                    part.notes, part_buf, samples_per_beat, total_samples,
-                    synth_fn, env_tuple, part.volume, score.bpm,
-                    glide_time=part.glide, swing=effective_swing,
-                    tempo_map=tempo_map if has_tempo_changes else None,
-                    temperament=_temperament, reference_pitch=_ref_pitch)
-            else:
-                _render_notes_to_buf(
-                    part.notes, part_buf, samples_per_beat, total_samples,
-                    synth_fn, env_tuple, part.volume, score.bpm,
-                    swing=effective_swing,
-                    tempo_map=tempo_map if has_tempo_changes else None,
-                    humanize=part.humanize,
-                    detune=part.detune,
-                    spread=part.spread,
-                    stereo_buf=stereo_buf,
-                    sub_osc=part.sub_osc,
-                    noise_mix=part.noise_mix,
-                    filter_attack=part.filter_attack,
-                    filter_decay=part.filter_decay,
-                    filter_sustain=part.filter_sustain,
-                    filter_amount=part.filter_amount,
-                    vel_to_filter=part.vel_to_filter,
-                    filter_q=part.lowpass_q,
-                    synth_kwargs=synth_kwargs,
-                    temperament=_temperament,
-                    reference_pitch=_ref_pitch,
-                    analog=part.analog)
+
+            n_ensemble = max(1, getattr(part, 'ensemble', 1))
+
+            for _ens_i in range(n_ensemble):
+                # Each ensemble voice gets its own buffer
+                ens_buf = part_buf if n_ensemble == 1 else numpy.zeros(total_samples, dtype=numpy.float32)
+                # Ensemble voices get micro-variations
+                ens_humanize = part.humanize
+                ens_analog = part.analog
+                if n_ensemble > 1:
+                    import random as _ens_rnd
+                    _ens_rnd.seed(42 + _ens_i * 7)
+                    # Hybrid approach:
+                    # 1. Consistent player tendency (rush/drag) — seeded per player
+                    _player_tendency = _ens_rnd.gauss(0, 0.018)
+                    # 2. Tiny per-note wobble on top
+                    ens_humanize = max(part.humanize, 0.012)
+                    # Each player's drum tuned slightly different
+                    ens_analog = max(part.analog, 0.06 + _ens_rnd.uniform(0, 0.08))
+
+                if part.legato:
+                    _render_legato_to_buf(
+                        part.notes, ens_buf, samples_per_beat, total_samples,
+                        synth_fn, env_tuple, part.volume, score.bpm,
+                        glide_time=part.glide, swing=effective_swing,
+                        tempo_map=tempo_map if has_tempo_changes else None,
+                        temperament=_temperament, reference_pitch=_ref_pitch)
+                else:
+                    _render_notes_to_buf(
+                        part.notes, ens_buf, samples_per_beat, total_samples,
+                        synth_fn, env_tuple, part.volume, score.bpm,
+                        swing=effective_swing,
+                        tempo_map=tempo_map if has_tempo_changes else None,
+                        humanize=ens_humanize,
+                        detune=part.detune,
+                        spread=part.spread,
+                        stereo_buf=stereo_buf,
+                        sub_osc=part.sub_osc,
+                        noise_mix=part.noise_mix,
+                        filter_attack=part.filter_attack,
+                        filter_decay=part.filter_decay,
+                        filter_sustain=part.filter_sustain,
+                        filter_amount=part.filter_amount,
+                        vel_to_filter=part.vel_to_filter,
+                        filter_q=part.lowpass_q,
+                        synth_kwargs=synth_kwargs,
+                        temperament=_temperament,
+                        reference_pitch=_ref_pitch,
+                        analog=ens_analog)
+
+                if n_ensemble > 1:
+                    # Shift the whole voice by the player's consistent tendency
+                    # (some players rush, some drag — this is fixed per player)
+                    shift_samples = int(_player_tendency * samples_per_beat)
+                    if shift_samples > 0 and shift_samples < total_samples:
+                        # Player drags — shift right
+                        shifted = numpy.zeros_like(ens_buf)
+                        shifted[shift_samples:] = ens_buf[:-shift_samples]
+                        ens_buf = shifted
+                    elif shift_samples < 0 and abs(shift_samples) < total_samples:
+                        # Player rushes — shift left
+                        shifted = numpy.zeros_like(ens_buf)
+                        shifted[:shift_samples] = ens_buf[-shift_samples:]
+                        ens_buf = shifted
+                    part_buf += ens_buf / n_ensemble
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()
@@ -4657,6 +4774,10 @@ def render_score(score):
         DrumSound.METAL_KICK.value: 0.0,
         DrumSound.METAL_SNARE.value: 0.0,
         DrumSound.METAL_HAT.value: 0.3,
+        # Marching — centered
+        DrumSound.MARCH_SNARE.value: 0.0,
+        DrumSound.MARCH_RIMSHOT.value: 0.0,
+        DrumSound.MARCH_CLICK.value: 0.0,
     }
 
     # Render all drum Parts (may be one "drums" or split into kick/snare/hats/etc.)
@@ -4672,6 +4793,7 @@ def render_score(score):
         # Track last hit position per sound for choke (new hit dampens
         # the previous ring on the same drum)
         _last_hit_start = {}
+        _resonance = {}  # sound_id → resonance level (0.0–1.0)
 
         for hit in drum_part._drum_hits:
             pos = hit.position
@@ -4741,6 +4863,39 @@ def render_score(score):
                 vel_jitter = int(drum_humanize * 10)
                 vel = max(1, min(127, vel + _drum_rnd.randint(-vel_jitter, vel_jitter)))
             vel_scale = vel / 127.0
+
+            # Sympathetic resonance: marching snare builds up buzz
+            # as hits accumulate. Each hit adds to a resonance counter
+            # that scales extra snare wire buzz into the sound.
+            _RESONANCE_SOUNDS = {
+                DrumSound.MARCH_SNARE.value, DrumSound.MARCH_RIMSHOT.value,
+            }
+            if sound_id in _RESONANCE_SOUNDS:
+                reso = _resonance.get(sound_id, 0.0)
+                # Decay based on gap since last hit
+                if sound_id in _last_hit_start:
+                    gap_samples = start - _last_hit_start[sound_id]
+                    gap_sec = gap_samples / SAMPLE_RATE
+                    if gap_sec > 1.0:
+                        reso *= 0.2
+                    elif gap_sec > 0.5:
+                        reso *= 0.5
+                    elif gap_sec > 0.25:
+                        reso *= 0.8
+                # Build up (caps at 0.6)
+                reso = min(0.6, reso + 0.08)
+                _resonance[sound_id] = reso
+                # Add sympathetic buzz proportional to resonance
+                if reso > 0.1:
+                    buzz_len = min(int(SAMPLE_RATE * 0.06), hit_len)
+                    buzz = _noise(buzz_len) * reso * 0.18
+                    if buzz_len > 20:
+                        bl, al = scipy.signal.butter(
+                            2, [3000, 9000], btype='band', fs=SAMPLE_RATE)
+                        buzz = scipy.signal.lfilter(bl, al, buzz)
+                    buzz *= _exp_decay(buzz_len, 25)
+                    wave[:buzz_len] = wave[:buzz_len] + buzz.astype(numpy.float32)
+
             mono_hit = wave * vel_scale * 0.7
             # Sidechain trigger — kick only
             if hit.sound.value == DrumSound.KICK.value:
