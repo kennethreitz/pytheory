@@ -214,6 +214,14 @@ class LiveEngine:
         self._cc_map = {}    # (channel, cc_number) → (param_name, min, max)
         self._midi_in = None
         self._stream = None
+        # Clock sync
+        self._clock_count = 0      # MIDI clock pulses (24 per quarter note)
+        self._clock_times = []     # timestamps for BPM calculation
+        self._bpm = 120.0
+        self._playing = False
+        # Drum pattern
+        self._drum_pattern = None
+        self._drum_channel = None
 
     def channel(self, ch, *, instrument=None, synth=None, envelope=None,
                 drums=False, **kwargs):
@@ -248,6 +256,23 @@ class LiveEngine:
             is_drums=drums or ch == 10,
             **params,
         )
+        return self
+
+    def drums(self, pattern_name, *, volume=0.5):
+        """Add a drum pattern that syncs to MIDI clock.
+
+        The pattern plays in sync with the OP-XY's transport —
+        starts on Start, stops on Stop, tempo from MIDI clock.
+
+        Args:
+            pattern_name: Drum pattern preset name (e.g. "rock", "house").
+            volume: Drum volume (0.0–1.0).
+        """
+        from .rhythm import Pattern
+        self._drum_pattern = Pattern.preset(pattern_name)
+        # Set up a drums channel
+        self._drum_channel = _Channel(synth_name="sine", is_drums=True,
+                                      volume=volume)
         return self
 
     def cc(self, cc_number, param, *, min_val=0.0, max_val=1.0, ch=None):
@@ -296,6 +321,41 @@ class LiveEngine:
                         print(f"  CC {cc_number}: {param}={scaled:.2f}")
                 return
 
+    def _on_clock(self):
+        """Handle MIDI clock pulse (24 per quarter note)."""
+        import time as _time
+
+        if not self._playing:
+            return
+
+        # Track BPM from clock intervals
+        now = _time.perf_counter()
+        self._clock_times.append(now)
+        if len(self._clock_times) > 48:
+            self._clock_times = self._clock_times[-48:]
+        if len(self._clock_times) >= 24:
+            interval = (self._clock_times[-1] - self._clock_times[-24]) / 24
+            if interval > 0:
+                self._bpm = 60.0 / interval
+
+        # Trigger drum hits at the right time
+        if self._drum_pattern and self._drum_channel:
+            pattern = self._drum_pattern
+            # Convert clock count to beat position
+            # 24 clocks = 1 quarter note = 1 beat
+            beat_pos = self._clock_count / 24.0
+            # Wrap within pattern length
+            pattern_beat = beat_pos % pattern.beats
+
+            # Check if any hits land on this clock tick
+            beat_resolution = 1.0 / 24.0  # one clock tick
+            for hit in pattern.hits:
+                # Check if hit falls within this tick
+                if abs(hit.position - pattern_beat) < beat_resolution / 2:
+                    self._drum_channel.note_on(hit.sound.value, hit.velocity)
+
+        self._clock_count += 1
+
     def _all_notes_off(self):
         """Kill all sounding voices on all channels."""
         for channel in self.channels.values():
@@ -309,15 +369,22 @@ class LiveEngine:
             return
 
         # System realtime messages (1 byte)
-        if msg[0] == 0xFA:  # Start
+        if msg[0] == 0xF8:  # Clock — 24 ppqn
+            self._on_clock()
+            return
+        elif msg[0] == 0xFA:  # Start
             print("  ▶ Start")
+            self._playing = True
+            self._clock_count = 0
             return
         elif msg[0] == 0xFC:  # Stop
             print("  ■ Stop")
+            self._playing = False
             self._all_notes_off()
             return
         elif msg[0] == 0xFB:  # Continue
             print("  ▶ Continue")
+            self._playing = True
             return
 
         if len(msg) < 3:
@@ -347,6 +414,9 @@ class LiveEngine:
         buf = numpy.zeros(frames, dtype=numpy.float32)
         for channel in self.channels.values():
             buf += channel.render(frames)
+        # Mix drum pattern channel
+        if self._drum_channel:
+            buf += self._drum_channel.render(frames)
 
         # Soft clip
         buf = numpy.tanh(buf)
@@ -376,6 +446,18 @@ class LiveEngine:
             # Default: Rhodes on channel 1
             self.channel(1, instrument="electric_piano")
 
+        # Pre-compute wavetables for all channels (avoids first-note glitch)
+        print("  Pre-rendering wavetables...")
+        n_samples = SAMPLE_RATE * 3
+        for ch, channel in self.channels.items():
+            if channel.is_drums:
+                continue
+            # Pre-render notes in the playable range (MIDI 36-96 = C2-C7)
+            for midi_note in range(36, 97):
+                channel._get_wave(midi_note, n_samples)
+        print(f"  Cached {sum(len(c._cache) for c in self.channels.values())} wavetables.")
+        print()
+
         # Open MIDI
         self._midi_in = rtmidi.MidiIn()
         ports = self._midi_in.get_ports()
@@ -404,6 +486,9 @@ class LiveEngine:
         for ch, channel in sorted(self.channels.items()):
             kind = "drums" if channel.is_drums else channel.synth_name
             print(f"    {ch:2d}: {kind} (vol={channel.volume})")
+        print()
+        if self._drum_pattern:
+            print(f"  Drums: {self._drum_pattern.name} (synced to MIDI clock)")
         print()
         print("  Playing... (Ctrl-C to stop)")
         print()
