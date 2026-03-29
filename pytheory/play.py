@@ -915,7 +915,7 @@ def timpani_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     # This is what makes the "oooh" — the fundamental rings and rings,
     # so rapid hits in a roll stack into a singing resonance
     thump_decay = numpy.exp(-6 * t)  # upper modes die fast
-    fund_decay = numpy.exp(-0.6 * t)  # fundamental sustains much longer
+    fund_decay = numpy.exp(-0.35 * t)  # fundamental sustains very long
 
     # Apply different decays: fundamental gets long sustain
     fund = numpy.sin(2 * numpy.pi * hz * t) * 0.8 * fund_decay
