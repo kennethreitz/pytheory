@@ -2873,6 +2873,74 @@ def _synth_march_click(n_samples):
     return numpy.tanh(result * 2.8)
 
 
+def _synth_quad(n_samples, pitch=300):
+    """Marching tenor/quad drum — tuned mylar head, bright and ringy.
+
+    Quads have a distinctive metallic ting from the high-tension
+    mylar head and aluminum shell. More ring than a kit tom,
+    brighter attack, clear pitch.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Pitched body — more ring/sustain than snare
+    body = numpy.sin(2 * numpy.pi * pitch * t) * _exp_decay(n_samples, 22) * 0.5
+    # Metallic overtones — the ting
+    ting = numpy.sin(2 * numpy.pi * pitch * 2.3 * t) * _exp_decay(n_samples, 35) * 0.25
+    ting2 = numpy.sin(2 * numpy.pi * pitch * 3.1 * t) * _exp_decay(n_samples, 45) * 0.12
+    # Shell ring
+    shell = numpy.sin(2 * numpy.pi * pitch * 4.7 * t) * _exp_decay(n_samples, 55) * 0.06
+    # Sharp stick attack
+    click_len = min(int(SAMPLE_RATE * 0.001), n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 400) * 0.8
+    result = body + ting + ting2 + shell
+    result[:click_len] += click
+    return numpy.tanh(result * 2.5)
+
+
+def _synth_quad_spock(n_samples):
+    """Quad spock — rim shot on the tenor shell. Bright, ringy, cutting."""
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    ring = numpy.sin(2 * numpy.pi * 1400 * t) * _exp_decay(n_samples, 40) * 0.5
+    ring2 = numpy.sin(2 * numpy.pi * 2100 * t) * _exp_decay(n_samples, 55) * 0.25
+    click_len = min(int(SAMPLE_RATE * 0.001), n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 400) * 1.0
+    result = ring + ring2
+    result[:click_len] += click
+    return numpy.tanh(result * 2.8)
+
+
+def _synth_march_bass(n_samples, pitch=60):
+    """Marching bass drum — deep, boomy, pitched, felt beater thwack.
+
+    The beater hitting the head is a big part of the sound — a round,
+    pillowy thwack followed by the deep pitched boom. More beater
+    sound than a kit bass drum because marching bass drums project
+    outward.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    # Deep pitched body — sustains and rings
+    body = numpy.sin(2 * numpy.pi * pitch * t) * _exp_decay(n_samples, 10) * 0.7
+    body2 = numpy.sin(2 * numpy.pi * pitch * 2 * t) * _exp_decay(n_samples, 16) * 0.2
+    # Sub thump
+    sub = numpy.sin(2 * numpy.pi * pitch * 0.5 * t) * _exp_decay(n_samples, 8) * 0.3
+    # BIG beater thwack — dominant part of the attack
+    thwack_len = min(int(SAMPLE_RATE * 0.025), n_samples)
+    thwack_raw = _noise(thwack_len)
+    if thwack_len > 10:
+        bl, al = scipy.signal.butter(2, [150, 2500], btype='band', fs=SAMPLE_RATE)
+        thwack = scipy.signal.lfilter(bl, al, numpy.pad(thwack_raw, (0, max(0, n_samples - thwack_len))))[:thwack_len]
+    else:
+        thwack = thwack_raw
+    thwack *= _exp_decay(thwack_len, 55) * 1.5
+    # Head slap — the mylar flexing on impact
+    slap_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    slap = numpy.sin(2 * numpy.pi * pitch * 3 * numpy.arange(slap_len, dtype=numpy.float32) / SAMPLE_RATE)
+    slap *= _exp_decay(slap_len, 90) * 0.4
+    result = body + body2 + sub
+    result[:thwack_len] += thwack
+    result[:slap_len] += slap
+    return numpy.tanh(result * 2.0)
+
+
 def _synth_tabla_ge_bend(n_samples):
     """Tabla Ge with upward pitch bend — palm pressing into bayan head.
 
@@ -3093,6 +3161,18 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.MARCH_SNARE.value: lambda n: _synth_march_snare(n),
         DrumSound.MARCH_RIMSHOT.value: lambda n: _synth_march_rimshot(n),
         DrumSound.MARCH_CLICK.value: lambda n: _synth_march_click(n),
+        # Quads (tenor drums) — pitched high to low
+        DrumSound.QUAD_1.value: lambda n: _synth_quad(n, pitch=400),
+        DrumSound.QUAD_2.value: lambda n: _synth_quad(n, pitch=330),
+        DrumSound.QUAD_3.value: lambda n: _synth_quad(n, pitch=270),
+        DrumSound.QUAD_4.value: lambda n: _synth_quad(n, pitch=220),
+        DrumSound.QUAD_SPOCK.value: lambda n: _synth_quad_spock(n),
+        # Marching bass drums — pitched high to low
+        DrumSound.BASS_1.value: lambda n: _synth_march_bass(n, pitch=90),
+        DrumSound.BASS_2.value: lambda n: _synth_march_bass(n, pitch=75),
+        DrumSound.BASS_3.value: lambda n: _synth_march_bass(n, pitch=62),
+        DrumSound.BASS_4.value: lambda n: _synth_march_bass(n, pitch=52),
+        DrumSound.BASS_5.value: lambda n: _synth_march_bass(n, pitch=42),
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
@@ -4778,6 +4858,18 @@ def render_score(score):
         DrumSound.MARCH_SNARE.value: 0.0,
         DrumSound.MARCH_RIMSHOT.value: 0.0,
         DrumSound.MARCH_CLICK.value: 0.0,
+        # Quads — spread across the field
+        DrumSound.QUAD_1.value: -0.3,
+        DrumSound.QUAD_2.value: -0.1,
+        DrumSound.QUAD_3.value: 0.1,
+        DrumSound.QUAD_4.value: 0.3,
+        DrumSound.QUAD_SPOCK.value: 0.0,
+        # Bass drums — spread wide
+        DrumSound.BASS_1.value: -0.5,
+        DrumSound.BASS_2.value: -0.25,
+        DrumSound.BASS_3.value: 0.0,
+        DrumSound.BASS_4.value: 0.25,
+        DrumSound.BASS_5.value: 0.5,
     }
 
     # Render all drum Parts (may be one "drums" or split into kick/snare/hats/etc.)

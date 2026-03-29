@@ -568,6 +568,18 @@ class DrumSound(Enum):
     MARCH_SNARE = 115    # tight, high-tension kevlar head, snare buzz
     MARCH_RIMSHOT = 116  # stick hits rim + head simultaneously, cracking
     MARCH_CLICK = 118    # stick click — sticks hit together, no drum
+    # Quads (tenor drums) — 4 drums high to low + spock (rim)
+    QUAD_1 = 119         # highest tenor drum
+    QUAD_2 = 120         # second tenor
+    QUAD_3 = 121         # third tenor
+    QUAD_4 = 122         # lowest tenor (floor tom-ish)
+    QUAD_SPOCK = 123     # rim click on quad shell
+    # Marching bass drums — 5 drums pitched high to low
+    BASS_1 = 124         # highest (smallest) bass drum
+    BASS_2 = 125         # second
+    BASS_3 = 126         # middle
+    BASS_4 = 127         # fourth
+    BASS_5 = 80          # lowest (biggest) bass drum
 
 
 class _DrumTone:
@@ -1609,6 +1621,17 @@ Pattern._PRESETS["tabla solo"] = dict(
 # ── Marching snare patterns ───────────────────────────────────────────────
 MS = DrumSound.MARCH_SNARE
 MR = DrumSound.MARCH_RIMSHOT
+MC = DrumSound.MARCH_CLICK
+Q1 = DrumSound.QUAD_1
+Q2 = DrumSound.QUAD_2
+Q3 = DrumSound.QUAD_3
+Q4 = DrumSound.QUAD_4
+QS = DrumSound.QUAD_SPOCK
+B1 = DrumSound.BASS_1
+B2 = DrumSound.BASS_2
+B3 = DrumSound.BASS_3
+B4 = DrumSound.BASS_4
+B5 = DrumSound.BASS_5
 
 # Marching basic — standard 4/4 march with rimshot accents on 2 and 4
 Pattern._PRESETS["march"] = dict(
@@ -1674,6 +1697,96 @@ Pattern._PRESETS["march roll"] = dict(
         *[_h(MS, i * 0.125, 40 + i * 3) for i in range(28)],
         # Land on rimshot
         _h(MR, 3.5, 115), _h(MR, 3.75, 120),
+    ],
+)
+
+# Quad sweep — run across all 4 drums
+Pattern._PRESETS["quad sweep"] = dict(
+    name="quad sweep",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Sweep down
+        _h(Q1, 0.0, 95), _h(Q2, 0.25, 90), _h(Q3, 0.5, 85), _h(Q4, 0.75, 80),
+        # Sweep up
+        _h(Q4, 1.0, 80), _h(Q3, 1.25, 85), _h(Q2, 1.5, 90), _h(Q1, 1.75, 95),
+        # Double sweep with spocks
+        _h(Q1, 2.0, 98), _h(Q2, 2.125, 92), _h(Q3, 2.25, 88), _h(Q4, 2.375, 82),
+        _h(Q4, 2.5, 82), _h(Q3, 2.625, 88), _h(Q2, 2.75, 92), _h(Q1, 2.875, 98),
+        # Spock accents
+        _h(QS, 3.0, 105), _h(Q1, 3.25, 90), _h(QS, 3.5, 105), _h(Q4, 3.75, 85),
+    ],
+)
+
+# Quad groove — accented pattern with sweeps
+Pattern._PRESETS["quad groove"] = dict(
+    name="quad groove",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        _h(Q1, 0.0, 100), _h(Q3, 0.25, 55), _h(Q1, 0.5, 60),
+        _h(Q2, 0.75, 55), _h(Q3, 1.0, 95), _h(Q1, 1.25, 55),
+        _h(Q4, 1.5, 58), _h(Q2, 1.75, 55),
+        _h(Q1, 2.0, 100), _h(Q2, 2.25, 55), _h(Q3, 2.5, 58),
+        _h(Q4, 2.75, 55), _h(QS, 3.0, 105), _h(Q3, 3.25, 55),
+        _h(Q2, 3.5, 58), _h(Q1, 3.75, 60),
+    ],
+)
+
+# Bass split — classic bass drum splits across the line
+Pattern._PRESETS["bass split"] = dict(
+    name="bass split",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Each bass drum takes a 16th, cascading down then up
+        _h(B1, 0.0, 95), _h(B2, 0.25, 90), _h(B3, 0.5, 85),
+        _h(B4, 0.75, 80), _h(B5, 1.0, 95),
+        _h(B5, 1.5, 90), _h(B4, 1.75, 85),
+        _h(B3, 2.0, 95), _h(B2, 2.25, 90), _h(B1, 2.5, 95),
+        _h(B1, 2.75, 85), _h(B3, 3.0, 100),
+        _h(B5, 3.25, 95), _h(B3, 3.5, 90), _h(B1, 3.75, 95),
+    ],
+)
+
+# Bass unison — all bass drums hit together on accents
+Pattern._PRESETS["bass unison"] = dict(
+    name="bass unison",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # All 5 hit on beat 1
+        _h(B1, 0.0, 100), _h(B2, 0.0, 100), _h(B3, 0.0, 100),
+        _h(B4, 0.0, 100), _h(B5, 0.0, 100),
+        # Split on beat 2
+        _h(B1, 1.0, 90), _h(B3, 1.25, 85), _h(B5, 1.5, 90),
+        # All on beat 3
+        _h(B1, 2.0, 100), _h(B2, 2.0, 100), _h(B3, 2.0, 100),
+        _h(B4, 2.0, 100), _h(B5, 2.0, 100),
+        # Cascade into beat 4
+        _h(B5, 2.75, 80), _h(B4, 3.0, 85), _h(B3, 3.25, 90),
+        _h(B2, 3.5, 95), _h(B1, 3.75, 100),
+    ],
+)
+
+# Full drumline — snare + quads + bass together
+Pattern._PRESETS["drumline"] = dict(
+    name="drumline",
+    time_signature="4/4",
+    beats=4.0,
+    hits=[
+        # Snare backbone
+        _h(MR, 0.0, 115), _h(MS, 0.25, 35), _h(MS, 0.5, 38), _h(MS, 0.75, 32),
+        _h(MR, 1.0, 112), _h(MS, 1.25, 35), _h(MS, 1.5, 32), _h(MS, 1.75, 38),
+        _h(MR, 2.0, 115), _h(MS, 2.25, 38), _h(MS, 2.5, 32), _h(MS, 2.75, 35),
+        _h(MR, 3.0, 118), _h(MS, 3.25, 35), _h(MS, 3.5, 32), _h(MS, 3.75, 38),
+        # Quads on accents
+        _h(Q1, 0.0, 95), _h(Q3, 0.5, 55), _h(Q2, 1.0, 90),
+        _h(Q4, 1.5, 55), _h(Q1, 2.0, 95), _h(Q3, 2.5, 55),
+        _h(QS, 3.0, 100), _h(Q2, 3.5, 55),
+        # Bass on the big beats
+        _h(B3, 0.0, 100), _h(B5, 1.0, 95),
+        _h(B1, 2.0, 100), _h(B3, 3.0, 95),
     ],
 )
 
