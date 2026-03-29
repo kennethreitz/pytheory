@@ -580,10 +580,12 @@ def gen_synth_upright_bass():
 
 def gen_synth_timpani():
     score = Score("4/4", bpm=80)
-    p = score.part("demo", synth="timpani_synth", envelope="none",
-                   volume=0.5, reverb=0.25)
-    for n in ["C2", "E2", "G2", "C3", "G2", "E2", "C2", "C2"]:
-        p.add(n, Duration.QUARTER, velocity=90)
+    timp = score.part("timp", synth="timpani_synth", volume=0.5, reverb=0.25)
+    timp.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=110)
+    timp.add("C3", Duration.HALF, velocity=127)
+    timp.rest(Duration.HALF)
+    timp.roll("G2", Duration.WHOLE, velocity_start=20, velocity_end=110)
+    timp.add("G2", Duration.HALF, velocity=127)
     render("synth_timpani", score)
 
 def gen_synth_strings():
