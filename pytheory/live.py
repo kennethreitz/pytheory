@@ -191,6 +191,7 @@ class LiveEngine:
         self.buffer_size = buffer_size
         self.sample_rate = sample_rate
         self.channels = {}   # MIDI channel (1-16) → _Channel
+        self._cc_map = {}    # (channel, cc_number) → (param_name, min, max)
         self._midi_in = None
         self._stream = None
 
@@ -229,6 +230,52 @@ class LiveEngine:
         )
         return self
 
+    def cc(self, cc_number, param, *, min_val=0.0, max_val=1.0, ch=None):
+        """Map a MIDI CC to a channel parameter.
+
+        Args:
+            cc_number: MIDI CC number (0-127).
+            param: Parameter name ("volume", "lowpass", "reverb", etc.)
+            min_val: Value when CC = 0.
+            max_val: Value when CC = 127.
+            ch: MIDI channel (None = all channels).
+
+        Example::
+
+            >>> engine.cc(11, "lowpass", min_val=200, max_val=8000)
+            >>> engine.cc(12, "volume", min_val=0.0, max_val=1.0)
+            >>> engine.cc(13, "reverb", min_val=0.0, max_val=0.8)
+            >>> engine.cc(14, "distortion", min_val=0.0, max_val=0.8)
+        """
+        self._cc_map[(ch, cc_number)] = (param, min_val, max_val)
+        return self
+
+    def _apply_cc(self, ch, cc_number, value):
+        """Apply a CC value to the matching channel parameter."""
+        # Check channel-specific mapping first, then global (ch=None)
+        for key in [(ch, cc_number), (None, cc_number)]:
+            if key in self._cc_map:
+                param, min_val, max_val = self._cc_map[key]
+                scaled = min_val + (max_val - min_val) * (value / 127.0)
+
+                # Apply to the channel
+                target_chs = [ch] if key[0] is not None else list(self.channels.keys())
+                for target_ch in target_chs:
+                    if target_ch in self.channels:
+                        channel = self.channels[target_ch]
+                        if param == "volume":
+                            channel.volume = scaled
+                        elif param == "lowpass":
+                            channel.lowpass = scaled
+                            channel._cache.clear()  # filter changed, invalidate
+                        elif param == "reverb":
+                            channel.reverb = scaled
+                        elif hasattr(channel, param):
+                            setattr(channel, param, scaled)
+                            channel._cache.clear()
+                        print(f"  CC {cc_number}: {param}={scaled:.2f}")
+                return
+
     def _midi_callback(self, event, data=None):
         """Handle incoming MIDI messages."""
         msg, _ = event
@@ -250,6 +297,9 @@ class LiveEngine:
             channel.note_on(note, velocity)
         elif msg_type == 0x80 or (msg_type == 0x90 and velocity == 0):
             channel.note_off(note)
+        elif msg_type == 0xB0:
+            # CC message
+            self._apply_cc(ch, note, velocity)
 
     def _audio_callback(self, outdata, frames, time_info, status):
         """sounddevice callback — mix all channels."""
