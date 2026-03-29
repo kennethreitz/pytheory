@@ -99,14 +99,34 @@ class _Channel:
         if self.lowpass > 0:
             wave_f = _apply_lowpass(wave_f, self.lowpass, q=self.lowpass_q)
 
+        # Apply reverb — simple feedback delay for real-time
+        if self.reverb > 0:
+            wet = self.reverb
+            delay_samples = int(SAMPLE_RATE * 0.03)  # 30ms early reflection
+            delay2 = int(SAMPLE_RATE * 0.047)        # second tap
+            delay3 = int(SAMPLE_RATE * 0.071)        # third tap
+            reverbed = wave_f.copy()
+            for delay, gain in [(delay_samples, 0.4), (delay2, 0.3), (delay3, 0.2)]:
+                if delay < len(reverbed):
+                    reverbed[delay:] += wave_f[:-delay] * gain
+            # Feedback loop for tail
+            fb_delay = int(SAMPLE_RATE * 0.05)
+            feedback = 0.35
+            for _ in range(6):
+                if fb_delay < len(reverbed):
+                    reverbed[fb_delay:] += reverbed[:-fb_delay] * feedback
+                    feedback *= 0.7
+                    fb_delay = int(fb_delay * 1.5)
+            wave_f = wave_f * (1.0 - wet) + reverbed * wet
+
         self._cache[midi_note] = wave_f
         return wave_f
 
     def note_on(self, midi_note, velocity):
         """Start a new voice."""
         vel_scale = velocity / 127.0
-        # Render 2 seconds of audio
-        n_samples = SAMPLE_RATE * 2
+        # Render 3 seconds of audio (extra for reverb tail)
+        n_samples = SAMPLE_RATE * 3
         wave = self._get_wave(midi_note, n_samples)
 
         with self._lock:
