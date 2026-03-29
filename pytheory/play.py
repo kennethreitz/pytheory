@@ -358,27 +358,42 @@ def piano_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     # Harmonics with the metallic spectral shape of steel strings
     n_harmonics = min(15, int((SAMPLE_RATE / 2) / hz))
 
+    # Vectorized harmonic synthesis — all harmonics at once
+    harmonics = numpy.arange(1, n_harmonics + 1, dtype=numpy.float64)
+
+    # Piano spectral shape as array
+    amps = numpy.zeros(n_harmonics, dtype=numpy.float64)
+    amps[0] = 1.0
+    if n_harmonics > 1:
+        amps[1] = 0.7 + 0.15 * brightness
+    if n_harmonics > 2:
+        amps[2] = 0.45 + 0.2 * brightness
+    for i in range(3, min(6, n_harmonics)):
+        amps[i] = (0.25 + 0.15 * brightness) / (i + 1)
+    for i in range(6, n_harmonics):
+        amps[i] = (0.1 + 0.1 * brightness) / ((i + 1) ** 2)
+
+    # Per-harmonic decay rates
+    h_decay_rates = (1.5 - 0.5 * brightness) * (harmonics - 1)
+
+    # Random phases
+    phases = rng.uniform(0, 2 * numpy.pi, n_harmonics)
+
     for string_hz in [hz, hz2]:
-        for n in range(1, n_harmonics + 1):
-            f_n = string_hz * n
-            if f_n >= SAMPLE_RATE / 2:
-                break
-            # Piano spectral shape: strong 1-3, then falling
-            # Upper register has more prominent harmonics (brighter)
-            if n == 1:
-                amp = 1.0
-            elif n == 2:
-                amp = 0.7 + 0.15 * brightness
-            elif n == 3:
-                amp = 0.45 + 0.2 * brightness
-            elif n <= 6:
-                amp = (0.25 + 0.15 * brightness) / n
-            else:
-                amp = (0.1 + 0.1 * brightness) / (n * n)
-            # Higher harmonics decay faster, but less so in upper register
-            h_decay = decay * numpy.exp(-(1.5 - 0.5 * brightness) * (n - 1) * t)
-            phase = rng.uniform(0, 2 * numpy.pi)
-            wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * h_decay
+        freqs = string_hz * harmonics  # (n_harmonics,)
+        # Mask out harmonics above Nyquist
+        valid = freqs < SAMPLE_RATE / 2
+        if not valid.any():
+            continue
+        v_freqs = freqs[valid]
+        v_amps = amps[valid]
+        v_rates = h_decay_rates[valid]
+        v_phases = phases[valid]
+
+        # 2D: (n_valid, n_samples) — one sin() call for all harmonics
+        phase_matrix = 2 * numpy.pi * v_freqs[:, numpy.newaxis] * t[numpy.newaxis, :] + v_phases[:, numpy.newaxis]
+        decay_matrix = decay[numpy.newaxis, :] * numpy.exp(-v_rates[:, numpy.newaxis] * t[numpy.newaxis, :])
+        wave += (v_amps[:, numpy.newaxis] * numpy.sin(phase_matrix) * decay_matrix).sum(axis=0)
 
     wave *= 0.5
 
@@ -1995,16 +2010,32 @@ def _noise(n_samples):
     return numpy.random.uniform(-1.0, 1.0, n_samples).astype(numpy.float32)
 
 
+# ── Cached helpers for hot paths ──────────────────────────────────────────
+
+_time_cache = {}
+
+
+def _get_time_array(n_samples):
+    """Cached time array — avoids reallocation on every synth call."""
+    if n_samples not in _time_cache:
+        _time_cache[n_samples] = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+    return _time_cache[n_samples]
+
+
 def _sine_f32(hz, n_samples):
     """Float32 sine wave, normalized to ±1."""
-    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    return numpy.sin(2 * numpy.pi * hz * t)
+    return numpy.sin(2 * numpy.pi * hz * _get_time_array(n_samples))
+
+
+_decay_cache = {}
 
 
 def _exp_decay(n_samples, decay_rate):
-    """Exponential decay envelope from 1→0."""
-    t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    return numpy.exp(-decay_rate * t)
+    """Exponential decay envelope from 1→0. Cached."""
+    key = (n_samples, decay_rate)
+    if key not in _decay_cache:
+        _decay_cache[key] = numpy.exp(-decay_rate * _get_time_array(n_samples))
+    return _decay_cache[key]
 
 
 def _synth_kick(n_samples):
@@ -3176,7 +3207,20 @@ def _render_drum_hit(sound_value, n_samples):
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
-    return renderer(n_samples)
+    result = renderer(n_samples)
+    return result
+
+
+# Drum hit cache — same sound at same length sounds identical
+_drum_cache = {}
+
+
+def _render_drum_hit_cached(sound_value, n_samples):
+    """Cached version of _render_drum_hit for pattern playback."""
+    key = (sound_value, n_samples)
+    if key not in _drum_cache:
+        _drum_cache[key] = _render_drum_hit(sound_value, n_samples)
+    return _drum_cache[key].copy()  # copy so callers can mutate
 
 
 def _render_pattern(pattern, bpm=120):
@@ -3200,7 +3244,7 @@ def _render_pattern(pattern, bpm=120):
         remaining = total_samples - start
         # Render each hit for up to 0.5 seconds
         hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
-        wave = _render_drum_hit(hit.sound.value, hit_len)
+        wave = _render_drum_hit_cached(hit.sound.value, hit_len)
         vel_scale = hit.velocity / 127.0
         buf[start:start + hit_len] += wave * vel_scale
 
@@ -4949,7 +4993,7 @@ def render_score(score):
 
             remaining = total_samples - start
             hit_len = min(int(SAMPLE_RATE * 0.5), remaining)
-            wave = _render_drum_hit(hit.sound.value, hit_len)
+            wave = _render_drum_hit_cached(hit.sound.value, hit_len)
             vel = hit.velocity
             if drum_humanize > 0:
                 vel_jitter = int(drum_humanize * 10)
