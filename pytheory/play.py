@@ -828,10 +828,23 @@ def harp_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         phase = rng.uniform(0, 2 * numpy.pi)
         wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * h_decay
 
-    # Soft finger pluck transient
-    pluck_len = min(int(SAMPLE_RATE * 0.006), n_samples)
-    pluck = numpy.sin(2 * numpy.pi * hz * 2.5 * numpy.arange(pluck_len, dtype=numpy.float64) / SAMPLE_RATE)
-    pluck *= numpy.exp(-numpy.linspace(0, 15, pluck_len)) * 0.2
+    # Karplus-Strong pluck transient — just the first ~50ms
+    # Gives the finger-on-string attack, then the pure tone takes over
+    period = max(2, int(SAMPLE_RATE / hz))
+    ks_rng = numpy.random.default_rng(int(hz * 77) % 2**31)
+    ks_buf = ks_rng.uniform(-0.3, 0.3, period).astype(numpy.float64)
+    # Pre-filter for soft finger pluck
+    for _ in range(4):
+        for k in range(period - 1):
+            ks_buf[k] = 0.6 * ks_buf[k] + 0.4 * ks_buf[k + 1]
+    pluck_len = min(int(SAMPLE_RATE * 0.05), n_samples)
+    pluck = numpy.zeros(pluck_len, dtype=numpy.float64)
+    for i in range(pluck_len):
+        pluck[i] = ks_buf[i % period]
+        nxt = (i + 1) % period
+        ks_buf[i % period] = 0.5 * (ks_buf[i % period] + ks_buf[nxt])
+    # Fade the KS pluck out quickly so the pure tone takes over
+    pluck *= numpy.exp(-numpy.linspace(0, 8, pluck_len)) * 0.4
     wave[:pluck_len] += pluck
 
     mx = numpy.abs(wave).max()
