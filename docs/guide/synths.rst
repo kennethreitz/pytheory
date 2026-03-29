@@ -824,6 +824,10 @@ Parameters (passed as synth kwargs):
 - ``source``: Base waveform — ``"saw"``, ``"sine"``, ``"triangle"``,
   ``"square"``, ``"noise"``.
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_granular.wav" type="audio/wav"></audio>
+
 Analog Oscillator Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
