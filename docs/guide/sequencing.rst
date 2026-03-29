@@ -353,6 +353,10 @@ portamento (pitch slides between notes):
    )
    acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/legato_glide.wav" type="audio/wav"></audio>
+
 - ``legato``: If True, no envelope retrigger between notes (default False).
 - ``glide``: Portamento time in seconds (default 0, instant).
   0.03--0.05 = quick 303 slide, 0.1--0.2 = slow glide.

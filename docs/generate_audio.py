@@ -391,6 +391,19 @@ def gen_jazz_ballad():
 
 # ── Quickstart example ───────────────────────────────────────────────────
 
+def gen_legato_glide():
+    score = Score("4/4", bpm=132)
+    score.drums("house", repeats=4)
+    score.set_drum_effects(volume=0.35)
+    acid = score.part("acid", synth="saw", envelope="pad", volume=0.5,
+                      legato=True, glide=0.04, lowpass=2000, lowpass_q=4.0,
+                      distortion=0.3)
+    for _ in range(4):
+        acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
+        acid.add("C2", 0.25).add("Eb2", 0.25).add("G2", 0.25).add("Bb2", 0.25)
+    render("legato_glide", score)
+
+
 def gen_quickstart():
     score = Score("4/4", bpm=140)
     score.drums("bossa nova", repeats=4)
@@ -511,6 +524,7 @@ GENERATORS = [
     gen_ensemble,
     gen_strum,
     gen_swell,
+    gen_legato_glide,
     gen_acid_house,
     gen_dub_reggae,
     gen_jazz_ballad,
