@@ -279,32 +279,32 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     n_harmonics = min(40, int(nyquist / hz))
     wave = numpy.zeros(n_samples, dtype=numpy.float64)
 
-    # Body resonance curve — emphasizes certain harmonic regions
-    # Modeled after violin/cello response: peaks around 300Hz, 1kHz, 2.5kHz
-    def body_response(f):
-        """Approximate string instrument body resonance."""
-        r = 1.0
-        # Main air resonance (~280 Hz for violin, scales with pitch)
-        air_f = max(200, min(400, hz * 1.5))
-        r += 0.6 * numpy.exp(-((f - air_f) / 100) ** 2)
-        # Wood resonance (~1 kHz)
-        r += 0.4 * numpy.exp(-((f - 1000) / 300) ** 2)
-        # Bridge resonance (~2.5 kHz) — the "presence" peak
-        r += 0.3 * numpy.exp(-((f - 2500) / 500) ** 2)
-        return r
+    # Vectorized harmonic synthesis with body resonance
+    harmonics = numpy.arange(1, n_harmonics + 1, dtype=numpy.float64)
+    freqs = hz * harmonics
+    valid = freqs < nyquist
+    harmonics = harmonics[valid]
+    freqs = freqs[valid]
+    n_valid = len(harmonics)
 
-    for n in range(1, n_harmonics + 1):
-        f_n = hz * n
-        if f_n >= nyquist:
-            break
-        # Amplitude: 1/n rolloff (sawtooth-like) shaped by body
-        amp = (1.0 / n) * body_response(f_n)
-        # Even harmonics slightly weaker (bowing point ~1/8 from bridge)
-        if n % 2 == 0:
-            amp *= 0.85
-        # Random phase per harmonic — prevents the "buzzy" coherent-phase sound
-        phi = rng.uniform(0, 2 * numpy.pi)
-        wave += amp * numpy.sin(2 * numpy.pi * (f_n * t + vibrato * n / hz) + phi)
+    # Body resonance — vectorized
+    air_f = max(200, min(400, hz * 1.5))
+    body = (1.0
+            + 0.6 * numpy.exp(-((freqs - air_f) / 100) ** 2)
+            + 0.4 * numpy.exp(-((freqs - 1000) / 300) ** 2)
+            + 0.3 * numpy.exp(-((freqs - 2500) / 500) ** 2))
+
+    # Amplitude: 1/n with body shaping, even harmonics weaker
+    amps = (1.0 / harmonics) * body
+    amps[1::2] *= 0.85  # even harmonics (index 1,3,5... = harmonic 2,4,6...)
+
+    # Random phases
+    phases = rng.uniform(0, 2 * numpy.pi, n_valid)
+
+    # Process in small batches to stay cache-friendly
+    for i in range(n_valid):
+        phase = 2 * numpy.pi * (freqs[i] * t + vibrato * harmonics[i] / hz) + phases[i]
+        wave += amps[i] * numpy.sin(phase)
 
     # Normalize
     max_val = numpy.abs(wave).max()
@@ -4693,6 +4693,7 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
 
     a, d, s, r = envelope_tuple
     _skw = synth_kwargs or {}
+    _synth_cache = {}  # (hz, n_samples) → waveform, avoids resynthesizing same note
     beat_pos = 0.0
     for note_index, note in enumerate(notes):
         if note.tone is not None:
@@ -4808,9 +4809,16 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     note_lyric = getattr(note, 'lyric', '')
                     if note_lyric:
                         note_skw['lyric'] = note_lyric
-                    # Render oscillators
-                    waves = [synth_fn(hz, n_samples=n_samples, **note_skw)
-                             for hz in pitches]
+                    # Render oscillators (cached per hz+n_samples)
+                    waves = []
+                    for hz in pitches:
+                        cache_key = (hz, n_samples, tuple(sorted(note_skw.items())))
+                        if cache_key in _synth_cache:
+                            waves.append(_synth_cache[cache_key].copy())
+                        else:
+                            w = synth_fn(hz, n_samples=n_samples, **note_skw)
+                            _synth_cache[cache_key] = w
+                            waves.append(w)
                 # Sub-oscillator: octave-below sine
                 if sub_osc > 0:
                     for hz in pitches:
@@ -5058,37 +5066,23 @@ def render_score(score):
 
             n_ensemble = max(1, getattr(part, 'ensemble', 1))
 
-            for _ens_i in range(n_ensemble):
-                # Each ensemble voice gets its own buffer
-                ens_buf = part_buf if n_ensemble == 1 else numpy.zeros(total_samples, dtype=numpy.float32)
-                # Ensemble voices get micro-variations
-                ens_humanize = part.humanize
-                ens_analog = part.analog
-                if n_ensemble > 1:
-                    import random as _ens_rnd
-                    _ens_rnd.seed(42 + _ens_i * 7)
-                    # Hybrid approach:
-                    # 1. Consistent player tendency (rush/drag) — seeded per player
-                    _player_tendency = _ens_rnd.gauss(0, 0.018)
-                    # 2. Tiny per-note wobble on top
-                    ens_humanize = max(part.humanize, 0.012)
-                    # Each player's drum tuned slightly different
-                    ens_analog = max(part.analog, 0.06 + _ens_rnd.uniform(0, 0.08))
-
+            if n_ensemble > 1:
+                # FAST ENSEMBLE: render once, duplicate with time shifts
+                # Render the "reference" voice with light humanize
                 if part.legato:
                     _render_legato_to_buf(
-                        part.notes, ens_buf, samples_per_beat, total_samples,
+                        part.notes, part_buf, samples_per_beat, total_samples,
                         synth_fn, env_tuple, part.volume, score.bpm,
                         glide_time=part.glide, swing=effective_swing,
                         tempo_map=tempo_map if has_tempo_changes else None,
                         temperament=_temperament, reference_pitch=_ref_pitch)
                 else:
                     _render_notes_to_buf(
-                        part.notes, ens_buf, samples_per_beat, total_samples,
+                        part.notes, part_buf, samples_per_beat, total_samples,
                         synth_fn, env_tuple, part.volume, score.bpm,
                         swing=effective_swing,
                         tempo_map=tempo_map if has_tempo_changes else None,
-                        humanize=ens_humanize,
+                        humanize=part.humanize,
                         detune=part.detune,
                         spread=part.spread,
                         stereo_buf=stereo_buf,
@@ -5103,23 +5097,63 @@ def render_score(score):
                         synth_kwargs=synth_kwargs,
                         temperament=_temperament,
                         reference_pitch=_ref_pitch,
-                        analog=ens_analog)
+                        analog=part.analog)
 
-                if n_ensemble > 1:
-                    # Shift the whole voice by the player's consistent tendency
-                    # (some players rush, some drag — this is fixed per player)
+                # Now duplicate with per-player offsets (cheap buffer ops)
+                import random as _ens_rnd
+                ref_buf = part_buf.copy()
+                part_buf *= 1.0 / n_ensemble  # scale down the reference voice
+
+                for _ens_i in range(1, n_ensemble):
+                    _ens_rnd.seed(42 + _ens_i * 7)
+                    _player_tendency = _ens_rnd.gauss(0, 0.018)
                     shift_samples = int(_player_tendency * samples_per_beat)
+
+                    voice = ref_buf.copy()
+
+                    # Time shift — player rushes or drags
                     if shift_samples > 0 and shift_samples < total_samples:
-                        # Player drags — shift right
-                        shifted = numpy.zeros_like(ens_buf)
-                        shifted[shift_samples:] = ens_buf[:-shift_samples]
-                        ens_buf = shifted
+                        voice[shift_samples:] = voice[:-shift_samples].copy()
+                        voice[:shift_samples] = 0
                     elif shift_samples < 0 and abs(shift_samples) < total_samples:
-                        # Player rushes — shift left
-                        shifted = numpy.zeros_like(ens_buf)
-                        shifted[:shift_samples] = ens_buf[-shift_samples:]
-                        ens_buf = shifted
-                    part_buf += ens_buf / n_ensemble
+                        voice[:shift_samples] = voice[-shift_samples:].copy()
+                        voice[shift_samples:] = 0
+
+                    # Slight velocity variation per voice
+                    vel_var = 1.0 + _ens_rnd.gauss(0, 0.04)
+                    voice *= vel_var
+
+                    part_buf += voice / n_ensemble
+            else:
+                if part.legato:
+                    _render_legato_to_buf(
+                        part.notes, part_buf, samples_per_beat, total_samples,
+                        synth_fn, env_tuple, part.volume, score.bpm,
+                        glide_time=part.glide, swing=effective_swing,
+                        tempo_map=tempo_map if has_tempo_changes else None,
+                        temperament=_temperament, reference_pitch=_ref_pitch)
+                else:
+                    _render_notes_to_buf(
+                        part.notes, part_buf, samples_per_beat, total_samples,
+                        synth_fn, env_tuple, part.volume, score.bpm,
+                        swing=effective_swing,
+                        tempo_map=tempo_map if has_tempo_changes else None,
+                        humanize=part.humanize,
+                        detune=part.detune,
+                        spread=part.spread,
+                        stereo_buf=stereo_buf,
+                        sub_osc=part.sub_osc,
+                        noise_mix=part.noise_mix,
+                        filter_attack=part.filter_attack,
+                        filter_decay=part.filter_decay,
+                        filter_sustain=part.filter_sustain,
+                        filter_amount=part.filter_amount,
+                        vel_to_filter=part.vel_to_filter,
+                        filter_q=part.lowpass_q,
+                        synth_kwargs=synth_kwargs,
+                        temperament=_temperament,
+                        reference_pitch=_ref_pitch,
+                        analog=part.analog)
 
             # Apply effects — segmented if automation exists
             auto_points = part._get_automation_points()
