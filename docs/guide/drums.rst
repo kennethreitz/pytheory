@@ -249,9 +249,29 @@ Playing Patterns
    play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
    play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
+Rock:
+
 .. raw:: html
 
-   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/rock_beat.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.5em 0 1em"><source src="../_static/audio/rock_beat.wav" type="audio/wav"></audio>
+
+Bossa nova:
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1em"><source src="../_static/audio/bossa_nova_pattern.wav" type="audio/wav"></audio>
+
+Salsa:
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1em"><source src="../_static/audio/salsa_pattern.wav" type="audio/wav"></audio>
+
+Afrobeat:
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/afrobeat_pattern.wav" type="audio/wav"></audio>
 
 Fills
 -----

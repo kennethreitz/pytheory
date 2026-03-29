@@ -117,6 +117,24 @@ def gen_rock_beat():
     render("rock_beat", score)
 
 
+def gen_bossa_nova_pattern():
+    score = Score("4/4", bpm=140)
+    score.drums("bossa nova", repeats=4)
+    render("bossa_nova_pattern", score)
+
+
+def gen_salsa_pattern():
+    score = Score("4/4", bpm=180)
+    score.drums("salsa", repeats=4)
+    render("salsa_pattern", score)
+
+
+def gen_afrobeat_pattern():
+    score = Score("4/4", bpm=110)
+    score.drums("afrobeat", repeats=8)
+    render("afrobeat_pattern", score)
+
+
 # ── Bossa nova ───────────────────────────────────────────────────────────
 
 def gen_bossa_nova():
@@ -413,6 +431,9 @@ GENERATORS = [
     gen_dynamics,
     gen_filter_ramp,
     gen_rock_beat,
+    gen_bossa_nova_pattern,
+    gen_salsa_pattern,
+    gen_afrobeat_pattern,
     gen_bossa_nova,
     gen_djembe,
     gen_tabla,
