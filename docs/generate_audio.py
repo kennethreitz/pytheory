@@ -23,23 +23,33 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 
 
 def save_wav(buf, path):
-    """Save a float32 buffer as 16-bit WAV."""
-    # Normalize
+    """Save a float32 buffer as 16-bit stereo WAV."""
+    # Handle both mono (n,) and stereo (n, 2) buffers
+    if buf.ndim == 1:
+        channels = 1
+        n_frames = len(buf)
+    else:
+        channels = buf.shape[1]
+        n_frames = buf.shape[0]
     peak = numpy.abs(buf).max()
     if peak > 0:
         buf = buf / peak * 0.9
     samples = (buf * 32767).astype(numpy.int16)
+    byte_rate = SAMPLE_RATE * channels * 2
+    block_align = channels * 2
+    data_size = n_frames * channels * 2
     with open(path, "wb") as f:
-        n = len(samples)
         f.write(b"RIFF")
-        f.write(struct.pack("<I", 36 + n * 2))
+        f.write(struct.pack("<I", 36 + data_size))
         f.write(b"WAVE")
         f.write(b"fmt ")
-        f.write(struct.pack("<IHHIIHH", 16, 1, 1, SAMPLE_RATE, SAMPLE_RATE * 2, 2, 16))
+        f.write(struct.pack("<IHHIIHH", 16, 1, channels, SAMPLE_RATE,
+                            byte_rate, block_align, 16))
         f.write(b"data")
-        f.write(struct.pack("<I", n * 2))
+        f.write(struct.pack("<I", data_size))
         f.write(samples.tobytes())
-    print(f"  {os.path.basename(path)} ({len(buf)/SAMPLE_RATE:.1f}s)")
+    label = "stereo" if channels == 2 else "mono"
+    print(f"  {os.path.basename(path)} ({n_frames/SAMPLE_RATE:.1f}s, {label})")
 
 
 def render(name, score):
