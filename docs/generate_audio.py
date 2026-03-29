@@ -192,8 +192,12 @@ def gen_tabla():
 # ── Marching snare ───────────────────────────────────────────────────────
 
 def gen_metal_blast():
-    score = Score("4/4", bpm=200)
-    score.drums("metal blast", repeats=8, fill="metal cascade", fill_every=4)
+    score = Score("4/4", bpm=190)
+    # Showcase all metal patterns: groove → gallop → blast → cascade fill
+    score.drums("metal groove", repeats=2)
+    score.drums("metal gallop", repeats=2, fill="metal triplet", fill_every=2)
+    score.drums("metal blast", repeats=2, fill="metal cascade", fill_every=2)
+    score.drums("double kick", repeats=2, fill="metal blast", fill_every=2)
     render("metal_blast", score)
 
 
