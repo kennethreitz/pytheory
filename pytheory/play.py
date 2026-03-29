@@ -911,11 +911,19 @@ def timpani_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     wave += numpy.sin(2 * numpy.pi * hz * 1.99 * t) * 0.2 * numpy.exp(-10 * t)
     wave += numpy.sin(2 * numpy.pi * hz * 2.44 * t) * 0.1 * numpy.exp(-15 * t)
 
-    # Two-stage decay: initial thump fades fast, fundamental rings
-    decay = numpy.where(t < 0.15,
-                        numpy.exp(-4 * t),
-                        numpy.exp(-4 * 0.15) * numpy.exp(-1.5 * (t - 0.15)))
-    wave *= decay
+    # Two-stage decay: thump fades, but fundamental SUSTAINS long
+    # This is what makes the "oooh" — the fundamental rings and rings,
+    # so rapid hits in a roll stack into a singing resonance
+    thump_decay = numpy.exp(-6 * t)  # upper modes die fast
+    fund_decay = numpy.exp(-0.6 * t)  # fundamental sustains much longer
+
+    # Apply different decays: fundamental gets long sustain
+    fund = numpy.sin(2 * numpy.pi * hz * t) * 0.8 * fund_decay
+    upper = (numpy.sin(2 * numpy.pi * hz * 1.5 * t) * 0.35 * numpy.exp(-6 * t) +
+             numpy.sin(2 * numpy.pi * hz * 1.99 * t) * 0.2 * numpy.exp(-10 * t) +
+             numpy.sin(2 * numpy.pi * hz * 2.44 * t) * 0.1 * numpy.exp(-15 * t))
+    upper *= thump_decay
+    wave = fund + upper
 
     # Felt mallet impact — warm, not sharp
     mallet_len = min(int(SAMPLE_RATE * 0.02), n_samples)
@@ -924,12 +932,11 @@ def timpani_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     mallet *= numpy.exp(-numpy.linspace(0, 8, mallet_len))
     wave[:mallet_len] += mallet
 
-    # Copper kettle resonance — boosts low-mids
-    import scipy.signal as _sig
-    lo, hi = max(20, int(hz * 0.7)), min(SAMPLE_RATE // 2 - 1, int(hz * 2))
+    # Copper kettle resonance — boosts the fundamental ring
+    lo, hi = max(20, int(hz * 0.7)), min(SAMPLE_RATE // 2 - 1, int(hz * 1.3))
     if lo < hi:
-        bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
-        kettle = _sig.lfilter(bp, ap, wave) * 0.3
+        bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        kettle = scipy.signal.lfilter(bp, ap, wave) * 0.4
         wave += kettle
 
     mx = numpy.abs(wave).max()
