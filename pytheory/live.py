@@ -296,9 +296,30 @@ class LiveEngine:
                         print(f"  CC {cc_number}: {param}={scaled:.2f}")
                 return
 
+    def _all_notes_off(self):
+        """Kill all sounding voices on all channels."""
+        for channel in self.channels.values():
+            with channel._lock:
+                channel.voices.clear()
+
     def _midi_callback(self, event, data=None):
         """Handle incoming MIDI messages."""
         msg, _ = event
+        if len(msg) == 0:
+            return
+
+        # System realtime messages (1 byte)
+        if msg[0] == 0xFA:  # Start
+            print("  ▶ Start")
+            return
+        elif msg[0] == 0xFC:  # Stop
+            print("  ■ Stop")
+            self._all_notes_off()
+            return
+        elif msg[0] == 0xFB:  # Continue
+            print("  ▶ Continue")
+            return
+
         if len(msg) < 3:
             return
 
