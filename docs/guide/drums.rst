@@ -246,12 +246,12 @@ Playing Patterns
 
    play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
    play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
+   play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
+   play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/rock_beat.wav" type="audio/wav"></audio>
-   play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
-   play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
 Fills
 -----
@@ -342,6 +342,10 @@ drum pattern and all named parts are mixed together by ``play_score()``:
        bass.add(n, Duration.QUARTER)
 
    play_score(score)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/salsa_layered.wav" type="audio/wav"></audio>
 
 World Percussion
 ----------------

@@ -256,6 +256,157 @@ def gen_swell():
 
 # ── Generate all ─────────────────────────────────────────────────────────
 
+# ── Cookbook: Acid House ───────────────────────────────────────────────────
+
+def gen_acid_house():
+    score = Score("4/4", bpm=132)
+    score.drums("house", repeats=8, fill="house", fill_every=8)
+    pad = score.part("pad", synth="supersaw", envelope="pad",
+                     reverb=0.4, chorus=0.3, sidechain=0.85)
+    acid = score.part("acid", synth="saw", envelope="pad",
+                      legato=True, glide=0.03, distortion=0.8,
+                      distortion_drive=8.0, lowpass=1000, lowpass_q=5.0)
+    acid.lfo("lowpass", rate=0.5, min=600, max=2500, bars=8)
+    for sym in ["Cm", "Fm", "Abm", "Gm"]:
+        pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+        pad.add(Chord.from_symbol(sym), Duration.WHOLE)
+        acid.arpeggio(sym, bars=2, pattern="up", octaves=2)
+    render("acid_house", score)
+
+
+# ── Cookbook: Dub Reggae ──────────────────────────────────────────────────
+
+def gen_dub_reggae():
+    score = Score("4/4", bpm=72)
+    score.drums("dub", repeats=8)
+    melodica = score.part("melodica", synth="triangle", envelope="pluck",
+                          delay=0.5, delay_time=0.66, delay_feedback=0.55,
+                          reverb=0.4, reverb_type="cathedral")
+    bass = score.part("bass", synth="sine", lowpass=400, lowpass_q=1.5)
+    melodica.add("A4", 2).rest(6)
+    melodica.add("E5", 1.5).rest(6.5)
+    melodica.add("D5", 1).add("C5", 1).add("A4", 2).rest(4)
+    for _ in range(16):
+        bass.add("A1", Duration.HALF)
+    render("dub_reggae", score)
+
+
+# ── Cookbook: Jazz Ballad ─────────────────────────────────────────────────
+
+def gen_jazz_ballad():
+    score = Score("4/4", bpm=72, swing=0.5)
+    score.drums("jazz", repeats=8)
+    rhodes = score.part("rhodes", synth="fm", envelope="piano",
+                        reverb=0.4, reverb_type="plate", humanize=0.3)
+    lead = score.part("lead", synth="triangle", envelope="strings",
+                      delay=0.25, reverb=0.3, humanize=0.35)
+    key = Key("Bb", "major")
+    for chord in key.progression("I", "vi", "ii", "V") * 2:
+        rhodes.add(chord, Duration.WHOLE)
+    for n, d in [("D5", 1.5), ("F5", 0.5), ("Bb5", 2), (None, 4),
+                 ("A5", 1), ("G5", 1), ("F5", 2), (None, 4)]:
+        lead.rest(d) if n is None else lead.add(n, d)
+    render("jazz_ballad", score)
+
+
+# ── Quickstart example ───────────────────────────────────────────────────
+
+def gen_quickstart():
+    score = Score("4/4", bpm=140)
+    score.drums("bossa nova", repeats=4)
+    chords = score.part("chords", synth="sine", envelope="pad",
+                        reverb=0.4, volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck",
+                      lowpass=2000, lowpass_q=3.0, distortion=0.8,
+                      legato=True, glide=0.03, volume=0.4)
+    bass = score.part("bass", synth="sine", lowpass=500)
+    key = Key("A", "minor")
+    for chord in key.progression("i", "iv", "V", "i"):
+        chords.add(chord, Duration.WHOLE)
+        chords.add(chord, Duration.WHOLE)
+    lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
+    lead.arpeggio("Dm", bars=2, pattern="updown", octaves=2)
+    lead.set(lowpass=5000, reverb=0.3)
+    lead.arpeggio("E7", bars=2, pattern="up", octaves=2)
+    lead.arpeggio("Am", bars=2, pattern="updown", octaves=2)
+    for n in ["A2", "E2", "A2", "C3"] * 4:
+        bass.add(n, Duration.QUARTER)
+    render("quickstart", score)
+
+
+# ── Sequencing complete example (bossa nova) ─────────────────────────────
+
+def gen_sequencing_bossa():
+    score = Score("4/4", bpm=140)
+    score.drums("bossa nova", repeats=4)
+    rhodes = score.part("rhodes", synth="fm", envelope="piano", volume=0.3,
+                        reverb=0.4, reverb_decay=1.8)
+    lead = score.part("lead", synth="triangle", envelope="pluck", volume=0.45,
+                      delay=0.25, delay_time=0.32, delay_feedback=0.35, reverb=0.2)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45,
+                      lowpass=600)
+    for sym in ["Am", "Am", "Dm", "Dm", "E7", "E7", "Am", "Am"]:
+        rhodes.add(Chord.from_symbol(sym), Duration.WHOLE)
+    for n, d in [("E5", 0.67), ("D5", 0.33), ("C5", 0.67), ("B4", 0.33),
+                 ("A4", 1), ("C5", 0.67), ("E5", 0.33), ("D5", 0.67),
+                 ("C5", 0.33), ("A4", 1)]:
+        lead.add(n, d)
+    for n in ["A2", "E2", "A2", "C3", "D2", "A2", "D2", "F2"]:
+        bass.add(n, Duration.QUARTER)
+    render("sequencing_bossa", score)
+
+
+# ── Drums layering (salsa) ───────────────────────────────────────────────
+
+def gen_salsa_layered():
+    score = Score("4/4", bpm=180)
+    score.drums("salsa", repeats=4, fill="salsa", fill_every=4)
+    pads = score.part("pads", synth="sine", envelope="pad", volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4)
+    bass = score.part("bass", synth="sine", envelope="pluck", volume=0.45)
+    for chord in Key("D", "minor").progression("ii", "V", "i", "i") * 2:
+        pads.add(chord, Duration.WHOLE)
+    lead.add("A5", 0.67).add("G5", 0.33).add("F5", 0.67).add("E5", 0.33)
+    for n in ["D2", "A2", "D2", "F2"] * 2:
+        bass.add(n, Duration.QUARTER)
+    render("salsa_layered", score)
+
+
+# ── Playback basic ───────────────────────────────────────────────────────
+
+def gen_playback_basic():
+    score = Score("4/4", bpm=140)
+    score.drums("bossa nova", repeats=4)
+    chords = score.part("chords", synth="sine", envelope="pad")
+    for sym in ["Am", "Dm", "E7", "Am"]:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+    render("playback_basic", score)
+
+
+# ── Cookbook: song with sections ──────────────────────────────────────────
+
+def gen_song_sections():
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=16, fill="rock", fill_every=4)
+    chords = score.part("chords", synth="saw", envelope="pad")
+    lead = score.part("lead", synth="triangle", envelope="pluck")
+    score.section("verse")
+    for sym in ["Am", "F", "C", "G"]:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+    lead.add("A4", 1).add("C5", 1).add("E5", 1).rest(1)
+    lead.add("F5", 1).add("E5", 1).add("C5", 2)
+    score.section("chorus")
+    lead.set(reverb=0.4, lowpass=5000)
+    for sym in ["F", "G", "Am", "C"]:
+        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
+    lead.add("C6", 2).add("A5", 1).add("G5", 1)
+    lead.add("F5", 2).add("E5", 2)
+    score.end_section()
+    score.repeat("verse")
+    score.repeat("chorus", times=2)
+    render("song_sections", score)
+
+
 GENERATORS = [
     gen_piano_hold,
     gen_articulations,
@@ -269,6 +420,14 @@ GENERATORS = [
     gen_ensemble,
     gen_strum,
     gen_swell,
+    gen_acid_house,
+    gen_dub_reggae,
+    gen_jazz_ballad,
+    gen_quickstart,
+    gen_sequencing_bossa,
+    gen_salsa_layered,
+    gen_playback_basic,
+    gen_song_sections,
 ]
 
 

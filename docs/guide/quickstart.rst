@@ -185,6 +185,10 @@ chords, melody, bass, each with their own synth and effects:
 
    play_score(score)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/quickstart.wav" type="audio/wav"></audio>
+
 Export to Your DAW
 ------------------
 

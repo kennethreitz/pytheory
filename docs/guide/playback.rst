@@ -66,6 +66,10 @@ the mix louder and punchier:
        chords.add(Chord.from_symbol(sym), Duration.WHOLE)
    play_score(score)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/playback_basic.wav" type="audio/wav"></audio>
+
 The render pipeline respects the Score's ``temperament`` and
 ``reference_pitch`` settings, so Baroque or microtonal scores play back
 at the correct tuning:
