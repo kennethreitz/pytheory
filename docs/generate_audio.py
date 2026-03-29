@@ -205,21 +205,48 @@ def gen_cajon():
 
 def gen_tabla_teental():
     score = Score("4/4", bpm=160)
-    score.drums("teental", repeats=4)
+    score.drums("teental", repeats=3)
+    score.drums("teental", repeats=1, fill="bayan", fill_every=1)
     score.set_drum_effects(reverb=0.2)
     render("tabla_teental", score)
 
 
 def gen_tabla_keherwa():
     score = Score("4/4", bpm=180)
-    score.drums("keherwa", repeats=4, fill="chakkardar", fill_every=4)
-    score.set_drum_effects(reverb=0.2)
+    # Manual part so we can add ge_bend hits
+    tabla = score.part("tabla", synth="sine", volume=0.5, reverb=0.2)
+    DHA = DrumSound.TABLA_DHA
+    NA = DrumSound.TABLA_NA
+    TIN = DrumSound.TABLA_TIN
+    TIT = DrumSound.TABLA_TIT
+    GE = DrumSound.TABLA_GE
+    GB = DrumSound.TABLA_GE_BEND
+    # Keherwa with ge_bend accents
+    for _ in range(3):
+        tabla.hit(DHA, Duration.EIGHTH, velocity=90, articulation="accent")
+        tabla.hit(GE, Duration.EIGHTH, velocity=65)
+        tabla.hit(NA, Duration.EIGHTH, velocity=72)
+        tabla.hit(TIT, Duration.EIGHTH, velocity=45)
+        tabla.hit(NA, Duration.EIGHTH, velocity=68)
+        tabla.hit(TIT, Duration.EIGHTH, velocity=42)
+        tabla.hit(DHA, Duration.EIGHTH, velocity=85, articulation="accent")
+        tabla.hit(NA, Duration.EIGHTH, velocity=70)
+    # Last bar with bayan bends
+    tabla.hit(DHA, Duration.EIGHTH, velocity=95, articulation="marcato")
+    tabla.hit(GB, Duration.EIGHTH, velocity=80)
+    tabla.hit(NA, Duration.EIGHTH, velocity=72)
+    tabla.hit(GB, Duration.EIGHTH, velocity=82)
+    tabla.hit(DHA, Duration.EIGHTH, velocity=100, articulation="accent")
+    tabla.hit(GB, Duration.EIGHTH, velocity=85)
+    tabla.hit(DHA, Duration.QUARTER, velocity=110, articulation="fermata")
     render("tabla_keherwa", score)
 
 
 def gen_tabla_chakradar():
     score = Score("4/4", bpm=200)
-    score.drums("teental", repeats=2)
+    score.drums("teental", repeats=1)
+    # Add some bayan bends before chakradar
+    score.drums("teental", repeats=1, fill="bayan", fill_every=1)
     score.drums("chakradar", repeats=1)
     score.set_drum_effects(reverb=0.2)
     render("tabla_chakradar", score)
