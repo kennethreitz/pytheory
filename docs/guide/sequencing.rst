@@ -351,9 +351,11 @@ portamento (pitch slides between notes):
    acid = score.part(
        "acid",
        synth="saw",
-       envelope="pad",
        legato=True,
        glide=0.04,
+       lowpass=1500,
+       lowpass_q=8.0,
+       distortion=0.4,
    )
    acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
 

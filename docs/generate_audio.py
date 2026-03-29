@@ -394,11 +394,10 @@ def gen_jazz_ballad():
 def gen_arpeggio():
     score = Score("4/4", bpm=132)
     score.drums("house", repeats=8)
-    score.set_drum_effects(volume=0.35)
-    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.4,
-                      legato=True, glide=0.03, distortion=0.8,
-                      lowpass=1000, lowpass_q=5.0)
-    lead.lfo("lowpass", rate=0.25, min=800, max=3000, bars=8)
+    score.set_drum_effects(volume=0.3)
+    lead = score.part("lead", synth="saw", envelope="pluck", volume=0.5,
+                      lowpass=5000, detune=8, chorus=0.15, reverb=0.25,
+                      delay=0.2, delay_time=0.33, delay_feedback=0.3)
     for sym in ["Cm", "Fm", "Abm", "Gm"]:
         lead.arpeggio(sym, bars=2, pattern="updown", octaves=2)
     render("arpeggio", score)
@@ -408,9 +407,11 @@ def gen_legato_glide():
     score = Score("4/4", bpm=132)
     score.drums("house", repeats=4)
     score.set_drum_effects(volume=0.35)
-    acid = score.part("acid", synth="saw", envelope="pad", volume=0.5,
-                      legato=True, glide=0.04, lowpass=2000, lowpass_q=4.0,
-                      distortion=0.3)
+    acid = score.part("acid", synth="saw", volume=0.6,
+                      legato=True, glide=0.04,
+                      lowpass=1500, lowpass_q=8.0,
+                      distortion=0.4, distortion_drive=4.0)
+    acid.lfo("lowpass", rate=0.5, min=800, max=4000, bars=4)
     for _ in range(4):
         acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
         acid.add("C2", 0.25).add("Eb2", 0.25).add("G2", 0.25).add("Bb2", 0.25)
