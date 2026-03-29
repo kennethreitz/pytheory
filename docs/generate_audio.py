@@ -428,7 +428,12 @@ def gen_synth_supersaw():
     _synth_demo("supersaw", "supersaw", envelope="pad")
 
 def gen_synth_bass_guitar():
-    _synth_demo("bass_guitar", "bass_guitar_synth", envelope="none")
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="bass_guitar_synth", envelope="none",
+                   volume=0.5, reverb=0.2)
+    for n in ["C2", "E2", "G2", "C3", "G2", "E2", "C2", "E2"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_bass_guitar", score)
 
 def gen_synth_flute():
     _synth_demo("flute", "flute_synth", envelope="none")
