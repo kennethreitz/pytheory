@@ -2794,60 +2794,67 @@ def _synth_doumbek_ka(n_samples):
 def _synth_cajon_bass(n_samples):
     """Cajón bass — palm strike on center of the face.
 
-    Deep woody thump. The box resonates like a bass drum but with
-    a warmer, more wooden character.
+    You're hitting a wooden box. The front panel flexes, the air
+    inside resonates, and the whole thing booms with a hollow,
+    boxy midrange character.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Wooden box thump
-    thump_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    # Box body resonance — hollow wooden chamber tone
+    body = numpy.sin(2 * numpy.pi * 80 * t) * _exp_decay(n_samples, 6) * 0.7
+    # Box resonance modes — the boxy character
+    box1 = numpy.sin(2 * numpy.pi * 180 * t) * _exp_decay(n_samples, 12) * 0.4
+    box2 = numpy.sin(2 * numpy.pi * 320 * t) * _exp_decay(n_samples, 18) * 0.2
+    # Palm thump on plywood
+    thump_len = min(int(SAMPLE_RATE * 0.08), n_samples)
     thump_raw = _noise(thump_len)
-    import scipy.signal as _sig
     if thump_len > 20:
-        bl, al = _sig.butter(2, [40, 200], btype='band', fs=SAMPLE_RATE)
-        thump = _sig.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len].astype(numpy.float32)
+        bl, al = scipy.signal.butter(2, [60, 400], btype='band', fs=SAMPLE_RATE)
+        thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len].astype(numpy.float32)
     else:
         thump = thump_raw
-    thump *= _exp_decay(thump_len, 18) * 0.8
-    body = numpy.sin(2 * numpy.pi * 70 * t) * _exp_decay(n_samples, 7) * 0.8
-    sub = _sine_f32(45, n_samples) * _exp_decay(n_samples, 9) * 0.4
-    click_len = min(200, n_samples)
-    click = _noise(click_len) * _exp_decay(click_len, 45) * 0.3
-    result = body + sub
+    thump *= _exp_decay(thump_len, 14) * 0.7
+    # Panel flex — low thud
+    sub = _sine_f32(50, n_samples) * _exp_decay(n_samples, 8) * 0.4
+    result = body + box1 + box2 + sub
     result[:thump_len] += thump
-    result[:click_len] += click
-    return numpy.tanh(result * 1.3).astype(numpy.float32)
+    return numpy.tanh(result * 1.4).astype(numpy.float32)
 
 
 def _synth_cajon_slap(n_samples):
     """Cajón slap — fingers near the top edge, snare wires buzz.
 
-    Bright crack with a buzzy rattle from the internal snare wires.
-    The signature cajón sound — like a snare but woodier.
+    Bright crack on the plywood edge with snare wire rattle
+    and the box resonance underneath. Wood + wire.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
     # Snare wire buzz
-    wire = _noise(n_samples) * _exp_decay(n_samples, 18) * 0.6
-    import scipy.signal as _sig
-    bl, al = _sig.butter(2, [1500, 6000], btype='band', fs=SAMPLE_RATE)
-    wire = _sig.lfilter(bl, al, wire).astype(numpy.float32) * 1.2
-    # Wood body
-    body = numpy.sin(2 * numpy.pi * 200 * t) * _exp_decay(n_samples, 22) * 0.4
-    # Sharp slap
-    slap_len = min(int(SAMPLE_RATE * 0.008), n_samples)
-    slap = _noise(slap_len) * _exp_decay(slap_len, 200) * 0.8
-    result = body + wire
+    wire_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    wire = _noise(wire_len) * _exp_decay(wire_len, 20) * 0.5
+    if wire_len > 20:
+        bl, al = scipy.signal.butter(2, [1500, 5000], btype='band', fs=SAMPLE_RATE)
+        wire = scipy.signal.lfilter(bl, al, numpy.pad(wire, (0, max(0, n_samples - wire_len))))[:wire_len].astype(numpy.float32)
+    # Wood panel resonance — boxy mid
+    body = numpy.sin(2 * numpy.pi * 220 * t) * _exp_decay(n_samples, 25) * 0.35
+    box = numpy.sin(2 * numpy.pi * 380 * t) * _exp_decay(n_samples, 35) * 0.15
+    # Sharp edge slap — hand on plywood
+    slap_len = min(int(SAMPLE_RATE * 0.005), n_samples)
+    slap = _noise(slap_len) * _exp_decay(slap_len, 250) * 0.9
+    result = body + box
+    result[:wire_len] += wire
     result[:slap_len] += slap
-    return numpy.tanh(result * 1.5).astype(numpy.float32)
+    return numpy.tanh(result * 1.6).astype(numpy.float32)
 
 
 def _synth_cajon_tap(n_samples):
-    """Cajón tap — light fingertip on the face. Ghost note."""
-    n = min(n_samples, int(SAMPLE_RATE * 0.04))
+    """Cajón tap — light fingertip on the plywood face. Ghost note."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.05))
     t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
-    tap = numpy.sin(2 * numpy.pi * 300 * t) * _exp_decay(n, 35) * 0.3
-    pop = _noise(min(50, n)) * _exp_decay(min(50, n), 250) * 0.5
-    result = tap
-    result[:min(50, n)] += pop
+    # Finger on wood — hollow tap
+    tap = numpy.sin(2 * numpy.pi * 280 * t) * _exp_decay(n, 40) * 0.3
+    box = numpy.sin(2 * numpy.pi * 450 * t) * _exp_decay(n, 55) * 0.12
+    pop = _noise(min(60, n)) * _exp_decay(min(60, n), 200) * 0.4
+    result = tap + box
+    result[:min(60, n)] += pop
     out = numpy.zeros(n_samples, dtype=numpy.float32)
     out[:n] = numpy.tanh(result * 1.5)
     return out
