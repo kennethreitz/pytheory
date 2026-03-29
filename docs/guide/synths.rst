@@ -479,6 +479,72 @@ singing sustain. The sound of jazz clubs, soul, and neo-soul.
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_rhodes.wav" type="audio/wav"></audio>
 
+Wurlitzer Electric Piano
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Wurlitzer uses a vibrating steel reed (not a tine like Rhodes)
+picked up by an electrostatic pickup. More nasal, reedy, and biting
+— it barks and growls when played hard. Think Supertramp, Ray Charles.
+
+.. code-block:: python
+
+   wurli = score.part("wurli", synth="wurlitzer_synth")
+   wurli = score.part("wurli", instrument="wurlitzer")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_wurlitzer.wav" type="audio/wav"></audio>
+
+Vibraphone Synth
+~~~~~~~~~~~~~~~~
+
+Struck aluminum bars with motor-driven tremolo discs. The spinning
+motor modulates the sound through the resonator tubes, creating the
+signature vibraphone shimmer. Inharmonic bar modes at 1x, 2.76x, 5.4x.
+
+.. code-block:: python
+
+   vib = score.part("vib", synth="vibraphone_synth")
+   vib = score.part("vib", instrument="vibraphone")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_vibraphone.wav" type="audio/wav"></audio>
+
+Pipe Organ Synth
+~~~~~~~~~~~~~~~~
+
+Multiple ranks of pipes — principal 8', octave 4', fifteenth 2'.
+Constant air pressure means no dynamics. Wind chiff at the attack.
+Best with cathedral reverb.
+
+.. code-block:: python
+
+   organ = score.part("organ", synth="pipe_organ_synth")
+   organ = score.part("organ", instrument="pipe_organ")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_pipe_organ.wav" type="audio/wav"></audio>
+
+Choir Synth
+~~~~~~~~~~~
+
+Voices singing vowels shaped by formant bandpass filters. The glottal
+source is filtered through vocal tract resonances — F1, F2, F3, F4 —
+which is what makes "ah" sound different from "oo". Use ``lyric=``
+to control the vowel. Best with ``ensemble=`` for a full section.
+
+.. code-block:: python
+
+   choir = score.part("choir", synth="choir_synth")
+   choir = score.part("choir", instrument="choir")  # ensemble=6 + cathedral reverb
+   choir.add("C4", Duration.WHOLE, lyric="ah")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_choir.wav" type="audio/wav"></audio>
+
 Bass Guitar Synth
 ~~~~~~~~~~~~~~~~~
 

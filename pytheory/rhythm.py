@@ -23,6 +23,15 @@ INSTRUMENTS = {
         "tremolo_depth": 0.12, "tremolo_rate": 4.5,
         "analog": 0.15,
     },
+    "wurlitzer": {
+        "synth": "wurlitzer_synth", "envelope": "none",
+        "tremolo_depth": 0.18, "tremolo_rate": 5.0,
+        "analog": 0.2,
+    },
+    "pipe_organ": {
+        "synth": "pipe_organ_synth", "envelope": "none",
+        "reverb": 0.5, "reverb_type": "cathedral",
+    },
     "organ": {
         "synth": "organ_synth", "envelope": "organ",
         "chorus": 0.2, "chorus_rate": 5.5,
@@ -303,8 +312,8 @@ INSTRUMENTS = {
         "humanize": 0.15,
     },
     "choir": {
-        "synth": "vocal_synth", "envelope": "pad",
-        "detune": 8, "spread": 0.4,
+        "synth": "choir_synth", "envelope": "none",
+        "detune": 6, "spread": 0.3, "ensemble": 6,
         "reverb": 0.45, "reverb_type": "cathedral",
     },
     "granular_texture": {
@@ -321,10 +330,7 @@ INSTRUMENTS = {
 
     # ── Percussion / Mallet ──
     "vibraphone": {
-        "synth": "fm", "envelope": "mallet",
-        "fm_ratio": 1.0, "fm_index": 1.0,
-        "lowpass": 5000,
-        "tremolo_depth": 0.3, "tremolo_rate": 5.5,
+        "synth": "vibraphone_synth", "envelope": "none",
         "reverb": 0.3, "reverb_type": "plate",
     },
     "marimba": {

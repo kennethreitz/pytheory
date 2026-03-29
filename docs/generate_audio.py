@@ -662,6 +662,41 @@ def gen_synth_kalimba():
         p.add(n, Duration.QUARTER, velocity=85)
     render("synth_kalimba", score)
 
+def gen_synth_wurlitzer():
+    score = Score("4/4", bpm=90)
+    p = score.part("demo", instrument="wurlitzer", volume=0.5, reverb=0.25)
+    p.hold("C3", Duration.WHOLE * 2, velocity=60)
+    p.hold("Eb3", Duration.WHOLE * 2, velocity=55)
+    p.hold("G3", Duration.WHOLE * 2, velocity=55)
+    for n in ["G4", "Bb4", "C5", "Bb4", "G4", "F4", "Eb4", "G4"]:
+        p.add(n, Duration.QUARTER, velocity=78)
+    render("synth_wurlitzer", score)
+
+def gen_synth_vibraphone():
+    score = Score("4/4", bpm=90)
+    p = score.part("demo", instrument="vibraphone", volume=0.5)
+    for n in ["C5", "E5", "G5", "C6", "G5", "E5", "C5", "E5"]:
+        p.add(n, Duration.QUARTER, velocity=75)
+    render("synth_vibraphone", score)
+
+def gen_synth_pipe_organ():
+    score = Score("4/4", bpm=70)
+    p = score.part("demo", instrument="pipe_organ", volume=0.5)
+    p.hold("C3", Duration.WHOLE * 4, velocity=70)
+    p.hold("G3", Duration.WHOLE * 4, velocity=65)
+    for n in ["C4", "D4", "E4", "F4", "G4", "F4", "E4", "D4",
+              "C4", "E4", "G4", "C5", "G4", "E4", "C4", "C4"]:
+        p.add(n, Duration.QUARTER, velocity=75)
+    render("synth_pipe_organ", score)
+
+def gen_synth_choir():
+    score = Score("4/4", bpm=70)
+    p = score.part("demo", instrument="choir", volume=0.5)
+    for n, v in [("C4", "ah"), ("E4", "oh"), ("G4", "ah"), ("C5", "ee"),
+                 ("G4", "oh"), ("E4", "ah"), ("C4", "oo"), ("C4", "ah")]:
+        p.add(n, Duration.HALF, velocity=70, lyric=v)
+    render("synth_choir", score)
+
 def gen_synth_organ():
     _synth_demo("organ", "organ_synth", envelope="organ")
 
@@ -1004,6 +1039,10 @@ GENERATORS = [
     gen_synth_electric_guitar,
     gen_synth_sitar,
     gen_synth_kalimba,
+    gen_synth_wurlitzer,
+    gen_synth_vibraphone,
+    gen_synth_pipe_organ,
+    gen_synth_choir,
     gen_synth_organ,
     gen_synth_marimba,
     gen_synth_harp,

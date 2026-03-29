@@ -478,6 +478,246 @@ def rhodes_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def wurlitzer_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Wurlitzer electric piano — vibrating steel reed over a pickup.
+
+    Unlike the Rhodes (tine + tonebar), the Wurlitzer uses a flat
+    steel reed that vibrates near an electrostatic pickup. The result
+    is more nasal, reedy, and biting — especially when driven hard.
+    Think Supertramp, Ray Charles, early Billy Joel. It barks and
+    growls in a way the Rhodes never does.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Faster decay than Rhodes — reeds don't sustain like tines
+    decay = numpy.where(t < 0.1,
+                        numpy.exp(-5.0 * t),
+                        numpy.exp(-5.0 * 0.1) * numpy.exp(-2.0 * (t - 0.1)))
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    brightness = numpy.clip((hz - 65) / 800, 0.0, 1.0)
+
+    # Reed harmonics — more odd harmonics than Rhodes (nasal character)
+    reed_harmonics = [
+        (1, 1.0),
+        (2, 0.4),            # less 2nd than Rhodes
+        (3, 0.5 + 0.15 * brightness),  # strong 3rd — the nasal quality
+        (4, 0.15),
+        (5, 0.25 + 0.1 * brightness),  # strong odd harmonics
+        (6, 0.08),
+        (7, 0.12),           # 7th present — reed buzz
+    ]
+
+    for n, amp in reed_harmonics:
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        h_decay = decay * numpy.exp(-(1.0 + 0.4 * brightness) * (n - 1) * t)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * h_decay
+
+    # Reed buzz — slight asymmetric distortion at attack
+    # This is the "bark" when you hit hard
+    attack_len = min(int(SAMPLE_RATE * 0.03), n_samples)
+    attack_env = numpy.zeros(n_samples, dtype=numpy.float64)
+    attack_env[:attack_len] = numpy.exp(-numpy.linspace(0, 6, attack_len))
+    wave += numpy.tanh(wave * 3.0 * attack_env) * 0.15
+
+    # Electrostatic pickup character — slightly compressed/nasal
+    wave = numpy.tanh(wave * 1.1) / 1.1
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def vibraphone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Vibraphone — struck aluminum bars with motor-driven tremolo.
+
+    Metal bars hit with soft mallets, resonator tubes underneath,
+    and a spinning disc (motor) that modulates the sound creating
+    the signature vibraphone shimmer/tremolo.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Long sustain — bars ring for seconds
+    decay = numpy.exp(-0.8 * t)
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Metal bar modes — slightly inharmonic
+    bar_modes = [
+        (1.0, 1.0),       # fundamental
+        (2.76, 0.3),      # first overtone (not 2x — bars are inharmonic)
+        (5.4, 0.12),      # second overtone
+        (8.93, 0.04),     # third
+    ]
+
+    for ratio, amp in bar_modes:
+        f = hz * ratio
+        if f >= SAMPLE_RATE / 2:
+            break
+        mode_decay = decay * numpy.exp(-0.5 * (ratio - 1) * t)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * f * t + phase) * mode_decay
+
+    # Motor tremolo — spinning disc modulates amplitude at ~5-7 Hz
+    motor_rate = 5.5
+    motor_depth = 0.35
+    # Motor takes a moment to spin up
+    motor_env = 1.0 - numpy.exp(-2.0 * t)
+    tremolo = 1.0 - motor_depth * motor_env * (0.5 + 0.5 * numpy.sin(2 * numpy.pi * motor_rate * t))
+    wave *= tremolo
+
+    # Soft mallet attack
+    mallet_len = min(int(SAMPLE_RATE * 0.005), n_samples)
+    mallet = rng.uniform(-0.15, 0.15, mallet_len).astype(numpy.float64)
+    mallet *= numpy.exp(-numpy.linspace(0, 12, mallet_len))
+    wave[:mallet_len] += mallet
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def pipe_organ_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Pipe organ — air through ranks of pipes, multiple stops.
+
+    The pipe organ is additive synthesis incarnate — each stop adds
+    a rank of pipes at a specific harmonic. We model a classic
+    registration: principal 8', octave 4', fifteenth 2', mixture.
+    Constant air pressure means no dynamics — always full and sustained.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Principal 8' — the fundamental organ tone
+    # Pipe harmonics with subtle wind noise
+    for n in range(1, 12):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Pipe spectral shape — principalish
+        if n == 1:
+            amp = 1.0
+        elif n == 2:
+            amp = 0.6
+        elif n == 3:
+            amp = 0.4
+        elif n <= 6:
+            amp = 0.2 / n
+        else:
+            amp = 0.08 / n
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t)
+
+    # Octave 4' stop — one octave up
+    for n in range(1, 8):
+        f_n = hz * 2 * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        amp = (0.4 if n == 1 else 0.15 / n)
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t)
+
+    # Fifteenth 2' — two octaves up, brightness
+    wave += 0.2 * numpy.sin(2 * numpy.pi * hz * 4 * t)
+    wave += 0.08 * numpy.sin(2 * numpy.pi * hz * 5 * t)
+
+    # Subtle wind/chiff noise at attack
+    chiff_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+    chiff = _noise(chiff_len).astype(numpy.float64) * 0.08
+    chiff *= numpy.exp(-numpy.linspace(0, 10, chiff_len))
+    wave[:chiff_len] += chiff
+
+    # Constant amplitude — organ doesn't decay
+    # Just a tiny fade-in to avoid click
+    fadein = min(int(SAMPLE_RATE * 0.01), n_samples)
+    wave[:fadein] *= numpy.linspace(0, 1, fadein)
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def choir_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
+    """Choir — voices singing vowels shaped by strong formant filters.
+
+    The key to vocal sound is FORMANTS — resonant peaks from the
+    vocal tract shape. We generate a rich glottal source then filter
+    it hard through formant bandpass filters. The formants are what
+    make "ah" sound different from "oo".
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+
+    # Vowel formant frequencies + bandwidths (Hz) — F1, F2, F3, F4
+    _FORMANTS = {
+        "ah": [(730, 90), (1090, 110), (2440, 170), (3400, 250)],
+        "ee": [(270, 60), (2290, 200), (3010, 300), (3500, 250)],
+        "oh": [(570, 80), (840, 100), (2410, 170), (3400, 250)],
+        "oo": [(300, 50), (870, 90), (2240, 170), (3400, 250)],
+        "eh": [(530, 70), (1840, 150), (2480, 200), (3400, 250)],
+    }
+    formants = _FORMANTS.get(lyric, _FORMANTS["ah"])
+
+    # Glottal source — rich buzz with all harmonics
+    n_harmonics = min(25, int((SAMPLE_RATE / 2) / hz))
+
+    # No per-harmonic vibrato — it causes amplitude wobble through formants.
+    # Choir vibrato comes from the ensemble= parameter instead (natural
+    # pitch variation between voices).
+    source = numpy.zeros(n_samples, dtype=numpy.float64)
+    for n in range(1, n_harmonics + 1):
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Glottal slope: -12dB/octave
+        amp = 1.0 / (n * n) * 4.0
+        source += amp * numpy.sin(2 * numpy.pi * f_n * t)
+
+    # Filter through formants — this is where the voice happens
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    for fc, bw in formants:
+        lo = max(20, fc - bw)
+        hi = min(SAMPLE_RATE // 2 - 1, fc + bw)
+        if lo < hi:
+            bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            filtered = scipy.signal.lfilter(bp, ap, source)
+            # Boost formants proportionally
+            gain = 1.0 if fc < 1000 else 0.7
+            wave += filtered * gain
+
+    # Breathy onset — air before phonation
+    breath_len = min(int(SAMPLE_RATE * 0.08), n_samples)
+    breath = _noise(breath_len).astype(numpy.float64) * 0.04
+    # Filter breath through formants too
+    for fc, bw in formants[:2]:
+        lo = max(20, fc - bw * 2)
+        hi = min(SAMPLE_RATE // 2 - 1, fc + bw * 2)
+        if lo < hi:
+            bp, ap = scipy.signal.butter(1, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            breath = scipy.signal.lfilter(bp, ap, numpy.pad(breath, (0, max(0, n_samples - breath_len))))[:breath_len]
+    breath *= numpy.exp(-numpy.linspace(0, 5, breath_len))
+    wave[:breath_len] += breath
+
+    # Gentle attack
+    attack_len = min(int(SAMPLE_RATE * 0.06), n_samples)
+    wave[:attack_len] *= numpy.linspace(0, 1, attack_len)
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
 def bass_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Bass guitar — plucked thick string with magnetic pickup.
 
@@ -1959,6 +2199,8 @@ _SYNTH_FUNCTIONS = {
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
     "pluck_synth": pluck_wave, "organ_synth": organ_wave,
     "strings_synth": strings_wave, "piano_synth": piano_wave, "rhodes_synth": rhodes_wave,
+    "wurlitzer_synth": wurlitzer_wave, "vibraphone_synth": vibraphone_wave,
+    "pipe_organ_synth": pipe_organ_wave, "choir_synth": choir_wave,
     "bass_guitar_synth": bass_guitar_wave, "flute_synth": flute_wave,
     "trumpet_synth": trumpet_wave, "clarinet_synth": clarinet_wave,
     "marimba_synth": marimba_wave, "oboe_synth": oboe_wave,
