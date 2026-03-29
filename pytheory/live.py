@@ -476,6 +476,8 @@ class LiveEngine:
                     break
 
         self._midi_in.open_port(port)
+        # Enable system realtime messages (clock, start, stop)
+        self._midi_in.ignore_types(sysex=True, timing=False, active_sense=True)
         self._midi_in.set_callback(self._midi_callback)
         port_name = ports[port] if isinstance(port, int) else port
 
