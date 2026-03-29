@@ -204,6 +204,7 @@ def gen_metal_blast():
 def gen_cajon():
     score = Score("4/4", bpm=100)
     score.drums("cajon", repeats=8, fill="cajon flam", fill_every=4)
+    score.set_drum_effects(reverb=0.25, reverb_type="room")
     render("cajon", score)
 
 
