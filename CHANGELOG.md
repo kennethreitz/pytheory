@@ -2,6 +2,18 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.39.4
+
+- **Rhodes electric piano synth** — tine + tonebar + electromagnetic
+  pickup model. `electric_piano` preset now uses dedicated `rhodes_synth`
+  instead of FM
+- **73 audio demos in docs** — every synth, every drum pattern, every
+  code example with `play_score()` now has an embedded audio player
+- Idiomatic demos: harp arpeggiates, guitars strum, cello bows, sitar
+  drones, strings use ensemble
+- Trailing silence trimming on all audio exports
+- Raw waveform demos (no envelope) for classic waveforms
+
 ## 0.39.3
 
 - **33 audio samples in documentation** — every `play_score()` example
