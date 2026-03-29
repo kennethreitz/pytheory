@@ -2832,28 +2832,39 @@ def _synth_cajon_bass(n_samples):
 
 
 def _synth_cajon_slap(n_samples):
-    """Cajón slap — fingers near the top edge, snare wires buzz.
+    """Cajón slap — fingers near the top edge, pure wood crack.
 
-    Bright crack on the plywood edge with snare wire rattle
-    and the box resonance underneath. Wood + wire.
+    No snare wires. Just the sharp crack of fingers on the plywood
+    edge with the box resonance underneath. Dry and woody.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Snare wire buzz
+    # Wood panel resonance — boxy mid
+    body = numpy.sin(2 * numpy.pi * 240 * t) * _exp_decay(n_samples, 28) * 0.4
+    box = numpy.sin(2 * numpy.pi * 400 * t) * _exp_decay(n_samples, 38) * 0.2
+    box2 = numpy.sin(2 * numpy.pi * 600 * t) * _exp_decay(n_samples, 50) * 0.1
+    # Sharp edge slap — fingers on plywood
+    slap_len = min(int(SAMPLE_RATE * 0.004), n_samples)
+    slap = _noise(slap_len) * _exp_decay(slap_len, 300) * 1.0
+    result = body + box + box2
+    result[:slap_len] += slap
+    return numpy.tanh(result * 1.8).astype(numpy.float32)
+
+
+def _synth_cajon_slap_snare(n_samples):
+    """Cajón slap with snare wires — the buzzy version.
+
+    Same edge slap but with internal snare wires rattling.
+    """
+    wood = _synth_cajon_slap(n_samples)
+    # Add snare wire buzz on top
     wire_len = min(int(SAMPLE_RATE * 0.06), n_samples)
-    wire = _noise(wire_len) * _exp_decay(wire_len, 20) * 0.5
+    wire = _noise(wire_len) * _exp_decay(wire_len, 20) * 0.45
     if wire_len > 20:
         bl, al = scipy.signal.butter(2, [1500, 5000], btype='band', fs=SAMPLE_RATE)
         wire = scipy.signal.lfilter(bl, al, numpy.pad(wire, (0, max(0, n_samples - wire_len))))[:wire_len].astype(numpy.float32)
-    # Wood panel resonance — boxy mid
-    body = numpy.sin(2 * numpy.pi * 220 * t) * _exp_decay(n_samples, 25) * 0.35
-    box = numpy.sin(2 * numpy.pi * 380 * t) * _exp_decay(n_samples, 35) * 0.15
-    # Sharp edge slap — hand on plywood
-    slap_len = min(int(SAMPLE_RATE * 0.005), n_samples)
-    slap = _noise(slap_len) * _exp_decay(slap_len, 250) * 0.9
-    result = body + box
+    result = wood.copy()
     result[:wire_len] += wire
-    result[:slap_len] += slap
-    return numpy.tanh(result * 1.6).astype(numpy.float32)
+    return numpy.tanh(result * 1.2).astype(numpy.float32)
 
 
 def _synth_cajon_tap(n_samples):
@@ -3289,6 +3300,7 @@ def _render_drum_hit(sound_value, n_samples):
         # Cajon
         DrumSound.CAJON_BASS.value: lambda n: _synth_cajon_bass(n),
         DrumSound.CAJON_SLAP.value: lambda n: _synth_cajon_slap(n),
+        DrumSound.CAJON_SLAP_SNARE.value: lambda n: _synth_cajon_slap_snare(n),
         DrumSound.CAJON_TAP.value: lambda n: _synth_cajon_tap(n),
         # Metal kit
         DrumSound.METAL_KICK.value: lambda n: _synth_metal_kick(n),
@@ -4993,6 +5005,7 @@ def render_score(score):
         # Cajon — centered (single instrument)
         DrumSound.CAJON_BASS.value: 0.0,
         DrumSound.CAJON_SLAP.value: 0.0,
+        DrumSound.CAJON_SLAP_SNARE.value: 0.0,
         DrumSound.CAJON_TAP.value: 0.1,
         # Metal kit
         DrumSound.METAL_KICK.value: 0.0,

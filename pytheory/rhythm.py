@@ -556,8 +556,9 @@ class DrumSound(Enum):
     DOUMBEK_KA = 114     # muted edge slap
     # Cajon sounds
     CAJON_BASS = 108     # center of face, deep thump
-    CAJON_SLAP = 109     # top edge, snare wires buzz
+    CAJON_SLAP = 109     # top edge, wood crack (no snare wires)
     CAJON_TAP = 110      # light finger tap
+    CAJON_SLAP_SNARE = 111  # top edge with snare wires engaged
     # Metal kit — tighter, punchier, more attack
     METAL_KICK = 105     # clicky, punchy, tight
     METAL_SNARE = 106    # crack, bright, cutting
