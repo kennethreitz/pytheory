@@ -355,9 +355,10 @@ class LiveEngine:
         if len(self._clock_times) > 48:
             self._clock_times = self._clock_times[-48:]
         if len(self._clock_times) >= 24:
-            interval = (self._clock_times[-1] - self._clock_times[-24]) / 24
-            if interval > 0:
-                self._bpm = 60.0 / interval
+            # Time span of 24 clock ticks = 1 quarter note
+            quarter_note_time = self._clock_times[-1] - self._clock_times[-24]
+            if quarter_note_time > 0:
+                self._bpm = 60.0 / quarter_note_time
 
         # Trigger drum hits at the right time
         if self._drum_pattern and self._drum_channel:
