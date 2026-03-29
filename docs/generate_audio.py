@@ -579,7 +579,12 @@ def gen_synth_upright_bass():
     render("synth_upright_bass", score)
 
 def gen_synth_timpani():
-    _synth_demo("timpani", "timpani_synth", envelope="none")
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", synth="timpani_synth", envelope="none",
+                   volume=0.5, reverb=0.25)
+    for n in ["C2", "E2", "G2", "C3", "G2", "E2", "C2", "C2"]:
+        p.add(n, Duration.QUARTER, velocity=90)
+    render("synth_timpani", score)
 
 def gen_synth_strings():
     score = Score("4/4", bpm=70)
