@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.39.3
+
+- **33 audio samples in documentation** — every `play_score()` example
+  now has an embedded stereo audio player. Covers quickstart, sequencing,
+  drums (all world percussion), playback, and cookbook.
+- **`docs/generate_audio.py`** — renders all doc examples to WAV
+- Numpy vectorization: cached time arrays, decay envelopes, drum hits;
+  vectorized piano harmonic synthesis
+- Fixed acid legato example (removed pad envelope, added proper 303 recipe)
+
 ## 0.39.2
 
 - **Marching percussion** — snare, rimshot, and stick click sounds with
