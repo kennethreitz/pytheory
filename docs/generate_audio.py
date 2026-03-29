@@ -409,8 +409,8 @@ def gen_legato_glide():
     score.set_drum_effects(volume=0.35)
     acid = score.part("acid", synth="saw", volume=0.6,
                       legato=True, glide=0.04,
-                      lowpass=1500, lowpass_q=8.0,
-                      distortion=0.4, distortion_drive=4.0)
+                      lowpass=3000, lowpass_q=6.0,
+                      distortion=0.3, distortion_drive=3.0)
     acid.lfo("lowpass", rate=0.5, min=800, max=4000, bars=4)
     for _ in range(4):
         acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
@@ -442,6 +442,15 @@ def gen_quickstart():
 
 
 # ── Sequencing complete example (bossa nova) ─────────────────────────────
+
+def gen_chords_basic():
+    score = Score("4/4", bpm=120)
+    key = Key("C", "major")
+    chords = key.progression("I", "V", "vi", "IV")
+    for chord in chords:
+        score.add(chord, Duration.WHOLE)
+    render("chords_basic", score)
+
 
 def gen_complete_rock():
     score = Score("4/4", bpm=120)
@@ -547,6 +556,7 @@ GENERATORS = [
     gen_dub_reggae,
     gen_jazz_ballad,
     gen_quickstart,
+    gen_chords_basic,
     gen_complete_rock,
     gen_salsa_layered,
     gen_playback_basic,

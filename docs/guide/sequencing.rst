@@ -161,6 +161,10 @@ Chords work just like tones — pass any ``Chord`` object:
    for chord in chords:
        score.add(chord, Duration.WHOLE)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/chords_basic.wav" type="audio/wav"></audio>
+
 .. code-block:: pycon
 
    >>> score.measures
@@ -353,9 +357,9 @@ portamento (pitch slides between notes):
        synth="saw",
        legato=True,
        glide=0.04,
-       lowpass=1500,
-       lowpass_q=8.0,
-       distortion=0.4,
+       lowpass=3000,
+       lowpass_q=6.0,
+       distortion=0.3,
    )
    acid.add("C2", 0.25).add("C3", 0.25).add("G2", 0.25).add("C2", 0.25)
 
