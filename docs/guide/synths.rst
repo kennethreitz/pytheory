@@ -37,6 +37,10 @@ building block of all other waveforms (Fourier's theorem).
    tone = Tone.from_string("C4", system="western")
    play(tone, synth=Synth.SINE)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_sine.wav" type="audio/wav"></audio>
+
 Sawtooth
 ~~~~~~~~
 
@@ -49,6 +53,10 @@ Named for its ramp shape.
 .. code-block:: python
 
    play(tone, synth=Synth.SAW)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_saw.wav" type="audio/wav"></audio>
 
 Triangle
 ~~~~~~~~
@@ -63,6 +71,10 @@ described as "woody" or "hollow."
 
    play(tone, synth=Synth.TRIANGLE)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_triangle.wav" type="audio/wav"></audio>
+
 Square
 ~~~~~~
 
@@ -75,6 +87,10 @@ pulse wave with a 50% duty cycle.
 .. code-block:: python
 
    play(tone, synth=Synth.SQUARE)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_square.wav" type="audio/wav"></audio>
 
 Extended Waveforms
 ------------------
@@ -120,6 +136,10 @@ pop music in the 80s, you heard FM synthesis.
        volume=0.3,
        reverb=0.4,
    )
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_fm.wav" type="audio/wav"></audio>
 
 Noise
 -----
@@ -173,6 +193,10 @@ supersaw.
        chorus=0.3,
        reverb=0.5,
    )
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_supersaw.wav" type="audio/wav"></audio>
 
 PWM Slow
 ~~~~~~~~
@@ -375,6 +399,10 @@ at musical levels. Warm, round, unmistakably organ.
 
    organ = score.part("organ", synth="organ_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_organ.wav" type="audio/wav"></audio>
+
 String Ensemble
 ~~~~~~~~~~~~~~~
 
@@ -385,6 +413,10 @@ more "wooden" than a raw saw wave.
 .. code-block:: python
 
    violin = score.part("violin", synth="strings_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_strings.wav" type="audio/wav"></audio>
 
 Dedicated Instrument Synths
 --------------------------
@@ -407,6 +439,10 @@ soundboard.
 
    piano = score.part("piano", synth="piano_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_piano.wav" type="audio/wav"></audio>
+
 Bass Guitar Synth
 ~~~~~~~~~~~~~~~~~
 
@@ -415,6 +451,10 @@ Plucked string model with finger-damped harmonics and low-end warmth.
 .. code-block:: python
 
    bass = score.part("bass", synth="bass_guitar_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_bass_guitar.wav" type="audio/wav"></audio>
 
 Flute Synth
 ~~~~~~~~~~~~
@@ -426,6 +466,10 @@ overblowing behavior at higher velocities.
 
    flute = score.part("flute", synth="flute_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_flute.wav" type="audio/wav"></audio>
+
 Trumpet Synth
 ~~~~~~~~~~~~~
 
@@ -435,6 +479,10 @@ velocity, plus a characteristic brassy edge from shaped harmonics.
 .. code-block:: python
 
    trumpet = score.part("trumpet", synth="trumpet_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_trumpet.wav" type="audio/wav"></audio>
 
 Clarinet Synth
 ~~~~~~~~~~~~~~
@@ -446,6 +494,10 @@ characteristic hollow, woody tone.
 
    clarinet = score.part("clarinet", synth="clarinet_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_clarinet.wav" type="audio/wav"></audio>
+
 Oboe Synth
 ~~~~~~~~~~~
 
@@ -455,6 +507,10 @@ timbre.
 .. code-block:: python
 
    oboe = score.part("oboe", synth="oboe_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_oboe.wav" type="audio/wav"></audio>
 
 Marimba Synth
 ~~~~~~~~~~~~~
@@ -466,6 +522,10 @@ that emphasizes the fundamental.
 
    marimba = score.part("marimba", synth="marimba_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_marimba.wav" type="audio/wav"></audio>
+
 Harpsichord Synth
 ~~~~~~~~~~~~~~~~~
 
@@ -475,6 +535,10 @@ Plucked-string model with a bright, immediate attack and rapid decay
 .. code-block:: python
 
    harpsi = score.part("harpsi", synth="harpsichord_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_harpsichord.wav" type="audio/wav"></audio>
 
 Cello Synth
 ~~~~~~~~~~~
@@ -486,6 +550,10 @@ producing a rich, warm, sustained tone.
 
    cello = score.part("cello", synth="cello_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_cello.wav" type="audio/wav"></audio>
+
 Harp Synth
 ~~~~~~~~~~
 
@@ -496,6 +564,10 @@ modeling nylon strings on a resonant frame.
 
    harp = score.part("harp", synth="harp_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_harp.wav" type="audio/wav"></audio>
+
 Upright Bass Synth
 ~~~~~~~~~~~~~~~~~~
 
@@ -504,6 +576,10 @@ Pizzicato double bass with woody body resonance and a thumpy low end.
 .. code-block:: python
 
    bass = score.part("bass", synth="upright_bass_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_upright_bass.wav" type="audio/wav"></audio>
 
 Acoustic Guitar Synth
 ~~~~~~~~~~~~~~~~~~~~~
@@ -515,6 +591,10 @@ string decay.
 
    guitar = score.part("guitar", synth="acoustic_guitar_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_acoustic_guitar.wav" type="audio/wav"></audio>
+
 Electric Guitar Synth
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -525,6 +605,10 @@ than the acoustic, ready for effects processing.
 
    eguitar = score.part("eguitar", synth="electric_guitar_synth")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_electric_guitar.wav" type="audio/wav"></audio>
+
 Sitar Synth
 ~~~~~~~~~~~~
 
@@ -534,6 +618,10 @@ bridge, producing a shimmering, metallic sustain.
 .. code-block:: python
 
    sitar = score.part("sitar", synth="sitar_synth")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_sitar.wav" type="audio/wav"></audio>
 
 Timpani Synth
 ~~~~~~~~~~~~~
@@ -547,6 +635,10 @@ Use ``Part.roll()`` for crescendo timpani rolls.
    timp = score.part("timp", synth="timpani_synth")
    timp.roll("C3", Duration.WHOLE, velocity_start=20, velocity_end=110)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_timpani.wav" type="audio/wav"></audio>
+
 Saxophone Synth
 ~~~~~~~~~~~~~~~
 
@@ -558,6 +650,10 @@ mids, reed buzz, and brass body warmth. Four presets: ``saxophone``,
 
    sax = score.part("sax", instrument="tenor_sax")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_saxophone.wav" type="audio/wav"></audio>
+
 Pedal Steel Synth
 ~~~~~~~~~~~~~~~~~
 
@@ -567,6 +663,10 @@ and long sustain. Pairs naturally with spring reverb.
 .. code-block:: python
 
    steel = score.part("steel", instrument="pedal_steel")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_pedal_steel.wav" type="audio/wav"></audio>
 
 Theremin Synth
 ~~~~~~~~~~~~~~
@@ -578,6 +678,10 @@ Best used with legato and glide for continuous pitch.
 
    theremin = score.part("theremin", instrument="theremin")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_theremin.wav" type="audio/wav"></audio>
+
 Kalimba Synth
 ~~~~~~~~~~~~~
 
@@ -587,6 +691,10 @@ inharmonic overtones (modes at 1x, 2.92x, 5.4x).
 .. code-block:: python
 
    kalimba = score.part("kalimba", instrument="kalimba")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_kalimba.wav" type="audio/wav"></audio>
 
 Steel Drum Synth
 ~~~~~~~~~~~~~~~~
@@ -598,6 +706,10 @@ Inharmonic partials at 2.0x, 3.01x, 4.1x, 5.3x.
 
    pan = score.part("pan", instrument="steel_drum")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_steel_drum.wav" type="audio/wav"></audio>
+
 Accordion Synth
 ~~~~~~~~~~~~~~~
 
@@ -607,6 +719,10 @@ create natural beating. Bellows pressure swell modulates amplitude.
 .. code-block:: python
 
    acc = score.part("acc", instrument="accordion")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_accordion.wav" type="audio/wav"></audio>
 
 Didgeridoo Synth
 ~~~~~~~~~~~~~~~~
@@ -619,6 +735,10 @@ Best with cave reverb.
 
    didg = score.part("didg", instrument="didgeridoo")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_didgeridoo.wav" type="audio/wav"></audio>
+
 Bagpipe Synth
 ~~~~~~~~~~~~~
 
@@ -628,6 +748,10 @@ peaked around 3-7 (the piercing brightness). No dynamics — always ff.
 .. code-block:: python
 
    pipes = score.part("pipes", instrument="bagpipe")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_bagpipe.wav" type="audio/wav"></audio>
 
 Banjo Synth
 ~~~~~~~~~~~
@@ -639,6 +763,10 @@ nasal, ringy resonance with faster decay than guitar.
 
    banjo = score.part("banjo", instrument="banjo")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_banjo.wav" type="audio/wav"></audio>
+
 Mandolin Synth
 ~~~~~~~~~~~~~~
 
@@ -649,6 +777,10 @@ doubled unison strings. Bright, ringing, fast attack.
 
    mando = score.part("mando", instrument="mandolin")
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_mandolin.wav" type="audio/wav"></audio>
+
 Ukulele Synth
 ~~~~~~~~~~~~~
 
@@ -658,6 +790,10 @@ softer attack than guitar, shorter sustain.
 .. code-block:: python
 
    uke = score.part("uke", instrument="ukulele")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_ukulele.wav" type="audio/wav"></audio>
 
 Granular Synth
 ~~~~~~~~~~~~~~

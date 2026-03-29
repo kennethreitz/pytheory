@@ -391,6 +391,177 @@ def gen_jazz_ballad():
 
 # ── Quickstart example ───────────────────────────────────────────────────
 
+# ── Synth waveform demos ──────────────────────────────────────────────────
+
+def _synth_demo(name, synth, envelope="pluck", **kwargs):
+    """Short C major melody on a given synth."""
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth=synth, envelope=envelope, volume=0.5,
+                   reverb=0.2, **kwargs)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render(f"synth_{name}", score)
+
+
+def gen_synth_sine():
+    _synth_demo("sine", "sine")
+
+def gen_synth_saw():
+    _synth_demo("saw", "saw")
+
+def gen_synth_triangle():
+    _synth_demo("triangle", "triangle")
+
+def gen_synth_square():
+    _synth_demo("square", "square")
+
+def gen_synth_piano():
+    _synth_demo("piano", "piano_synth", envelope="none")
+
+def gen_synth_acoustic_guitar():
+    _synth_demo("acoustic_guitar", "acoustic_guitar_synth", envelope="none")
+
+def gen_synth_fm():
+    _synth_demo("fm", "fm", envelope="piano")
+
+def gen_synth_supersaw():
+    _synth_demo("supersaw", "supersaw", envelope="pad")
+
+def gen_synth_bass_guitar():
+    _synth_demo("bass_guitar", "bass_guitar_synth", envelope="none")
+
+def gen_synth_flute():
+    _synth_demo("flute", "flute_synth", envelope="none")
+
+def gen_synth_trumpet():
+    _synth_demo("trumpet", "trumpet_synth", envelope="none")
+
+def gen_synth_clarinet():
+    _synth_demo("clarinet", "clarinet_synth", envelope="none")
+
+def gen_synth_oboe():
+    _synth_demo("oboe", "oboe_synth", envelope="none")
+
+def gen_synth_cello():
+    _synth_demo("cello", "cello_synth", envelope="bowed")
+
+def gen_synth_harpsichord():
+    _synth_demo("harpsichord", "harpsichord_synth", envelope="none")
+
+def gen_synth_electric_guitar():
+    _synth_demo("electric_guitar", "electric_guitar_synth", envelope="none")
+
+def gen_synth_kalimba():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="kalimba", volume=0.5, reverb=0.3)
+    for n in ["C5", "E5", "G5", "C6", "G5", "E5", "C5", "E5"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_kalimba", score)
+
+def gen_synth_organ():
+    _synth_demo("organ", "organ_synth", envelope="organ")
+
+def gen_synth_marimba():
+    _synth_demo("marimba", "marimba_synth", envelope="mallet")
+
+def gen_synth_sitar():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="sitar_synth", envelope="none", volume=0.5,
+                   reverb=0.3)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_sitar", score)
+
+
+def gen_synth_harp():
+    _synth_demo("harp", "harp_synth", envelope="none")
+
+def gen_synth_upright_bass():
+    _synth_demo("upright_bass", "upright_bass_synth", envelope="none")
+
+def gen_synth_timpani():
+    _synth_demo("timpani", "timpani_synth", envelope="none")
+
+def gen_synth_strings():
+    _synth_demo("strings", "strings_synth", envelope="bowed")
+
+def gen_synth_saxophone():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="tenor_sax", volume=0.5, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_saxophone", score)
+
+def gen_synth_pedal_steel():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="pedal_steel", volume=0.5, reverb=0.3)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_pedal_steel", score)
+
+def gen_synth_theremin():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="theremin", volume=0.5, reverb=0.3)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_theremin", score)
+
+def gen_synth_steel_drum():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="steel_drum", volume=0.5, reverb=0.2)
+    for n in ["C5", "E5", "G5", "C6", "G5", "E5", "C5", "E5"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_steel_drum", score)
+
+def gen_synth_accordion():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="accordion", volume=0.5, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_accordion", score)
+
+def gen_synth_didgeridoo():
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", instrument="didgeridoo", volume=0.5, reverb=0.3)
+    p.add("C2", Duration.WHOLE * 2, velocity=85)
+    render("synth_didgeridoo", score)
+
+def gen_synth_bagpipe():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="bagpipe", volume=0.4, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_bagpipe", score)
+
+def gen_synth_banjo():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="banjo", volume=0.5, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_banjo", score)
+
+def gen_synth_mandolin():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="mandolin", volume=0.5, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_mandolin", score)
+
+def gen_synth_ukulele():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", instrument="ukulele", volume=0.5, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_ukulele", score)
+
+def gen_synth_granular():
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", instrument="granular_pad", volume=0.5, reverb=0.4)
+    for n in ["C4", "E4", "G4", "C5"]:
+        p.add(n, Duration.WHOLE, velocity=75)
+    render("synth_granular", score)
+
+
 def gen_arpeggio():
     score = Score("4/4", bpm=132)
     score.drums("house", repeats=8)
@@ -549,6 +720,41 @@ GENERATORS = [
     gen_ensemble,
     gen_strum,
     gen_swell,
+    gen_synth_sine,
+    gen_synth_saw,
+    gen_synth_triangle,
+    gen_synth_square,
+    gen_synth_fm,
+    gen_synth_supersaw,
+    gen_synth_piano,
+    gen_synth_bass_guitar,
+    gen_synth_flute,
+    gen_synth_trumpet,
+    gen_synth_clarinet,
+    gen_synth_oboe,
+    gen_synth_cello,
+    gen_synth_harpsichord,
+    gen_synth_acoustic_guitar,
+    gen_synth_electric_guitar,
+    gen_synth_sitar,
+    gen_synth_kalimba,
+    gen_synth_organ,
+    gen_synth_marimba,
+    gen_synth_harp,
+    gen_synth_upright_bass,
+    gen_synth_timpani,
+    gen_synth_strings,
+    gen_synth_saxophone,
+    gen_synth_pedal_steel,
+    gen_synth_theremin,
+    gen_synth_steel_drum,
+    gen_synth_accordion,
+    gen_synth_didgeridoo,
+    gen_synth_bagpipe,
+    gen_synth_banjo,
+    gen_synth_mandolin,
+    gen_synth_ukulele,
+    gen_synth_granular,
     gen_arpeggio,
     gen_legato_glide,
     gen_acid_house,
