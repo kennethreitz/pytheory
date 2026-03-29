@@ -477,7 +477,12 @@ def gen_synth_harp():
     _synth_demo("harp", "harp_synth", envelope="none")
 
 def gen_synth_upright_bass():
-    _synth_demo("upright_bass", "upright_bass_synth", envelope="none")
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="upright_bass_synth", envelope="none",
+                   volume=0.5, reverb=0.2)
+    for n in ["C2", "E2", "G2", "C3", "G2", "E2", "C2", "E2"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_upright_bass", score)
 
 def gen_synth_timpani():
     _synth_demo("timpani", "timpani_synth", envelope="none")
