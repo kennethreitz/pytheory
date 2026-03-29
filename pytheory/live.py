@@ -352,10 +352,14 @@ class LiveEngine:
 
         now = _time.perf_counter()
         self._clock_times.append(now)
-        if len(self._clock_times) > 48:
-            self._clock_times = self._clock_times[-48:]
-        if len(self._clock_times) >= 24:
-            # Time span of 24 clock ticks = 1 quarter note
+        if len(self._clock_times) > 96:
+            self._clock_times = self._clock_times[-96:]
+        if len(self._clock_times) >= 96:
+            # Average over 4 quarter notes (96 ticks) for stability
+            total_time = self._clock_times[-1] - self._clock_times[-96]
+            if total_time > 0:
+                self._bpm = 60.0 * 4.0 / total_time
+        elif len(self._clock_times) >= 24:
             quarter_note_time = self._clock_times[-1] - self._clock_times[-24]
             if quarter_note_time > 0:
                 self._bpm = 60.0 / quarter_note_time
