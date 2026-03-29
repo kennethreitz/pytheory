@@ -667,10 +667,10 @@ def gen_synth_banjo():
     # Strum into a picking lick
     p.strum("G", Duration.WHOLE, velocity=80)
     p.strum("C", Duration.WHOLE, velocity=78)
-    # Bluegrass lick
+    # Bluegrass lick — 16th note picking
     for n in ["G4", "B4", "D5", "G5", "D5", "B4", "A4", "G4",
               "D4", "G4", "B4", "D5", "B4", "G4", "D4", "G4"]:
-        p.add(n, Duration.EIGHTH, velocity=82)
+        p.add(n, Duration.SIXTEENTH, velocity=82)
     render("synth_banjo", score)
 
 def gen_synth_mandolin():

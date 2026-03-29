@@ -4607,12 +4607,6 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     vel_cutoff = vel_to_filter * vel_scale + 1000
                     mixed = _apply_lowpass(mixed, vel_cutoff, q=filter_q)
                 end = min(start + len(mixed), total_samples)
-                # Choke: fade out any existing signal at this point
-                # so new notes don't pile up on previous tails
-                choke_len = min(int(SAMPLE_RATE * 0.003), start)
-                if choke_len > 0:
-                    fade = numpy.linspace(1.0, 0.0, choke_len).astype(numpy.float32)
-                    buf[start - choke_len:start] *= fade
                 buf[start:end] += mixed[:end - start] * volume * vel_scale
                 # Spread detuned oscillators into stereo L/R
                 if detune_up is not None and stereo_buf is not None:
