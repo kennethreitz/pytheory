@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "sounddevice",
     "scipy",
+    "rich>=14.3.3",
 ]
 
 [project.optional-dependencies]

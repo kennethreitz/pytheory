@@ -74,6 +74,17 @@ class _Channel:
         self.lowpass_q = kwargs.get('lowpass_q', 0.707)
         self.reverb = kwargs.get('reverb', 0)
         self.volume = kwargs.get('volume', 0.5)
+        self.chorus = kwargs.get('chorus', 0)
+        self.detune = kwargs.get('detune', 0)
+        self.spread = kwargs.get('spread', 0)
+        self.analog = kwargs.get('analog', 0)
+        self.distortion = kwargs.get('distortion', 0)
+        self.delay = kwargs.get('delay', 0)
+        self.tremolo_depth = kwargs.get('tremolo_depth', 0)
+        self.saturation = kwargs.get('saturation', 0)
+        self.phaser = kwargs.get('phaser', 0)
+        self.sub_osc = kwargs.get('sub_osc', 0)
+        self.noise_mix = kwargs.get('noise_mix', 0)
 
         self.voices = []           # active _Voice objects
         self._cache = {}           # MIDI note -> pre-rendered wave
@@ -128,6 +139,30 @@ class _Channel:
                     feedback *= 0.7
                     fb_delay = int(fb_delay * 1.5)
             wave_f = wave_f * (1.0 - wet) + reverbed * wet
+
+        # Apply distortion/saturation
+        if self.distortion > 0:
+            drive = 3.0
+            wave_f = numpy.tanh(wave_f * drive * (1 + self.distortion * 3)) / drive
+        if self.saturation > 0:
+            wave_f = numpy.tanh(wave_f * (1 + self.saturation * 2))
+
+        # Apply tremolo
+        if self.tremolo_depth > 0:
+            t = numpy.arange(len(wave_f), dtype=numpy.float32) / SAMPLE_RATE
+            trem = 1.0 - self.tremolo_depth * 0.5 * (1 + numpy.sin(2 * numpy.pi * 5.0 * t))
+            wave_f *= trem
+
+        # Apply chorus (simple delay modulation)
+        if self.chorus > 0:
+            t = numpy.arange(len(wave_f), dtype=numpy.float32) / SAMPLE_RATE
+            mod = (numpy.sin(2 * numpy.pi * 1.5 * t) * 0.002 * SAMPLE_RATE).astype(int)
+            chorus_buf = numpy.zeros_like(wave_f)
+            for i in range(len(wave_f)):
+                idx = i - abs(mod[i]) - int(SAMPLE_RATE * 0.015)
+                if 0 <= idx < len(wave_f):
+                    chorus_buf[i] = wave_f[idx]
+            wave_f = wave_f * (1 - self.chorus * 0.5) + chorus_buf * self.chorus * 0.5
 
         self._cache[midi_note] = wave_f
         return wave_f
