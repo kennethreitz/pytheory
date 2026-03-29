@@ -416,6 +416,68 @@ def piano_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+def rhodes_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Rhodes electric piano — tine struck by hammer, electromagnetic pickup.
+
+    The Rhodes sound comes from a rubber-tipped hammer hitting a thin
+    steel tine next to a tonebar. The tine vibrates near an electromagnetic
+    pickup (like a guitar pickup), producing a warm, bell-like tone with:
+    1. Strong fundamental + 2nd harmonic (tine character)
+    2. Bright metallic attack that mellows quickly (hammer on tine)
+    3. Bell-like inharmonic partials on soft hits, bark on hard hits
+    4. Asymmetric waveform from the pickup's nonlinear response
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Two-stage decay: quick initial drop, then long sustain
+    decay = numpy.where(t < 0.15,
+                        numpy.exp(-4.0 * t),
+                        numpy.exp(-4.0 * 0.15) * numpy.exp(-1.2 * (t - 0.15)))
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Brightness scales with pitch
+    brightness = numpy.clip((hz - 65) / 800, 0.0, 1.0)
+
+    # Tine harmonics — strong fundamental, prominent 2nd, bell-like upper
+    tine_harmonics = [
+        (1, 1.0),           # fundamental
+        (2, 0.6 + 0.15 * brightness),   # 2nd — the Rhodes character
+        (3, 0.15 + 0.1 * brightness),   # 3rd — adds warmth
+        (4, 0.08 + 0.08 * brightness),  # 4th — bell quality
+        (5, 0.04),          # 5th — subtle shimmer
+        (6, 0.02),          # 6th
+    ]
+
+    for n, amp in tine_harmonics:
+        f_n = hz * n
+        if f_n >= SAMPLE_RATE / 2:
+            break
+        # Higher harmonics decay faster
+        h_decay = decay * numpy.exp(-(0.8 + 0.3 * brightness) * (n - 1) * t)
+        phase = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * f_n * t + phase) * h_decay
+
+    # Hammer-on-tine transient — bright metallic click
+    click_len = min(int(SAMPLE_RATE * 0.008), n_samples)
+    click_t = numpy.arange(click_len, dtype=numpy.float64) / SAMPLE_RATE
+    # Inharmonic tine ring at attack (bell partials)
+    click = (numpy.sin(2 * numpy.pi * hz * 5.3 * click_t) * 0.15 +
+             numpy.sin(2 * numpy.pi * hz * 7.1 * click_t) * 0.08)
+    click *= numpy.exp(-numpy.linspace(0, 20, click_len))
+    wave[:click_len] += click
+
+    # Subtle asymmetry from pickup nonlinearity (soft saturation)
+    wave = numpy.tanh(wave * 1.2) / 1.2
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
 def bass_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Bass guitar — plucked thick string with magnetic pickup.
 
@@ -1872,7 +1934,7 @@ _SYNTH_FUNCTIONS = {
     "noise": noise_wave, "supersaw": supersaw_wave,
     "pwm_slow": pwm_slow_wave, "pwm_fast": pwm_fast_wave,
     "pluck_synth": pluck_wave, "organ_synth": organ_wave,
-    "strings_synth": strings_wave, "piano_synth": piano_wave,
+    "strings_synth": strings_wave, "piano_synth": piano_wave, "rhodes_synth": rhodes_wave,
     "bass_guitar_synth": bass_guitar_wave, "flute_synth": flute_wave,
     "trumpet_synth": trumpet_wave, "clarinet_synth": clarinet_wave,
     "marimba_synth": marimba_wave, "oboe_synth": oboe_wave,

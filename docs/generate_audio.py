@@ -465,7 +465,23 @@ def gen_synth_pwm_fast():
     _synth_demo("pwm_fast", "pwm_fast")
 
 def gen_synth_fm():
-    _synth_demo("fm", "fm", envelope="piano")
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="fm", envelope="bell", volume=0.5,
+                   fm_ratio=3.0, fm_index=5.0, reverb=0.3)
+    for n in ["C5", "E5", "G5", "C6", "G5", "E5", "C5", "E5"]:
+        p.add(n, Duration.QUARTER, velocity=80)
+    render("synth_fm", score)
+
+def gen_synth_rhodes():
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", instrument="electric_piano", volume=0.5, reverb=0.3)
+    # Jazz chords with hold
+    p.hold("C3", Duration.WHOLE * 2, velocity=60)
+    p.hold("E3", Duration.WHOLE * 2, velocity=55)
+    p.hold("Bb3", Duration.WHOLE * 2, velocity=55)
+    for n in ["G4", "Bb4", "C5", "Bb4", "G4", "F4", "E4", "G4"]:
+        p.add(n, Duration.QUARTER, velocity=75)
+    render("synth_rhodes", score)
 
 def gen_synth_supersaw():
     _synth_demo("supersaw", "supersaw", envelope="pad")
@@ -823,6 +839,7 @@ GENERATORS = [
     gen_synth_pwm_slow,
     gen_synth_pwm_fast,
     gen_synth_fm,
+    gen_synth_rhodes,
     gen_synth_supersaw,
     gen_synth_piano,
     gen_synth_bass_guitar,

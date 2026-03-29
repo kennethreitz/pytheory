@@ -17,13 +17,11 @@ INSTRUMENTS = {
         "synth": "piano_synth", "envelope": "none",
         "vel_to_filter": 3000,
     },
-    "electric_piano": {  # Rhodes/Wurlitzer
-        "synth": "fm", "envelope": "piano",
-        "fm_ratio": 1.0, "fm_index": 2.0,
-        "detune": 6, "chorus": 0.2, "chorus_rate": 1.0,
-        "lowpass": 4000, "saturation": 0.15,
-        "tremolo_depth": 0.15, "tremolo_rate": 4.5,
-        "analog": 0.2,
+    "electric_piano": {  # Rhodes
+        "synth": "rhodes_synth", "envelope": "none",
+        "chorus": 0.15, "chorus_rate": 1.0,
+        "tremolo_depth": 0.12, "tremolo_rate": 4.5,
+        "analog": 0.15,
     },
     "organ": {
         "synth": "organ_synth", "envelope": "organ",

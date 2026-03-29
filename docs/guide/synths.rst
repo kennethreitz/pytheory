@@ -129,14 +129,16 @@ the electric piano in every Whitney Houston ballad, the bass in every
 Depeche Mode track, the bells in a thousand TV jingles. If you heard
 pop music in the 80s, you heard FM synthesis.
 
-**Use for:** electric piano (rhodes), bells, metallic leads, jazz chords.
+**Use for:** bells, metallic leads, glassy pads, DX7-style sounds.
 
 .. code-block:: python
 
-   rhodes = score.part(
-       "rhodes",
+   bells = score.part(
+       "bells",
        synth="fm",
-       envelope="piano",
+       envelope="bell",
+       fm_ratio=3.0,
+       fm_index=5.0,
        volume=0.3,
        reverb=0.4,
    )
@@ -458,6 +460,24 @@ soundboard.
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_piano.wav" type="audio/wav"></audio>
+
+Rhodes Electric Piano
+~~~~~~~~~~~~~~~~~~~~~
+
+The Fender Rhodes — a rubber-tipped hammer strikes a steel tine
+next to a tonebar, picked up by an electromagnetic pickup. Warm,
+bell-like, with a bright metallic attack that mellows into a
+singing sustain. The sound of jazz clubs, soul, and neo-soul.
+
+.. code-block:: python
+
+   rhodes = score.part("rhodes", synth="rhodes_synth")
+   # Or use the instrument preset (adds tremolo + chorus)
+   rhodes = score.part("rhodes", instrument="electric_piano")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_rhodes.wav" type="audio/wav"></audio>
 
 Bass Guitar Synth
 ~~~~~~~~~~~~~~~~~
