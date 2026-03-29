@@ -244,6 +244,31 @@ Chords and Tone objects work the same way:
    for note in ["A2", "C3", "E3", "A2", "D2", "F2", "A2", "D2"]:
        bass.add(note, Duration.QUARTER)
 
+Polyphonic Hold
+---------------
+
+``Part.hold()`` adds a note without advancing the beat position —
+the next note starts at the *same* time. This enables polyphonic
+overlap on a single part: piano sustain, sitar drone under melody,
+guitar strum texture.
+
+.. code-block:: python
+
+   piano = score.part("piano", instrument="piano", reverb=0.3)
+
+   # Hold a C major chord for 8 beats
+   piano.hold("C3", Duration.WHOLE * 2, velocity=60)
+   piano.hold("E3", Duration.WHOLE * 2, velocity=55)
+   piano.hold("G3", Duration.WHOLE * 2, velocity=55)
+
+   # Melody plays simultaneously on top
+   for n in ["E4", "G4", "C5", "G4", "E4", "D4", "C4", "E4"]:
+       piano.add(n, Duration.QUARTER, velocity=80)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/piano_hold.wav" type="audio/wav"></audio>
+
 Arpeggiator
 ------------
 
