@@ -12,6 +12,11 @@ Usage::
     engine.channel(2, instrument="bass_guitar", lowpass=800)
     engine.channel(10, drums=True)
     engine.start()  # blocks until Ctrl-C
+
+Note: sustained notes are pre-rendered to a 3-second wavetable.
+Instruments requiring longer sustain (pads, organ) will cut off
+after 3 seconds. This is a known limitation of the current
+wavetable approach.
 """
 
 import threading
@@ -30,13 +35,13 @@ from .rhythm import INSTRUMENTS, DrumSound
 # ── Voice ────────────────────────────────────────────────────────────────
 
 class _Voice:
-    """A single sounding note — holds a pre-rendered wavetable and
+    """A single sounding note - holds a pre-rendered wavetable and
     tracks playback position + envelope state."""
-    __slots__ = ('wave', 'pos', 'velocity', 'active', 'releasing',
-                 'release_pos', 'release_len', 'note', 'pitch_ratio')
+    __slots__ = ('active', 'note', 'pitch_ratio', 'pos', 'release_len',
+                 'release_pos', 'releasing', 'velocity', 'wave')
 
     def __init__(self, wave, velocity, note):
-        self.wave = wave           # float32 array — one shot or looped
+        self.wave = wave           # float32 array - one shot
         self.pos = 0.0             # current read position (float for pitch bend)
         self.velocity = velocity
         self.active = True
@@ -50,7 +55,7 @@ class _Voice:
 # ── Channel ──────────────────────────────────────────────────────────────
 
 class _Channel:
-    """One MIDI channel — has a synth, effects, and a voice pool."""
+    """One MIDI channel - has a synth, effects, and a voice pool."""
 
     def __init__(self, synth_name="sine", envelope_name="piano",
                  is_drums=False, max_voices=12, **kwargs):
@@ -67,7 +72,7 @@ class _Channel:
         self.volume = kwargs.get('volume', 0.5)
 
         self.voices = []           # active _Voice objects
-        self._cache = {}           # MIDI note → pre-rendered wave
+        self._cache = {}           # MIDI note -> pre-rendered wave
         self._lock = threading.Lock()
 
     def _get_wave(self, midi_note, n_samples):
@@ -100,7 +105,7 @@ class _Channel:
         if self.lowpass > 0:
             wave_f = _apply_lowpass(wave_f, self.lowpass, q=self.lowpass_q)
 
-        # Apply reverb — simple feedback delay for real-time
+        # Apply reverb - simple feedback delay for real-time
         if self.reverb > 0:
             wet = self.reverb
             delay_samples = int(SAMPLE_RATE * 0.03)  # 30ms early reflection
@@ -131,7 +136,7 @@ class _Channel:
         wave = self._get_wave(midi_note, n_samples)
 
         with self._lock:
-            # Voice stealing — kill oldest if at max
+            # Voice stealing - kill oldest if at max
             if len(self.voices) >= self.max_voices:
                 self.voices.pop(0)
             self.voices.append(_Voice(wave, vel_scale, midi_note))
@@ -221,10 +226,11 @@ class LiveEngine:
     def __init__(self, buffer_size=512, sample_rate=SAMPLE_RATE):
         self.buffer_size = buffer_size
         self.sample_rate = sample_rate
-        self.channels = {}   # MIDI channel (1-16) → _Channel
-        self._cc_map = {}    # (channel, cc_number) → (param_name, min, max)
+        self.channels = {}   # MIDI channel (1-16) -> _Channel
+        self._cc_map = {}    # (channel, cc_number) -> (param_name, min, max)
         self._midi_in = None
         self._stream = None
+        self._stop_event = threading.Event()
         # Clock sync
         self._clock_count = 0      # MIDI clock pulses (24 per quarter note)
         self._clock_times = []     # timestamps for BPM calculation
@@ -246,6 +252,9 @@ class LiveEngine:
             drums: If True, this channel triggers drum sounds by MIDI note.
             **kwargs: Any Part parameter (lowpass, reverb, volume, etc.)
         """
+        if not isinstance(ch, int) or not (1 <= ch <= 16):
+            raise ValueError(f"MIDI channel must be an integer 1-16, got {ch!r}")
+
         # Build params from instrument preset
         params = {}
         if instrument:
@@ -272,16 +281,15 @@ class LiveEngine:
     def drums(self, pattern_name, *, volume=0.5):
         """Add a drum pattern that syncs to MIDI clock.
 
-        The pattern plays in sync with the OP-XY's transport —
+        The pattern plays in sync with the OP-XY's transport -
         starts on Start, stops on Stop, tempo from MIDI clock.
 
         Args:
             pattern_name: Drum pattern preset name (e.g. "rock", "house").
-            volume: Drum volume (0.0–1.0).
+            volume: Drum volume (0.0-1.0).
         """
         from .rhythm import Pattern
         self._drum_pattern = Pattern.preset(pattern_name)
-        # Set up a drums channel
         self._drum_channel = _Channel(synth_name="sine", is_drums=True,
                                       volume=volume)
         return self
@@ -308,13 +316,11 @@ class LiveEngine:
 
     def _apply_cc(self, ch, cc_number, value):
         """Apply a CC value to the matching channel parameter."""
-        # Check channel-specific mapping first, then global (ch=None)
         for key in [(ch, cc_number), (None, cc_number)]:
             if key in self._cc_map:
                 param, min_val, max_val = self._cc_map[key]
                 scaled = min_val + (max_val - min_val) * (value / 127.0)
 
-                # Apply to the channel
                 target_chs = [ch] if key[0] is not None else list(self.channels.keys())
                 for target_ch in target_chs:
                     if target_ch in self.channels:
@@ -323,9 +329,10 @@ class LiveEngine:
                             channel.volume = scaled
                         elif param == "lowpass":
                             channel.lowpass = scaled
-                            channel._cache.clear()  # filter changed, invalidate
+                            channel._cache.clear()
                         elif param == "reverb":
                             channel.reverb = scaled
+                            channel._cache.clear()
                         elif hasattr(channel, param):
                             setattr(channel, param, scaled)
                             channel._cache.clear()
@@ -339,7 +346,6 @@ class LiveEngine:
         if not self._playing:
             return
 
-        # Track BPM from clock intervals
         now = _time.perf_counter()
         self._clock_times.append(now)
         if len(self._clock_times) > 48:
@@ -352,16 +358,10 @@ class LiveEngine:
         # Trigger drum hits at the right time
         if self._drum_pattern and self._drum_channel:
             pattern = self._drum_pattern
-            # Convert clock count to beat position
-            # 24 clocks = 1 quarter note = 1 beat
             beat_pos = self._clock_count / 24.0
-            # Wrap within pattern length
             pattern_beat = beat_pos % pattern.beats
-
-            # Check if any hits land on this clock tick
-            beat_resolution = 1.0 / 24.0  # one clock tick
+            beat_resolution = 1.0 / 24.0
             for hit in pattern.hits:
-                # Check if hit falls within this tick
                 if abs(hit.position - pattern_beat) < beat_resolution / 2:
                     self._drum_channel.note_on(hit.sound.value, hit.velocity)
 
@@ -372,6 +372,9 @@ class LiveEngine:
         for channel in self.channels.values():
             with channel._lock:
                 channel.voices.clear()
+        if self._drum_channel:
+            with self._drum_channel._lock:
+                self._drum_channel.voices.clear()
 
     def _midi_callback(self, event, data=None):
         """Handle incoming MIDI messages."""
@@ -380,21 +383,21 @@ class LiveEngine:
             return
 
         # System realtime messages (1 byte)
-        if msg[0] == 0xF8:  # Clock — 24 ppqn
+        if msg[0] == 0xF8:  # Clock - 24 ppqn
             self._on_clock()
             return
         elif msg[0] == 0xFA:  # Start
-            print("  ▶ Start")
+            print("  > Start")
             self._playing = True
             self._clock_count = 0
             return
         elif msg[0] == 0xFC:  # Stop
-            print("  ■ Stop")
+            print("  [] Stop")
             self._playing = False
             self._all_notes_off()
             return
         elif msg[0] == 0xFB:  # Continue
-            print("  ▶ Continue")
+            print("  > Continue")
             self._playing = True
             return
 
@@ -402,7 +405,7 @@ class LiveEngine:
             return
 
         status = msg[0]
-        ch = (status & 0x0F) + 1  # MIDI channels are 0-indexed in protocol
+        ch = (status & 0x0F) + 1
         msg_type = status & 0xF0
 
         if ch not in self.channels:
@@ -417,34 +420,25 @@ class LiveEngine:
         elif msg_type == 0x80 or (msg_type == 0x90 and velocity == 0):
             channel.note_off(note)
         elif msg_type == 0xB0:
-            # CC message
             self._apply_cc(ch, note, velocity)
         elif msg_type == 0xE0:
-            # Pitch bend — 14-bit value from two 7-bit bytes
-            bend_raw = (msg[2] << 7) | msg[1]  # 0-16383, center=8192
-            bend_semitones = (bend_raw - 8192) / 8192.0 * 2.0  # ±2 semitones
-            if ch in self.channels:
-                channel = self.channels[ch]
-                # Adjust pitch of all active voices
-                ratio = 2.0 ** (bend_semitones / 12.0)
-                with channel._lock:
-                    for v in channel.voices:
-                        if v.active:
-                            v.pitch_ratio = ratio
+            bend_raw = (msg[2] << 7) | msg[1]
+            bend_semitones = (bend_raw - 8192) / 8192.0 * 2.0
+            ratio = 2.0 ** (bend_semitones / 12.0)
+            with channel._lock:
+                for v in channel.voices:
+                    if v.active:
+                        v.pitch_ratio = ratio
 
     def _audio_callback(self, outdata, frames, time_info, status):
-        """sounddevice callback — mix all channels."""
+        """sounddevice callback - mix all channels."""
         buf = numpy.zeros(frames, dtype=numpy.float32)
         for channel in self.channels.values():
             buf += channel.render(frames)
-        # Mix drum pattern channel
         if self._drum_channel:
             buf += self._drum_channel.render(frames)
 
-        # Soft clip
         buf = numpy.tanh(buf)
-
-        # Stereo output
         outdata[:, 0] = buf
         outdata[:, 1] = buf
 
@@ -458,24 +452,22 @@ class LiveEngine:
         return ports
 
     def start(self, port=None):
-        """Start the engine — opens MIDI input and audio output.
+        """Start the engine - opens MIDI input and audio output.
 
         Args:
             port: MIDI port index or name. None = first available.
 
-        Blocks until Ctrl-C.
+        Blocks until Ctrl-C or stop() is called.
         """
         if not self.channels:
-            # Default: Rhodes on channel 1
             self.channel(1, instrument="electric_piano")
 
-        # Pre-compute wavetables for all channels (avoids first-note glitch)
+        # Pre-compute wavetables
         print("  Pre-rendering wavetables...")
         n_samples = SAMPLE_RATE * 3
-        for ch, channel in self.channels.items():
+        for _, channel in self.channels.items():
             if channel.is_drums:
                 continue
-            # Pre-render notes in the playable range (MIDI 36-96 = C2-C7)
             for midi_note in range(36, 97):
                 channel._get_wave(midi_note, n_samples)
         print(f"  Cached {sum(len(c._cache) for c in self.channels.values())} wavetables.")
@@ -488,21 +480,34 @@ class LiveEngine:
         if not ports:
             print("  No MIDI input ports found.")
             print("  Connect a MIDI device and try again.")
+            self._midi_in.delete()
+            self._midi_in = None
             return
 
         if port is None:
             port = 0
         elif isinstance(port, str):
+            matched = False
             for i, name in enumerate(ports):
                 if port.lower() in name.lower():
                     port = i
+                    matched = True
                     break
+            if not matched:
+                self._midi_in.delete()
+                self._midi_in = None
+                raise ValueError(f"MIDI input port not found: {port!r}")
 
-        self._midi_in.open_port(port)
-        # Enable system realtime messages (clock, start, stop)
+        try:
+            self._midi_in.open_port(port)
+        except Exception:
+            self._midi_in.delete()
+            self._midi_in = None
+            raise
+
         self._midi_in.ignore_types(sysex=True, timing=False, active_sense=True)
         self._midi_in.set_callback(self._midi_callback)
-        port_name = ports[port] if isinstance(port, int) else port
+        port_name = ports[port]
 
         print(f"  PyTheory Live Engine")
         print(f"  MIDI: {port_name}")
@@ -511,14 +516,12 @@ class LiveEngine:
         for ch, channel in sorted(self.channels.items()):
             kind = "drums" if channel.is_drums else channel.synth_name
             print(f"    {ch:2d}: {kind} (vol={channel.volume})")
-        print()
         if self._drum_pattern:
             print(f"  Drums: {self._drum_pattern.name} (synced to MIDI clock)")
         print()
         print("  Playing... (Ctrl-C to stop)")
         print()
 
-        # Open audio
         self._stream = sd.OutputStream(
             samplerate=self.sample_rate,
             blocksize=self.buffer_size,
@@ -529,19 +532,24 @@ class LiveEngine:
 
         try:
             self._stream.start()
-            # Block forever
-            threading.Event().wait()
+            self._stop_event.clear()
+            self._stop_event.wait()
         except KeyboardInterrupt:
             print("\n  Stopped.")
         finally:
             self._stream.stop()
             self._stream.close()
+            self._stream = None
             self._midi_in.close_port()
             self._midi_in.delete()
+            self._midi_in = None
 
     def stop(self):
         """Stop the engine."""
+        self._stop_event.set()
         if self._stream:
             self._stream.stop()
         if self._midi_in:
             self._midi_in.close_port()
+            self._midi_in.delete()
+            self._midi_in = None
