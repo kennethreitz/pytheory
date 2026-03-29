@@ -147,8 +147,12 @@ class LiveTUI:
         engine_thread.start()
 
         cmd_buf = ""
+        cursor_pos = 0
         cmd_history = []
         history_idx = -1
+        tab_matches = []
+        tab_idx = -1
+        tab_prefix = ""
 
         while self.running:
             try:
@@ -274,11 +278,15 @@ class LiveTUI:
                     stdscr.addstr(iy, 0, " $ ",
                                   curses.color_pair(1) | curses.A_BOLD)
                     stdscr.addstr(iy, 3, cmd_buf[:w - 5])
-                    # Cursor
-                    cx = 3 + len(cmd_buf)
+                    # Cursor at position
+                    cx = 3 + cursor_pos
                     if cx < w - 1:
-                        stdscr.addstr(iy, cx, "█",
-                                      curses.color_pair(1) | curses.A_BOLD)
+                        # Show character under cursor inverted, or block at end
+                        if cursor_pos < len(cmd_buf):
+                            stdscr.addstr(iy, cx, cmd_buf[cursor_pos],
+                                          curses.A_REVERSE)
+                        else:
+                            stdscr.addstr(iy, cx, " ", curses.A_REVERSE)
                 except curses.error:
                     pass
 
@@ -293,29 +301,107 @@ class LiveTUI:
                         cmd_history.append(cmd_buf)
                         self._handle_command(cmd_buf.strip())
                         cmd_buf = ""
+                        cursor_pos = 0
                         history_idx = -1
                 elif ch == 27:
                     cmd_buf = ""
+                    cursor_pos = 0
                 elif ch == curses.KEY_BACKSPACE or ch == 127:
-                    cmd_buf = cmd_buf[:-1]
+                    if cursor_pos > 0:
+                        cmd_buf = cmd_buf[:cursor_pos - 1] + cmd_buf[cursor_pos:]
+                        cursor_pos -= 1
+                elif ch == curses.KEY_LEFT:
+                    cursor_pos = max(0, cursor_pos - 1)
+                elif ch == curses.KEY_RIGHT:
+                    cursor_pos = min(len(cmd_buf), cursor_pos + 1)
+                elif ch == curses.KEY_HOME or ch == 1:  # Ctrl-A
+                    cursor_pos = 0
+                elif ch == curses.KEY_END or ch == 5:  # Ctrl-E
+                    cursor_pos = len(cmd_buf)
                 elif ch == curses.KEY_UP:
                     if cmd_history and history_idx < len(cmd_history) - 1:
                         history_idx += 1
                         cmd_buf = cmd_history[-(history_idx + 1)]
+                        cursor_pos = len(cmd_buf)
                 elif ch == curses.KEY_DOWN:
                     if history_idx > 0:
                         history_idx -= 1
                         cmd_buf = cmd_history[-(history_idx + 1)]
+                        cursor_pos = len(cmd_buf)
                     else:
                         history_idx = -1
                         cmd_buf = ""
+                        cursor_pos = 0
+                elif ch == 9:  # Tab
+                    if tab_matches and tab_prefix == cmd_buf:
+                        tab_idx = (tab_idx + 1) % len(tab_matches)
+                        cmd_buf = tab_matches[tab_idx]
+                    else:
+                        tab_matches = self._complete(cmd_buf)
+                        tab_prefix = cmd_buf
+                        if len(tab_matches) == 1:
+                            cmd_buf = tab_matches[0]
+                            tab_matches = []
+                        elif tab_matches:
+                            tab_idx = 0
+                            cmd_buf = tab_matches[0]
+                        else:
+                            tab_matches = []
+                    cursor_pos = len(cmd_buf)
                 elif 32 <= ch < 127:
-                    cmd_buf += chr(ch)
+                    cmd_buf = cmd_buf[:cursor_pos] + chr(ch) + cmd_buf[cursor_pos:]
+                    cursor_pos += 1
+                    tab_matches = []
+                    tab_idx = -1
 
             except KeyboardInterrupt:
                 self.running = False
 
         self.engine.stop()
+
+    def _complete(self, text):
+        """Return list of completions for current input."""
+        parts = text.split()
+        commands = ["ch", "fx", "drums", "seed", "list", "patterns", "help", "exit"]
+        fx_params = ["volume", "lowpass", "reverb", "chorus", "detune", "spread",
+                     "analog", "distortion", "delay", "tremolo_depth",
+                     "saturation", "phaser", "sub_osc", "noise_mix"]
+
+        if not parts:
+            return [c + " " for c in commands]
+
+        # Completing first word
+        if len(parts) == 1 and not text.endswith(" "):
+            prefix = parts[0].lower()
+            return [c + " " for c in commands if c.startswith(prefix)]
+
+        verb = parts[0].lower()
+
+        # ch <n> <instrument>
+        if verb == "ch" and len(parts) == 3 and not text.endswith(" "):
+            prefix = parts[2].lower()
+            return [f"ch {parts[1]} {i} " for i in self.instruments
+                    if i.startswith(prefix)]
+        if verb == "ch" and len(parts) == 2 and text.endswith(" "):
+            return [f"ch {parts[1]} {i} " for i in self.instruments]
+
+        # drums <pattern>
+        if verb == "drums" and len(parts) == 2 and not text.endswith(" "):
+            prefix = parts[1].lower()
+            matches = [p for p in self.drum_patterns if p.startswith(prefix)]
+            return [f"drums {m} " for m in matches]
+        if verb == "drums" and len(parts) == 1 and text.endswith(" "):
+            return [f"drums {p} " for p in self.drum_patterns]
+
+        # fx <n> <param> <val>
+        if verb == "fx" and len(parts) == 3 and not text.endswith(" "):
+            prefix = parts[2].lower()
+            return [f"fx {parts[1]} {p} " for p in fx_params
+                    if p.startswith(prefix)]
+        if verb == "fx" and len(parts) == 2 and text.endswith(" "):
+            return [f"fx {parts[1]} {p} " for p in fx_params]
+
+        return []
 
     def _handle_command(self, cmd):
         parts = cmd.split()
