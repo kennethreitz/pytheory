@@ -411,6 +411,10 @@ Acid House Track
 
    play_score(score)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/acid_house.wav" type="audio/wav"></audio>
+
 Dub Reggae with Delay Madness
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -442,6 +446,10 @@ Sparse notes into infinite echo:
        bass.add(n, Duration.HALF)
 
    play_score(score)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/dub_reggae.wav" type="audio/wav"></audio>
 
 Jazz Ballad with Humanize
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -480,6 +488,10 @@ The difference between a robot and a musician:
 
    play_score(score)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/jazz_ballad.wav" type="audio/wav"></audio>
+
 Song with Sections
 ~~~~~~~~~~~~~~~~~~~
 
@@ -512,6 +524,10 @@ Define once, arrange freely:
 
    play_score(score)
    score.save_midi("my_song.mid")
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/song_sections.wav" type="audio/wav"></audio>
 
 Export Everything to MIDI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

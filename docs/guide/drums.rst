@@ -249,6 +249,10 @@ Playing Patterns
    play_pattern(Pattern.preset("salsa"), repeats=4, bpm=180)
    play_pattern(Pattern.preset("afrobeat"), repeats=8, bpm=110)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/rock_beat.wav" type="audio/wav"></audio>
+
 Fills
 -----
 
@@ -338,6 +342,10 @@ drum pattern and all named parts are mixed together by ``play_score()``:
        bass.add(n, Duration.QUARTER)
 
    play_score(score)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/salsa_layered.wav" type="audio/wav"></audio>
 
 World Percussion
 ----------------
@@ -458,6 +466,10 @@ West African-style break).
    score = Score("4/4", bpm=120)
    score.drums("djembe", repeats=8, fill="djembe call", fill_every=4)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/djembe.wav" type="audio/wav"></audio>
+
 Metal Kit
 ~~~~~~~~~
 
@@ -547,6 +559,10 @@ voice with per-player timing tendencies and micro pitch drift.
 
    # Or use patterns
    score.drums("drumline", repeats=4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/march_snare.wav" type="audio/wav"></audio>
 
 **Sympathetic resonance:** The marching snare builds up snare wire
 buzz as hits accumulate, and the buzz decays during rests — just like

@@ -392,6 +392,10 @@ rhodes, triangle lead, and filtered bass:
 
    play_score(score)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/sequencing_bossa.wav" type="audio/wav"></audio>
+
 Velocity
 --------
 
@@ -431,6 +435,10 @@ Pass ``articulation=`` to ``Part.add()``:
    piano.add("G4", Duration.QUARTER, articulation="accent")     # louder
    piano.add("C5", Duration.HALF, articulation="fermata")       # held longer
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/articulations.wav" type="audio/wav"></audio>
+
 What each articulation does:
 
 - **staccato** — plays ~40% of the note duration with a quick fade-out. Short and detached.
@@ -466,6 +474,10 @@ of notes instead of setting each one manually.
    # Custom curve: explicit velocity per note
    piano.dynamics(["C4","E4","G4","C5"], Duration.QUARTER,
                   velocities=[50, 80, 110, 90])
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/dynamics.wav" type="audio/wav"></audio>
 
 Four methods:
 
@@ -547,6 +559,12 @@ per-player timing tendencies and micro pitch drift:
 Each ensemble voice gets a consistent timing personality (some rush,
 some drag) plus small per-note wobble, and slightly different tuning.
 The result sounds like a real section — together but alive.
+
+Solo snare, then an 8-player section plays the same pattern:
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/ensemble.wav" type="audio/wav"></audio>
 
 Swing and Groove
 ----------------
@@ -662,6 +680,10 @@ Four interpolation curves:
 
    # Smooth reverb wash fading in and settling
    pad.ramp(over=Duration.WHOLE * 4, curve="ease_in_out", reverb=0.6)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/filter_ramp.wav" type="audio/wav"></audio>
 
 ``ramp()`` generates automation points every quarter-beat by default.
 Set ``resolution=0.125`` for smoother curves (every 32nd note), or
