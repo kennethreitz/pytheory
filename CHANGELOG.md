@@ -2,6 +2,21 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.39.2
+
+- **Marching percussion** — snare, rimshot, and stick click sounds with
+  high-tension kevlar synthesis and woody-metallic rimshot crack
+- **`Part.flam()`**, **`Part.diddle()`**, **`Part.cheese()`** — marching
+  rudiment methods for any drum sound
+- **`Part ensemble=`** — duplicate voices with per-player timing tendencies
+  and micro pitch drift. Works on any Part (drumline, string section, choir).
+  `ensemble=20` for a full snare line, `ensemble=4` for a string quartet.
+- **Sympathetic resonance** — marching snare buzz builds up with repeated
+  hits, decays during rests (like real snare wire response)
+- **4 marching patterns** — march, cadence, paradiddle, roll
+- **Chakradar tabla pattern** — 16-beat tihai of tihais composition
+- Song #32: Snare Cadence (flams, diddles, cheese, triplets, 32nds)
+
 ## 0.39.1
 
 - **Chakradar tabla pattern** — 16-beat tihai of tihais composition with
