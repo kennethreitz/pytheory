@@ -19,9 +19,12 @@ def note_name(midi):
 
 
 class LiveTUI:
-    def __init__(self, seed=None, port="OP-XY"):
+    def __init__(self, seed=None, port="OP-XY", n_channels=8,
+                 drum_pattern="rock", buffer_size=128):
         self.seed = seed or random.randint(0, 9999)
         self.port = port
+        self.n_channels = n_channels
+        self.buffer_size = buffer_size
         self.engine = None
         self.log_lines = []
         self.max_log = 500
@@ -29,20 +32,21 @@ class LiveTUI:
         self.instruments = sorted([k for k in INSTRUMENTS.keys()
                                    if k not in ("808_bass",)])
         self.drum_patterns = sorted(Pattern.list_presets())
-        self.current_drum = "rock"
+        self.current_drum = drum_pattern
         self.picks = []
         self.bpm = "—"
         self.status = "Init"
-        self.status_color = 3  # yellow
+        self.status_color = 3
         self._build_engine()
 
     def _build_engine(self):
         rng = random.Random(self.seed)
-        self.picks = rng.sample(self.instruments, 8)
-        self.engine = LiveEngine(buffer_size=128)
+        self.picks = rng.sample(self.instruments, min(self.n_channels, len(self.instruments)))
+        self.engine = LiveEngine(buffer_size=self.buffer_size)
         for i, inst in enumerate(self.picks, 1):
             self.engine.channel(i, instrument=inst, reverb=0.3)
-        self.engine.drums(self.current_drum, volume=0.5)
+        if self.current_drum and self.current_drum not in ("none", "-"):
+            self.engine.drums(self.current_drum, volume=0.5)
         self.engine.cc(0, "lowpass", min_val=300, max_val=8000)
 
     def log(self, msg, color=0):
@@ -516,10 +520,10 @@ class LiveTUI:
         elif verb == "ch" and len(parts) == 2:
             try:
                 n = int(parts[1])
-                if 1 <= n <= 8:
+                if 1 <= n <= len(self.picks):
                     self.log(f"Ch {n}: {self.picks[n-1]}", 2)
                 else:
-                    self.log("Channel 1-8", 4)
+                    self.log(f"Channel 1-{len(self.picks)}", 4)
             except ValueError:
                 self.log("ch <1-8> [instrument]", 4)
         elif verb == "ch" and len(parts) >= 3:
@@ -529,8 +533,8 @@ class LiveTUI:
                 if inst not in INSTRUMENTS:
                     self.log(f"Unknown: {inst}", 4)
                     return
-                if not (1 <= n <= 8):
-                    self.log("Channel 1-8", 4)
+                if not (1 <= n <= len(self.picks)):
+                    self.log(f"Channel 1-{len(self.picks)}", 4)
                     return
                 self.picks[n - 1] = inst
                 self.engine.channel(n, instrument=inst, reverb=0.3)
@@ -542,8 +546,8 @@ class LiveTUI:
                 n = int(parts[1])
                 param = parts[2]
                 val = float(parts[3])
-                if not (1 <= n <= 8):
-                    self.log("Channel 1-8", 4)
+                if not (1 <= n <= len(self.picks)):
+                    self.log(f"Channel 1-{len(self.picks)}", 4)
                     return
                 if n not in self.engine.channels:
                     self.log(f"Channel {n} not active", 4)
@@ -708,9 +712,17 @@ class LiveTUI:
 
 
 def main():
-    seed = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    port = sys.argv[2] if len(sys.argv) > 2 else "OP-XY"
-    tui = LiveTUI(seed=seed, port=port)
+    import argparse
+    parser = argparse.ArgumentParser(description="PyTheory Live — real-time MIDI synthesizer")
+    parser.add_argument("seed", nargs="?", type=int, default=None, help="Random seed for instruments")
+    parser.add_argument("--port", "-p", default="OP-XY", help="MIDI port name (default: OP-XY)")
+    parser.add_argument("--channels", "-c", type=int, default=8, help="Number of channels (default: 8)")
+    parser.add_argument("--drums", "-d", default="rock", help="Drum pattern (default: rock, 'none' to disable)")
+    parser.add_argument("--buffer", "-b", type=int, default=128, help="Audio buffer size (default: 128)")
+    args = parser.parse_args()
+
+    tui = LiveTUI(seed=args.seed, port=args.port, n_channels=args.channels,
+                  drum_pattern=args.drums, buffer_size=args.buffer)
     curses.wrapper(tui.run)
 
 
