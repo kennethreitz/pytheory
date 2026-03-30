@@ -153,6 +153,7 @@ class LiveTUI:
         tab_matches = []
         tab_idx = -1
         tab_prefix = ""
+        self.self.kbd_active = False
 
         while self.running:
             try:
@@ -177,7 +178,11 @@ class LiveTUI:
                 stdscr.addstr(0, x, badge, curses.color_pair(badge_cp) | curses.A_BOLD)
                 x += len(badge)
 
-                info = f"  BPM:{self.bpm}  drums:{self.current_drum}  seed:{self.seed}"
+                kbd_mode = ""
+                if self.engine._keyboard_channel:
+                    kbd_mode = f"  KBD:ch{self.engine._keyboard_channel}"
+                rec_mode = "  ●REC" if self.engine._recording else ""
+                info = f"  BPM:{self.bpm}  drums:{self.current_drum}  seed:{self.seed}{kbd_mode}{rec_mode}"
                 try:
                     stdscr.addstr(0, x, info[:w - x], curses.color_pair(6))
                     # Fill rest of header
@@ -245,8 +250,8 @@ class LiveTUI:
                 for i, inst in enumerate(self.picks, 1):
                     if i in self.engine.channels:
                         lv = self.engine.channels[i].level
-                        bars = int(lv * 20)
-                        meter = "█" * bars + "░" * (20 - bars)
+                        bars = int(min(lv, 1.0) * 16)
+                        meter = "|" * bars + "-" * (16 - bars)
                         color = 1 if bars < 15 else 3 if bars < 18 else 4
                         try:
                             stdscr.addstr(y, cfg_x, f"{i}", curses.A_BOLD)
@@ -306,8 +311,14 @@ class LiveTUI:
                 iy = h - 2
                 try:
                     stdscr.addstr(iy - 1, 0, "─" * (w - 1), curses.A_DIM)
-                    stdscr.addstr(iy, 0, " $ ",
-                                  curses.color_pair(1) | curses.A_BOLD)
+                    if self.kbd_active:
+                        stdscr.addstr(iy, 0, " KEYBOARD ",
+                                      curses.color_pair(7) | curses.A_BOLD)
+                        stdscr.addstr(iy, 10, " Esc=exit Up/Down=octave ",
+                                      curses.color_pair(3))
+                    else:
+                        stdscr.addstr(iy, 0, " $ ",
+                                      curses.color_pair(1) | curses.A_BOLD)
                     stdscr.addstr(iy, 3, cmd_buf[:w - 5])
                     # Cursor at position
                     cx = 3 + cursor_pos
@@ -327,7 +338,29 @@ class LiveTUI:
                 ch = stdscr.getch()
                 if ch == -1:
                     continue
-                elif ch == 10 or ch == 13:
+
+                # KEYBOARD MODE: all keys go to MIDI
+                if self.kbd_active:
+                    if ch == 27:  # Escape exits keyboard mode
+                        self.kbd_active = False
+                        self.engine._keyboard_channel = None
+                        self.log("Keyboard off (Esc)", 3)
+                    elif ch == curses.KEY_UP:
+                        self.engine._keyboard_octave = min(8, self.engine._keyboard_octave + 1)
+                        self.log(f"Octave ↑ {self.engine._keyboard_octave}", 2)
+                    elif ch == curses.KEY_DOWN:
+                        self.engine._keyboard_octave = max(0, self.engine._keyboard_octave - 1)
+                        self.log(f"Octave ↓ {self.engine._keyboard_octave}", 2)
+                    elif 32 <= ch < 127:
+                        key = chr(ch).lower()
+                        if self.engine.keyboard_note(key, on=True):
+                            def _off(k=key):
+                                time.sleep(0.2)
+                                self.engine.keyboard_note(k, on=False)
+                            threading.Thread(target=_off, daemon=True).start()
+                    continue
+
+                if ch == 10 or ch == 13:
                     if cmd_buf.strip():
                         cmd_history.append(cmd_buf)
                         self._handle_command(cmd_buf.strip())
@@ -335,8 +368,13 @@ class LiveTUI:
                         cursor_pos = 0
                         history_idx = -1
                 elif ch == 27:
-                    cmd_buf = ""
-                    cursor_pos = 0
+                    if self.engine._keyboard_channel and not cmd_buf:
+                        # Escape exits keyboard mode
+                        self.engine._keyboard_channel = None
+                        self.log("Keyboard off (Esc)", 3)
+                    else:
+                        cmd_buf = ""
+                        cursor_pos = 0
                 elif ch == curses.KEY_BACKSPACE or ch == 127:
                     if cursor_pos > 0:
                         cmd_buf = cmd_buf[:cursor_pos - 1] + cmd_buf[cursor_pos:]
@@ -380,19 +418,8 @@ class LiveTUI:
                             tab_matches = []
                     cursor_pos = len(cmd_buf)
                 elif 32 <= ch < 127:
-                    key = chr(ch)
-                    # Keyboard-as-MIDI: if keyboard mode is on and not typing a command
-                    if (self.engine._keyboard_channel and
-                            not cmd_buf and
-                            self.engine.keyboard_note(key.lower(), on=True)):
-                        # Schedule note-off after 200ms
-                        def _off(k=key.lower()):
-                            time.sleep(0.2)
-                            self.engine.keyboard_note(k, on=False)
-                        threading.Thread(target=_off, daemon=True).start()
-                    else:
-                        cmd_buf = cmd_buf[:cursor_pos] + key + cmd_buf[cursor_pos:]
-                        cursor_pos += 1
+                    cmd_buf = cmd_buf[:cursor_pos] + chr(ch) + cmd_buf[cursor_pos:]
+                    cursor_pos += 1
                     tab_matches = []
                     tab_idx = -1
 
@@ -592,15 +619,13 @@ class LiveTUI:
                     self.engine._keyboard_channel = ch_num
                     if len(parts) >= 3:
                         self.engine._keyboard_octave = int(parts[2])
-                    self.log(f"Keyboard → ch{ch_num} oct{self.engine._keyboard_octave}", 1)
                 except ValueError:
                     self.log("kbd <channel> [octave]", 4)
-            elif self.engine._keyboard_channel:
-                self.engine._keyboard_channel = None
-                self.log("Keyboard off", 3)
+                    return
             else:
-                self.engine._keyboard_channel = 1
-                self.log(f"Keyboard → ch1 oct{self.engine._keyboard_octave}", 1)
+                self.engine._keyboard_channel = self.engine._keyboard_channel or 1
+            self.kbd_active = True
+            self.log(f"♪ Keyboard ON ch{self.engine._keyboard_channel} oct{self.engine._keyboard_octave} (Esc=exit, ↑↓=octave)", 1)
         elif verb == "rec":
             self.engine.start_recording()
             self.log("● Recording...", 4)
