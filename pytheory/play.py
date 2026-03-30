@@ -3352,9 +3352,7 @@ def _synth_tabla_ge_bend(n_samples):
     # Gets quieter as pitch rises (palm mutes the head as it presses)
     freq = 60 + 180 * (1 - numpy.exp(-4 * t))
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    # Slow time-based envelope so the sweep is audible
-    env = numpy.exp(-0.8 * t)
-    body = numpy.sin(phase) * env * 0.9
+    body = numpy.sin(phase) * _exp_decay(n_samples, 6) * 0.9
     # Metal shell resonance
     metal_len = min(int(SAMPLE_RATE * 0.1), n_samples)
     metal = numpy.sin(2 * numpy.pi * 150 * t[:metal_len]) * _exp_decay(metal_len, 8) * 0.3
