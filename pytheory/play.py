@@ -3517,7 +3517,7 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.TABLA_DHA.value: lambda n: _synth_tabla_dha(n),
         DrumSound.TABLA_TIT.value: lambda n: _synth_tabla_tit(n),
         DrumSound.TABLA_KE.value: lambda n: _synth_tabla_ke(n),
-        DrumSound.TABLA_GE_BEND.value: lambda n: _synth_tabla_ge_bend(n),
+        DrumSound.TABLA_GE_BEND.value: _synth_tabla_ge_bend,
         # Dhol
         DrumSound.DHOL_DAGGA.value: lambda n: _synth_dhol_dagga(n),
         DrumSound.DHOL_TILLI.value: lambda n: _synth_dhol_tilli(n),
@@ -3568,6 +3568,9 @@ def _render_drum_hit(sound_value, n_samples):
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))
     result = renderer(n_samples)
+    # Override for ge_bend — dispatch closure has stale reference
+    if sound_value == 108:
+        result = _synth_tabla_ge_bend(n_samples)
     return result
 
 
