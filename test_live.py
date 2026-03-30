@@ -158,6 +158,7 @@ class LiveTUI:
         tab_idx = -1
         tab_prefix = ""
         self.kbd_active = False
+        self._kbd_held = {}  # key → last_press_time
 
         while self.running:
             try:
@@ -353,6 +354,10 @@ class LiveTUI:
                 # KEYBOARD MODE: all keys go to MIDI
                 if self.kbd_active:
                     if ch == 27:  # Escape exits keyboard mode
+                        # Release all held notes
+                        for k in list(self._kbd_held):
+                            self.engine.keyboard_note(k, on=False)
+                        self._kbd_held.clear()
                         self.kbd_active = False
                         self.engine._keyboard_channel = None
                         self.log("Keyboard off (Esc)", 3)
@@ -364,28 +369,24 @@ class LiveTUI:
                         self.log(f"Octave ↓ {self.engine._keyboard_octave}", 2)
                     elif 32 <= ch < 127:
                         key = chr(ch).lower()
-                        played = self.engine.keyboard_note(key, on=True)
-                        if played:
-                            ch_num = self.engine._keyboard_channel
-                            if ch_num in self.engine.channels:
-                                channel = self.engine.channels[ch_num]
-                                nv = len(channel.voices)
-                                vol = channel.volume
-                                lv = channel.level
-                                # Check if wavetable has audio
-                                cache_peek = ""
-                                if channel._cache:
-                                    first_wave = next(iter(channel._cache.values()))
-                                    peak = abs(first_wave).max()
-                                    cache_peek = f" wpeak={peak:.3f}"
-                                stream_ok = "stream:OK" if self.engine._stream and self.engine._stream.active else "stream:OFF"
-                                self.log(f"  key:{key} v={nv} vol={vol} lv={lv:.3f}{cache_peek} {stream_ok}", 2)
-                            def _off(k=key):
-                                time.sleep(0.25)
-                                self.engine.keyboard_note(k, on=False)
-                            threading.Thread(target=_off, daemon=True).start()
+                        now = time.time()
+                        if key in self._kbd_held:
+                            # Key repeat — just refresh the timer
+                            self._kbd_held[key] = now
                         else:
-                            self.log(f"  unmapped:{key}", 3)
+                            # New key press
+                            played = self.engine.keyboard_note(key, on=True)
+                            if played:
+                                self._kbd_held[key] = now
+
+                    # Release keys that haven't been pressed for 150ms
+                    now = time.time()
+                    expired = [k for k, t in self._kbd_held.items()
+                               if now - t > 0.15]
+                    for k in expired:
+                        self.engine.keyboard_note(k, on=False)
+                        del self._kbd_held[k]
+
                     continue
 
                 if ch == 10 or ch == 13:
