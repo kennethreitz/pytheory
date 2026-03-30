@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.2
+
+- **Master compressor dialed back** — threshold raised from 0.5 to 0.7,
+  makeup gain capped at 3x. Sparse arrangements no longer get
+  over-amplified to clipping.
+
 ## 0.40.1
 
 - **Singing bowl synth** — two variants: strike (mallet hit with chirp
