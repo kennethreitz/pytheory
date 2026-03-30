@@ -561,36 +561,38 @@ class LiveEngine:
         ports = self._midi_in.get_ports()
 
         if not ports:
-            print("  No MIDI input ports found.")
-            print("  Connect a MIDI device and try again.")
+            print("  No MIDI input ports found. (Keyboard mode still works)")
             self._midi_in.delete()
             self._midi_in = None
-            return
+            # Don't return — still start audio for keyboard mode
 
-        if port is None:
-            port = 0
-        elif isinstance(port, str):
-            matched = False
-            for i, name in enumerate(ports):
-                if port.lower() in name.lower():
-                    port = i
-                    matched = True
-                    break
-            if not matched:
-                self._midi_in.delete()
-                self._midi_in = None
-                raise ValueError(f"MIDI input port not found: {port!r}")
+        port_name = "none"
+        if self._midi_in and ports:
+            if port is None:
+                port = 0
+            elif isinstance(port, str):
+                matched = False
+                for i, name in enumerate(ports):
+                    if port.lower() in name.lower():
+                        port = i
+                        matched = True
+                        break
+                if not matched:
+                    self._midi_in.delete()
+                    self._midi_in = None
+                    print(f"  MIDI port not found: {port!r}, continuing without MIDI")
+                    port = None
 
-        try:
-            self._midi_in.open_port(port)
-        except Exception:
-            self._midi_in.delete()
-            self._midi_in = None
-            raise
-
-        self._midi_in.ignore_types(sysex=True, timing=False, active_sense=True)
-        self._midi_in.set_callback(self._midi_callback)
-        port_name = ports[port]
+            if self._midi_in and port is not None:
+                try:
+                    self._midi_in.open_port(port)
+                    self._midi_in.ignore_types(sysex=True, timing=False, active_sense=True)
+                    self._midi_in.set_callback(self._midi_callback)
+                    port_name = ports[port]
+                except Exception:
+                    self._midi_in.delete()
+                    self._midi_in = None
+                    print("  Failed to open MIDI port, continuing without MIDI")
 
         print(f"  PyTheory Live Engine")
         print(f"  MIDI: {port_name}")
@@ -620,12 +622,14 @@ class LiveEngine:
         except KeyboardInterrupt:
             print("\n  Stopped.")
         finally:
-            self._stream.stop()
-            self._stream.close()
-            self._stream = None
-            self._midi_in.close_port()
-            self._midi_in.delete()
-            self._midi_in = None
+            if self._stream:
+                self._stream.stop()
+                self._stream.close()
+                self._stream = None
+            if self._midi_in:
+                self._midi_in.close_port()
+                self._midi_in.delete()
+                self._midi_in = None
 
     def keyboard_play(self, ch=1):
         """Enable computer keyboard as MIDI input on a channel."""
