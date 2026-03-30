@@ -642,12 +642,15 @@ class LiveEngine:
         QWERTY layout: ZSXDCVGBHNJM = C through B (lower octave)
                         Q2W3ER5T6Y7U = C through B (upper octave)
         """
-        # Lower row: Z=C, S=C#, X=D, D=D#, C=E, V=F, G=F#, B=G, H=G#, N=A, J=A#, M=B
+        # Lower row: Z=C through /=C+
         lower = {'z': 0, 's': 1, 'x': 2, 'd': 3, 'c': 4, 'v': 5,
-                 'g': 6, 'b': 7, 'h': 8, 'n': 9, 'j': 10, 'm': 11}
-        # Upper row: Q=C, 2=C#, W=D, 3=D#, E=E, R=F, 5=F#, T=G, 6=G#, Y=A, 7=A#, U=B
+                 'g': 6, 'b': 7, 'h': 8, 'n': 9, 'j': 10, 'm': 11,
+                 ',': 12, 'l': 13, '.': 14, ';': 15, '/': 16, "'": 17}
+        # Upper row: Q=C through ]=E+
         upper = {'q': 0, '2': 1, 'w': 2, '3': 3, 'e': 4, 'r': 5,
-                 '5': 6, 't': 7, '6': 8, 'y': 9, '7': 10, 'u': 11}
+                 '5': 6, 't': 7, '6': 8, 'y': 9, '7': 10, 'u': 11,
+                 'i': 12, '9': 13, 'o': 14, '0': 15, 'p': 16,
+                 '[': 17, '=': 18, ']': 19}
 
         if self._keyboard_channel is None:
             return False
