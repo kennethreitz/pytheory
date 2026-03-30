@@ -163,6 +163,7 @@ class LiveTUI:
         tab_prefix = ""
         self.kbd_active = False
         self._kbd_held = {}  # key → last_press_time
+        self._picker = None  # {"channel": int, "index": int, "scroll": int, "filter": str}
 
         while self.running:
             try:
@@ -348,6 +349,50 @@ class LiveTUI:
                 except curses.error:
                     pass
 
+                # ═══ PICKER OVERLAY ═══
+                if self._picker is not None:
+                    filt = self._picker["filter"]
+                    items = [i for i in self.instruments if filt in i] if filt else self.instruments
+                    idx = self._picker["index"]
+                    pw = min(32, w - 4)
+                    ph = min(len(items) + 2, h - 4)
+                    px = (w - pw) // 2
+                    py = (h - ph) // 2
+                    # Border
+                    title = f" Ch {self._picker['channel']} "
+                    try:
+                        stdscr.addstr(py, px, "┌" + title + "─" * (pw - 2 - len(title)) + "┐", curses.color_pair(2) | curses.A_BOLD)
+                        for ri in range(1, ph - 1):
+                            stdscr.addstr(py + ri, px, "│" + " " * (pw - 2) + "│", curses.color_pair(2))
+                        stdscr.addstr(py + ph - 1, px, "└" + "─" * (pw - 2) + "┘", curses.color_pair(2))
+                    except curses.error:
+                        pass
+                    # Items
+                    vis_h = ph - 2
+                    scroll = self._picker["scroll"]
+                    if idx < scroll:
+                        scroll = idx
+                    elif idx >= scroll + vis_h:
+                        scroll = idx - vis_h + 1
+                    self._picker["scroll"] = scroll
+                    for ri in range(vis_h):
+                        li = scroll + ri
+                        if li >= len(items):
+                            break
+                        name = items[li][:pw - 4]
+                        attr = curses.A_REVERSE | curses.color_pair(1) if li == idx else curses.color_pair(0)
+                        try:
+                            padded = f" {name}" + " " * (pw - 3 - len(name))
+                            stdscr.addstr(py + 1 + ri, px + 1, padded, attr)
+                        except curses.error:
+                            pass
+                    # Filter hint
+                    hint = f"/{filt}" if filt else "type to filter"
+                    try:
+                        stdscr.addstr(py + ph - 1, px + 2, hint[:pw - 4], curses.color_pair(3) | curses.A_DIM)
+                    except curses.error:
+                        pass
+
                 stdscr.refresh()
 
                 # ═══ INPUT ═══
@@ -391,6 +436,35 @@ class LiveTUI:
                         self.engine.keyboard_note(k, on=False)
                         del self._kbd_held[k]
 
+                    continue
+
+                # PICKER MODE
+                if self._picker is not None:
+                    filt = self._picker["filter"]
+                    items = [i for i in self.instruments if filt in i] if filt else self.instruments
+                    if ch == 27:  # Escape cancels
+                        self._picker = None
+                    elif ch == curses.KEY_UP:
+                        self._picker["index"] = max(0, self._picker["index"] - 1)
+                    elif ch == curses.KEY_DOWN:
+                        self._picker["index"] = min(len(items) - 1, self._picker["index"] + 1)
+                    elif ch == 10 or ch == 13:  # Enter selects
+                        if items:
+                            inst = items[self._picker["index"]]
+                            n = self._picker["channel"]
+                            self.picks[n - 1] = inst
+                            self.engine.channel(n, instrument=inst, reverb=0.3)
+                            self.log(f"Ch {n} → {inst}", 1)
+                        self._picker = None
+                    elif ch == curses.KEY_BACKSPACE or ch == 127:
+                        if filt:
+                            self._picker["filter"] = filt[:-1]
+                            self._picker["index"] = 0
+                            self._picker["scroll"] = 0
+                    elif 32 <= ch < 127:
+                        self._picker["filter"] = filt + chr(ch)
+                        self._picker["index"] = 0
+                        self._picker["scroll"] = 0
                     continue
 
                 if ch == 10 or ch == 13:
@@ -521,7 +595,10 @@ class LiveTUI:
             try:
                 n = int(parts[1])
                 if 1 <= n <= len(self.picks):
-                    self.log(f"Ch {n}: {self.picks[n-1]}", 2)
+                    # Open instrument picker with current instrument pre-selected
+                    current = self.picks[n - 1]
+                    idx = self.instruments.index(current) if current in self.instruments else 0
+                    self._picker = {"channel": n, "index": idx, "scroll": max(0, idx - 5), "filter": ""}
                 else:
                     self.log(f"Channel 1-{len(self.picks)}", 4)
             except ValueError:
@@ -724,6 +801,18 @@ def main():
     tui = LiveTUI(seed=args.seed, port=args.port, n_channels=args.channels,
                   drum_pattern=args.drums, buffer_size=args.buffer)
     curses.wrapper(tui.run)
+
+    # Print resume command on exit
+    cmd_parts = ["pytheory-live", str(tui.seed)]
+    if tui.port != "OP-XY":
+        cmd_parts += ["--port", tui.port]
+    if tui.n_channels != 8:
+        cmd_parts += ["--channels", str(tui.n_channels)]
+    if tui.current_drum != "rock":
+        cmd_parts += ["--drums", tui.current_drum]
+    if tui.buffer_size != 128:
+        cmd_parts += ["--buffer", str(tui.buffer_size)]
+    print(f"\nResume this session with:\n  {' '.join(cmd_parts)}\n")
 
 
 if __name__ == "__main__":

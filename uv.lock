@@ -699,11 +699,6 @@ dependencies = [
     { name = "sounddevice" },
 ]
 
-[package.optional-dependencies]
-live = [
-    { name = "python-rtmidi" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
@@ -718,41 +713,16 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "python-rtmidi", marker = "extra == 'live'", specifier = ">=1.5.8" },
     { name = "rich", specifier = ">=14.3.3" },
     { name = "scipy" },
     { name = "sounddevice" },
 ]
-provides-extras = ["live"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
 docs = [
     { name = "myst-parser" },
     { name = "sphinx" },
-]
-
-[[package]]
-name = "python-rtmidi"
-version = "1.5.8"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dd/ee/0f91965dcc471714c69df21e5ca3d94dc81411b7dee2d31ff1184bea07c9/python_rtmidi-1.5.8.tar.gz", hash = "sha256:7f9ade68b068ae09000ecb562ae9521da3a234361ad5449e83fc734544d004fa", size = 368130, upload-time = "2023-11-20T21:55:02.192Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/9c/95c0a6a43bd24a17568e1e31008b1fab7e9a2e54c0ed7301e8d5cc9fa109/python_rtmidi-1.5.8-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:efc07413b30b0039c0d35abe25a81d740c7405124eb58eed141a8f24388e6fe0", size = 148826, upload-time = "2023-11-20T21:54:20.658Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/9b/8e452d6edc2c04e3407f542d3185c66ffc2d39c8811cf2b117653a0a4d63/python_rtmidi-1.5.8-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:844bd12840c9d4e03dfc89b2cd57c55dcbf5ed7246504d69c6c661732249b19c", size = 145363, upload-time = "2023-11-20T21:54:23.023Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/48/aa1d4924f7aa238a192d69aa565b315af0037f684c9475e8b860c679a655/python_rtmidi-1.5.8-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:8bbaf7c7164471712a93ac60c8f9ed146b336a294a5103223bbaf8f10709a0bf", size = 293253, upload-time = "2023-11-20T21:54:24.899Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/24/32dc239047a56f44d8d8090d55010f85a38ed959ffe517c2e87a2aa34190/python_rtmidi-1.5.8-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:878ce085dfb65c0974810a7e919f73708cbb4c0430c7924b78f25aea1dd4ebee", size = 304051, upload-time = "2023-11-20T21:54:26.82Z" },
-    { url = "https://files.pythonhosted.org/packages/9b/0c/cf771eca1b64610e627ca1e67be8390ecdf5e0e1914efbdd9d50ac4c5986/python_rtmidi-1.5.8-cp310-cp310-win_amd64.whl", hash = "sha256:f2138005c6bd3d8b9af05df383679f6d0827d16056e68a941110732310dcb7dd", size = 132157, upload-time = "2023-11-20T21:54:30.059Z" },
-    { url = "https://files.pythonhosted.org/packages/4b/0c/23be16b75c90946784b8d233e61db14cf0482def5396821a1ae0bdcd2739/python_rtmidi-1.5.8-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:30d117193dcad8af67c600c405f53eb096e4ff84849760be14c97270af334922", size = 150205, upload-time = "2023-11-20T21:54:31.849Z" },
-    { url = "https://files.pythonhosted.org/packages/4b/12/37d41151b08a292719f05dbeae15475537f8aa291cda34c6634b35916dff/python_rtmidi-1.5.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:4e234dca7f9d783dd3f1e9c9c5c2f295f02b7af3085301d6eed3b428cf49d327", size = 146737, upload-time = "2023-11-20T21:54:33.299Z" },
-    { url = "https://files.pythonhosted.org/packages/53/5e/b866491545135c699bfbed62f54b93c4d6587afc2bba6e2cbbe898570c32/python_rtmidi-1.5.8-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:271d625c489fffb39b3edc5aba67f7c8e29a04a0a0f056ce19e5a888a08b4c59", size = 294847, upload-time = "2023-11-20T21:54:35.017Z" },
-    { url = "https://files.pythonhosted.org/packages/a0/79/1ddb4fb1bdb1a8b8bd62007ca4980344a53b7f29633a7bca1088eed964ce/python_rtmidi-1.5.8-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:46bbf32c8a4bf6c8f0df1c02a68689d0757f13cb7a69f27ccbbed3d7b2365918", size = 305433, upload-time = "2023-11-20T21:54:36.322Z" },
-    { url = "https://files.pythonhosted.org/packages/13/ff/2c55797dbf020d462132d1bc5b34d596b400fa197e2a259b8dd2ea2e5954/python_rtmidi-1.5.8-cp311-cp311-win_amd64.whl", hash = "sha256:cfea32c91752fa7aecfe3d6827535c190ba0e646a9accd6604f4fc70cf4b780f", size = 132937, upload-time = "2023-11-20T21:54:38.3Z" },
-    { url = "https://files.pythonhosted.org/packages/51/27/887b0378e0a907489a07bdeb808fa5ed349675245c6ee14d9f6d00304f96/python_rtmidi-1.5.8-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:5443634597eb340cdec0734f76267a827c2d366f00a6f9195141c78828016ac2", size = 158861, upload-time = "2023-11-20T21:54:39.549Z" },
-    { url = "https://files.pythonhosted.org/packages/4d/ec/57cecde253daab896ce53778520cd41eb062641862ebdb0ee6f97511b1d9/python_rtmidi-1.5.8-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:29d9c9d9f82ce679fecad7bb4cb79f3a24574ea84600e377194b4cc1baacec0e", size = 153416, upload-time = "2023-11-20T21:54:40.835Z" },
-    { url = "https://files.pythonhosted.org/packages/6f/5b/dc19c53d9d512b74dc2cca3725591cc612b9465645695a0696352a8c8b54/python_rtmidi-1.5.8-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:25f5a5db7be98911c41ca5bebb262fcf9a7c89600b88fd3c207ceafd3101e721", size = 305696, upload-time = "2023-11-20T21:54:42.037Z" },
-    { url = "https://files.pythonhosted.org/packages/f6/92/5a60f56dfb2740e644e932233928947423cd2101895319b331f84527eb31/python_rtmidi-1.5.8-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:cec30924e305f55284594ccf35a71dee7216fd308dfa2dec1b3ed03e6f243803", size = 315579, upload-time = "2023-11-20T21:54:43.339Z" },
-    { url = "https://files.pythonhosted.org/packages/93/46/6af077d262f521ea2bf1ab60b8aad72f34fe6dd55af739176605369d449c/python_rtmidi-1.5.8-cp312-cp312-win_amd64.whl", hash = "sha256:052c89933cae4fca354012d8ca7248f4f9e1e3f062471409d48415a7f7d7e59e", size = 129755, upload-time = "2023-11-20T21:54:44.935Z" },
 ]
 
 [[package]]

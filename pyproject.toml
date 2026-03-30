@@ -26,9 +26,6 @@ dependencies = [
     "rich>=14.3.3",
 ]
 
-[project.optional-dependencies]
-live = ["python-rtmidi>=1.5.8"]
-
 [project.urls]
 Homepage = "https://github.com/kennethreitz/pytheory"
 Documentation = "https://pytheory.kennethreitz.org"
@@ -37,7 +34,6 @@ Issues = "https://github.com/kennethreitz/pytheory/issues"
 
 [project.scripts]
 pytheory = "pytheory.cli:main"
-pytheory-live = "pytheory.live_tui:main"
 
 [dependency-groups]
 dev = ["pytest"]

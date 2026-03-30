@@ -5421,7 +5421,7 @@ def render_score(score):
                     buzz *= _exp_decay(buzz_len, 25)
                     wave[:buzz_len] = wave[:buzz_len] + buzz.astype(numpy.float32)
 
-            mono_hit = wave * vel_scale * 0.7
+            mono_hit = wave * vel_scale * 0.7 * drum_part.volume
             # Sidechain trigger — kick only
             if hit.sound.value == DrumSound.KICK.value:
                 drum_buf[start:start + hit_len] += mono_hit
