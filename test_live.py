@@ -355,7 +355,9 @@ class LiveTUI:
                         key = chr(ch).lower()
                         played = self.engine.keyboard_note(key, on=True)
                         if played:
-                            self.log(f"  key:{key}", 2)
+                            ch_num = self.engine._keyboard_channel
+                            voices = len(self.engine.channels[ch_num].voices) if ch_num in self.engine.channels else 0
+                            self.log(f"  key:{key} voices:{voices}", 2)
                             def _off(k=key):
                                 time.sleep(0.25)
                                 self.engine.keyboard_note(k, on=False)
@@ -629,7 +631,15 @@ class LiveTUI:
             else:
                 self.engine._keyboard_channel = self.engine._keyboard_channel or 1
             self.kbd_active = True
-            self.log(f"♪ Keyboard ON ch{self.engine._keyboard_channel} oct{self.engine._keyboard_octave} (Esc=exit, ↑↓=octave)", 1)
+            # Make sure wavetables are cached for this channel
+            ch_num = self.engine._keyboard_channel
+            if ch_num in self.engine.channels:
+                channel = self.engine.channels[ch_num]
+                if not channel._cache:
+                    self.log("Rendering wavetables...", 3)
+                    for midi_note in range(36, 97):
+                        channel._get_wave(midi_note, 44100 * 3)
+            self.log(f"♪ Keyboard ON ch{ch_num} oct{self.engine._keyboard_octave} (Esc=exit, ↑↓=octave)", 1)
         elif verb == "rec":
             self.engine.start_recording()
             self.log("● Recording...", 4)
