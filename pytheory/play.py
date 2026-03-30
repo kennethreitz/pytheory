@@ -3350,20 +3350,21 @@ def _synth_tabla_ge_bend(n_samples):
     thump *= _exp_decay(thump_len, 25) * 0.7
     # THE SWEEP — this is the whole point. Palm presses into the head,
     # pitch rises from deep bass to a singing tone.
-    # Slow sweep (-1.5*t) so the ear can track it, wide range (50→450Hz)
+    # Slow sweep so the ear can track it, wide range (50→450Hz)
     freq = 50 + 400 * (1 - numpy.exp(-1.5 * t))
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    # Longer sustain so the sweep is heard — decay rate 2.5 not 6
-    body = numpy.sin(phase) * _exp_decay(n_samples, 2.5) * 1.2
+    # Very slow decay — the sweep MUST be audible for at least 1 second
+    env = numpy.exp(-0.8 * t)  # -0.8 gives ~1.2s of usable signal
+    body = numpy.sin(phase) * env * 1.3
     # Second harmonic for richness (follows the sweep)
-    body += numpy.sin(phase * 2) * _exp_decay(n_samples, 3.5) * 0.3
+    body += numpy.sin(phase * 2) * env * 0.3
     # Click for attack definition
     click_len = min(300, n_samples)
-    click = _noise(click_len) * _exp_decay(click_len, 40) * 0.25
+    click = _noise(click_len) * _exp_decay(click_len, 40) * 0.2
     result = body
     result[:thump_len] += thump
     result[:click_len] += click
-    return numpy.tanh(result * 1.2).astype(numpy.float32)
+    return numpy.tanh(result * 1.1).astype(numpy.float32)
 
 
 def _synth_djembe_bass(n_samples):
