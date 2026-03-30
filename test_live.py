@@ -356,8 +356,18 @@ class LiveTUI:
                         played = self.engine.keyboard_note(key, on=True)
                         if played:
                             ch_num = self.engine._keyboard_channel
-                            voices = len(self.engine.channels[ch_num].voices) if ch_num in self.engine.channels else 0
-                            self.log(f"  key:{key} voices:{voices}", 2)
+                            if ch_num in self.engine.channels:
+                                channel = self.engine.channels[ch_num]
+                                nv = len(channel.voices)
+                                vol = channel.volume
+                                lv = channel.level
+                                # Check if wavetable has audio
+                                cache_peek = ""
+                                if channel._cache:
+                                    first_wave = next(iter(channel._cache.values()))
+                                    peak = abs(first_wave).max()
+                                    cache_peek = f" wpeak={peak:.3f}"
+                                self.log(f"  key:{key} v={nv} vol={vol} lv={lv:.3f}{cache_peek}", 2)
                             def _off(k=key):
                                 time.sleep(0.25)
                                 self.engine.keyboard_note(k, on=False)
