@@ -642,15 +642,35 @@ class LiveEngine:
         QWERTY layout: ZSXDCVGBHNJM = C through B (lower octave)
                         Q2W3ER5T6Y7U = C through B (upper octave)
         """
-        # Lower row: Z=C through /=C+
-        lower = {'z': 0, 's': 1, 'x': 2, 'd': 3, 'c': 4, 'v': 5,
-                 'g': 6, 'b': 7, 'h': 8, 'n': 9, 'j': 10, 'm': 11,
-                 ',': 12, 'l': 13, '.': 14, ';': 15, '/': 16, "'": 17}
-        # Upper row: Q=C through ]=E+
-        upper = {'q': 0, '2': 1, 'w': 2, '3': 3, 'e': 4, 'r': 5,
-                 '5': 6, 't': 7, '6': 8, 'y': 9, '7': 10, 'u': 11,
-                 'i': 12, '9': 13, 'o': 14, '0': 15, 'p': 16,
-                 '[': 17, '=': 18, ']': 19}
+        # Chromatic layout across the full keyboard
+        # Bottom two rows = lower octave range
+        # Top two rows = upper octave range (+1 octave)
+        # Black keys on the row above their white keys
+        #
+        # Row 3 (ZXCVBNM,./): white keys C D E F G A B C D E
+        # Row 2 (ASDFGHJKL;'): black keys + extras
+        # Row 1 (QWERTYUIOP[]): white keys C D E F G A B C D E F G
+        # Row 0 (1234567890-=): black keys + extras
+        lower = {
+            # White keys: Z X C V B N M , . /
+            'z': 0, 'x': 2, 'c': 4, 'v': 5, 'b': 7, 'n': 9, 'm': 11,
+            ',': 12, '.': 14, '/': 16,
+            # Black keys: S D  G H J  L ;
+            's': 1, 'd': 3, 'g': 6, 'h': 8, 'j': 10,
+            'l': 13, ';': 15,
+            # Extras
+            'a': 0, 'f': 4, 'k': 11, "'": 17,
+        }
+        upper = {
+            # White keys: Q W E R T Y U I O P [ ]
+            'q': 0, 'w': 2, 'e': 4, 'r': 5, 't': 7, 'y': 9, 'u': 11,
+            'i': 12, 'o': 14, 'p': 16, '[': 17, ']': 19,
+            # Black keys: 2 3  5 6 7  9 0
+            '2': 1, '3': 3, '5': 6, '6': 8, '7': 10,
+            '9': 13, '0': 15,
+            # Extras
+            '1': 0, '4': 4, '8': 11, '-': 18, '=': 19,
+        }
 
         if self._keyboard_channel is None:
             return False
