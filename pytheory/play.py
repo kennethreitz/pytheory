@@ -2048,6 +2048,99 @@ def sitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * out).astype(numpy.int16)
 
 
+def crotales_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Crotales — small tuned bronze discs struck with brass mallets.
+
+    Antique cymbals. Bright, crystalline, bell-like tone that rings
+    for a very long time. The partials are nearly harmonic (closer
+    to a bell than a bar) with strong upper harmonics that give
+    crotales their penetrating brilliance. Played in the octave
+    above written — they cut through any orchestra.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Bronze disc modes — nearly harmonic, very bright.
+    # Higher partials are stronger than in most percussion,
+    # which is what gives crotales their cutting brilliance.
+    # (ratio, amplitude, decay_rate)
+    disc_modes = [
+        (1.0,   1.0,  0.3),    # fundamental — rings for ages
+        (2.0,   0.6,  0.4),    # octave — strong
+        (3.01,  0.35, 0.6),    # near-12th — slight inharmonicity
+        (4.03,  0.25, 0.9),    # double octave
+        (5.06,  0.15, 1.3),    # bright
+        (6.1,   0.08, 2.0),    # shimmer
+        (8.15,  0.04, 3.0),    # sparkle at the top
+    ]
+
+    for ratio, amp, decay_rate in disc_modes:
+        f = hz * ratio
+        if f >= SAMPLE_RATE / 2:
+            break
+        phase = rng.uniform(0, 2 * numpy.pi)
+        mode_decay = numpy.exp(-decay_rate * t)
+        wave += amp * numpy.sin(2 * numpy.pi * f * t + phase) * mode_decay
+
+    # Hard mallet strike — brass on bronze, bright transient
+    strike_len = min(int(SAMPLE_RATE * 0.002), n_samples)
+    strike_t = numpy.linspace(0, 1, strike_len)
+    strike = 0.5 * numpy.sin(2 * numpy.pi * hz * 8 * strike_t) * numpy.exp(-strike_t * 25)
+    wave[:strike_len] += strike
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def tingsha_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Tingsha — two small Tibetan cymbals clashed together on a cord.
+
+    When the pair strikes, both discs ring simultaneously at slightly
+    different frequencies (no two are identical), producing a bright
+    ping with pronounced beating. The sound is thinner and higher
+    than a singing bowl — a clear, cutting tone that fades over a
+    few seconds. The two-disc interference is the whole character.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Two discs at slightly different pitches — this IS the tingsha sound
+    detune = hz * 0.008  # ~14 cents apart, creates ~3-4 Hz beat at middle C
+    disc_a = numpy.sin(2 * numpy.pi * (hz - detune) * t)
+    disc_b = numpy.sin(2 * numpy.pi * (hz + detune) * t + rng.uniform(0, 2 * numpy.pi))
+    wave = (disc_a + disc_b) * 0.5
+
+    # Upper partials — both discs, slightly different inharmonicity
+    for ratio, amp, dec in [(2.72, 0.3, 5.0), (5.1, 0.12, 10.0), (8.3, 0.05, 18.0)]:
+        if hz * ratio >= SAMPLE_RATE / 2:
+            break
+        p1 = rng.uniform(0, 2 * numpy.pi)
+        p2 = rng.uniform(0, 2 * numpy.pi)
+        wave += amp * numpy.sin(2 * numpy.pi * hz * ratio * 0.998 * t + p1) * numpy.exp(-dec * t)
+        wave += amp * numpy.sin(2 * numpy.pi * hz * ratio * 1.002 * t + p2) * numpy.exp(-dec * t)
+
+    # Decay — medium ring, not as long as a singing bowl
+    decay = numpy.exp(-1.8 * t)
+    wave *= decay
+
+    # Clash transient — metal on metal, sharper than a mallet hit
+    clash_len = min(int(SAMPLE_RATE * 0.003), n_samples)
+    clash = rng.uniform(-0.4, 0.4, clash_len).astype(numpy.float64)
+    clash *= numpy.exp(-numpy.linspace(0, 20, clash_len))
+    wave[:clash_len] += clash
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
 def singing_bowl_strike_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Singing bowl strike — mallet hit that excites all modes at once.
 
@@ -2287,6 +2380,8 @@ class Synth(Enum):
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
+    CROTALES = "crotales_synth"
+    TINGSHA = "tingsha_synth"
     SINGING_BOWL_STRIKE = "singing_bowl_strike_synth"
     SINGING_BOWL_RING = "singing_bowl_ring_synth"
 
@@ -2319,6 +2414,8 @@ _SYNTH_FUNCTIONS = {
     "ukulele_synth": ukulele_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
+    "crotales_synth": crotales_wave,
+    "tingsha_synth": tingsha_wave,
     "singing_bowl_strike_synth": singing_bowl_strike_wave,
     "singing_bowl_ring_synth": singing_bowl_ring_wave,
 }
@@ -3575,6 +3672,227 @@ def _synth_guiro(n_samples):
     return wave
 
 
+def _synth_rainstick_slow(n_samples):
+    """Rain stick (shallow angle): slow trickle, longer cascade, sparser impacts."""
+    wave = numpy.zeros(n_samples, dtype=numpy.float32)
+    rng = numpy.random.default_rng(77)
+
+    cascade_len = min(n_samples, int(SAMPLE_RATE * 4.0))
+    n_pebbles = 800
+    # More uniform distribution — shallow angle means steadier flow
+    positions = rng.beta(1.2, 1.8, n_pebbles) * cascade_len
+    positions = positions.astype(int)
+
+    for pos in positions:
+        if pos >= n_samples - 100:
+            continue
+        peb_len = rng.integers(25, 90)
+        end = min(pos + peb_len, n_samples)
+        actual = end - pos
+        click = rng.uniform(-1.0, 1.0, actual).astype(numpy.float32)
+        click *= numpy.exp(-numpy.linspace(0, 10, actual).astype(numpy.float32))
+        click *= rng.uniform(0.03, 0.18)
+        wave[pos:end] += click
+
+    t = numpy.arange(cascade_len, dtype=numpy.float32) / SAMPLE_RATE
+    body = numpy.sin(2 * numpy.pi * 160 * t) * 0.04
+    body *= numpy.exp(-0.8 * t)
+    wave[:cascade_len] += body
+
+    full_env = numpy.ones(n_samples, dtype=numpy.float32)
+    fade_len = min(int(SAMPLE_RATE * 1.2), n_samples)
+    if fade_len > 0 and cascade_len > fade_len:
+        full_env[cascade_len - fade_len:cascade_len] = numpy.linspace(
+            1.0, 0.0, fade_len).astype(numpy.float32)
+        full_env[cascade_len:] = 0.0
+    wave *= full_env
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx * 1.5
+    return wave
+
+
+def _synth_ocean_drum(n_samples):
+    """Ocean drum: steel beads rolling inside a frame drum — surf wash.
+
+    Tilt the drum and the beads cascade across the internal head,
+    producing a smooth wash that sounds like ocean waves.
+    """
+    wave = numpy.zeros(n_samples, dtype=numpy.float32)
+    rng = numpy.random.default_rng(55)
+
+    wash_len = min(n_samples, int(SAMPLE_RATE * 2.5))
+    t = numpy.arange(wash_len, dtype=numpy.float32) / SAMPLE_RATE
+
+    # Dense bead noise — smoother than rain stick (steel beads on drum head)
+    noise = rng.standard_normal(wash_len).astype(numpy.float32)
+    # Bandpass to ~1-6kHz — beads on mylar head
+    import scipy.signal as _sig
+    bp, ap = _sig.butter(2, [1000, 6000], btype='band', fs=SAMPLE_RATE)
+    noise = _sig.lfilter(bp, ap, noise).astype(numpy.float32)
+
+    # Swell envelope — wave comes in, peaks, recedes
+    swell = numpy.abs(numpy.sin(numpy.pi * t / t[-1])) ** 0.7 if wash_len > 0 else noise
+    noise *= swell * 0.5
+
+    # Drum body resonance
+    body = numpy.sin(2 * numpy.pi * 120 * t) * 0.08 * swell
+
+    wave[:wash_len] = noise + body
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx * 1.3
+    return wave
+
+
+def _synth_cabasa(n_samples):
+    """Cabasa: metal bead chain scraped against a cylinder.
+
+    Brighter and more metallic than a shaker — the beads are steel
+    chain wrapped around a textured metal cylinder.
+    """
+    n = min(n_samples, int(SAMPLE_RATE * 0.08))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    rng = numpy.random.default_rng(33)
+
+    # Metallic noise — brighter than shaker
+    noise = rng.standard_normal(n).astype(numpy.float32)
+    # High-pass to emphasize the metallic chain sound
+    env = numpy.exp(-25 * t) + 0.4 * numpy.exp(-6 * t)
+    wave = noise * env * 0.5
+    # Metal bead resonances
+    wave += numpy.sin(2 * numpy.pi * 7500 * t) * 0.12 * numpy.exp(-30 * t)
+    wave += numpy.sin(2 * numpy.pi * 9200 * t) * 0.08 * numpy.exp(-35 * t)
+
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    return out
+
+
+def _synth_wind_chimes(n_samples):
+    """Wind chimes: multiple suspended metal tubes ringing at random intervals.
+
+    Each tube has its own pitch and decay. A hand strike or breeze
+    sets several ringing at once with slight time offsets.
+    """
+    wave = numpy.zeros(n_samples, dtype=numpy.float32)
+    rng = numpy.random.default_rng(22)
+
+    chime_len = min(n_samples, int(SAMPLE_RATE * 3.0))
+    t = numpy.arange(chime_len, dtype=numpy.float32) / SAMPLE_RATE
+
+    # 6-8 tubes at different pitches — pentatonic-ish spread
+    tube_freqs = [1200, 1450, 1700, 2000, 2400, 2850, 3300]
+    for freq in tube_freqs:
+        # Each tube starts at a random offset (breeze hits them at different times)
+        offset = rng.integers(0, int(SAMPLE_RATE * 0.3))
+        if offset >= chime_len:
+            continue
+        tube_t = t[offset:]
+        tube_local = tube_t - tube_t[0]
+        # Tube mode with slight inharmonicity
+        tone = numpy.sin(2 * numpy.pi * freq * tube_local) * 0.2
+        tone += numpy.sin(2 * numpy.pi * freq * 2.73 * tube_local) * 0.06
+        # Each tube decays independently
+        decay = numpy.exp(-rng.uniform(2.0, 4.0) * tube_local)
+        tone *= decay
+        # Slight amplitude variation
+        tone *= rng.uniform(0.5, 1.0)
+        wave[offset:chime_len] += tone[:chime_len - offset].astype(numpy.float32)
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+    return wave
+
+
+def _synth_finger_cymbal(n_samples):
+    """Finger cymbal (zill): single small cymbal tap — bright metallic ping."""
+    n = min(n_samples, int(SAMPLE_RATE * 0.8))
+    t = numpy.arange(n, dtype=numpy.float32) / SAMPLE_RATE
+    rng = numpy.random.default_rng(11)
+
+    # High-pitched metallic modes
+    wave = numpy.sin(2 * numpy.pi * 3200 * t).astype(numpy.float32) * 0.5
+    wave += numpy.sin(2 * numpy.pi * 3210 * t).astype(numpy.float32) * 0.5  # beating pair
+    wave += numpy.sin(2 * numpy.pi * 7800 * t).astype(numpy.float32) * 0.15 * numpy.exp(-8 * t).astype(numpy.float32)
+    wave += numpy.sin(2 * numpy.pi * 12500 * t).astype(numpy.float32) * 0.06 * numpy.exp(-15 * t).astype(numpy.float32)
+
+    wave *= numpy.exp(-3.0 * t).astype(numpy.float32)
+
+    # Tap transient
+    tap_len = min(int(SAMPLE_RATE * 0.001), n)
+    wave[:tap_len] += rng.uniform(-0.2, 0.2, tap_len).astype(numpy.float32)
+
+    out = numpy.zeros(n_samples, dtype=numpy.float32)
+    out[:n] = wave
+    mx = numpy.abs(out).max()
+    if mx > 0:
+        out /= mx
+    return out
+
+
+def _synth_rainstick(n_samples):
+    """Rain stick: cascading pebbles through a cactus tube with internal pins.
+
+    Hundreds of tiny seed/pebble impacts falling through the tube,
+    each one a brief high-frequency click with a hint of resonance
+    from the hollow body. The density tapers off as gravity runs out.
+    """
+    wave = numpy.zeros(n_samples, dtype=numpy.float32)
+    rng = numpy.random.default_rng(42)
+
+    # Duration of the cascade — up to 2.5 seconds
+    cascade_len = min(n_samples, int(SAMPLE_RATE * 2.5))
+
+    # Generate random pebble impacts — denser at the start, sparse at the end
+    n_pebbles = 800
+    # Positions weighted toward the beginning (gravity)
+    positions = rng.beta(1.5, 3.0, n_pebbles) * cascade_len
+    positions = positions.astype(int)
+
+    for pos in positions:
+        if pos >= n_samples - 100:
+            continue
+        # Each pebble: tiny noise click with random pitch resonance
+        peb_len = rng.integers(20, 80)
+        end = min(pos + peb_len, n_samples)
+        actual = end - pos
+
+        # Noise click
+        click = rng.uniform(-1.0, 1.0, actual).astype(numpy.float32)
+        # Fast decay
+        click *= numpy.exp(-numpy.linspace(0, 12, actual).astype(numpy.float32))
+        # Random amplitude — some pebbles louder than others
+        click *= rng.uniform(0.05, 0.25)
+        wave[pos:end] += click
+
+    # Tube body resonance — hollow cactus, low rumble underneath
+    t = numpy.arange(cascade_len, dtype=numpy.float32) / SAMPLE_RATE
+    body = numpy.sin(2 * numpy.pi * 180 * t) * 0.06
+    body *= numpy.exp(-1.5 * t)
+    # Modulate body resonance by the cascade density
+    env = numpy.exp(-1.2 * t)
+    body *= env
+    wave[:cascade_len] += body
+
+    # Overall envelope — smooth fade
+    full_env = numpy.ones(n_samples, dtype=numpy.float32)
+    fade_len = min(int(SAMPLE_RATE * 0.8), n_samples)
+    if fade_len > 0 and cascade_len > fade_len:
+        full_env[cascade_len - fade_len:cascade_len] = numpy.linspace(
+            1.0, 0.0, fade_len).astype(numpy.float32)
+        full_env[cascade_len:] = 0.0
+    wave *= full_env
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx * 1.5  # leave headroom
+    return wave
+
+
 def _render_drum_hit(sound_value, n_samples):
     """Render a single drum sound to a float32 array.
 
@@ -3669,6 +3987,13 @@ def _render_drum_hit(sound_value, n_samples):
         DrumSound.BASS_3.value: lambda n: _synth_march_bass(n, pitch=62),
         DrumSound.BASS_4.value: lambda n: _synth_march_bass(n, pitch=52),
         DrumSound.BASS_5.value: lambda n: _synth_march_bass(n, pitch=42),
+        # Effects / world
+        DrumSound.RAINSTICK.value: lambda n: _synth_rainstick(n),
+        DrumSound.RAINSTICK_SLOW.value: lambda n: _synth_rainstick_slow(n),
+        DrumSound.OCEAN_DRUM.value: lambda n: _synth_ocean_drum(n),
+        DrumSound.CABASA.value: lambda n: _synth_cabasa(n),
+        DrumSound.WIND_CHIMES.value: lambda n: _synth_wind_chimes(n),
+        DrumSound.FINGER_CYMBAL.value: lambda n: _synth_finger_cymbal(n),
     }
 
     renderer = _dispatch.get(sound_value, lambda n: _synth_clave(n))

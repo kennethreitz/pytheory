@@ -858,6 +858,68 @@ def gen_synth_granular():
     render("synth_granular", score)
 
 
+def gen_synth_crotales():
+    score = Score("4/4", bpm=60)
+    p = score.part("demo", synth="crotales_synth", envelope="none",
+                   volume=0.5, reverb=0.3)
+    for n in ["C6", "E6", "G6", "C7", "G6", "E6", "C6"]:
+        p.add(n, Duration.HALF, velocity=80)
+    render("synth_crotales", score)
+
+
+def gen_synth_tingsha():
+    score = Score("4/4", bpm=40)
+    p = score.part("demo", synth="tingsha_synth", envelope="none",
+                   volume=0.5, reverb=0.4)
+    for n in ["E5", "A5", "E6", "A5"]:
+        p.add(n, Duration.WHOLE, velocity=75)
+    render("synth_tingsha", score)
+
+
+def gen_rainstick():
+    score = Score("4/4", bpm=60)
+    p = score.part("demo", synth="sine", volume=1.0)
+    p.hit(DrumSound.RAINSTICK, Duration.WHOLE * 3, velocity=90)
+    render("rainstick", score)
+
+
+def gen_rainstick_slow():
+    score = Score("4/4", bpm=60)
+    p = score.part("demo", synth="sine", volume=1.0)
+    p.hit(DrumSound.RAINSTICK_SLOW, Duration.WHOLE * 4, velocity=85)
+    render("rainstick_slow", score)
+
+
+def gen_ocean_drum():
+    score = Score("4/4", bpm=60)
+    p = score.part("demo", synth="sine", volume=1.0)
+    p.hit(DrumSound.OCEAN_DRUM, Duration.WHOLE * 3, velocity=85)
+    render("ocean_drum", score)
+
+
+def gen_cabasa():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="sine", volume=1.0)
+    for _ in range(16):
+        p.hit(DrumSound.CABASA, Duration.EIGHTH, velocity=100)
+    render("cabasa", score)
+
+
+def gen_wind_chimes():
+    score = Score("4/4", bpm=60)
+    p = score.part("demo", synth="sine", volume=1.0)
+    p.hit(DrumSound.WIND_CHIMES, Duration.WHOLE * 3, velocity=85)
+    render("wind_chimes", score)
+
+
+def gen_finger_cymbal():
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", synth="sine", volume=1.0)
+    for _ in range(8):
+        p.hit(DrumSound.FINGER_CYMBAL, Duration.QUARTER, velocity=85)
+    render("finger_cymbal", score)
+
+
 def gen_synth_singing_bowl_strike():
     score = Score("4/4", bpm=40)
     p = score.part("demo", synth="singing_bowl_strike_synth", envelope="none",
@@ -1078,8 +1140,16 @@ GENERATORS = [
     gen_synth_mandolin,
     gen_synth_ukulele,
     gen_synth_granular,
+    gen_synth_crotales,
+    gen_synth_tingsha,
     gen_synth_singing_bowl_strike,
     gen_synth_singing_bowl_ring,
+    gen_rainstick,
+    gen_rainstick_slow,
+    gen_ocean_drum,
+    gen_cabasa,
+    gen_wind_chimes,
+    gen_finger_cymbal,
     gen_arpeggio,
     gen_legato_glide,
     gen_acid_house,

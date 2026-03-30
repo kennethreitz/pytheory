@@ -2,6 +2,18 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.3
+
+- **Crotales synth** — tuned bronze discs with long ring and bright harmonics
+- **Tingsha synth** — paired Tibetan cymbals with beating from two detuned discs
+- **Rain stick** — cascading pebbles (steep and slow/shallow variants)
+- **Ocean drum** — steel beads rolling inside a frame drum, surf wash
+- **Cabasa** — metal bead chain on cylinder, bright metallic scrape
+- **Wind chimes** — multiple suspended metal tubes ringing at random offsets
+- **Finger cymbal** — single zill tap, bright metallic ping
+- `crotales`, `tingsha`, `singing_bowl`, `singing_bowl_ring` instrument presets
+- Audio demos in docs for all new sounds
+
 ## 0.40.2
 
 - **Master compressor dialed back** — threshold raised from 0.5 to 0.7,

@@ -930,6 +930,40 @@ Parameters (passed as synth kwargs):
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_granular.wav" type="audio/wav"></audio>
 
+Crotales
+~~~~~~~~
+
+Small tuned bronze discs (antique cymbals) struck with brass mallets.
+Bright, crystalline, bell-like tone with strong upper harmonics that
+rings for a long time. Nearly harmonic partials give crotales their
+penetrating brilliance — they cut through any orchestra.
+
+.. code-block:: python
+
+   crotales = score.part("crotales", synth="crotales_synth", envelope="none",
+                         reverb=0.3)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_crotales.wav" type="audio/wav"></audio>
+
+Tingsha
+~~~~~~~
+
+Two small Tibetan cymbals joined by a cord, clashed together. Both discs
+ring at slightly different frequencies, producing a bright ping with
+pronounced beating — the wavering interference between the two is the
+whole character of the sound.
+
+.. code-block:: python
+
+   tingsha = score.part("tingsha", synth="tingsha_synth", envelope="none",
+                        reverb=0.4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_tingsha.wav" type="audio/wav"></audio>
+
 Singing Bowl (Strike)
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -962,6 +996,76 @@ and out as the bowl resonates.
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_singing_bowl_ring.wav" type="audio/wav"></audio>
+
+Rain Stick
+~~~~~~~~~~
+
+Cascading pebbles through a cactus tube with internal pins. Two variants:
+steep angle (fast cascade) and shallow angle (slow trickle).
+
+.. code-block:: python
+
+   p.hit(DrumSound.RAINSTICK, Duration.WHOLE * 3)       # steep — fast cascade
+   p.hit(DrumSound.RAINSTICK_SLOW, Duration.WHOLE * 4)  # shallow — gentle trickle
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rainstick.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rainstick_slow.wav" type="audio/wav"></audio>
+
+Ocean Drum
+~~~~~~~~~~
+
+Steel beads rolling inside a frame drum — tilting produces a smooth surf wash.
+
+.. code-block:: python
+
+   p.hit(DrumSound.OCEAN_DRUM, Duration.WHOLE * 3)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/ocean_drum.wav" type="audio/wav"></audio>
+
+Cabasa
+~~~~~~
+
+Metal bead chain scraped against a textured cylinder — brighter and
+more metallic than a shaker.
+
+.. code-block:: python
+
+   p.hit(DrumSound.CABASA, Duration.EIGHTH)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/cabasa.wav" type="audio/wav"></audio>
+
+Wind Chimes
+~~~~~~~~~~~
+
+Suspended metal tubes struck by hand or breeze. Each tube rings at
+its own pitch with slight time offsets.
+
+.. code-block:: python
+
+   p.hit(DrumSound.WIND_CHIMES, Duration.WHOLE * 3)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/wind_chimes.wav" type="audio/wav"></audio>
+
+Finger Cymbal
+~~~~~~~~~~~~~
+
+Single small cymbal tap (zill) — bright metallic ping.
+
+.. code-block:: python
+
+   p.hit(DrumSound.FINGER_CYMBAL, Duration.HALF)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/finger_cymbal.wav" type="audio/wav"></audio>
 
 Analog Oscillator Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1018,13 +1122,13 @@ distorted_guitar, orange_crunch, metal_guitar, bass_guitar, upright_bass,
 harp, sitar, koto, banjo, mandolin, mandola, ukulele
 
 **World/Exotic**: pedal_steel, theremin, kalimba, steel_drum, didgeridoo,
-bagpipe, singing_bowl, singing_bowl_ring
+bagpipe, singing_bowl, singing_bowl_ring, tingsha
 
 **Synth**: synth_lead, synth_pad, synth_bass, acid_bass, 808_bass,
 granular_pad, granular_texture, vocal, choir
 
 **Percussion**: vibraphone, marimba, xylophone, glockenspiel, tubular_bells,
-timpani
+timpani, crotales
 
 Explicit kwargs override preset defaults:
 

@@ -265,6 +265,16 @@ INSTRUMENTS = {
         "lowpass": 4500,
         "humanize": 0.2,
     },
+    "crotales": {
+        "synth": "crotales_synth", "envelope": "none",
+        "reverb": 0.3,
+        "humanize": 0.2,
+    },
+    "tingsha": {
+        "synth": "tingsha_synth", "envelope": "none",
+        "reverb": 0.4,
+        "humanize": 0.2,
+    },
     "singing_bowl": {
         "synth": "singing_bowl_strike_synth", "envelope": "none",
         "reverb": 0.5,
@@ -595,6 +605,13 @@ class DrumSound(Enum):
     BASS_3 = 126         # middle
     BASS_4 = 127         # fourth
     BASS_5 = 80          # lowest (biggest) bass drum
+    # Effects / world percussion
+    RAINSTICK = 81       # cascading pebbles through cactus tube (steep angle)
+    RAINSTICK_SLOW = 128 # gentle trickle (shallow angle)
+    OCEAN_DRUM = 82      # tilting drum with steel beads — surf wash
+    CABASA = 83          # metal bead chain wrapped around cylinder
+    WIND_CHIMES = 84     # suspended metal tubes struck by wind/hand
+    FINGER_CYMBAL = 85   # single small cymbal tap (zill)
 
 
 class _DrumTone:
