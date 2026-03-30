@@ -3335,36 +3335,38 @@ def _synth_tabla_ge_bend(n_samples):
     """Tabla Ge with upward pitch bend — palm pressing into bayan head.
 
     The player strikes the bayan and then presses their palm into the
-    head, raising the pitch dramatically. The signature "woooo" bayan
-    sound in Bollywood and fusion music. Zakir Hussain's calling card.
+    head, raising the pitch dramatically. The signature bayan sound
+    in Bollywood and fusion music.
     """
     t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
-    # Initial strike — membrane thud
-    thump_len = min(int(SAMPLE_RATE * 0.05), n_samples)
+    # Membrane thud
+    thump_len = min(int(SAMPLE_RATE * 0.07), n_samples)
     thump_raw = _noise(thump_len)
     if thump_len > 20:
-        bl, al = scipy.signal.butter(2, [30, 200], btype='band', fs=SAMPLE_RATE)
+        bl, al = scipy.signal.butter(2, [40, 250], btype='band', fs=SAMPLE_RATE)
         thump = scipy.signal.lfilter(bl, al, numpy.pad(thump_raw, (0, max(0, n_samples - thump_len))))[:thump_len]
     else:
         thump = thump_raw
-    thump *= _exp_decay(thump_len, 25) * 0.7
-    # THE SWEEP — this is the whole point. Palm presses into the head,
-    # pitch rises from deep bass to a singing tone.
-    # Slow sweep so the ear can track it, wide range (50→450Hz)
-    freq = 50 + 400 * (1 - numpy.exp(-1.5 * t))
+    thump *= _exp_decay(thump_len, 20) * 0.8
+    # Pitch sweep UP — 60 Hz rising to 200+ Hz as palm presses
+    # Gets quieter as pitch rises (palm mutes the head as it presses)
+    freq = 60 + 180 * (1 - numpy.exp(-4 * t))
     phase = 2 * numpy.pi * numpy.cumsum(freq) / SAMPLE_RATE
-    # Very slow decay — the sweep MUST be audible for at least 1 second
-    env = numpy.exp(-0.8 * t)  # -0.8 gives ~1.2s of usable signal
-    body = numpy.sin(phase) * env * 1.3
-    # Second harmonic for richness (follows the sweep)
-    body += numpy.sin(phase * 2) * env * 0.3
-    # Click for attack definition
-    click_len = min(300, n_samples)
-    click = _noise(click_len) * _exp_decay(click_len, 40) * 0.2
-    result = body
+    # Slow time-based envelope so the sweep is audible
+    env = numpy.exp(-0.8 * t)
+    body = numpy.sin(phase) * env * 0.9
+    # Metal shell resonance
+    metal_len = min(int(SAMPLE_RATE * 0.1), n_samples)
+    metal = numpy.sin(2 * numpy.pi * 150 * t[:metal_len]) * _exp_decay(metal_len, 8) * 0.3
+    # Sub
+    sub = _sine_f32(50, n_samples) * _exp_decay(n_samples, 5) * 0.4
+    click_len = min(250, n_samples)
+    click = _noise(click_len) * _exp_decay(click_len, 35) * 0.3
+    result = body + sub
     result[:thump_len] += thump
+    result[:metal_len] += metal
     result[:click_len] += click
-    return numpy.tanh(result * 1.1).astype(numpy.float32)
+    return numpy.tanh(result * 1.3).astype(numpy.float32)
 
 
 def _synth_djembe_bass(n_samples):
