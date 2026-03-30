@@ -353,11 +353,15 @@ class LiveTUI:
                         self.log(f"Octave ↓ {self.engine._keyboard_octave}", 2)
                     elif 32 <= ch < 127:
                         key = chr(ch).lower()
-                        if self.engine.keyboard_note(key, on=True):
+                        played = self.engine.keyboard_note(key, on=True)
+                        if played:
+                            self.log(f"  key:{key}", 2)
                             def _off(k=key):
-                                time.sleep(0.2)
+                                time.sleep(0.25)
                                 self.engine.keyboard_note(k, on=False)
                             threading.Thread(target=_off, daemon=True).start()
+                        else:
+                            self.log(f"  unmapped:{key}", 3)
                     continue
 
                 if ch == 10 or ch == 13:
