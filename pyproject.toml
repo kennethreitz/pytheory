@@ -37,6 +37,7 @@ Issues = "https://github.com/kennethreitz/pytheory/issues"
 
 [project.scripts]
 pytheory = "pytheory.cli:main"
+pytheory-live = "pytheory.live_tui:main"
 
 [dependency-groups]
 dev = ["pytest"]
