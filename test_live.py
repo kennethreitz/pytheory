@@ -235,6 +235,30 @@ class LiveTUI:
                     y += 1
 
                 y += 1
+                # VU meters per channel
+                y += 1
+                try:
+                    stdscr.addstr(y, cfg_x, "Levels:", curses.A_BOLD | curses.A_DIM)
+                except curses.error:
+                    pass
+                y += 1
+                for i, inst in enumerate(self.picks, 1):
+                    if i in self.engine.channels:
+                        lv = self.engine.channels[i].level
+                        bars = int(lv * 20)
+                        meter = "█" * bars + "░" * (20 - bars)
+                        color = 1 if bars < 15 else 3 if bars < 18 else 4
+                        try:
+                            stdscr.addstr(y, cfg_x, f"{i}", curses.A_BOLD)
+                            stdscr.addstr(y, cfg_x + 1, f" {meter}", curses.color_pair(color))
+                        except curses.error:
+                            pass
+                        y += 1
+
+                y += 1
+                rec_indicator = " ● REC " if self.engine._recording else ""
+                kbd_indicator = f" kbd:ch{self.engine._keyboard_channel} oct{self.engine._keyboard_octave}" if self.engine._keyboard_channel else ""
+
                 pairs = [
                     ("Drums", self.current_drum, 5),
                     ("BPM", str(self.bpm), 0),
@@ -242,6 +266,10 @@ class LiveTUI:
                     ("MIDI", self.port, 0),
                     ("Seed", str(self.seed), 2),
                 ]
+                if rec_indicator:
+                    pairs.append(("", rec_indicator, 4))
+                if kbd_indicator:
+                    pairs.append(("", kbd_indicator, 2))
                 for label, val, cp in pairs:
                     try:
                         stdscr.addstr(y, cfg_x, f"{label}:", curses.A_BOLD)
@@ -255,9 +283,12 @@ class LiveTUI:
                 cmds = [
                     "ch <n> [inst]",
                     "fx <n> <param> <val>",
+                    "pan <n> <-1..1>",
                     "drums [pattern|-]",
-                    "seed [n]",
-                    "list  patterns",
+                    "kbd [ch] [oct]",
+                    "rec / stop / export",
+                    "save/load <file>",
+                    "seed [n] / list",
                     "exit",
                 ]
                 try:
@@ -349,8 +380,19 @@ class LiveTUI:
                             tab_matches = []
                     cursor_pos = len(cmd_buf)
                 elif 32 <= ch < 127:
-                    cmd_buf = cmd_buf[:cursor_pos] + chr(ch) + cmd_buf[cursor_pos:]
-                    cursor_pos += 1
+                    key = chr(ch)
+                    # Keyboard-as-MIDI: if keyboard mode is on and not typing a command
+                    if (self.engine._keyboard_channel and
+                            not cmd_buf and
+                            self.engine.keyboard_note(key.lower(), on=True)):
+                        # Schedule note-off after 200ms
+                        def _off(k=key.lower()):
+                            time.sleep(0.2)
+                            self.engine.keyboard_note(k, on=False)
+                        threading.Thread(target=_off, daemon=True).start()
+                    else:
+                        cmd_buf = cmd_buf[:cursor_pos] + key + cmd_buf[cursor_pos:]
+                        cursor_pos += 1
                     tab_matches = []
                     tab_idx = -1
 
@@ -362,10 +404,11 @@ class LiveTUI:
     def _complete(self, text):
         """Return list of completions for current input."""
         parts = text.split()
-        commands = ["ch", "fx", "drums", "seed", "list", "patterns", "help", "exit"]
-        fx_params = ["volume", "lowpass", "reverb", "chorus", "detune", "spread",
-                     "analog", "distortion", "delay", "tremolo_depth",
-                     "saturation", "phaser", "sub_osc", "noise_mix"]
+        commands = ["ch", "fx", "pan", "drums", "kbd", "rec", "stop", "export",
+                    "save", "load", "seed", "list", "patterns", "octave", "help", "exit"]
+        fx_params = ["volume", "pan", "lowpass", "lowpass_q", "reverb", "chorus",
+                     "detune", "spread", "analog", "distortion", "delay",
+                     "tremolo_depth", "saturation", "phaser", "sub_osc", "noise_mix"]
 
         if not parts:
             return [c + " " for c in commands]
@@ -478,10 +521,18 @@ class LiveTUI:
             except ValueError:
                 self.log("fx <ch> <param> <value>", 4)
         elif verb == "fx" and len(parts) <= 1:
-            self.log("Params: volume lowpass reverb", 2)
-            self.log("  chorus detune spread analog", 2)
-            self.log("  distortion delay tremolo_depth", 2)
-            self.log("  saturation phaser sub_osc noise_mix", 2)
+            self.log("Volume/Mix:", 3)
+            self.log("  volume  pan  reverb  delay", 2)
+            self.log("Filter:", 3)
+            self.log("  lowpass  lowpass_q", 2)
+            self.log("Modulation:", 3)
+            self.log("  chorus  detune  spread  tremolo_depth", 2)
+            self.log("  phaser  analog", 2)
+            self.log("Drive:", 3)
+            self.log("  distortion  saturation", 2)
+            self.log("Synth:", 3)
+            self.log("  sub_osc  noise_mix", 2)
+            self.log("", 0)
             self.log("fx <ch> <param> <value>", 2)
         elif verb == "drums" and len(parts) == 1:
             self.log(f"Current: {self.current_drum}", 5)
@@ -522,6 +573,74 @@ class LiveTUI:
             for i in range(0, len(self.drum_patterns), 4):
                 row = " ".join(f"{x:17s}" for x in self.drum_patterns[i:i+4])
                 self.log(f" {row}", 2)
+        elif verb == "pan" and len(parts) >= 3:
+            try:
+                n = int(parts[1])
+                val = float(parts[2])
+                val = max(-1.0, min(1.0, val))
+                if n in self.engine.channels:
+                    self.engine.channels[n].pan = val
+                    self.log(f"Ch {n} pan={val:+.1f}", 1)
+                else:
+                    self.log(f"Channel {n} not active", 4)
+            except ValueError:
+                self.log("pan <1-8> <-1..1>", 4)
+        elif verb == "kbd":
+            if len(parts) >= 2:
+                try:
+                    ch_num = int(parts[1])
+                    self.engine._keyboard_channel = ch_num
+                    if len(parts) >= 3:
+                        self.engine._keyboard_octave = int(parts[2])
+                    self.log(f"Keyboard → ch{ch_num} oct{self.engine._keyboard_octave}", 1)
+                except ValueError:
+                    self.log("kbd <channel> [octave]", 4)
+            elif self.engine._keyboard_channel:
+                self.engine._keyboard_channel = None
+                self.log("Keyboard off", 3)
+            else:
+                self.engine._keyboard_channel = 1
+                self.log(f"Keyboard → ch1 oct{self.engine._keyboard_octave}", 1)
+        elif verb == "rec":
+            self.engine.start_recording()
+            self.log("● Recording...", 4)
+        elif verb == "stop" and self.engine._recording:
+            self.engine.stop_recording()
+            n = len(self.engine._record_events)
+            self.log(f"■ Stopped ({n} events)", 3)
+        elif verb == "export":
+            fname = parts[1] if len(parts) > 1 else "recording.mid"
+            score = self.engine.export_recording(fname)
+            if score:
+                self.log(f"Exported → {fname}", 1)
+            else:
+                self.log("Nothing to export", 4)
+        elif verb == "save" and len(parts) >= 2:
+            fname = parts[1]
+            if not fname.endswith(".json"):
+                fname += ".json"
+            self.engine.seed = self.seed
+            self.engine.save_config(fname)
+            self.log(f"Saved → {fname}", 1)
+        elif verb == "load" and len(parts) >= 2:
+            fname = parts[1]
+            if not fname.endswith(".json"):
+                fname += ".json"
+            try:
+                self.engine.load_config(fname)
+                self.log(f"Loaded ← {fname}", 1)
+                # Update picks from channels
+                for ch, channel in self.engine.channels.items():
+                    if 1 <= ch <= 8:
+                        self.picks[ch - 1] = channel.synth_name
+            except Exception as e:
+                self.log(f"Error: {e}", 4)
+        elif verb == "octave" and len(parts) >= 2:
+            try:
+                self.engine._keyboard_octave = int(parts[1])
+                self.log(f"Keyboard octave → {self.engine._keyboard_octave}", 2)
+            except ValueError:
+                self.log("octave <0-8>", 4)
         else:
             self.log(f"? {cmd}", 4)
 
