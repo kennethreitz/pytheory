@@ -367,7 +367,8 @@ class LiveTUI:
                                     first_wave = next(iter(channel._cache.values()))
                                     peak = abs(first_wave).max()
                                     cache_peek = f" wpeak={peak:.3f}"
-                                self.log(f"  key:{key} v={nv} vol={vol} lv={lv:.3f}{cache_peek}", 2)
+                                stream_ok = "stream:OK" if self.engine._stream and self.engine._stream.active else "stream:OFF"
+                                self.log(f"  key:{key} v={nv} vol={vol} lv={lv:.3f}{cache_peek} {stream_ok}", 2)
                             def _off(k=key):
                                 time.sleep(0.25)
                                 self.engine.keyboard_note(k, on=False)
