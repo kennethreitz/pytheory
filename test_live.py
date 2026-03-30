@@ -126,22 +126,26 @@ class LiveTUI:
                     stdscr.refresh()
 
         self.log(f"Cached {count} wavetables", 1)
-        self.status = "Listening"
-        self.status_color = 2
+        self.log("Starting engine...", 3)
+        self.status = "Starting"
+        self.status_color = 3
 
         # Start engine
         def run_engine():
-            devnull = open(os.devnull, 'w')
+            import io
+            capture = io.StringIO()
             old = sys.stdout
-            sys.stdout = devnull
+            sys.stdout = capture
             try:
                 self.engine.start(port=self.port)
             except Exception as e:
-                sys.stdout = old
-                self.log(f"Error: {e}", 4)
+                self.log(f"Engine error: {e}", 4)
             finally:
                 sys.stdout = old
-                devnull.close()
+                output = capture.getvalue()
+                if output.strip():
+                    for line in output.strip().split('\n'):
+                        self.log(line.strip(), 2)
 
         engine_thread = threading.Thread(target=run_engine, daemon=True)
         engine_thread.start()
@@ -157,6 +161,13 @@ class LiveTUI:
 
         while self.running:
             try:
+                # Update status from engine state
+                if (self.engine._stream and self.engine._stream.active
+                        and self.status == "Starting"):
+                    self.status = "Listening"
+                    self.status_color = 2
+                    self.log("Audio stream active", 1)
+
                 h, w = stdscr.getmaxyx()
                 if h < 10 or w < 40:
                     time.sleep(0.1)
