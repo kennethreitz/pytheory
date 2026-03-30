@@ -153,7 +153,7 @@ class LiveTUI:
         tab_matches = []
         tab_idx = -1
         tab_prefix = ""
-        self.self.kbd_active = False
+        self.kbd_active = False
 
         while self.running:
             try:
