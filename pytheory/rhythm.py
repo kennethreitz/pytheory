@@ -265,6 +265,16 @@ INSTRUMENTS = {
         "lowpass": 4500,
         "humanize": 0.2,
     },
+    "singing_bowl": {
+        "synth": "singing_bowl_strike_synth", "envelope": "none",
+        "reverb": 0.5,
+        "humanize": 0.2,
+    },
+    "singing_bowl_ring": {
+        "synth": "singing_bowl_ring_synth", "envelope": "none",
+        "reverb": 0.5,
+        "humanize": 0.2,
+    },
 
     # ── Synth presets ──
     "synth_lead": {

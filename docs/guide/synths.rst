@@ -930,6 +930,39 @@ Parameters (passed as synth kwargs):
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_granular.wav" type="audio/wav"></audio>
 
+Singing Bowl (Strike)
+~~~~~~~~~~~~~~~~~~~~~
+
+Tibetan/Himalayan singing bowl struck with a mallet. The impact excites
+inharmonic partials that ring and slowly beat against each other as
+near-degenerate mode pairs interfere. Higher modes fade quickly, leaving
+the fundamental shimmering for seconds.
+
+.. code-block:: python
+
+   bowl = score.part("bowl", synth="singing_bowl_strike_synth", envelope="none",
+                     reverb=0.4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_singing_bowl_strike.wav" type="audio/wav"></audio>
+
+Singing Bowl (Ring)
+~~~~~~~~~~~~~~~~~~~
+
+Rim-rubbed singing bowl — the mallet traces the rim, slowly building the
+fundamental into a sustained, pulsing tone. Upper harmonics shimmer in
+and out as the bowl resonates.
+
+.. code-block:: python
+
+   bowl = score.part("bowl", synth="singing_bowl_ring_synth", envelope="none",
+                     reverb=0.4)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_singing_bowl_ring.wav" type="audio/wav"></audio>
+
 Analog Oscillator Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -985,7 +1018,7 @@ distorted_guitar, orange_crunch, metal_guitar, bass_guitar, upright_bass,
 harp, sitar, koto, banjo, mandolin, mandola, ukulele
 
 **World/Exotic**: pedal_steel, theremin, kalimba, steel_drum, didgeridoo,
-bagpipe
+bagpipe, singing_bowl, singing_bowl_ring
 
 **Synth**: synth_lead, synth_pad, synth_bass, acid_bass, 808_bass,
 granular_pad, granular_texture, vocal, choir

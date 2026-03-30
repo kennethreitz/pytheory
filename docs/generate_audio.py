@@ -858,6 +858,24 @@ def gen_synth_granular():
     render("synth_granular", score)
 
 
+def gen_synth_singing_bowl_strike():
+    score = Score("4/4", bpm=40)
+    p = score.part("demo", synth="singing_bowl_strike_synth", envelope="none",
+                   volume=0.5, reverb=0.4)
+    for n in ["A3", "D4", "F4", "A4"]:
+        p.add(n, Duration.WHOLE, velocity=80)
+    render("synth_singing_bowl_strike", score)
+
+
+def gen_synth_singing_bowl_ring():
+    score = Score("4/4", bpm=30)
+    p = score.part("demo", synth="singing_bowl_ring_synth", envelope="none",
+                   volume=0.5, reverb=0.4)
+    for n in ["A3", "D4", "A4"]:
+        p.add(n, Duration.WHOLE * 2, velocity=75)
+    render("synth_singing_bowl_ring", score)
+
+
 def gen_arpeggio():
     score = Score("4/4", bpm=132)
     score.drums("house", repeats=8)
@@ -1060,6 +1078,8 @@ GENERATORS = [
     gen_synth_mandolin,
     gen_synth_ukulele,
     gen_synth_granular,
+    gen_synth_singing_bowl_strike,
+    gen_synth_singing_bowl_ring,
     gen_arpeggio,
     gen_legato_glide,
     gen_acid_house,

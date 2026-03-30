@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.1
+
+- **Singing bowl synth** — two variants: strike (mallet hit with chirp
+  and long decay) and ring (rim-rubbed sustained tone with slow build).
+  Inharmonic partials beat against near-degenerate mode pairs for
+  authentic Himalayan bowl shimmer.
+- `singing_bowl` and `singing_bowl_ring` instrument presets
+- Audio demos in docs for both variants
+
 ## 0.40.0
 
 - **Rhodes electric piano synth** — tine + tonebar + electromagnetic

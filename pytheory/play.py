@@ -2048,6 +2048,107 @@ def sitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * out).astype(numpy.int16)
 
 
+def singing_bowl_strike_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Singing bowl strike — mallet hit that excites all modes at once.
+
+    The initial hit produces a bright chirp as the higher partials
+    ring momentarily, then the sound settles into the fundamental
+    with slow beating. Higher modes decay fast, the fundamental
+    rings for seconds.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Bowl modal ratios — measured from real Himalayan bowls.
+    # (ratio, amplitude, decay_rate, beat_hz)
+    # The beat_hz is the frequency split between near-degenerate
+    # mode pairs — this is what makes the bowl shimmer.
+    bowl_modes = [
+        (1.0,   1.0,  0.4,  0.3),   # fundamental — very slow beat, long ring
+        (2.71,  0.45, 0.8,  0.6),   # second partial
+        (5.12,  0.22, 1.6,  0.9),   # third — prominent in the chirp
+        (8.26,  0.12, 3.5,  1.2),   # fourth — fast decay, bright
+        (12.1,  0.06, 6.0,  1.5),   # fifth — just a flash
+    ]
+
+    for ratio, amp, decay_rate, beat_hz in bowl_modes:
+        f = hz * ratio
+        if f >= SAMPLE_RATE / 2:
+            break
+
+        phase1 = rng.uniform(0, 2 * numpy.pi)
+        phase2 = rng.uniform(0, 2 * numpy.pi)
+
+        f_split = beat_hz / 2.0
+        mode_decay = numpy.exp(-decay_rate * t)
+        tone1 = numpy.sin(2 * numpy.pi * (f - f_split) * t + phase1)
+        tone2 = numpy.sin(2 * numpy.pi * (f + f_split) * t + phase2)
+        wave += amp * (tone1 + tone2) * 0.5 * mode_decay
+
+    # Strike chirp — higher partials ring briefly on impact
+    chirp_len = min(int(SAMPLE_RATE * 0.04), n_samples)
+    chirp_t = numpy.linspace(0, 1, chirp_len)
+    chirp_freq = hz * (3.0 - 2.0 * chirp_t)
+    chirp_phase = numpy.cumsum(chirp_freq) / SAMPLE_RATE * 2 * numpy.pi
+    chirp = 0.6 * numpy.sin(chirp_phase) * numpy.exp(-chirp_t * 8)
+    wave[:chirp_len] += chirp
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * 0.8 * wave).astype(numpy.int16)
+
+
+def singing_bowl_ring_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
+    """Singing bowl ring — sustained rubbing around the rim with a mallet.
+
+    When you rub the rim, the bowl builds up slowly as the mallet
+    continuously feeds energy into the resonance. The fundamental
+    dominates with strong beating. Higher partials come and go as
+    the mallet catches different modes. The sound has a pulsing,
+    breathing quality from the slow amplitude modulation.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    # Rim rubbing excites the fundamental most, but upper modes
+    # shimmer in as the mallet catches them
+    bowl_modes = [
+        (1.0,   1.0,  0.15, 0.4),   # fundamental — very slow decay, gentle beat
+        (2.71,  0.35, 0.35, 0.7),   # second — stronger presence
+        (5.12,  0.18, 0.7,  1.0),   # third — audible shimmer
+        (8.26,  0.08, 1.2,  1.3),   # fourth — bright ring
+    ]
+
+    for ratio, amp, decay_rate, beat_hz in bowl_modes:
+        f = hz * ratio
+        if f >= SAMPLE_RATE / 2:
+            break
+
+        phase1 = rng.uniform(0, 2 * numpy.pi)
+        phase2 = rng.uniform(0, 2 * numpy.pi)
+
+        f_split = beat_hz / 2.0
+        # Slow build-up envelope — rim rubbing takes time to excite
+        buildup = 1.0 - numpy.exp(-2.0 * t / (ratio * 0.5))
+        # Gentle decay after the buildup
+        sustain_env = buildup * numpy.exp(-decay_rate * numpy.maximum(0, t - 0.5))
+        tone1 = numpy.sin(2 * numpy.pi * (f - f_split) * t + phase1)
+        tone2 = numpy.sin(2 * numpy.pi * (f + f_split) * t + phase2)
+        wave += amp * (tone1 + tone2) * 0.5 * sustain_env
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * 0.8 * wave).astype(numpy.int16)
+
+
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
     """Apply an ADSR amplitude envelope to a sample array.
 
@@ -2186,6 +2287,8 @@ class Synth(Enum):
     ACOUSTIC_GUITAR = "acoustic_guitar_synth"
     SITAR = "sitar_synth"
     ELECTRIC_GUITAR = "electric_guitar_synth"
+    SINGING_BOWL_STRIKE = "singing_bowl_strike_synth"
+    SINGING_BOWL_RING = "singing_bowl_ring_synth"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
@@ -2216,6 +2319,8 @@ _SYNTH_FUNCTIONS = {
     "ukulele_synth": ukulele_wave,
     "acoustic_guitar_synth": acoustic_guitar_wave,
     "sitar_synth": sitar_wave, "electric_guitar_synth": electric_guitar_wave,
+    "singing_bowl_strike_synth": singing_bowl_strike_wave,
+    "singing_bowl_ring_synth": singing_bowl_ring_wave,
 }
 
 
