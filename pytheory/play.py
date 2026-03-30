@@ -2099,7 +2099,7 @@ def singing_bowl_strike_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     if mx > 0:
         wave /= mx
 
-    return (peak * 0.8 * wave).astype(numpy.int16)
+    return (peak * wave).astype(numpy.int16)
 
 
 def singing_bowl_ring_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
@@ -2146,7 +2146,7 @@ def singing_bowl_ring_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     if mx > 0:
         wave /= mx
 
-    return (peak * 0.8 * wave).astype(numpy.int16)
+    return (peak * wave).astype(numpy.int16)
 
 
 def _apply_envelope(samples, attack, decay, sustain, release, sample_rate=SAMPLE_RATE):
@@ -4679,7 +4679,7 @@ def _pan_to_stereo(mono, pan=0.0):
     return stereo
 
 
-def _master_compress(samples, threshold=0.5, ratio=4.0, attack=0.002,
+def _master_compress(samples, threshold=0.7, ratio=4.0, attack=0.002,
                      release=0.05, makeup=True, limiter=True,
                      sample_rate=SAMPLE_RATE):
     """Master bus compressor with brick-wall limiter.
@@ -4734,11 +4734,13 @@ def _master_compress(samples, threshold=0.5, ratio=4.0, attack=0.002,
     # Apply gain
     compressed = samples * gain
 
-    # Makeup gain — bring the level back up
+    # Makeup gain — bring the level back up, but cap at 3x
+    # so sparse arrangements don't get over-amplified
     if makeup:
         peak = numpy.max(numpy.abs(compressed))
         if peak > 0:
-            compressed = compressed / peak * 0.9
+            desired_gain = 0.9 / peak
+            compressed = compressed * min(desired_gain, 3.0)
 
     # Brick-wall limiter — hard clip at 0.95
     if limiter:
