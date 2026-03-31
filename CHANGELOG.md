@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.4
+
+- **Distortion overhaul** — multi-stage clipping (preamp → power amp →
+  asymmetric rectifier) replaces single-stage tanh. Crunch, distorted,
+  orange crunch, and metal guitar presets now sound properly driven.
+
 ## 0.40.3
 
 - **Crotales synth** — tuned bronze discs with long ring and bright harmonics

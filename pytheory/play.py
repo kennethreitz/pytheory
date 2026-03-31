@@ -4902,7 +4902,19 @@ def _apply_distortion(samples, drive=1.0, mix=1.0):
     """
     if mix <= 0 or drive <= 0:
         return samples
-    driven = numpy.tanh(samples * drive)
+    # Multi-stage gain + clipping like a real amp:
+    # Stage 1: preamp gain — push the signal hard
+    stage1 = numpy.tanh(samples * drive)
+    # Stage 2: power amp — clip again with more gain for sustain and grit
+    stage2 = numpy.tanh(stage1 * drive * 0.5)
+    # Stage 3: at high drive, add asymmetric clipping (tube rectifier sag)
+    if drive > 3.0:
+        # Positive peaks clip harder than negative — asymmetric harmonics
+        driven = numpy.where(stage2 > 0,
+                             numpy.tanh(stage2 * 1.5),
+                             numpy.tanh(stage2 * 1.2))
+    else:
+        driven = stage2
     return samples * (1 - mix) + driven * mix
 
 
