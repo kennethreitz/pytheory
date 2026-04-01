@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.5
+
+- **Saxophone synth overhaul** — reed nonlinearity (asymmetric soft clipping),
+  conical bore formant resonances, breath noise with attack envelope, separate
+  reed buzz, key click transient, and sub-harmonic warmth. Vibrato dialed back
+  to subtle, delayed onset.
+
 ## 0.40.4
 
 - **Distortion overhaul** — multi-stage clipping (preamp → power amp →

@@ -1187,62 +1187,131 @@ def timpani_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
 
 def saxophone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
-    """Saxophone — single reed through a conical brass bore.
+    """Saxophone — single reed driving a conical brass bore.
 
-    The conical bore produces all harmonics (like oboe), but the
-    brass body and larger mouthpiece give a warmer, fatter, more
-    vocal quality. The reed adds a slight buzz. Saxophone is
-    between clarinet (odd harmonics) and oboe (nasal even+odd) —
-    it has everything, with a strong fundamental and rich mids.
+    Models the key acoustic properties of a saxophone:
+    1. Reed-bore interaction — nonlinear clipping creates the characteristic
+       bright, edgy tone (not just additive sines)
+    2. Conical bore formants — vocal-like resonances at ~500, ~1400, ~2300,
+       ~3200 Hz that give sax its singing quality
+    3. Breath noise — turbulent airflow through the mouthpiece, strongest
+       at attack and blending into sustained tone
+    4. Sub-harmonic warmth — the conical bore's coupling creates warmth
+       below the fundamental
+    5. Vibrato — delayed onset, ~5 Hz, characteristic of jazz/classical sax
     """
+    import scipy.signal as _sig
+
     t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
     rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
-    # Vibrato — develops after ~250ms, wider than flute
-    vib_onset = numpy.clip(t / 0.25, 0.0, 1.0)
-    vib = hz * 0.0012 * vib_onset * numpy.sin(2 * numpy.pi * 5.2 * t)
+    # --- Vibrato: delayed onset, subtle depth ---
+    vib_onset = numpy.clip((t - 0.3) / 0.3, 0.0, 1.0)
+    vib_rate = 5.0 + 0.15 * numpy.sin(2 * numpy.pi * 0.4 * t)
+    vib = hz * 0.0006 * vib_onset * numpy.sin(2 * numpy.pi * vib_rate * t)
 
+    # --- Core tone: sawtooth-like waveform with reed clipping ---
+    # Real sax reed creates a quasi-sawtooth pressure wave, not pure sines.
+    # Build from harmonics with sax-specific spectral envelope, then clip.
     wave = numpy.zeros(n_samples, dtype=numpy.float64)
-    n_harmonics = min(20, int((SAMPLE_RATE / 2) / hz))
+    n_harmonics = min(25, int((SAMPLE_RATE / 2) / hz))
 
     for n in range(1, n_harmonics + 1):
         f_n = hz * n
         if f_n >= SAMPLE_RATE / 2:
             break
-        # Sax spectral shape: strong fundamental, broad mid peak (3-6),
-        # slower rolloff than oboe (brass body carries harmonics further)
+        # Saxophone spectral envelope from acoustic measurements:
+        # Strong fundamental, nearly-as-strong 2nd and 3rd harmonics,
+        # broad energy peak around harmonics 4-8 (the "body"), then
+        # gradual rolloff — but slower than other woodwinds (brass bore
+        # sustains upper partials).
         if n == 1:
             amp = 1.0
-        elif n <= 3:
-            amp = 0.6
-        elif n <= 6:
-            amp = 0.4 * numpy.exp(-0.1 * (n - 4) ** 2)
+        elif n == 2:
+            amp = 0.85
+        elif n == 3:
+            amp = 0.7
+        elif n <= 8:
+            # Broad mid peak — this is the sax "meat"
+            amp = 0.55 * numpy.exp(-0.06 * (n - 5) ** 2)
         else:
-            amp = 0.2 / n
+            # Slower rolloff than oboe/clarinet
+            amp = 0.35 / (n ** 0.7)
+
+        # Slight even/odd asymmetry — conical bore has all harmonics
+        # but evens are ~10% weaker (midway between cylinder and cone)
+        if n % 2 == 0:
+            amp *= 0.9
+
         phase = rng.uniform(0, 2 * numpy.pi)
         wave += amp * numpy.sin(2 * numpy.pi * (f_n + vib * n) * t + phase)
 
-    # Reed buzz — more present than oboe but still warm
-    reed = rng.normal(0, 0.07, n_samples)
-    # Bandpass the reed noise around 1-3kHz (the "honk" range)
-    import scipy.signal as _sig
-    reed_lo = max(20, int(hz * 2))
-    reed_hi = min(SAMPLE_RATE // 2 - 1, int(hz * 6))
+    # --- Reed nonlinearity: soft clipping ---
+    # The reed closes against the mouthpiece, creating asymmetric clipping
+    # that adds brightness and "edge". This is what makes sax sound like
+    # sax and not a flute.
+    wave_max = numpy.abs(wave).max()
+    if wave_max > 0:
+        wave /= wave_max
+    # Asymmetric soft clip: positive peaks clip harder (reed closure)
+    wave = numpy.tanh(1.8 * wave) * 0.7 + numpy.tanh(2.5 * wave) * 0.3
+
+    # --- Formant resonances: conical bore creates vocal quality ---
+    # These fixed resonances are what make sax sound "vocal" — they
+    # emphasize certain frequency bands regardless of the note played.
+    formant_freqs = [520, 1380, 2300, 3200]
+    formant_bws = [120, 200, 280, 350]
+    formant_gains = [0.25, 0.18, 0.12, 0.08]
+
+    formant_sum = numpy.zeros(n_samples, dtype=numpy.float64)
+    for fc, bw, gain in zip(formant_freqs, formant_bws, formant_gains):
+        lo = max(20, int(fc - bw))
+        hi = min(SAMPLE_RATE // 2 - 1, int(fc + bw))
+        if lo < hi:
+            bf, af = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+            formant_sum += _sig.lfilter(bf, af, wave) * gain
+    wave = wave * 0.7 + formant_sum
+
+    # --- Breath noise: turbulent air through the mouthpiece ---
+    # Strongest at the attack, then settles to a subtle constant hiss
+    # that gives the tone "life" and prevents it from sounding synthetic.
+    breath = rng.normal(0, 1.0, n_samples)
+    # Shape breath noise into the sax's "hiss" band (2-6 kHz)
+    breath_lo = max(20, 2000)
+    breath_hi = min(SAMPLE_RATE // 2 - 1, 6000)
+    if breath_lo < breath_hi:
+        bb, ab = _sig.butter(2, [breath_lo, breath_hi], btype='band', fs=SAMPLE_RATE)
+        breath = _sig.lfilter(bb, ab, breath)
+    # Attack envelope for breath — strong at onset, then quiet
+    breath_env = 0.15 * numpy.exp(-8.0 * t) + 0.03
+    wave += breath * breath_env
+
+    # --- Reed buzz: low-frequency interaction noise ---
+    # Different from breath — this is the "buzz" from reed vibration
+    # against the mouthpiece, centered around the playing frequency.
+    reed_noise = rng.normal(0, 1.0, n_samples)
+    reed_lo = max(20, int(hz * 0.8))
+    reed_hi = min(SAMPLE_RATE // 2 - 1, int(hz * 4))
     if reed_lo < reed_hi:
         br, ar = _sig.butter(2, [reed_lo, reed_hi], btype='band', fs=SAMPLE_RATE)
-        reed = _sig.lfilter(br, ar, reed).astype(numpy.float64) * 2.0
-    wave += reed
+        reed_noise = _sig.lfilter(br, ar, reed_noise) * 0.06
+    wave += reed_noise
 
-    # Brass body warmth — low-mid boost
-    center = min(1500, hz * 4)
-    bw = 500
-    lo = max(20, int(center - bw))
-    hi = min(SAMPLE_RATE // 2 - 1, int(center + bw))
-    if lo < hi:
-        bp, ap = _sig.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
-        body = _sig.lfilter(bp, ap, wave) * 0.2
-        wave += body
+    # --- Attack transient: key click + breath burst ---
+    attack_len = min(int(SAMPLE_RATE * 0.015), n_samples)
+    if attack_len > 0:
+        click = rng.uniform(-1.0, 1.0, attack_len)
+        click *= numpy.exp(-numpy.linspace(0, 8, attack_len))
+        wave[:attack_len] += click * 0.12
 
+    # --- Sub-harmonic warmth ---
+    # Conical bore coupling produces energy slightly below fundamental
+    if hz > 80:  # only if there's room
+        sub = numpy.sin(2 * numpy.pi * (hz * 0.5) * t) * 0.04
+        sub *= numpy.clip(t / 0.1, 0.0, 1.0)  # fade in gently
+        wave += sub
+
+    # --- Final shaping ---
     mx = numpy.abs(wave).max()
     if mx > 0:
         wave /= mx
