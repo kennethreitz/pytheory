@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.8
+
+- **Fix hold() inflating duration** — `Note.beats` was returning the full
+  duration for held notes (`_hold=True`), causing `Part.total_beats` and
+  `Score.duration_ms` to overcount. A part with `hold(Sa, WHOLE * 4)` followed
+  by `add(Pa, QUARTER)` would report 17 beats instead of 1. Now held notes
+  return 0 beats, matching the renderer which already skipped advancing the
+  timeline for held notes.
+
 ## 0.40.7
 
 - **Expose missing Synth enum entries** — rhodes, wurlitzer, vibraphone,

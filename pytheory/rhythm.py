@@ -475,6 +475,8 @@ class Note:
 
     @property
     def beats(self) -> float:
+        if self._hold:
+            return 0.0
         return self.duration.value
 
 
