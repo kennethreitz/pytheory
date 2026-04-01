@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.7
+
+- **Expose missing Synth enum entries** — rhodes, wurlitzer, vibraphone,
+  pipe organ, and choir wave functions were already implemented but not
+  accessible via the Synth enum. Now available as `Synth.RHODES`,
+  `Synth.WURLITZER`, `Synth.VIBRAPHONE`, `Synth.PIPE_ORGAN`, `Synth.CHOIR`.
+
 ## 0.40.6
 
 - **Saxophone presets cleaned up** — removed lowpass filters and vel_to_filter

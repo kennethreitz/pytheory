@@ -2453,6 +2453,11 @@ class Synth(Enum):
     TINGSHA = "tingsha_synth"
     SINGING_BOWL_STRIKE = "singing_bowl_strike_synth"
     SINGING_BOWL_RING = "singing_bowl_ring_synth"
+    RHODES = "rhodes_synth"
+    WURLITZER = "wurlitzer_synth"
+    VIBRAPHONE = "vibraphone_synth"
+    PIPE_ORGAN = "pipe_organ_synth"
+    CHOIR = "choir_synth"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
