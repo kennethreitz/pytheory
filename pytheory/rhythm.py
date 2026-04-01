@@ -380,22 +380,19 @@ INSTRUMENTS = {
     # ── Woodwinds (continued) ──
     "saxophone": {
         "synth": "saxophone_synth", "envelope": "bowed",
-        "humanize": 0.15, "vel_to_filter": 1500,
+        "humanize": 0.15,
     },
     "alto_sax": {
         "synth": "saxophone_synth", "envelope": "bowed",
-        "humanize": 0.15, "vel_to_filter": 1800,
+        "humanize": 0.15,
     },
     "tenor_sax": {
         "synth": "saxophone_synth", "envelope": "bowed",
-        "lowpass": 3000,
-        "humanize": 0.15, "vel_to_filter": 1200,
+        "humanize": 0.15,
     },
     "bari_sax": {
         "synth": "saxophone_synth", "envelope": "bowed",
-        "lowpass": 2000,
-        "humanize": 0.15, "vel_to_filter": 800,
-        "sub_osc": 0.15,
+        "humanize": 0.15, "sub_osc": 0.15,
     },
 }
 

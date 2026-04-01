@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.6
+
+- **Saxophone presets cleaned up** — removed lowpass filters and vel_to_filter
+  from all sax instrument presets (saxophone, alto_sax, tenor_sax, bari_sax).
+  The saxophone wave function already shapes its own spectrum; the extra
+  filters were dulling the tone.
+
 ## 0.40.5
 
 - **Saxophone synth overhaul** — reed nonlinearity (asymmetric soft clipping),
