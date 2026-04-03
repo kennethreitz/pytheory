@@ -203,6 +203,168 @@ def pwm_fast_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return pwm_wave(hz, peak, n_samples, lfo_rate=3.0)
 
 
+def hard_sync_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+                   slave_ratio=1.5):
+    """Hard-sync oscillator — slave saw reset by master clock.
+
+    The quintessential analog lead sound. A "slave" oscillator runs at
+    a different frequency but is forced to restart its cycle every time
+    the "master" oscillator completes one. The abrupt restart creates
+    bright, harmonically complex formant peaks that sweep as the slave
+    ratio changes.
+
+    This is THE sound of the Prophet-5, Moog Prodigy, and every
+    screaming analog lead since 1978.
+
+    Args:
+        slave_ratio: Slave frequency as a multiple of master.
+            1.0 = unison (plain saw). 1.5–3.0 = sweet spot for leads.
+            Higher = more metallic, ring-mod-like.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    # Master phase ramps 0→1 at hz
+    master_phase = (t * hz) % 1.0
+    # Detect master zero-crossings (phase resets)
+    resets = numpy.diff(master_phase, prepend=master_phase[0]) < -0.5
+    # Slave phase: runs at slave_ratio * hz, but resets with master
+    slave_phase = numpy.zeros(n_samples, dtype=numpy.float64)
+    phase = 0.0
+    slave_freq = hz * slave_ratio
+    dt = 1.0 / SAMPLE_RATE
+    for i in range(n_samples):
+        if resets[i]:
+            phase = 0.0
+        slave_phase[i] = phase
+        phase += slave_freq * dt
+        phase %= 1.0
+    # Slave is a sawtooth: 2*phase - 1
+    wave = 2.0 * slave_phase - 1.0
+    return (peak * wave).astype(numpy.int16)
+
+
+def ring_mod_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+                  mod_ratio=1.5):
+    """Ring modulation — two oscillators multiplied together.
+
+    Multiplying two signals produces sum and difference frequencies,
+    creating inharmonic, metallic, bell-like tones. Unlike FM, ring mod
+    produces only sidebands — no carrier or modulator in the output.
+
+    Classic Dalek voice, Stockhausen elektronische Musik, and the
+    metallic clang of every sci-fi soundtrack.
+
+    Args:
+        mod_ratio: Modulator frequency as a multiple of carrier.
+            Integer ratios (2, 3) = harmonic (bell-like).
+            Non-integer (1.5, 2.1) = inharmonic (metallic, alien).
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    carrier = numpy.sin(2 * numpy.pi * hz * t)
+    modulator = numpy.sin(2 * numpy.pi * hz * mod_ratio * t)
+    wave = carrier * modulator
+    return (peak * wave).astype(numpy.int16)
+
+
+def wavefold_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+                  folds=3.0):
+    """Wavefolding — signal folded back on itself for complex harmonics.
+
+    The heart of west coast synthesis (Buchla, Make Noise, Verbos).
+    A sine wave is amplified past ±1.0, then "folded" — the overflow
+    bounces back instead of clipping. Each fold adds a new pair of
+    harmonics. At low fold counts it's warm and round; crank it up
+    and it gets buzzy, gnarly, and alive.
+
+    Sounds completely different from subtractive synthesis — instead
+    of removing harmonics with a filter, you're *generating* them
+    by shaping the wave. Pairs beautifully with a lowpass filter.
+
+    Args:
+        folds: Drive amount. 1.0 = clean sine. 2–4 = sweet spot.
+            6+ = harsh, buzzy territory.
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    wave = numpy.sin(2 * numpy.pi * hz * t) * folds
+    # Triangle-fold: repeatedly reflect at ±1
+    # Uses the mathematical identity for folding
+    wave = 4.0 * numpy.abs((wave / 4.0 + 0.25) % 1.0 - 0.5) - 1.0
+    return (peak * wave).astype(numpy.int16)
+
+
+def drift_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+               shape="saw", drift_amount=0.15):
+    """Analog VCO with pitch drift, instability, and soft noise floor.
+
+    Real analog oscillators are never perfectly stable. Capacitor
+    charging, thermal variations, and component tolerances make the
+    pitch wander slightly. This is what makes a Minimoog sound "fat"
+    and a VST sound "thin" — the constant micro-motion of imperfect
+    hardware.
+
+    Models:
+    - Slow pitch drift (< 1 Hz wander, like warming up)
+    - Fast jitter (subtle per-cycle randomness)
+    - Soft analog noise floor (faint hiss blended in)
+    - Slightly rounded edges (no mathematically perfect transitions)
+
+    Args:
+        shape: Base oscillator — "saw", "square", "triangle", or "pulse".
+        drift_amount: How unstable the oscillator is.
+            0.05 = studio-grade (Sequential, Oberheim).
+            0.15 = classic vintage (Minimoog, ARP).
+            0.3 = barely-holding-it-together (old SH-101).
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # Slow pitch drift — 2 LFOs at sub-Hz rates with random phase
+    drift1 = drift_amount * 0.6 * numpy.sin(
+        2 * numpy.pi * 0.07 * t + rng.uniform(0, 2 * numpy.pi))
+    drift2 = drift_amount * 0.4 * numpy.sin(
+        2 * numpy.pi * 0.23 * t + rng.uniform(0, 2 * numpy.pi))
+    # Fast jitter — per-sample noise filtered to ~50 Hz bandwidth
+    jitter_raw = rng.normal(0, drift_amount * 0.08, n_samples)
+    # Simple one-pole lowpass for jitter smoothing
+    alpha = 2 * numpy.pi * 50.0 / SAMPLE_RATE
+    jitter = numpy.zeros(n_samples, dtype=numpy.float64)
+    jitter[0] = jitter_raw[0]
+    for i in range(1, n_samples):
+        jitter[i] = jitter[i-1] + alpha * (jitter_raw[i] - jitter[i-1])
+
+    # Instantaneous frequency with drift (in cents, converted to ratio)
+    cents_offset = drift1 + drift2 + jitter
+    freq_ratio = 2.0 ** (cents_offset / 1200.0)
+
+    # Accumulate phase with varying frequency
+    phase = numpy.cumsum(hz * freq_ratio / SAMPLE_RATE)
+    phase %= 1.0
+
+    # Generate waveform from phase
+    if shape == "square":
+        wave = numpy.where(phase < 0.5, 1.0, -1.0)
+    elif shape == "triangle":
+        wave = 4.0 * numpy.abs(phase - 0.5) - 1.0
+    elif shape == "pulse":
+        wave = numpy.where(phase < 0.25, 1.0, -1.0)
+    else:  # saw
+        wave = 2.0 * phase - 1.0
+
+    # Soft edges — gentle lowpass to round off transitions
+    cutoff = min(16000, hz * 12)
+    bl, al = scipy.signal.butter(1, cutoff, btype='low', fs=SAMPLE_RATE)
+    wave = scipy.signal.lfilter(bl, al, wave)
+
+    # Subtle analog noise floor
+    noise = rng.normal(0, 0.005, n_samples)
+    wave = wave + noise
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
 def pluck_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Karplus-Strong plucked string synthesis.
 
@@ -526,6 +688,145 @@ def wurlitzer_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
     # Electrostatic pickup character — slightly compressed/nasal
     wave = numpy.tanh(wave * 1.1) / 1.1
+
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    return (peak * wave).astype(numpy.int16)
+
+
+def mellotron_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
+                   tape="strings"):
+    """Mellotron — tape-replay keyboard from the 1960s.
+
+    Each key triggers a strip of magnetic tape with a pre-recorded
+    instrument — the original "sampler." The mechanical transport gives
+    it a lo-fi, haunted quality that no digital emulation fully captures:
+
+    - Tape flutter: pitch wobbles from uneven capstan speed
+    - Limited bandwidth: 300 Hz–6 kHz, like a worn cassette
+    - Tape saturation: soft compression, rounded transients
+    - 8-second limit: tapes physically run out (we model the fadeout)
+    - Head noise: faint hiss baked into the character
+
+    The Mellotron defined the sound of Strawberry Fields Forever,
+    Stairway to Heaven, and every prog rock record from 1969–1977.
+
+    Args:
+        tape: Which tape bank to simulate.
+            "strings" — the iconic MkII string section
+            "flute" — breathy, haunting solo flute
+            "choir" — ghostly vocal pad
+    """
+    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+
+    # --- Tape flutter: slow wow + faster flutter ---
+    wow = 0.12 * numpy.sin(2 * numpy.pi * 0.4 * t + rng.uniform(0, 6.28))
+    flutter = 0.06 * numpy.sin(2 * numpy.pi * 6.3 * t + rng.uniform(0, 6.28))
+    flutter += 0.03 * numpy.sin(2 * numpy.pi * 9.7 * t + rng.uniform(0, 6.28))
+    # Cents of pitch deviation
+    pitch_cents = wow + flutter
+    freq_ratio = 2.0 ** (pitch_cents / 1200.0)
+
+    # Accumulate phase with flutter
+    inst_freq = hz * freq_ratio
+    phase = numpy.cumsum(inst_freq / SAMPLE_RATE)
+
+    # --- Generate the "tape" source ---
+    nyquist = SAMPLE_RATE / 2.0
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+
+    if tape == "flute":
+        # Breathy flute: fundamental + weak odd harmonics + breath noise
+        wave += 0.7 * numpy.sin(2 * numpy.pi * phase)
+        if hz * 3 < nyquist:
+            wave += 0.12 * numpy.sin(2 * numpy.pi * 3 * phase + rng.uniform(0, 6.28))
+        if hz * 5 < nyquist:
+            wave += 0.04 * numpy.sin(2 * numpy.pi * 5 * phase + rng.uniform(0, 6.28))
+        # Breath noise — bandpass filtered around fundamental
+        breath = rng.normal(0, 0.25, n_samples)
+        bw = max(100, hz * 0.3)
+        lo = max(20, hz - bw)
+        hi = min(nyquist * 0.95, hz + bw)
+        bb, ab = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+        breath = scipy.signal.lfilter(bb, ab, breath)
+        wave += breath
+    elif tape == "choir":
+        # Ghostly vocal pad: formant-shaped harmonics with slow drift
+        formants = [
+            (800, 100),   # first formant ~'ah'
+            (1200, 120),  # second formant
+            (2500, 200),  # third formant
+        ]
+        n_harmonics = min(20, int(nyquist / hz))
+        for n in range(1, n_harmonics + 1):
+            f_n = hz * n
+            if f_n >= nyquist:
+                break
+            amp = 1.0 / n
+            # Shape by formant peaks
+            for f_center, f_bw in formants:
+                amp *= 1.0 + 1.5 * numpy.exp(-((f_n - f_center) / f_bw) ** 2)
+            p = rng.uniform(0, 2 * numpy.pi)
+            wave += amp * numpy.sin(2 * numpy.pi * n * phase + p)
+        # Slow ensemble drift between "voices"
+        drift = 0.005 * numpy.sin(2 * numpy.pi * 0.15 * t + rng.uniform(0, 6.28))
+        wave2 = numpy.zeros(n_samples, dtype=numpy.float64)
+        phase2 = numpy.cumsum(hz * (1.0 + drift) * freq_ratio / SAMPLE_RATE)
+        for n in range(1, min(8, int(nyquist / hz)) + 1):
+            f_n = hz * n
+            if f_n >= nyquist:
+                break
+            amp = 0.6 / n
+            for f_center, f_bw in formants:
+                amp *= 1.0 + 1.5 * numpy.exp(-((f_n - f_center) / f_bw) ** 2)
+            wave2 += amp * numpy.sin(2 * numpy.pi * n * phase2 + rng.uniform(0, 6.28))
+        wave += wave2
+    else:
+        # Strings (default): layered ensemble with detuned unison
+        n_harmonics = min(25, int(nyquist / hz))
+        # Two "sections" slightly detuned for ensemble width
+        for section_detune in [-1.5, 0, 1.5]:
+            section_hz = hz * (2 ** (section_detune / 1200.0))
+            section_phase = numpy.cumsum(section_hz * freq_ratio / SAMPLE_RATE)
+            for n in range(1, n_harmonics + 1):
+                f_n = section_hz * n
+                if f_n >= nyquist:
+                    break
+                # String-like: 1/n rolloff, even harmonics slightly weaker
+                amp = 1.0 / n
+                if n % 2 == 0:
+                    amp *= 0.8
+                p = rng.uniform(0, 2 * numpy.pi)
+                wave += amp * numpy.sin(2 * numpy.pi * n * section_phase + p)
+
+    # Normalize before processing
+    mx = numpy.abs(wave).max()
+    if mx > 0:
+        wave /= mx
+
+    # --- Tape bandwidth limiting: 300 Hz – 6 kHz ---
+    lo_cut = min(300, hz * 0.9)  # don't cut fundamental
+    hi_cut = min(6000, nyquist * 0.95)
+    if lo_cut < hi_cut and lo_cut > 0:
+        bb, ab = scipy.signal.butter(2, [lo_cut, hi_cut], btype='band', fs=SAMPLE_RATE)
+        wave = scipy.signal.lfilter(bb, ab, wave)
+
+    # --- Tape saturation: soft compression ---
+    wave = numpy.tanh(wave * 1.4) / 1.2
+
+    # --- Tape run-out: gentle fadeout after ~7 seconds ---
+    if n_samples > int(SAMPLE_RATE * 7):
+        fadeout_start = int(SAMPLE_RATE * 7)
+        fadeout_len = n_samples - fadeout_start
+        fade = numpy.linspace(1.0, 0.0, fadeout_len)
+        wave[fadeout_start:] *= fade
+
+    # --- Head noise / tape hiss ---
+    hiss = rng.normal(0, 0.008, n_samples)
+    wave += hiss
 
     mx = numpy.abs(wave).max()
     if mx > 0:
@@ -2458,6 +2759,11 @@ class Synth(Enum):
     VIBRAPHONE = "vibraphone_synth"
     PIPE_ORGAN = "pipe_organ_synth"
     CHOIR = "choir_synth"
+    MELLOTRON = "mellotron_synth"
+    HARD_SYNC = "hard_sync"
+    RING_MOD = "ring_mod"
+    WAVEFOLD = "wavefold"
+    DRIFT = "drift"
 
     def __call__(self, hz, **kwargs):
         """Make Synth members callable — dispatches to the wave function."""
@@ -2492,11 +2798,14 @@ _SYNTH_FUNCTIONS = {
     "tingsha_synth": tingsha_wave,
     "singing_bowl_strike_synth": singing_bowl_strike_wave,
     "singing_bowl_ring_synth": singing_bowl_ring_wave,
+    "mellotron_synth": mellotron_wave,
+    "hard_sync": hard_sync_wave, "ring_mod": ring_mod_wave,
+    "wavefold": wavefold_wave, "drift": drift_wave,
 }
 
 
 def _render(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
-            envelope=Envelope.PIANO):
+            envelope=Envelope.PIANO, **synth_kw):
     """Render a tone or chord to a NumPy sample array.
 
     Args:
@@ -2508,6 +2817,9 @@ def _render(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
         t: Duration in milliseconds.
         envelope: ADSR envelope preset. Use ``Envelope.NONE`` for raw
             output (old behavior).
+        **synth_kw: Extra keyword arguments forwarded to the synth wave
+            function (e.g. ``tape="flute"`` for Mellotron,
+            ``slave_ratio=2.0`` for Hard Sync).
 
     Returns:
         A NumPy int16 array of audio samples.
@@ -2515,10 +2827,10 @@ def _render(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
     n_samples = int(SAMPLE_RATE * t / 1_000)
 
     if isinstance(tone_or_chord, Tone):
-        waves = [synth(tone_or_chord.pitch(temperament=temperament), n_samples=n_samples)]
+        waves = [synth(tone_or_chord.pitch(temperament=temperament), n_samples=n_samples, **synth_kw)]
     else:
         waves = [
-            synth(tone.pitch(temperament=temperament), n_samples=n_samples)
+            synth(tone.pitch(temperament=temperament), n_samples=n_samples, **synth_kw)
             for tone in tone_or_chord.tones
         ]
 
@@ -2533,7 +2845,7 @@ def _render(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
 
 
 def play(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
-         envelope=Envelope.PIANO):
+         envelope=Envelope.PIANO, **synth_kw):
     """Play a tone or chord through the speakers.
 
     Args:
@@ -2545,19 +2857,22 @@ def play(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
         t: Duration in milliseconds (default 1000).
         envelope: ADSR envelope preset (default ``Envelope.PIANO``).
             Use ``Envelope.NONE`` for raw waveform.
+        **synth_kw: Extra keyword arguments forwarded to the synth wave
+            function (e.g. ``tape="flute"`` for Mellotron).
 
     Example::
 
         >>> play(Tone.from_string("A4"), t=1_000)
         >>> play(Chord.from_name("Am7"), synth=Synth.TRIANGLE, t=2_000)
         >>> play(tone, envelope=Envelope.PAD, t=3_000)
+        >>> play(tone, synth=Synth.MELLOTRON, tape="choir", t=2_000)
     """
     _play_for(_render(tone_or_chord, temperament=temperament, synth=synth,
-                      t=t, envelope=envelope), ms=t)
+                      t=t, envelope=envelope, **synth_kw), ms=t)
 
 
 def save(tone_or_chord, path, temperament="equal", synth=Synth.SINE, t=1_000,
-         envelope=Envelope.PIANO):
+         envelope=Envelope.PIANO, **synth_kw):
     """Render a tone or chord and save it as a WAV file.
 
     Args:
@@ -2567,6 +2882,8 @@ def save(tone_or_chord, path, temperament="equal", synth=Synth.SINE, t=1_000,
         synth: Waveform type.
         t: Duration in milliseconds (default 1000).
         envelope: ADSR envelope preset (default ``Envelope.PIANO``).
+        **synth_kw: Extra keyword arguments forwarded to the synth wave
+            function.
 
     Example::
 
@@ -2576,7 +2893,7 @@ def save(tone_or_chord, path, temperament="equal", synth=Synth.SINE, t=1_000,
     import scipy.io.wavfile
 
     samples = _render(tone_or_chord, temperament=temperament, synth=synth,
-                      t=t, envelope=envelope)
+                      t=t, envelope=envelope, **synth_kw)
     normalized = samples.astype(numpy.float32) / SAMPLE_PEAK
     # Convert to 16-bit PCM
     pcm = (normalized * 32767).astype(numpy.int16)
@@ -5577,8 +5894,8 @@ def render_score(score):
             env_tuple = _resolve_envelope(part.envelope)
             # Use part swing if set, otherwise score swing
             effective_swing = part.swing if part.swing is not None else score.swing
-            # Build synth-specific kwargs (e.g. FM ratio/index)
-            synth_kwargs = {}
+            # Build synth-specific kwargs (e.g. FM ratio/index, tape, folds)
+            synth_kwargs = dict(getattr(part, 'synth_kw', None) or {})
             if part.synth in ("fm",):
                 synth_kwargs["mod_ratio"] = part.fm_ratio
                 synth_kwargs["mod_index"] = part.fm_index

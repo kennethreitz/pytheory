@@ -342,10 +342,108 @@ INSTRUMENTS = {
         "delay": 0.3, "delay_time": 0.4, "delay_feedback": 0.4,
     },
     "808_bass": {
-        "synth": "sine", "envelope": "pluck",
+        "synth": "sine", "envelope": "piano",
         "distortion": 0.4, "distortion_drive": 2.5,
         "lowpass": 200, "lowpass_q": 1.5,
         "sub_osc": 0.5, "saturation": 0.2,
+    },
+
+    # ── Mellotron ──
+    "mellotron": {
+        "synth": "mellotron_synth", "envelope": "organ",
+        "reverb": 0.3, "reverb_type": "plate",
+        "humanize": 0.2,
+    },
+    "mellotron_strings": {
+        "synth": "mellotron_synth", "envelope": "organ",
+        "reverb": 0.3, "reverb_type": "plate",
+        "humanize": 0.2,
+    },
+    "mellotron_flute": {
+        "synth": "mellotron_synth", "envelope": "organ",
+        "synth_kw": {"tape": "flute"},
+        "reverb": 0.35, "reverb_type": "hall",
+        "humanize": 0.2,
+    },
+    "mellotron_choir": {
+        "synth": "mellotron_synth", "envelope": "organ",
+        "synth_kw": {"tape": "choir"},
+        "reverb": 0.4, "reverb_type": "cathedral",
+        "humanize": 0.2,
+    },
+
+    # ── Analog oscillator presets ──
+    "sync_lead": {
+        "synth": "hard_sync", "envelope": "pluck",
+        "synth_kw": {"slave_ratio": 1.5},
+        "detune": 8, "lowpass": 4000,
+        "filter_attack": 0.01, "filter_decay": 0.25,
+        "filter_sustain": 0.3, "filter_amount": 3000,
+        "delay": 0.15, "delay_time": 0.2, "delay_feedback": 0.25,
+        "analog": 0.3,
+    },
+    "sync_lead_bright": {
+        "synth": "hard_sync", "envelope": "pluck",
+        "synth_kw": {"slave_ratio": 2.5},
+        "detune": 10, "lowpass": 6000,
+        "filter_attack": 0.005, "filter_decay": 0.2,
+        "filter_sustain": 0.1, "filter_amount": 4000,
+        "analog": 0.3,
+    },
+    "ring_mod_bell": {
+        "synth": "ring_mod", "envelope": "bell",
+        "synth_kw": {"mod_ratio": 2.1},
+        "reverb": 0.4, "reverb_type": "plate",
+    },
+    "ring_mod_metallic": {
+        "synth": "ring_mod", "envelope": "mallet",
+        "synth_kw": {"mod_ratio": 3.7},
+        "reverb": 0.3, "reverb_type": "hall",
+        "delay": 0.2, "delay_time": 0.3, "delay_feedback": 0.3,
+    },
+    "wavefold_warm": {
+        "synth": "wavefold", "envelope": "organ",
+        "synth_kw": {"folds": 2.0},
+        "lowpass": 3000, "lowpass_q": 1.2,
+        "analog": 0.3,
+    },
+    "wavefold_gnarly": {
+        "synth": "wavefold", "envelope": "pluck",
+        "synth_kw": {"folds": 5.0},
+        "lowpass": 2000, "lowpass_q": 2.5,
+        "filter_attack": 0.01, "filter_decay": 0.3,
+        "filter_sustain": 0.1, "filter_amount": 4000,
+        "distortion": 0.3, "distortion_drive": 2.0,
+        "analog": 0.3,
+    },
+    "drift_saw": {
+        "synth": "drift", "envelope": "organ",
+        "synth_kw": {"shape": "saw", "drift_amount": 0.15},
+        "detune": 10,
+        "analog": 0.4,
+    },
+    "drift_square": {
+        "synth": "drift", "envelope": "organ",
+        "synth_kw": {"shape": "square", "drift_amount": 0.15},
+        "detune": 10,
+        "analog": 0.4,
+    },
+    "analog_pad": {
+        "synth": "drift", "envelope": "pad",
+        "synth_kw": {"shape": "saw", "drift_amount": 0.12},
+        "detune": 12, "spread": 0.5,
+        "chorus": 0.2,
+        "lowpass": 2500, "lowpass_q": 1.0,
+        "analog": 0.5,
+    },
+    "analog_bass": {
+        "synth": "drift", "envelope": "pluck",
+        "synth_kw": {"shape": "saw", "drift_amount": 0.1},
+        "lowpass": 600, "lowpass_q": 2.0,
+        "filter_attack": 0.005, "filter_decay": 0.15,
+        "filter_sustain": 0.0, "filter_amount": 2000,
+        "sub_osc": 0.4,
+        "analog": 0.3,
     },
 
     # ── Percussion / Mallet ──
@@ -2854,7 +2952,8 @@ class Part:
                  analog: float = 0.0,
                  ensemble: int = 1,
                  fm_ratio: float = 2.0,
-                 fm_index: float = 3.0):
+                 fm_index: float = 3.0,
+                 synth_kw: dict = None):
         self.name = name
         self.synth = synth
         self.envelope = envelope
@@ -2902,6 +3001,7 @@ class Part:
         self.ensemble = ensemble
         self.fm_ratio = fm_ratio
         self.fm_index = fm_index
+        self.synth_kw = synth_kw or {}
         self._system = "western"  # default, overridden by Score.part()
         self._fretboard = None    # set by Score.part(fretboard=...)
         self.notes: list[Note] = []

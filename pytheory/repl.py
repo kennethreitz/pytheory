@@ -806,6 +806,12 @@ _INSTRUMENT_NAMES = [
     # Synth presets
     "synth_lead", "synth_pad", "synth_bass", "acid_bass",
     "granular_pad", "vocal", "choir", "granular_texture", "808_bass",
+    # Mellotron
+    "mellotron", "mellotron_strings", "mellotron_flute", "mellotron_choir",
+    # Analog
+    "sync_lead", "sync_lead_bright", "ring_mod_bell", "ring_mod_metallic",
+    "wavefold_warm", "wavefold_gnarly", "drift_saw", "drift_square",
+    "analog_pad", "analog_bass",
     # Percussion / Mallet
     "vibraphone", "marimba", "xylophone", "glockenspiel", "tubular_bells", "timpani",
     # Woodwinds (continued)

@@ -2,6 +2,32 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.40.9
+
+- **Mellotron synth** — tape-replay keyboard with wow/flutter, tape saturation,
+  bandwidth limiting, hiss, and 8-second tape fadeout. Three tape banks via the
+  `tape` parameter: `"strings"` (default), `"flute"`, and `"choir"`.
+- **Analog oscillator synths** — four new waveform generators for fat, alive,
+  analog-style sounds:
+  - `Synth.HARD_SYNC` — slave oscillator hard-synced to a master (Prophet-5
+    leads). `slave_ratio` parameter controls harmonic content.
+  - `Synth.RING_MOD` — two oscillators multiplied for metallic, bell-like
+    inharmonic tones. `mod_ratio` parameter.
+  - `Synth.WAVEFOLD` — west coast wavefolding (Buchla-style). `folds` parameter
+    sweeps from warm to gnarly.
+  - `Synth.DRIFT` — analog VCO with pitch drift, jitter, and noise floor.
+    `shape` parameter (`"saw"`, `"square"`, `"triangle"`, `"pulse"`) and
+    `drift_amount` for instability level.
+- **Synth kwargs passthrough** — `play()`, `save()`, and `_render()` now accept
+  `**synth_kw` for forwarding parameters to synth wave functions (e.g.
+  `play(tone, synth=Synth.MELLOTRON, tape="choir")`).
+- **14 new instrument presets** — `mellotron`, `mellotron_strings`,
+  `mellotron_flute`, `mellotron_choir`, `sync_lead`, `sync_lead_bright`,
+  `ring_mod_bell`, `ring_mod_metallic`, `wavefold_warm`, `wavefold_gnarly`,
+  `drift_saw`, `drift_square`, `analog_pad`, `analog_bass`.
+- **808 bass envelope fix** — changed from `pluck` (zero sustain, wrong for 808)
+  to `piano` (sharp attack with long decay tail).
+
 ## 0.40.8
 
 - **Fix hold() inflating duration** — `Note.beats` was returning the full

@@ -44,6 +44,22 @@ Optional parameters for synth, envelope, and temperament:
    play(Tone.from_string("C4"), synth=Synth.SAW, envelope=Envelope.PLUCK, t=1_000)
    play(Tone.from_string("C4"), temperament="pythagorean", t=1_000)
 
+Synth-specific parameters are passed through as keyword arguments:
+
+.. code-block:: python
+
+   # Mellotron with flute tape
+   play(Tone.from_string("C4"), synth=Synth.MELLOTRON, tape="choir", t=2_000)
+
+   # Hard sync with custom slave ratio
+   play(Tone.from_string("C4"), synth=Synth.HARD_SYNC, slave_ratio=2.5)
+
+   # Wavefolding with 4 folds
+   play(Tone.from_string("C4"), synth=Synth.WAVEFOLD, folds=4.0)
+
+   # Drift oscillator with square shape
+   play(Tone.from_string("C4"), synth=Synth.DRIFT, shape="square")
+
 play_score() -- Full Arrangements
 ---------------------------------
 

@@ -5333,7 +5333,7 @@ def test_supersaw_wave():
 @needs_portaudio
 def test_all_synths_in_enum():
     from pytheory.play import Synth
-    assert len(Synth) == 51
+    assert len(Synth) == 56
     for s in Synth:
         wave = s(440, n_samples=1000)
         assert len(wave) == 1000
@@ -6540,7 +6540,7 @@ def test_instrument_808_bass():
     assert p.lowpass == 200
     assert p.lowpass_q == 1.5
     assert p.synth == "sine"
-    assert p.envelope == "pluck"
+    assert p.envelope == "piano"
 
 
 # ── Non-12-TET / Microtonal systems ─────────────────────────────────────────
@@ -7155,7 +7155,7 @@ def test_score_system_propagates():
 
 def test_synth_enum_count():
     from pytheory.play import Synth
-    assert len(Synth) == 51
+    assert len(Synth) == 56
 
 
 def test_all_synths_render_and_enum_match():

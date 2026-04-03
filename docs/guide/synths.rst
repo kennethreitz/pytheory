@@ -1,7 +1,7 @@
 Synthesizers
 ============
 
-PyTheory includes 41 built-in waveforms and 10 ADSR envelope presets.
+PyTheory includes 56 built-in waveforms and 10 ADSR envelope presets.
 Every sound is generated from scratch -- no samples or external audio
 files needed.
 
@@ -249,6 +249,114 @@ produces a natural chorus/vibrato effect built into the waveform itself.
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_pwm_fast.wav" type="audio/wav"></audio>
 
+Analog Synthesis
+----------------
+
+These waveforms model the behavior of real analog hardware — the
+imperfections, interactions, and nonlinearities that make a room full
+of vintage synths sound so much more alive than a room full of VSTs.
+Each one is a different approach to the same question: how do you make
+a digital oscillator sound like it has a soul?
+
+Hard Sync
+~~~~~~~~~
+
+A "slave" oscillator is forced to restart its cycle every time a
+"master" oscillator completes one. The abrupt restart creates bright
+formant peaks that sweep as the slave ratio changes. This is THE sound
+of the Prophet-5, Moog Prodigy, and every screaming analog lead since
+1978.
+
+**Use for:** aggressive leads, formant sweeps, cutting solos.
+
+.. code-block:: python
+
+   lead = score.part("lead", synth="hard_sync", envelope="pluck")
+
+   # Higher slave ratio = more harmonics, brighter
+   from pytheory import play, Synth, Tone
+   play(Tone.from_string("C4"), synth=Synth.HARD_SYNC, slave_ratio=2.5)
+
+Ring Modulation
+~~~~~~~~~~~~~~~
+
+Two oscillators multiplied together, producing sum and difference
+frequencies. Unlike FM, ring mod outputs only sidebands — no carrier
+or modulator fundamental. The result is metallic, bell-like, and often
+inharmonic. Classic Dalek voice, Stockhausen, and every sci-fi
+soundtrack.
+
+**Use for:** metallic bells, alien textures, inharmonic percussion.
+
+.. code-block:: python
+
+   bells = score.part("bells", instrument="ring_mod_bell",
+                      reverb=0.5, reverb_type="cave")
+
+   # Non-integer ratios = more inharmonic
+   play(Tone.from_string("C4"), synth=Synth.RING_MOD, mod_ratio=2.1)
+
+Wavefolding
+~~~~~~~~~~~
+
+The heart of west coast synthesis (Buchla, Make Noise, Verbos). A sine
+wave is amplified past ±1.0, then "folded" — the overflow bounces back
+instead of clipping. Each fold adds new harmonic pairs. At low fold
+counts it's warm and round; crank it up and it gets buzzy, gnarly, and
+alive.
+
+This sounds completely different from subtractive synthesis — instead of
+*removing* harmonics with a filter, you're *generating* them by shaping
+the wave. Pairs beautifully with a lowpass filter after the fold.
+
+**Use for:** complex leads, evolving textures, west coast basslines.
+
+.. code-block:: python
+
+   # Warm, musical folding
+   warm = score.part("fold", instrument="wavefold_warm")
+
+   # Cranked and aggressive
+   gnarly = score.part("gnarly", instrument="wavefold_gnarly")
+
+   # Direct control over fold amount
+   play(Tone.from_string("C4"), synth=Synth.WAVEFOLD, folds=3.0)
+
+Drift Oscillator
+~~~~~~~~~~~~~~~~
+
+Real analog oscillators are never perfectly stable. Capacitor charging,
+thermal variations, and component tolerances make the pitch wander
+slightly. This is what makes a Minimoog sound "fat" and a VST sound
+"thin" — the constant micro-motion of imperfect hardware.
+
+The drift oscillator models slow pitch drift (< 1 Hz wander), fast
+jitter (per-cycle randomness), a soft analog noise floor, and slightly
+rounded waveform edges. It turns any basic shape into something that
+breathes.
+
+**Use for:** analog-style pads, warm basses, vintage leads, any voice
+that needs to feel "alive."
+
+.. code-block:: python
+
+   # Vintage Minimoog-style saw
+   pad = score.part("pad", instrument="drift_saw",
+                    reverb=0.35, reverb_type="taj_mahal")
+
+   # Hollow square with analog wobble
+   sq = score.part("sq", instrument="drift_square")
+
+   # Control the shape and instability directly
+   play(Tone.from_string("C4"), synth=Synth.DRIFT,
+        shape="triangle", drift_amount=0.25)
+
+Drift amount controls how unstable the oscillator is:
+
+- **0.05** = studio-grade (Sequential, Oberheim)
+- **0.15** = classic vintage (Minimoog, ARP) — the default
+- **0.30** = barely-holding-it-together (old SH-101)
+
 ADSR Envelopes
 --------------
 
@@ -440,11 +548,11 @@ Dedicated Instrument Synths
 --------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
-31 dedicated instrument synths. Each one uses tailored synthesis
+36 dedicated instrument synths. Each one uses tailored synthesis
 techniques -- additive harmonics, formant shaping, body resonance
 modeling, and specialized envelopes -- to capture the character of a
 specific acoustic instrument. These are the waveforms that bring the
-total count to 41.
+total count to 56.
 
 Piano Synth
 ~~~~~~~~~~~
@@ -494,6 +602,38 @@ picked up by an electrostatic pickup. More nasal, reedy, and biting
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_wurlitzer.wav" type="audio/wav"></audio>
+
+Mellotron
+~~~~~~~~~
+
+The original "sampler" — a 1960s keyboard where each key triggers a
+strip of magnetic tape with a pre-recorded instrument. The mechanical
+tape transport gives it a haunted, lo-fi quality that no digital
+emulation fully captures: pitch wobbles from uneven capstan speed,
+bandwidth limited to 300 Hz–6 kHz (like a worn cassette), soft tape
+saturation, and tapes that physically run out after 8 seconds.
+
+The Mellotron defined the sound of *Strawberry Fields Forever*,
+*Stairway to Heaven*, and every prog rock record from 1969–1977.
+
+Three tape banks are available via the ``tape`` parameter:
+
+- ``"strings"`` (default) — the iconic MkII string section
+- ``"flute"`` — breathy, haunting solo flute
+- ``"choir"`` — ghostly vocal pad
+
+**Use for:** prog rock, haunted textures, vintage orchestral color.
+
+.. code-block:: python
+
+   # Use instrument presets (includes reverb)
+   strings = score.part("strings", instrument="mellotron_strings")
+   flute = score.part("flute", instrument="mellotron_flute")
+   choir = score.part("choir", instrument="mellotron_choir")
+
+   # Or select the tape directly
+   from pytheory import play, Synth, Tone
+   play(Tone.from_string("C4"), synth=Synth.MELLOTRON, tape="choir", t=3000)
 
 Vibraphone Synth
 ~~~~~~~~~~~~~~~~
@@ -1127,6 +1267,12 @@ bagpipe, singing_bowl, singing_bowl_ring, tingsha
 **Synth**: synth_lead, synth_pad, synth_bass, acid_bass, 808_bass,
 granular_pad, granular_texture, vocal, choir
 
+**Mellotron**: mellotron, mellotron_strings, mellotron_flute, mellotron_choir
+
+**Analog**: sync_lead, sync_lead_bright, ring_mod_bell, ring_mod_metallic,
+wavefold_warm, wavefold_gnarly, drift_saw, drift_square, analog_pad,
+analog_bass
+
 **Percussion**: vibraphone, marimba, xylophone, glockenspiel, tubular_bells,
 timpani, crotales
 
@@ -1169,3 +1315,11 @@ Some practical combos worth memorizing:
   long reverb and you're scoring a nature documentary.
 - ``saw`` + ``pluck`` = **funk stab.** Short, sharp, bright. The
   sound of Nile Rodgers' right hand.
+- ``hard_sync`` + ``pluck`` = **prophet lead.** Bright formant peak
+  that cuts through any mix. The opening riff of every 80s synth solo.
+- ``wavefold`` + ``organ`` = **west coast bass.** Warm, harmonically
+  rich sine-derivative that pairs beautifully with a lowpass after.
+- ``drift`` + ``pad`` = **analog pad.** A sawtooth that breathes and
+  wobbles like a real VCO. Add chorus and reverb for Juno vibes.
+- ``mellotron_synth`` + ``organ`` = **prog strings.** Haunted tape
+  machine. Add cathedral reverb and you're in 1972.
