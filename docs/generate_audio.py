@@ -850,6 +850,56 @@ def gen_synth_ukulele():
         p.strum(ch, Duration.WHOLE, velocity=72)
     render("synth_ukulele", score)
 
+def gen_synth_hard_sync():
+    score = Score("4/4", bpm=120)
+    p = score.part("demo", instrument="sync_lead_bright", volume=0.5)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=90)
+    render("synth_hard_sync", score)
+
+
+def gen_synth_ring_mod():
+    score = Score("4/4", bpm=90)
+    p = score.part("demo", instrument="ring_mod_bell", volume=0.5)
+    for n in ["C5", "E5", "G5", "C6", "G5", "E5", "C5", "E5"]:
+        p.add(n, Duration.QUARTER, velocity=80)
+    render("synth_ring_mod", score)
+
+
+def gen_synth_wavefold():
+    score = Score("4/4", bpm=110)
+    p = score.part("demo", instrument="wavefold_warm", volume=0.5)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_wavefold", score)
+
+
+def gen_synth_drift():
+    score = Score("4/4", bpm=90)
+    p = score.part("demo", instrument="drift_saw", volume=0.5, reverb=0.35,
+                   reverb_type="taj_mahal")
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.HALF, velocity=75)
+    render("synth_drift", score)
+
+
+def gen_synth_karplus():
+    score = Score("4/4", bpm=100)
+    p = score.part("demo", synth="pluck_synth", envelope="none",
+                   volume=0.5, reverb=0.2)
+    for n in ["C4", "E4", "G4", "C5", "G4", "E4", "C4", "E4"]:
+        p.add(n, Duration.QUARTER, velocity=85)
+    render("synth_karplus", score)
+
+
+def gen_synth_mellotron():
+    score = Score("4/4", bpm=80)
+    p = score.part("demo", instrument="mellotron_flute", volume=0.5)
+    for n in ["C4", "E4", "G4", "C5"]:
+        p.add(n, Duration.WHOLE, velocity=75)
+    render("synth_mellotron", score)
+
+
 def gen_synth_granular():
     score = Score("4/4", bpm=80)
     p = score.part("demo", instrument="granular_pad", volume=0.5, reverb=0.4)
@@ -1139,6 +1189,12 @@ GENERATORS = [
     gen_synth_banjo,
     gen_synth_mandolin,
     gen_synth_ukulele,
+    gen_synth_hard_sync,
+    gen_synth_ring_mod,
+    gen_synth_wavefold,
+    gen_synth_drift,
+    gen_synth_karplus,
+    gen_synth_mellotron,
     gen_synth_granular,
     gen_synth_crotales,
     gen_synth_tingsha,

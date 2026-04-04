@@ -277,6 +277,10 @@ of the Prophet-5, Moog Prodigy, and every screaming analog lead since
    from pytheory import play, Synth, Tone
    play(Tone.from_string("C4"), synth=Synth.HARD_SYNC, slave_ratio=2.5)
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_hard_sync.wav" type="audio/wav"></audio>
+
 Ring Modulation
 ~~~~~~~~~~~~~~~
 
@@ -295,6 +299,10 @@ soundtrack.
 
    # Non-integer ratios = more inharmonic
    play(Tone.from_string("C4"), synth=Synth.RING_MOD, mod_ratio=2.1)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_ring_mod.wav" type="audio/wav"></audio>
 
 Wavefolding
 ~~~~~~~~~~~
@@ -321,6 +329,10 @@ the wave. Pairs beautifully with a lowpass filter after the fold.
 
    # Direct control over fold amount
    play(Tone.from_string("C4"), synth=Synth.WAVEFOLD, folds=3.0)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_wavefold.wav" type="audio/wav"></audio>
 
 Drift Oscillator
 ~~~~~~~~~~~~~~~~
@@ -350,6 +362,10 @@ that needs to feel "alive."
    # Control the shape and instability directly
    play(Tone.from_string("C4"), synth=Synth.DRIFT,
         shape="triangle", drift_amount=0.25)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_drift.wav" type="audio/wav"></audio>
 
 Drift amount controls how unstable the oscillator is:
 
@@ -514,6 +530,10 @@ It sounds genuinely like a real guitar, harp, or koto.
    guitar = score.part("guitar", synth="pluck_synth")
    harp = score.part("harp", instrument="harp")  # uses pluck_synth
 
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_karplus.wav" type="audio/wav"></audio>
+
 Hammond Organ
 ~~~~~~~~~~~~~
 
@@ -633,7 +653,11 @@ Three tape banks are available via the ``tape`` parameter:
 
    # Or select the tape directly
    from pytheory import play, Synth, Tone
-   play(Tone.from_string("C4"), synth=Synth.MELLOTRON, tape="choir", t=3000)
+   play(Tone.from_string("C4"), synth=Synth.MELLOTRON, tape="flute", t=3000)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_mellotron.wav" type="audio/wav"></audio>
 
 Vibraphone Synth
 ~~~~~~~~~~~~~~~~
