@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.42.1
+
+- **Fretboard tuning support** — `to_tab()` now accepts `Fretboard` objects as
+  the `tuning` parameter. Works with `Fretboard.guitar()`, `Fretboard.bass()`,
+  `Fretboard.ukulele()`, `Fretboard.mandolin()`, `Fretboard.banjo()`, and any
+  custom Fretboard with capo.
+
 ## 0.42.0
 
 - **LilyPond export** — `Score.to_lilypond()` generates complete LilyPond source

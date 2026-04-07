@@ -3814,8 +3814,8 @@ class Part:
 
         Args:
             tuning: ``"guitar"`` (6-string standard), ``"bass"`` (4-string),
-                ``"drop_d"`` (guitar drop D), or a list of MIDI note numbers
-                for custom tuning (low string first).
+                ``"drop_d"`` (guitar drop D), a ``Fretboard`` object, or a
+                list of MIDI note numbers for custom tuning (low string first).
             frets: Maximum fret number (default 24).
             time_signature: A ``TimeSignature`` or ``None`` for 4/4.
 
@@ -3825,6 +3825,11 @@ class Part:
         if isinstance(tuning, str):
             open_midis = list(self._TAB_TUNINGS[tuning])
             labels = list(self._TAB_LABELS[tuning])
+        elif hasattr(tuning, "tones"):
+            # Fretboard object — tones are high-to-low, reverse for low-to-high
+            fb_tones = list(reversed(tuning.tones))
+            open_midis = [t.midi for t in fb_tones]
+            labels = [t.name if len(t.name) <= 2 else t.name[0] for t in fb_tones]
         else:
             open_midis = list(tuning)
             _note_names = ["C", "C#", "D", "D#", "E", "F",
