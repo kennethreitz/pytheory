@@ -3,19 +3,21 @@ Playback and Export
 
 This is the output layer. You've built your theory, composed your
 arrangement, shaped your sounds -- now you need to hear it. PyTheory
-gives you three ways to get your music out: speakers, WAV files, and
-MIDI files.
+gives you four ways to get your music out: speakers, WAV files, MIDI
+files, and sheet music.
 
 Use **speakers** for immediate feedback while you're sketching and
 experimenting. Use **WAV export** when you want to share actual audio
 -- post it, send it, drop it into a video. Use **MIDI export** when you
 want to bring your sketch into a real DAW and finish it with
-professional instruments, mixing, and mastering. Each output serves a
-different stage of the creative process.
+professional instruments, mixing, and mastering. Use **ABC notation
+export** when you want sheet music -- rendered in the browser or shared
+as plain text. Each output serves a different stage of the creative
+process.
 
-PyTheory can play audio through your speakers, save to WAV, or export
-to MIDI. Everything is synthesized from waveforms -- no samples or
-external audio files needed.
+PyTheory can play audio through your speakers, save to WAV, export to
+MIDI, or generate sheet music as ABC notation. Everything is synthesized
+from waveforms -- no samples or external audio files needed.
 
 .. note::
 
@@ -170,6 +172,69 @@ Score-based export (with time signature, tempo, and parts):
    for chord in Key("G", "major").progression("I", "IV", "V", "I"):
        score.add(chord, Duration.WHOLE)
    score.save_midi("progression.mid")
+
+to_abc() -- ABC Notation / Sheet Music
+---------------------------------------
+
+ABC notation is a human-readable text format for music that tools can
+turn into staff notation and MIDI. It's widely used for folk tunes,
+lead sheets, and quick sketches. PyTheory can export any Score as ABC
+notation -- and optionally wrap it in an HTML page that renders
+sheet music right in the browser using `abcjs <https://www.abcjs.net/>`_.
+
+Basic export:
+
+.. code-block:: python
+
+   from pytheory import Score, Duration, Key
+
+   score = Score("4/4", bpm=120)
+   lead = score.part("lead")
+   for chord in Key("C", "major").progression("I", "V", "vi", "IV"):
+       lead.add(chord, Duration.WHOLE)
+
+   print(score.to_abc(title="Pop Chords", key="C"))
+
+Output:
+
+.. code-block:: text
+
+   X:1
+   T:Pop Chords
+   M:4/4
+   Q:1/4=120
+   L:1/8
+   K:C
+   [CEG]8 | [GBd]8 | [Ace]8 | [FAc]8 |
+
+Open sheet music in the browser with ``html=True``:
+
+.. code-block:: python
+
+   html = score.to_abc(title="Pop Chords", key="C", html=True)
+
+   with open("chords.html", "w") as f:
+       f.write(html)
+
+   import webbrowser
+   webbrowser.open("chords.html")
+
+This generates a self-contained HTML page with an embedded
+``<script>`` tag that loads abcjs from a CDN and renders the notation
+as SVG -- no build steps, no dependencies, just open the file.
+
+Multi-part scores automatically get ``V:`` (voice) directives so each
+instrument appears on its own staff. Bass parts (average note below C4)
+get bass clef automatically. Drum-only parts are skipped. Notes longer
+than one measure are split into tied notes across barlines.
+
+Parameters:
+
+- **title** -- Tune title for the ``T:`` header (default ``"Untitled"``).
+- **key** -- ABC key signature string (default ``"C"``). Use ``"Am"`` for
+  A minor, ``"Bb"`` for B-flat major, ``"F#m"`` for F-sharp minor, etc.
+- **html** -- If ``True``, return a full HTML document instead of raw ABC
+  (default ``False``).
 
 play_pattern() -- Drum Patterns
 -------------------------------
