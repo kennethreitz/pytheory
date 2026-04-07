@@ -4369,6 +4369,157 @@ class Score:
             f"{part_info} {self.measures:.1f} measures>"
         )
 
+    # ── ABC notation export ────────────────────────────────────────────
+
+    def to_abc(self, *, title="Untitled", key="C", html=False):
+        """Export the score as ABC notation.
+
+        Args:
+            title: Tune title for the ``T:`` field.
+            key: Key signature (e.g. ``"C"``, ``"Gm"``, ``"D"``) for the
+                ``K:`` field.
+            html: If *True*, wrap the ABC string in a self-contained HTML
+                page that renders sheet music via abcjs.
+
+        Returns:
+            An ABC notation string, or a full HTML document string when
+            *html* is True.
+        """
+        ts = self.time_signature
+        default_unit = 8  # L:1/8
+
+        lines = [
+            "X:1",
+            f"T:{title}",
+            f"M:{ts.beats}/{ts.unit}",
+            f"Q:1/4={self.bpm}",
+            f"L:1/{default_unit}",
+        ]
+
+        # Collect voices: default notes first, then named parts (skip drums)
+        voices: list[tuple[str, list]] = []
+        if self.notes:
+            voices.append(("default", self.notes))
+        for name, part in self.parts.items():
+            if part.is_drums:
+                continue
+            if part.notes:
+                voices.append((name, part.notes))
+
+        multi = len(voices) > 1
+
+        if multi:
+            for i, (vname, _) in enumerate(voices, 1):
+                lines.append(f"V:{i} name=\"{vname}\"")
+            lines.append(f"K:{key}")
+            for i, (_, notes) in enumerate(voices, 1):
+                lines.append(f"V:{i}")
+                lines.append(self._notes_to_abc(notes, default_unit, ts))
+        else:
+            lines.append(f"K:{key}")
+            if voices:
+                lines.append(self._notes_to_abc(voices[0][1], default_unit, ts))
+
+        abc = "\n".join(lines) + "\n"
+
+        if not html:
+            return abc
+
+        return (
+            "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">\n"
+            "<title>" + title + "</title>\n"
+            "<script src=\"https://cdn.jsdelivr.net/npm/abcjs@6/dist"
+            "/abcjs-basic-min.js\"></script>\n"
+            "</head><body>\n<div id=\"score\"></div>\n<script>\n"
+            "ABCJS.renderAbc(\"score\", "
+            + repr(abc)
+            + ");\n</script>\n</body></html>\n"
+        )
+
+    @staticmethod
+    def _tone_to_abc(tone, default_unit):
+        """Convert a single Tone to an ABC note string."""
+        if tone is None:
+            return "z"
+
+        name = tone.name          # e.g. "C", "C#", "Bb"
+        octave = tone.octave if tone.octave is not None else 4
+
+        # ABC accidentals: ^ = sharp, _ = flat, ^^ = double sharp, __ = double flat
+        letter = name[0].upper()
+        acc = name[1:] if len(name) > 1 else ""
+        abc_acc = acc.replace("##", "^^").replace("#", "^").replace("bb", "__").replace("b", "_")
+
+        # ABC octave: C-B = octave 4, c-b = octave 5,
+        # c' = 6, c'' = 7, C, = 3, C,, = 2
+        if octave >= 5:
+            note_char = letter.lower()
+            ticks = octave - 5
+            oct_str = "'" * ticks
+        else:
+            note_char = letter.upper()
+            commas = 4 - octave
+            oct_str = "," * commas
+
+        return f"{abc_acc}{note_char}{oct_str}"
+
+    def _notes_to_abc(self, notes, default_unit, ts):
+        """Convert a list of Note objects to an ABC body string."""
+        beats_per_measure = ts.beats_per_measure
+        parts = []
+        beat_in_measure = 0.0
+
+        for note in notes:
+            beats = note.duration.value
+
+            # ABC length multiplier relative to L:1/default_unit
+            # L:1/8 means 1 unit = 0.5 beats (an eighth note)
+            unit_beats = 4.0 / default_unit  # beats per L unit
+            multiplier = beats / unit_beats
+
+            if note.tone is None:
+                abc_note = "z"
+            elif hasattr(note.tone, "tones"):
+                # Chord: [CEG]
+                chord_notes = [
+                    self._tone_to_abc(t, default_unit)
+                    for t in note.tone.tones
+                ]
+                abc_note = "[" + "".join(chord_notes) + "]"
+            else:
+                abc_note = self._tone_to_abc(note.tone, default_unit)
+
+            # Format duration multiplier
+            if multiplier == 1:
+                dur_str = ""
+            elif multiplier == int(multiplier):
+                dur_str = str(int(multiplier))
+            elif multiplier == 0.5:
+                dur_str = "/2"
+            elif multiplier == 0.25:
+                dur_str = "/4"
+            elif multiplier == 1.5:
+                dur_str = "3/2"
+            else:
+                # General fraction
+                from fractions import Fraction
+                frac = Fraction(multiplier).limit_denominator(16)
+                dur_str = f"{frac.numerator}/{frac.denominator}"
+
+            parts.append(f"{abc_note}{dur_str}")
+
+            beat_in_measure += beats
+            if beat_in_measure >= beats_per_measure - 0.001:
+                parts.append("|")
+                beat_in_measure -= beats_per_measure
+
+        body = " ".join(parts)
+        # Clean up trailing/double barlines
+        body = body.replace("| |", "|").rstrip("| ").rstrip()
+        if not body.endswith("|"):
+            body += " |"
+        return body
+
     def save_midi(self, path, velocity=100):
         """Export to Standard MIDI File, measure-aware."""
         ticks_per_beat = 480
