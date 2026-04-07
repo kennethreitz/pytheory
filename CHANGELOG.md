@@ -2,6 +2,10 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.41.1
+
+- **Fix** — `to_abc()` no longer crashes on parts containing drum tones.
+
 ## 0.41.0
 
 - **ABC notation export** — `Score.to_abc()` converts scores to ABC notation

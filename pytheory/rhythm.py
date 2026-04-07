@@ -4442,6 +4442,10 @@ class Score:
         if tone is None:
             return "z"
 
+        # Skip drum tones — they don't have pitched names
+        if not hasattr(tone, "name") or not hasattr(tone, "octave"):
+            return "z"
+
         name = tone.name          # e.g. "C", "C#", "Bb"
         octave = tone.octave if tone.octave is not None else 4
 
