@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.41.4
+
+- **Fix** — `to_abc()` now ties long notes across barlines instead of emitting
+  oversized durations that abcjs can't render (e.g. 16-beat notes become four
+  tied whole notes).
+
 ## 0.41.3
 
 - **Fix** — `to_abc()` now skips parts with only drum tones or rests (no pitched

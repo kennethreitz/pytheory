@@ -4499,6 +4499,24 @@ class Score:
 
         return f"{abc_acc}{note_char}{oct_str}"
 
+    @staticmethod
+    def _format_dur(multiplier):
+        """Format an ABC duration multiplier string."""
+        if abs(multiplier - 1) < 0.001:
+            return ""
+        elif abs(multiplier - int(multiplier)) < 0.001:
+            return str(int(multiplier))
+        elif abs(multiplier - 0.5) < 0.001:
+            return "/2"
+        elif abs(multiplier - 0.25) < 0.001:
+            return "/4"
+        elif abs(multiplier - 1.5) < 0.001:
+            return "3/2"
+        else:
+            from fractions import Fraction
+            frac = Fraction(multiplier).limit_denominator(16)
+            return f"{frac.numerator}/{frac.denominator}"
+
     def _notes_to_abc(self, notes, default_unit, ts,
                       bars_per_line=4):
         """Convert a list of Note objects to an ABC body string."""
@@ -4508,17 +4526,12 @@ class Score:
         measure_count = 0
 
         for note in notes:
-            beats = note.duration.value
-
-            # ABC length multiplier relative to L:1/default_unit
-            # L:1/8 means 1 unit = 0.5 beats (an eighth note)
+            total_beats = note.duration.value
             unit_beats = 4.0 / default_unit  # beats per L unit
-            multiplier = beats / unit_beats
 
             if note.tone is None:
                 abc_note = "z"
             elif hasattr(note.tone, "tones"):
-                # Chord: [CEG]
                 chord_notes = [
                     self._tone_to_abc(t, default_unit)
                     for t in note.tone.tones
@@ -4527,33 +4540,32 @@ class Score:
             else:
                 abc_note = self._tone_to_abc(note.tone, default_unit)
 
-            # Format duration multiplier
-            if multiplier == 1:
-                dur_str = ""
-            elif multiplier == int(multiplier):
-                dur_str = str(int(multiplier))
-            elif multiplier == 0.5:
-                dur_str = "/2"
-            elif multiplier == 0.25:
-                dur_str = "/4"
-            elif multiplier == 1.5:
-                dur_str = "3/2"
-            else:
-                # General fraction
-                from fractions import Fraction
-                frac = Fraction(multiplier).limit_denominator(16)
-                dur_str = f"{frac.numerator}/{frac.denominator}"
+            # Split notes longer than one measure into tied pieces
+            remaining = total_beats
+            first_chunk = True
+            while remaining > 0.001:
+                # How much room left in this measure?
+                room = beats_per_measure - beat_in_measure
+                chunk = min(remaining, room) if remaining > room + 0.001 else remaining
+                needs_tie = remaining - chunk > 0.001
 
-            tokens.append(f"{abc_note}{dur_str}")
+                multiplier = chunk / unit_beats
+                dur_str = self._format_dur(multiplier)
 
-            beat_in_measure += beats
-            if beat_in_measure >= beats_per_measure - 0.001:
-                measure_count += 1
-                if measure_count % bars_per_line == 0:
-                    tokens.append("|\n")
-                else:
-                    tokens.append("|")
-                beat_in_measure -= beats_per_measure
+                tie_str = "-" if needs_tie and abc_note != "z" else ""
+                tokens.append(f"{abc_note}{dur_str}{tie_str}")
+
+                remaining -= chunk
+                beat_in_measure += chunk
+                first_chunk = False
+
+                if beat_in_measure >= beats_per_measure - 0.001:
+                    measure_count += 1
+                    if measure_count % bars_per_line == 0:
+                        tokens.append("|\n")
+                    else:
+                        tokens.append("|")
+                    beat_in_measure -= beats_per_measure
 
         body = " ".join(tokens)
         # Clean up trailing/double barlines
