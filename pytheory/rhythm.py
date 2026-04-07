@@ -3796,6 +3796,122 @@ class Part:
             return max(note_beats, drum_beats)
         return note_beats
 
+    # ── ASCII tablature export ──────────────────────────────────────────
+
+    _TAB_TUNINGS = {
+        "guitar": [40, 45, 50, 55, 59, 64],
+        "bass": [28, 33, 38, 43],
+        "drop_d": [38, 45, 50, 55, 59, 64],
+    }
+    _TAB_LABELS = {
+        "guitar": ["E", "A", "D", "G", "B", "e"],
+        "bass": ["E", "A", "D", "G"],
+        "drop_d": ["D", "A", "D", "G", "B", "e"],
+    }
+
+    def to_tab(self, *, tuning="guitar", frets=24, time_signature=None):
+        """Generate ASCII guitar/bass tablature from this part's notes.
+
+        Args:
+            tuning: ``"guitar"`` (6-string standard), ``"bass"`` (4-string),
+                ``"drop_d"`` (guitar drop D), or a list of MIDI note numbers
+                for custom tuning (low string first).
+            frets: Maximum fret number (default 24).
+            time_signature: A ``TimeSignature`` or ``None`` for 4/4.
+
+        Returns:
+            A multi-line ASCII tablature string.
+        """
+        if isinstance(tuning, str):
+            open_midis = list(self._TAB_TUNINGS[tuning])
+            labels = list(self._TAB_LABELS[tuning])
+        else:
+            open_midis = list(tuning)
+            _note_names = ["C", "C#", "D", "D#", "E", "F",
+                           "F#", "G", "G#", "A", "A#", "B"]
+            labels = [_note_names[m % 12] for m in open_midis]
+
+        n_strings = len(open_midis)
+        beats_per_measure = 4.0
+        if time_signature is not None:
+            beats_per_measure = time_signature.beats_per_measure
+
+        # Build columns: each column is a list[str] of length n_strings
+        columns: list[list[str]] = []
+        beat_acc = 0.0
+
+        for note in self.notes:
+            dur_beats = note.duration.value
+            # Insert barline if we've crossed a measure boundary
+            while beat_acc >= beats_per_measure - 0.001:
+                columns.append(["|"] * n_strings)
+                beat_acc -= beats_per_measure
+
+            col = ["---"] * n_strings
+
+            tone = note.tone
+            if tone is None or isinstance(tone, _DrumTone):
+                pass
+            elif hasattr(tone, "tones"):
+                # Chord — assign each chord tone to a different string
+                used: set[int] = set()
+                for ct in tone.tones:
+                    midi_val = getattr(ct, "midi", None)
+                    if midi_val is None:
+                        continue
+                    best_s, best_f = self._find_best_string(
+                        midi_val, open_midis, frets, used)
+                    if best_s is not None:
+                        fret_str = str(best_f)
+                        col[best_s] = fret_str.center(3, "-")
+                        used.add(best_s)
+            else:
+                midi_val = getattr(tone, "midi", None)
+                if midi_val is not None:
+                    best_s, best_f = self._find_best_string(
+                        midi_val, open_midis, frets, set())
+                    if best_s is not None:
+                        fret_str = str(best_f)
+                        col[best_s] = fret_str.center(3, "-")
+
+            columns.append(col)
+            if not note._hold:
+                beat_acc += dur_beats
+
+        # Trailing barline
+        if columns and columns[-1] != ["|"] * n_strings:
+            while beat_acc >= beats_per_measure - 0.001:
+                columns.append(["|"] * n_strings)
+                beat_acc -= beats_per_measure
+            columns.append(["|"] * n_strings)
+
+        # Build output lines (highest-pitched string first in display)
+        lines: list[str] = []
+        for s_idx in range(n_strings - 1, -1, -1):
+            label = labels[s_idx]
+            parts_str = "".join(c[s_idx] for c in columns)
+            lines.append(f"{label}|{parts_str}")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _find_best_string(midi_val, open_midis, max_fret, used):
+        """Find the best string/fret for a MIDI note.
+
+        Returns (string_index, fret) or (None, None) if unplayable.
+        """
+        best_s = None
+        best_f = None
+        for s_idx, open_m in enumerate(open_midis):
+            if s_idx in used:
+                continue
+            f = midi_val - open_m
+            if 0 <= f <= max_fret:
+                if best_f is None or f < best_f:
+                    best_s = s_idx
+                    best_f = f
+        return best_s, best_f
+
     def __len__(self):
         return len(self.notes) + len(self._drum_hits)
 
@@ -4573,6 +4689,494 @@ class Score:
         if not body.endswith("|"):
             body += " |"
         return body
+
+    # ── LilyPond notation export ─────────────────────────────────────
+
+    def to_lilypond(self, *, title="Untitled", key="C", mode="major"):
+        """Export the score as a LilyPond source string.
+
+        Args:
+            title: Title for the ``\\header`` block.
+            key: Key signature root (e.g. ``"C"``, ``"D"``, ``"Bb"``).
+            mode: LilyPond mode string (``"major"``, ``"minor"``, etc.).
+
+        Returns:
+            A complete LilyPond source string.
+        """
+        ts = self.time_signature
+
+        # Collect voices (same filter as to_abc)
+        voices: list[tuple[str, list]] = []
+        if self.notes:
+            voices.append(("default", self.notes))
+        for name, part in self.parts.items():
+            if part.is_drums:
+                continue
+            if not part.notes:
+                continue
+            has_pitched = any(
+                n.tone is not None
+                and (hasattr(n.tone, "name") or hasattr(n.tone, "tones"))
+                for n in part.notes
+            )
+            if not has_pitched:
+                continue
+            voices.append((name, part.notes))
+
+        ly_key = self._tone_name_to_lilypond(key)
+
+        staves = []
+        for vname, notes in voices:
+            clef = self._guess_clef(notes)
+            body = self._notes_to_lilypond(notes, ts)
+            staff = (
+                f'  \\new Staff \\with {{ instrumentName = "{vname}" }} {{\n'
+                f"    \\clef {clef}\n"
+                f"    \\key {ly_key} \\{mode}\n"
+                f"    \\time {ts.beats}/{ts.unit}\n"
+                f"    \\tempo 4 = {self.bpm}\n"
+                f"    {body}\n"
+                f"  }}"
+            )
+            staves.append(staff)
+
+        staves_block = "\n".join(staves)
+
+        return (
+            f'\\version "2.24.0"\n'
+            f"\\header {{\n"
+            f'  title = "{title}"\n'
+            f"}}\n\n"
+            f"\\score {{\n"
+            f"  \\new StaffGroup <<\n"
+            f"{staves_block}\n"
+            f"  >>\n"
+            f"  \\layout {{ }}\n"
+            f"}}\n"
+        )
+
+    @staticmethod
+    def _tone_name_to_lilypond(name):
+        """Convert a note name like 'C#', 'Bb', 'F' to LilyPond pitch."""
+        if not name:
+            return "c"
+        letter = name[0].lower()
+        acc = name[1:] if len(name) > 1 else ""
+        ly_acc = (
+            acc.replace("##", "isis")
+            .replace("#", "is")
+            .replace("bb", "eses")
+            .replace("b", "es")
+        )
+        return f"{letter}{ly_acc}"
+
+    @staticmethod
+    def _tone_to_lilypond(tone):
+        """Convert a single Tone to a LilyPond pitch string (no duration)."""
+        if tone is None:
+            return None
+        if not hasattr(tone, "name") or not hasattr(tone, "octave"):
+            return None
+
+        name = tone.name
+        octave = tone.octave if tone.octave is not None else 4
+
+        letter = name[0].lower()
+        acc = name[1:] if len(name) > 1 else ""
+        ly_acc = (
+            acc.replace("##", "isis")
+            .replace("#", "is")
+            .replace("bb", "eses")
+            .replace("b", "es")
+        )
+
+        # LilyPond: c = C3, c' = C4, c'' = C5, c, = C2, c,, = C1
+        if octave >= 4:
+            oct_str = "'" * (octave - 3)
+        else:
+            oct_str = "," * (3 - octave)
+
+        return f"{letter}{ly_acc}{oct_str}"
+
+    @staticmethod
+    def _beats_to_lilypond_dur(beats):
+        """Convert a beat count to a LilyPond duration string."""
+        _MAP = {
+            4.0: "1",
+            2.0: "2",
+            1.0: "4",
+            0.5: "8",
+            0.25: "16",
+            3.0: "2.",
+            1.5: "4.",
+        }
+        for ref, ly in _MAP.items():
+            if abs(beats - ref) < 0.001:
+                return ly
+        if abs(beats - 2 / 3) < 0.05:
+            return "4"
+        closest = min(_MAP, key=lambda k: abs(k - beats))
+        return _MAP[closest]
+
+    def _notes_to_lilypond(self, notes, ts, bars_per_line=4):
+        """Convert a list of Note objects to a LilyPond music body string."""
+        beats_per_measure = ts.beats_per_measure
+        tokens: list[str] = []
+        beat_in_measure = 0.0
+        measure_count = 0
+
+        for note in notes:
+            total_beats = note.duration.value
+
+            if note.tone is None:
+                pitch = None
+                is_rest = True
+            elif hasattr(note.tone, "tones"):
+                chord_pitches = []
+                for t in note.tone.tones:
+                    p = self._tone_to_lilypond(t)
+                    if p is not None:
+                        chord_pitches.append(p)
+                if chord_pitches:
+                    pitch = "<" + " ".join(chord_pitches) + ">"
+                    is_rest = False
+                else:
+                    pitch = None
+                    is_rest = True
+            else:
+                p = self._tone_to_lilypond(note.tone)
+                if p is not None:
+                    pitch = p
+                    is_rest = False
+                else:
+                    pitch = None
+                    is_rest = True
+
+            remaining = total_beats
+            while remaining > 0.001:
+                room = beats_per_measure - beat_in_measure
+                chunk = min(remaining, room) if remaining > room + 0.001 else remaining
+                needs_tie = remaining - chunk > 0.001
+
+                dur_str = self._beats_to_lilypond_dur(chunk)
+
+                if is_rest or pitch is None:
+                    tokens.append(f"r{dur_str}")
+                else:
+                    tie_str = "~" if needs_tie else ""
+                    tokens.append(f"{pitch}{dur_str}{tie_str}")
+
+                remaining -= chunk
+                beat_in_measure += chunk
+
+                if beat_in_measure >= beats_per_measure - 0.001:
+                    measure_count += 1
+                    if measure_count % bars_per_line == 0:
+                        tokens.append("|\n   ")
+                    else:
+                        tokens.append("|")
+                    beat_in_measure -= beats_per_measure
+
+        body = " ".join(tokens)
+        body = body.replace("| |", "|").rstrip("| \n").rstrip()
+        if not body.endswith("|"):
+            body += " |"
+        return body
+
+    # ── MusicXML export ───────────────────────────────────────────────
+
+    def to_musicxml(self, *, title="Untitled"):
+        """Export the score as a MusicXML string.
+
+        Args:
+            title: Work title embedded in the ``<work-title>`` element.
+
+        Returns:
+            A MusicXML 4.0 partwise document as a pretty-printed XML string.
+        """
+        import xml.etree.ElementTree as ET
+        import xml.dom.minidom
+
+        DIVISIONS = 4  # divisions per quarter note
+
+        _DUR_MAP = {
+            4.0:  ("whole",    False),
+            3.0:  ("half",     True),
+            2.0:  ("half",     False),
+            1.5:  ("quarter",  True),
+            1.0:  ("quarter",  False),
+            0.5:  ("eighth",   False),
+            0.25: ("16th",     False),
+        }
+
+        def _beats_to_divisions(beats):
+            return int(round(beats * DIVISIONS))
+
+        def _best_dur_type(beats):
+            for val, info in _DUR_MAP.items():
+                if abs(beats - val) < 0.001:
+                    return info
+            return None
+
+        def _split_into_measures(notes, beats_per_measure):
+            beat_in_measure = 0.0
+            for note in notes:
+                tone = note.tone
+                if tone is not None and not hasattr(tone, "name") and not hasattr(tone, "tones"):
+                    tone = None
+                remaining = note.duration.value
+                is_first = True
+                while remaining > 0.001:
+                    room = beats_per_measure - beat_in_measure
+                    if room < 0.001:
+                        room = beats_per_measure
+                        beat_in_measure = 0.0
+                    chunk = min(remaining, room)
+                    needs_tie_start = (remaining - chunk) > 0.001
+                    needs_tie_stop = not is_first
+
+                    yield (tone, chunk, needs_tie_start, needs_tie_stop,
+                           note.velocity, note.articulation)
+
+                    remaining -= chunk
+                    beat_in_measure += chunk
+                    is_first = False
+
+                    if beat_in_measure >= beats_per_measure - 0.001:
+                        beat_in_measure = 0.0
+
+        def _tone_to_pitch_el(tone):
+            pitch = ET.Element("pitch")
+            name = tone.name
+            letter = name[0].upper()
+            acc_str = name[1:] if len(name) > 1 else ""
+
+            step = ET.SubElement(pitch, "step")
+            step.text = letter
+
+            alter_val = 0
+            if acc_str == "#":
+                alter_val = 1
+            elif acc_str == "##":
+                alter_val = 2
+            elif acc_str == "b":
+                alter_val = -1
+            elif acc_str == "bb":
+                alter_val = -2
+
+            if alter_val != 0:
+                alter = ET.SubElement(pitch, "alter")
+                alter.text = str(alter_val)
+
+            octave_el = ET.SubElement(pitch, "octave")
+            octave_el.text = str(tone.octave if tone.octave is not None else 4)
+
+            return pitch
+
+        def _add_note_el(measure, tone, dur_beats, is_chord_continuation,
+                         tie_start, tie_stop, velocity):
+            note_el = ET.SubElement(measure, "note")
+
+            if is_chord_continuation:
+                ET.SubElement(note_el, "chord")
+
+            if tone is None:
+                ET.SubElement(note_el, "rest")
+            elif hasattr(tone, "tones"):
+                ET.SubElement(note_el, "rest")
+            else:
+                note_el.append(_tone_to_pitch_el(tone))
+
+            dur_el = ET.SubElement(note_el, "duration")
+            dur_el.text = str(_beats_to_divisions(dur_beats))
+
+            if tie_stop:
+                tie_s = ET.SubElement(note_el, "tie")
+                tie_s.set("type", "stop")
+            if tie_start:
+                tie_s = ET.SubElement(note_el, "tie")
+                tie_s.set("type", "start")
+
+            dur_info = _best_dur_type(dur_beats)
+            if dur_info:
+                type_el = ET.SubElement(note_el, "type")
+                type_el.text = dur_info[0]
+                if dur_info[1]:
+                    ET.SubElement(note_el, "dot")
+
+            if tie_start or tie_stop:
+                notations = ET.SubElement(note_el, "notations")
+                if tie_stop:
+                    tied = ET.SubElement(notations, "tied")
+                    tied.set("type", "stop")
+                if tie_start:
+                    tied = ET.SubElement(notations, "tied")
+                    tied.set("type", "start")
+
+        # ── Collect voices ──────────────────────────────────────────
+        voices = []
+        if self.notes:
+            voices.append(("default", self.notes))
+        for name, part in self.parts.items():
+            if part.is_drums:
+                continue
+            if not part.notes:
+                continue
+            has_pitched = any(
+                n.tone is not None
+                and (hasattr(n.tone, "name") or hasattr(n.tone, "tones"))
+                for n in part.notes
+            )
+            if not has_pitched:
+                continue
+            voices.append((name, part.notes))
+
+        if not voices:
+            voices.append(("default", []))
+
+        # ── Build XML tree ──────────────────────────────────────────
+        root = ET.Element("score-partwise")
+        root.set("version", "4.0")
+
+        work = ET.SubElement(root, "work")
+        work_title = ET.SubElement(work, "work-title")
+        work_title.text = title
+
+        part_list = ET.SubElement(root, "part-list")
+        ts = self.time_signature
+        beats_per_measure = ts.beats_per_measure
+
+        for idx, (vname, notes) in enumerate(voices, 1):
+            pid = f"P{idx}"
+            sp = ET.SubElement(part_list, "score-part")
+            sp.set("id", pid)
+            pn = ET.SubElement(sp, "part-name")
+            pn.text = vname
+
+        for idx, (vname, notes) in enumerate(voices, 1):
+            pid = f"P{idx}"
+            part_el = ET.SubElement(root, "part")
+            part_el.set("id", pid)
+
+            clef_type = self._guess_clef(notes)
+
+            chunks = list(_split_into_measures(notes, beats_per_measure))
+
+            beat_in_measure = 0.0
+            measure_num = 1
+            measure_el = ET.SubElement(part_el, "measure")
+            measure_el.set("number", str(measure_num))
+
+            attrs = ET.SubElement(measure_el, "attributes")
+            div_el = ET.SubElement(attrs, "divisions")
+            div_el.text = str(DIVISIONS)
+            time_el = ET.SubElement(attrs, "time")
+            beats_el = ET.SubElement(time_el, "beats")
+            beats_el.text = str(ts.beats)
+            bt_el = ET.SubElement(time_el, "beat-type")
+            bt_el.text = str(ts.unit)
+            clef_el = ET.SubElement(attrs, "clef")
+            sign_el = ET.SubElement(clef_el, "sign")
+            line_el = ET.SubElement(clef_el, "line")
+            if clef_type == "bass":
+                sign_el.text = "F"
+                line_el.text = "4"
+            else:
+                sign_el.text = "G"
+                line_el.text = "2"
+
+            direction = ET.SubElement(measure_el, "direction")
+            dir_type = ET.SubElement(direction, "direction-type")
+            metronome = ET.SubElement(dir_type, "metronome")
+            bu = ET.SubElement(metronome, "beat-unit")
+            bu.text = "quarter"
+            pm = ET.SubElement(metronome, "per-minute")
+            pm.text = str(self.bpm)
+
+            for (tone, dur_beats, tie_start, tie_stop,
+                 vel, artic) in chunks:
+
+                if beat_in_measure >= beats_per_measure - 0.001:
+                    measure_num += 1
+                    measure_el = ET.SubElement(part_el, "measure")
+                    measure_el.set("number", str(measure_num))
+                    beat_in_measure = 0.0
+
+                if tone is not None and hasattr(tone, "tones"):
+                    chord_tones = [
+                        t for t in tone.tones
+                        if hasattr(t, "name") and hasattr(t, "octave")
+                    ]
+                    if not chord_tones:
+                        _add_note_el(measure_el, None, dur_beats, False,
+                                     tie_start, tie_stop, vel)
+                    else:
+                        for ci, ct in enumerate(chord_tones):
+                            _add_note_el(measure_el, ct, dur_beats,
+                                         ci > 0, tie_start, tie_stop, vel)
+                else:
+                    _add_note_el(measure_el, tone, dur_beats, False,
+                                 tie_start, tie_stop, vel)
+
+                beat_in_measure += dur_beats
+
+        # ── Serialize ───────────────────────────────────────────────
+        raw = ET.tostring(root, encoding="unicode")
+        doctype = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<!DOCTYPE score-partwise PUBLIC '
+            '"-//Recordare//DTD MusicXML 4.0 Partwise//EN" '
+            '"http://www.musicxml.org/dtds/partwise.dtd">\n'
+        )
+        pretty = xml.dom.minidom.parseString(raw).toprettyxml(indent="  ")
+        lines = pretty.split("\n")
+        if lines and lines[0].startswith("<?xml"):
+            lines = lines[1:]
+        return doctype + "\n".join(lines)
+
+    # ── ASCII tablature export ──────────────────────────────────────────
+
+    def to_tab(self, part_name=None, **kwargs):
+        """Generate ASCII tablature for a part in this score.
+
+        Args:
+            part_name: Name of the part to tab. If *None*, tabs the first
+                non-drum part that has notes.
+            **kwargs: Passed through to :meth:`Part.to_tab` (e.g.
+                ``tuning``, ``frets``, ``time_signature``).
+
+        Returns:
+            An ASCII tablature string.
+
+        Raises:
+            ValueError: If no suitable part is found.
+        """
+        if "time_signature" not in kwargs:
+            kwargs["time_signature"] = self.time_signature
+
+        if part_name is not None:
+            if part_name not in self.parts:
+                raise ValueError(f"No part named {part_name!r}")
+            return self.parts[part_name].to_tab(**kwargs)
+
+        for name, part in self.parts.items():
+            if part.is_drums:
+                continue
+            if not part.notes:
+                continue
+            has_pitched = any(
+                n.tone is not None and not isinstance(n.tone, _DrumTone)
+                for n in part.notes
+            )
+            if has_pitched:
+                return part.to_tab(**kwargs)
+
+        if self.notes:
+            tmp = Part("_default")
+            tmp.notes = list(self.notes)
+            return tmp.to_tab(**kwargs)
+
+        raise ValueError("No pitched parts with notes found in score")
 
     def save_midi(self, path, velocity=100):
         """Export to Standard MIDI File, measure-aware."""

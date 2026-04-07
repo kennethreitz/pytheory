@@ -236,6 +236,91 @@ Parameters:
 - **html** -- If ``True``, return a full HTML document instead of raw ABC
   (default ``False``).
 
+to_lilypond() -- LilyPond Export
+---------------------------------
+
+`LilyPond <https://lilypond.org/>`_ is the gold standard for
+publication-quality music engraving. ``to_lilypond()`` generates
+complete LilyPond source files that you can compile to PDF:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   lead = score.part("lead")
+   for note in ["C4", "D4", "E4", "F4"]:
+       lead.add(note, Duration.QUARTER)
+
+   ly = score.to_lilypond(title="My Score", key="C", mode="major")
+
+   with open("score.ly", "w") as f:
+       f.write(ly)
+
+Then compile with ``lilypond score.ly`` to get a PDF. Multi-part scores
+get separate staves in a ``StaffGroup``, bass clef is auto-detected,
+and long notes are split with ties across barlines.
+
+Parameters:
+
+- **title** -- Title for the ``\header`` block (default ``"Untitled"``).
+- **key** -- Key signature root (default ``"C"``). Use note names like
+  ``"Bb"``, ``"F#"``, ``"Eb"``.
+- **mode** -- LilyPond mode string (default ``"major"``). Use ``"minor"``
+  for minor keys.
+
+to_musicxml() -- MusicXML Export
+---------------------------------
+
+MusicXML is the interchange format for notation software. Export your
+score and open it in MuseScore, Sibelius, Finale, Dorico, or any
+other notation app:
+
+.. code-block:: python
+
+   xml = score.to_musicxml(title="My Score")
+
+   with open("score.musicxml", "w") as f:
+       f.write(xml)
+
+The output is a complete MusicXML 4.0 partwise document with proper
+time signatures, tempo markings, clef detection, tied notes across
+barlines, and chord notation. No external dependencies needed.
+
+to_tab() -- Guitar/Bass Tablature
+-----------------------------------
+
+Generate ASCII tablature from any Part or Score:
+
+.. code-block:: python
+
+   lead = score.part("lead")
+   lead.add("E4", Duration.QUARTER)
+   lead.add("B3", Duration.QUARTER)
+   lead.add("G3", Duration.QUARTER)
+   lead.add("D3", Duration.QUARTER)
+
+   print(lead.to_tab())
+
+Output::
+
+   e|---0---------|
+   B|------0------|
+   G|---------0---|
+   D|------------0|
+   A|-------------|
+   E|-------------|
+
+Works on Score too -- it picks the first melodic part automatically:
+
+.. code-block:: python
+
+   print(score.to_tab())                          # auto-pick part
+   print(score.to_tab(part_name="bass"))           # specific part
+   print(score.to_tab(tuning="bass"))              # 4-string bass tab
+   print(score.to_tab(tuning="drop_d"))            # drop D guitar
+
+Supports ``"guitar"`` (6-string standard), ``"bass"`` (4-string),
+``"drop_d"``, or a custom list of MIDI note numbers for any tuning.
+
 play_pattern() -- Drum Patterns
 -------------------------------
 

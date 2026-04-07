@@ -2,6 +2,19 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.42.0
+
+- **LilyPond export** — `Score.to_lilypond()` generates complete LilyPond source
+  files with multi-staff scores, key/time signatures, tempo markings, and
+  automatic bass clef detection. Output can be compiled to publication-quality
+  PDFs with LilyPond.
+- **MusicXML export** — `Score.to_musicxml()` generates MusicXML 4.0 documents
+  that can be opened in MuseScore, Sibelius, Finale, and any notation software.
+  Includes proper ties, chords, clef detection, and tempo/time signature metadata.
+- **Guitar/bass tablature** — `Part.to_tab()` and `Score.to_tab()` generate ASCII
+  tablature. Supports guitar (6-string), bass (4-string), drop D, and custom
+  tunings. Automatically maps notes to the best string/fret positions.
+
 ## 0.41.4
 
 - **Fix** — `to_abc()` now ties long notes across barlines instead of emitting
