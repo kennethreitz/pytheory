@@ -4396,15 +4396,25 @@ class Score:
             f"L:1/{default_unit}",
         ]
 
-        # Collect voices: default notes first, then named parts (skip drums)
+        # Collect voices: default notes first, then named parts
+        # Skip drum parts and parts with no pitched notes
         voices: list[tuple[str, list]] = []
         if self.notes:
             voices.append(("default", self.notes))
         for name, part in self.parts.items():
             if part.is_drums:
                 continue
-            if part.notes:
-                voices.append((name, part.notes))
+            if not part.notes:
+                continue
+            # Skip parts that have no pitched tones (only drum tones / rests)
+            has_pitched = any(
+                n.tone is not None
+                and (hasattr(n.tone, "name") or hasattr(n.tone, "tones"))
+                for n in part.notes
+            )
+            if not has_pitched:
+                continue
+            voices.append((name, part.notes))
 
         multi = len(voices) > 1
 

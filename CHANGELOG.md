@@ -2,6 +2,12 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.41.3
+
+- **Fix** — `to_abc()` now skips parts with only drum tones or rests (no pitched
+  notes), fixing "pitch is undefined" errors in abcjs. Chords are correctly
+  recognized as pitched content.
+
 ## 0.41.2
 
 - **Auto bass clef** — `to_abc()` detects low-register parts (808, bass, timpani)
