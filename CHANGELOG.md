@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.41.2
+
+- **Auto bass clef** — `to_abc()` detects low-register parts (808, bass, timpani)
+  and assigns `clef=bass` automatically based on average note octave.
+
 ## 0.41.1
 
 - **Fix** — `to_abc()` no longer crashes on parts containing drum tones.

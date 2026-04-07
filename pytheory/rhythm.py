@@ -4409,8 +4409,10 @@ class Score:
         multi = len(voices) > 1
 
         if multi:
-            for i, (vname, _) in enumerate(voices, 1):
-                lines.append(f"V:{i} name=\"{vname}\"")
+            for i, (vname, notes) in enumerate(voices, 1):
+                clef = self._guess_clef(notes)
+                clef_str = f" clef={clef}" if clef != "treble" else ""
+                lines.append(f"V:{i} name=\"{vname}\"{clef_str}")
             lines.append(f"K:{key}")
             for i, (_, notes) in enumerate(voices, 1):
                 lines.append(f"V:{i}")
@@ -4435,6 +4437,26 @@ class Score:
             + repr(abc)
             + ");\n</script>\n</body></html>\n"
         )
+
+    @staticmethod
+    def _guess_clef(notes):
+        """Return 'bass' if most pitched notes are below C4, else 'treble'."""
+        octaves = []
+        for note in notes:
+            tone = note.tone
+            if tone is None or not hasattr(tone, "octave"):
+                continue
+            if hasattr(tone, "tones"):
+                # Chord — use average of chord tones
+                for t in tone.tones:
+                    if hasattr(t, "octave") and t.octave is not None:
+                        octaves.append(t.octave)
+            elif tone.octave is not None:
+                octaves.append(tone.octave)
+        if not octaves:
+            return "treble"
+        avg = sum(octaves) / len(octaves)
+        return "bass" if avg < 4 else "treble"
 
     @staticmethod
     def _tone_to_abc(tone, default_unit):
