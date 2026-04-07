@@ -4463,11 +4463,13 @@ class Score:
 
         return f"{abc_acc}{note_char}{oct_str}"
 
-    def _notes_to_abc(self, notes, default_unit, ts):
+    def _notes_to_abc(self, notes, default_unit, ts,
+                      bars_per_line=4):
         """Convert a list of Note objects to an ABC body string."""
         beats_per_measure = ts.beats_per_measure
-        parts = []
+        tokens = []
         beat_in_measure = 0.0
+        measure_count = 0
 
         for note in notes:
             beats = note.duration.value
@@ -4506,16 +4508,20 @@ class Score:
                 frac = Fraction(multiplier).limit_denominator(16)
                 dur_str = f"{frac.numerator}/{frac.denominator}"
 
-            parts.append(f"{abc_note}{dur_str}")
+            tokens.append(f"{abc_note}{dur_str}")
 
             beat_in_measure += beats
             if beat_in_measure >= beats_per_measure - 0.001:
-                parts.append("|")
+                measure_count += 1
+                if measure_count % bars_per_line == 0:
+                    tokens.append("|\n")
+                else:
+                    tokens.append("|")
                 beat_in_measure -= beats_per_measure
 
-        body = " ".join(parts)
+        body = " ".join(tokens)
         # Clean up trailing/double barlines
-        body = body.replace("| |", "|").rstrip("| ").rstrip()
+        body = body.replace("| |", "|").rstrip("| \n").rstrip()
         if not body.endswith("|"):
             body += " |"
         return body

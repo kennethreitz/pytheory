@@ -2,6 +2,13 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.41.0
+
+- **ABC notation export** — `Score.to_abc()` converts scores to ABC notation
+  strings. Supports multi-voice scores (via `V:` directives), chords, rests,
+  accidentals, and all standard durations. Pass `html=True` to get a
+  self-contained HTML page that renders sheet music in the browser via abcjs.
+
 ## 0.40.9
 
 - **Mellotron synth** — tape-replay keyboard with wow/flutter, tape saturation,
