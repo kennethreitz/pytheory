@@ -503,8 +503,15 @@ are standard arranging techniques for spreading chord tones across registers:
    >>> cmaj7 = Chord.from_symbol("Cmaj7")
    >>> cmaj7.close_voicing()
    <Chord C major 7th>
+   >>> cmaj7.open_voicing()
+   <Chord C major 7th>
    >>> cmaj7.drop2()
    <Chord C major 7th>
+
+``open_voicing()`` takes the close voicing and raises every other
+non-root tone by an octave, spreading the chord across two octaves.
+The result is a wider, more spacious sound — common in orchestral
+writing and piano ballads where you want the harmony to breathe.
 
 Chord Extensions
 ----------------
@@ -595,6 +602,23 @@ music that doesn't follow traditional harmony, this is the tool.
 
 Major and minor triads share the same prime form — they're inversions
 of each other in pitch class space.
+
+The **normal form** is the intermediate step — the most compact ascending
+arrangement of pitch classes before transposition. It preserves the
+actual pitch classes (not transposed to 0), so it tells you which
+specific notes are in the set:
+
+.. code-block:: pycon
+
+   >>> Chord.from_tones("C", "E", "G").normal_form
+   (0, 4, 7)
+
+   >>> Chord.from_tones("A", "C", "E").normal_form
+   (9, 0, 4)
+
+Normal form keeps the original pitch classes; prime form transposes to 0
+for comparison. Use ``normal_form`` when you care about which notes,
+``prime_form`` when you care about the abstract shape.
 
 .. code-block:: pycon
 

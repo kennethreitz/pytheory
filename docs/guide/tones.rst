@@ -357,6 +357,32 @@ every tone knows its enharmonic spelling:
    >>> Tone.from_string("C4", system="western").enharmonic is None
    True
 
+Accidental Properties
+~~~~~~~~~~~~~~~~~~~~~
+
+Check whether a tone is natural, sharp, or flat:
+
+.. code-block:: pycon
+
+   >>> c = Tone.from_string("C4", system="western")
+   >>> c.is_natural
+   True
+   >>> c.is_sharp
+   False
+
+   >>> cs = Tone.from_string("C#4", system="western")
+   >>> cs.is_sharp
+   True
+   >>> cs.is_natural
+   False
+
+   >>> bb = Tone.from_string("Bb4", system="western")
+   >>> bb.is_flat
+   True
+
+Useful for filtering — for example, finding all natural notes in a
+scale, or counting accidentals in a melody.
+
 Extended Enharmonics
 ~~~~~~~~~~~~~~~~~~~~
 

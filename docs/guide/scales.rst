@@ -269,6 +269,23 @@ easy:
    ['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
    >>> key.seventh_chords
    ['G major 7th', 'A minor 7th', 'B minor 7th', 'C major 7th', 'D dominant 7th', 'E minor 7th', 'F# half-diminished 7th']
+
+Build a seventh chord on any individual degree with ``seventh()``:
+
+.. code-block:: pycon
+
+   >>> key.seventh(0)   # I7
+   G major 7th
+   >>> key.seventh(4)   # V7
+   D dominant 7th
+   >>> key.seventh(6)   # vii7
+   F# half-diminished 7th
+
+This is the single-degree version of ``seventh_chords`` — useful when
+you need one specific chord rather than the full list.
+
+.. code-block:: pycon
+
    >>> Key.detect("C", "E", "G", "A", "D")
    C major
 
@@ -440,7 +457,16 @@ alternative scales to improvise over:
    >>> Scale.recommend("C", "Eb", "F", "Gb", "G", "Bb", top=3)
    [('C', 'blues', 1.0), ...]
 
-Chromatic scales are deprioritized since they match everything.
+How it works: ``recommend()`` tests your notes against every scale in
+every key (all 12 tonics times all scale types in the Western system).
+Each candidate is scored using ``fitness()`` — the fraction of your notes
+that belong to that scale (1.0 = perfect match). Results are ranked by
+fitness, with chromatic scales deprioritized since they match everything.
+Scales whose length is closer to the number of input notes are preferred
+when fitness scores tie.
+
+Returns a list of ``(tonic, scale_name, fitness)`` tuples. Pass ``top=``
+to control how many results you get back (default 5).
 
 Parallel Modes
 ~~~~~~~~~~~~~~
