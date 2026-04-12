@@ -118,6 +118,7 @@ What's Inside
    guide/scales
    guide/chords
    guide/fretboard
+   guide/nashville-blues-tabs
    guide/systems
    guide/sequencing
    guide/synths
