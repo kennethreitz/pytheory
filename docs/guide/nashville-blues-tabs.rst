@@ -209,10 +209,10 @@ Visualize the blues scale on guitar to see the patterns:
    >>> print(fb.scale_diagram(blues, frets=12))
        0   1   2   3   4   5   6   7   8   9  10  11  12
    E| - | - | - | - | - | A | - | - | C | - | D | Eb| E |
-   B| - | - | - | D | Eb| E | - | - | - | - | A | - | - |
-   G| - | - | A | - | - | C | - | D | Eb| E | - | - | - |
-   D| - | - | - | - | A | - | - | C | - | D | Eb| E | - |
    A| A | - | - | C | - | D | Eb| E | - | - | - | - | A |
+   D| - | - | - | - | A | - | - | C | - | D | Eb| E | - |
+   G| - | - | A | - | - | C | - | D | Eb| E | - | - | - |
+   B| - | - | - | D | Eb| E | - | - | - | - | A | - | - |
    E| - | - | - | - | - | A | - | - | C | - | D | Eb| E |
 
 The minor pentatonic (same scale without the Eb) is the most-played
@@ -243,30 +243,30 @@ Get the tab for any chord on any instrument:
    >>> fb = Fretboard.guitar()
    >>> print(fb.tab("C"))
    C major
-   e|--0--
-   B|--1--
-   G|--0--
-   D|--2--
-   A|--3--
    E|--x--
+   A|--3--
+   D|--2--
+   G|--0--
+   B|--1--
+   e|--0--
 
    >>> print(fb.tab("Am"))
    A minor
-   e|--0--
-   B|--1--
-   G|--2--
-   D|--2--
-   A|--0--
    E|--x--
+   A|--0--
+   D|--2--
+   G|--2--
+   B|--1--
+   e|--0--
 
    >>> print(fb.tab("E7"))
    E dominant 7th
-   e|--0--
-   B|--0--
-   G|--1--
-   D|--0--
-   A|--2--
    E|--0--
+   A|--2--
+   D|--0--
+   G|--1--
+   B|--0--
+   e|--0--
 
 Works with any instrument:
 
@@ -275,24 +275,27 @@ Works with any instrument:
    >>> uke = Fretboard.ukulele()
    >>> print(uke.tab("C"))
    C major
-   A|--3--
-   E|--0--
-   C|--0--
    G|--0--
+   C|--0--
+   E|--0--
+   A|--3--
 
 Reading Tab Notation
 ~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
-    e|--0--    ← open string (don't fret, just pluck)
-    B|--1--    ← press fret 1
-    G|--0--    ← open string
-    D|--2--    ← press fret 2
-    A|--3--    ← press fret 3
     E|--x--    ← muted (don't play this string)
+    A|--3--    ← press fret 3
+    D|--2--    ← press fret 2
+    G|--0--    ← open string
+    B|--1--    ← press fret 1
+    e|--0--    ← open string (don't fret, just pluck)
 
-- Each line is a string (highest pitch at top, lowest at bottom)
+- Each line is a string. Chord tab from ``fb.tab()`` lists strings
+  low-to-high (lowest pitch at top) by default since v0.43.0; pass
+  ``high_to_low=True`` to the fretboard for the traditional
+  highest-pitch-on-top layout.
 - Numbers are fret positions (0 = open, 1-24 = fretted)
 - ``x`` means the string is muted / not played
 - ``|`` marks measure boundaries in sequence tabs

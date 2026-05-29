@@ -111,19 +111,19 @@ Generate fingerings for guitar and ukulele with
 
    >>> fb = Fretboard.guitar()
    >>> fb.chord("C")
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
+   Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
    >>> fb.chord("G")
-   Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
+   Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
    >>> fb.chord("Am")
-   Fingering(e=0, B=1, G=2, D=2, A=0, E=x)
+   Fingering(E=x, A=0, D=2, G=2, B=1, e=0)
    >>> fb.chord("D")
-   Fingering(e=2, B=3, G=2, D=0, A=x, E=x)
+   Fingering(E=x, A=x, D=0, G=2, B=3, e=2)
 
    >>> uke = Fretboard.ukulele()
    >>> uke.chord("C")
-   Fingering(A=3, E=0, C=0, G=0)
+   Fingering(G=0, C=0, E=0, A=3)
    >>> uke.chord("G")
-   Fingering(A=2, E=3, C=2, G=0)
+   Fingering(G=0, C=2, E=3, A=2)
 
 Explore an Interval
 -------------------

@@ -130,7 +130,7 @@ Guitar fingerings:
 
    >>> fb = Fretboard.guitar()
    >>> fb.chord("Am")
-   Fingering(e=0, B=1, G=2, D=2, A=0, E=x)
+   Fingering(E=x, A=0, D=2, G=2, B=1, e=0)
 
 All of the above works without PortAudio, without sounddevice,
 without any audio setup at all. It's pure Python music theory.
