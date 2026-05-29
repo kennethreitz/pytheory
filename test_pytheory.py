@@ -3522,6 +3522,19 @@ def test_scale_diagram():
     assert len(lines) == 7
 
 
+def test_scale_diagram_enharmonic_flat_note():
+    """A flat-spelled scale note (e.g. the blues Eb) must render even
+    though the fretboard spells that pitch as D#."""
+    fb = Fretboard.guitar()
+    blues = TonedScale(tonic="A4", system="blues")["blues"]
+    assert "Eb" in blues.note_names
+    diagram = fb.scale_diagram(blues, frets=12)
+    # The blue note shows up using the scale's own (flat) spelling,
+    # never the fretboard's sharp spelling.
+    assert "Eb" in diagram
+    assert "D#" not in diagram
+
+
 # ── Coverage gap tests ─────────────────────────────────────────────────────
 
 def test_tone_init_octave_parsed_from_name():

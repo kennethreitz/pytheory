@@ -208,12 +208,12 @@ Visualize the blues scale on guitar to see the patterns:
    >>> blues = TonedScale(tonic="A4", system="blues")["blues"]
    >>> print(fb.scale_diagram(blues, frets=12))
        0   1   2   3   4   5   6   7   8   9  10  11  12
-   E| - | - | - | - | - | A | - | - | C | - | D | Eb| E |
-   A| A | - | - | C | - | D | Eb| E | - | - | - | - | A |
-   D| - | - | - | - | A | - | - | C | - | D | Eb| E | - |
-   G| - | - | A | - | - | C | - | D | Eb| E | - | - | - |
-   B| - | - | - | D | Eb| E | - | - | - | - | A | - | - |
-   E| - | - | - | - | - | A | - | - | C | - | D | Eb| E |
+   E| E | - | - | G | - | A | - | - | C | - | D | Eb| E |
+   A| A | - | - | C | - | D | Eb| E | - | - | G | - | A |
+   D| D | Eb| E | - | - | G | - | A | - | - | C | - | D |
+   G| G | - | A | - | - | C | - | D | Eb| E | - | - | G |
+   B| - | C | - | D | Eb| E | - | - | G | - | A | - | - |
+   E| E | - | - | G | - | A | - | - | C | - | D | Eb| E |
 
 The minor pentatonic (same scale without the Eb) is the most-played
 scale in rock guitar. Add the blue note and you have the full blues

@@ -2,6 +2,14 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.43.1
+
+- **Fix `Fretboard.scale_diagram()` enharmonic matching.** Scale notes
+  spelled with flats (e.g. the `Eb` blue note in the blues scale) were
+  silently omitted from the diagram, because the fretboard spells that
+  pitch as `D#`. Notes are now matched enharmonically (by pitch) and
+  displayed using the scale's own spelling.
+
 ## 0.43.0
 
 - **BREAKING — fingerings now read low-to-high by default.** `Fretboard`

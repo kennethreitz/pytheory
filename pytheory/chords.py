@@ -1867,10 +1867,24 @@ class Fretboard:
             >>> am = Chord.from_symbol("Am")
             >>> print(fb.scale_diagram(pentatonic, frets=5, chord=am))
         """
-        scale_notes = set(scale.note_names)
+        # Match notes enharmonically: the fretboard spells tones with
+        # sharps (e.g. D#), but a scale may use flats (e.g. Eb). Compare
+        # via the system's canonical name so Eb and D# count as the same
+        # pitch — and display using the scale's own spelling.
+        _system = self._tones[0].system
+        def _resolve(name):
+            resolved = _system.resolve_name(name)
+            return resolved if resolved is not None else name
+
+        # Map canonical pitch -> the scale's preferred spelling for display.
+        scale_display = {}
+        for n in scale.note_names:
+            scale_display.setdefault(_resolve(n), n)
+        scale_notes = set(scale_display)
+
         chord_notes = set()
         if chord is not None:
-            chord_notes = {t.name for t in chord.tones}
+            chord_notes = {_resolve(t.name) for t in chord.tones}
 
         max_name = max(len(t.name) for t in self.tones)
         lines = []
@@ -1885,13 +1899,15 @@ class Fretboard:
             fret_marks = []
             for f in range(frets + 1):
                 note = tone.add(f)
-                if note.name in scale_notes:
-                    if chord_notes and note.name in chord_notes:
-                        fret_marks.append(f" {note.name.upper():<2s}")
+                key = _resolve(note.name)
+                if key in scale_notes:
+                    label = scale_display[key]
+                    if chord_notes and key in chord_notes:
+                        fret_marks.append(f" {label.upper():<2s}")
                     elif chord_notes:
-                        fret_marks.append(f" {note.name.lower():<2s}")
+                        fret_marks.append(f" {label.lower():<2s}")
                     else:
-                        fret_marks.append(f" {note.name:<2s}")
+                        fret_marks.append(f" {label:<2s}")
                 else:
                     fret_marks.append(" - ")
             line = f"{tone.name:>{max_name}}|{'|'.join(fret_marks)}|"
