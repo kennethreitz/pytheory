@@ -690,7 +690,7 @@ wheels = [
 
 [[package]]
 name = "pytheory"
-version = "0.42.1"
+version = "0.43.0"
 source = { editable = "." }
 dependencies = [
     { name = "rich" },

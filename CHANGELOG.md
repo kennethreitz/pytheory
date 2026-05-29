@@ -2,6 +2,29 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.43.0
+
+- **BREAKING — fingerings now read low-to-high by default.** `Fretboard`
+  string lists and `Fingering` positions/string-names now run from the
+  **lowest-pitched string first** (e.g. standard guitar reads `E A D G B E`),
+  matching how chord diagrams and tablature are conventionally written.
+  Previously they ran high-to-low (`E B G D A E`). This affects
+  `Fretboard.tones`, iteration over a fretboard, `repr`, `chord()`, `tab()`,
+  `chart()`, and `fingering()` output.
+
+  To restore the pre-0.43 high-to-low behavior, pass **`high_to_low=True`**
+  to any fretboard constructor — `Fretboard.guitar(high_to_low=True)`,
+  `Fretboard(tones=..., high_to_low=True)`, and likewise on every instrument
+  preset (`bass`, `ukulele`, `mandolin`, … `keyboard`).
+
+  The flip also applies to **input**: a custom tuning tuple passed to
+  `Fretboard.guitar(...)` and manual fret positions passed to
+  `fingering(*positions)` are now read in the board's orientation
+  (low-to-high by default).
+
+  `to_tab()` and `Part.strum()` are unaffected — they sort by pitch
+  internally and produce identical output regardless of orientation.
+
 ## 0.42.1
 
 - **Fretboard tuning support** — `to_tab()` now accepts `Fretboard` objects as

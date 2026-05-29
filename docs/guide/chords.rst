@@ -94,11 +94,11 @@ PyTheory includes 144 pre-built chords (12 roots x 12 qualities):
 
    >>> fb = Fretboard.guitar()
    >>> fb.chord("C")
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
+   Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
    >>> fb.chord("Am")
-   Fingering(e=0, B=1, G=2, D=2, A=0, E=x)
+   Fingering(E=x, A=0, D=2, G=2, B=1, e=0)
    >>> fb.chord("G7")
-   Fingering(e=1, B=0, G=0, D=0, A=2, E=3)
+   Fingering(E=3, A=2, D=0, G=0, B=0, e=1)
 
 You can also build chords directly with ``Chord.from_name()``:
 

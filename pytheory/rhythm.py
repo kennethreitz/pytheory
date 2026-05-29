@@ -3706,17 +3706,19 @@ class Part:
             fingering = self._fretboard.chord(chord_name)
 
         # Get the sounding tones (skips muted strings)
-        tones = fingering.tones  # list of Tone objects, high to low
+        tones = fingering.tones
 
         if not tones:
             self.rest(duration)
             return self
 
-        # Order: down strum = low to high (reverse since tones are high-to-low)
+        # Sort by pitch so strum direction is correct regardless of the
+        # fingering's display orientation: down = low to high, up = high to low.
+        low_to_high = sorted(tones, key=lambda t: t.midi)
         if direction == "down":
-            strum_tones = list(reversed(tones))
+            strum_tones = low_to_high
         else:
-            strum_tones = list(tones)
+            strum_tones = list(reversed(low_to_high))
 
         if hasattr(duration, 'value'):
             total_beats = duration.value
@@ -3826,8 +3828,9 @@ class Part:
             open_midis = list(self._TAB_TUNINGS[tuning])
             labels = list(self._TAB_LABELS[tuning])
         elif hasattr(tuning, "tones"):
-            # Fretboard object — tones are high-to-low, reverse for low-to-high
-            fb_tones = list(reversed(tuning.tones))
+            # Fretboard object — sort by pitch so we get low-to-high
+            # regardless of the board's display orientation.
+            fb_tones = sorted(tuning.tones, key=lambda t: t.midi)
             open_midis = [t.midi for t in fb_tones]
             labels = [t.name if len(t.name) <= 2 else t.name[0] for t in fb_tones]
         else:

@@ -18,18 +18,27 @@ positions are just semitone steps along the fingerboard.
 Guitars
 -------
 
-`Standard guitar tuning <https://en.wikipedia.org/wiki/Guitar_tunings>`_
-(high to low)::
+`Standard guitar tuning <https://en.wikipedia.org/wiki/Guitar_tunings>`_::
 
-    String 1: E4  (highest)
-    String 2: B3
-    String 3: G3
-    String 4: D3
-    String 5: A2
     String 6: E2  (lowest)
+    String 5: A2
+    String 4: D3
+    String 3: G3
+    String 2: B3
+    String 1: E4  (highest)
 
 This tuning uses intervals of a perfect 4th (5 semitones) between most
 strings, except between G and B which is a major 3rd (4 semitones).
+
+.. note::
+
+   Since **v0.43.0**, fingerings and string lists read **low to high**
+   (lowest-pitched string first) by default — matching how chord
+   diagrams and tab are conventionally written. To get the pre-0.43
+   high-to-low order, pass ``high_to_low=True`` to any fretboard
+   constructor, e.g. ``Fretboard.guitar(high_to_low=True)``. A custom
+   tuning tuple and manual ``fingering()`` positions are likewise read
+   in the board's orientation.
 
 .. code-block:: pycon
 
@@ -192,12 +201,12 @@ on any instrument. It scores each possibility by:
    >>> fb = Fretboard.guitar()
    >>> f = fb.chord("C")
    >>> f
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
+   Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
 
    >>> f['A']
    3
    >>> f[1]
-   1
+   3
 
    >>> f.identify()
    'C major'
@@ -210,11 +219,11 @@ You can also go from fret positions to chord identification:
 
 .. code-block:: pycon
 
-   >>> # "What chord am I playing?"
+   >>> # "What chord am I playing?" (positions read low to high)
    >>> fb = Fretboard.guitar()
-   >>> f = fb.fingering(0, 0, 0, 2, 2, 0)
+   >>> f = fb.fingering(0, 2, 2, 0, 0, 0)
    >>> f
-   Fingering(e=0, B=0, G=0, D=2, A=2, E=0)
+   Fingering(E=0, A=2, D=2, G=0, B=0, e=0)
    >>> f.identify()
    'E minor'
 
@@ -223,14 +232,14 @@ Reading Fingerings
 
 Each position is labeled with its string name. Duplicate string names
 are disambiguated — on a standard guitar, high E appears as ``e`` and
-low E as ``E``::
+low E as ``E``. Strings read low to high (lowest first)::
 
-    e|--0--    (open — E)
-    B|--1--    (fret 1 — C)
-    G|--0--    (open — G)
-    D|--2--    (fret 2 — E)
+    E|--x--    (muted — low E)
     A|--3--    (fret 3 — C)
-    E|--x--    (muted)
+    D|--2--    (fret 2 — E)
+    G|--0--    (open — G)
+    B|--1--    (fret 1 — C)
+    e|--0--    (open — high E)
 
 A value of ``x`` (``None``) means the string is muted (not played).
 
@@ -243,12 +252,12 @@ For a more visual representation, use ``tab()``:
 
    >>> print(fb.tab("C"))
    C major
-   e|--0--
-   B|--1--
-   G|--0--
-   D|--2--
-   A|--3--
    E|--x--
+   A|--3--
+   D|--2--
+   G|--0--
+   B|--1--
+   e|--0--
 
 Generating Full Charts
 ----------------------
@@ -261,7 +270,7 @@ Generate fingerings for every chord at once:
    >>> chart = fb.chart()
 
    >>> chart["C"]
-   Fingering(e=0, B=1, G=0, D=2, A=3, E=x)
+   Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
 
    >>> # Works with any instrument
    >>> uke_chart = Fretboard.ukulele().chart()
@@ -303,19 +312,19 @@ Any instrument can be modeled with custom string tunings:
 
    >>> from pytheory import Tone, Fretboard
 
-   >>> # Baritone ukulele (DGBE — top 4 guitar strings)
+   >>> # Baritone ukulele (DGBE — top 4 guitar strings, low to high)
    >>> bari_uke = Fretboard(tones=[
-   ...     Tone.from_string("E4"),
-   ...     Tone.from_string("B3"),
-   ...     Tone.from_string("G3"),
    ...     Tone.from_string("D3"),
+   ...     Tone.from_string("G3"),
+   ...     Tone.from_string("B3"),
+   ...     Tone.from_string("E4"),
    ... ])
 
-   >>> # Tres cubano (Cuban guitar, 3 doubled courses)
+   >>> # Tres cubano (Cuban guitar, 3 doubled courses, low to high)
    >>> tres = Fretboard(tones=[
-   ...     Tone.from_string("E4"),
-   ...     Tone.from_string("B3"),
    ...     Tone.from_string("G3"),
+   ...     Tone.from_string("B3"),
+   ...     Tone.from_string("E4"),
    ... ])
 
 If it has strings, you can model it. Define the tuning, and PyTheory handles the rest -- fingerings, charts, scale diagrams, all of it. Got a weird instrument or a custom tuning? That's what the ``Fretboard`` constructor is for.

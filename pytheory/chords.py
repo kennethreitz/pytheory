@@ -1352,14 +1352,63 @@ class Chord:
 
 
 class Fretboard:
-    def __init__(self, *, tones: list[Tone]) -> None:
+    def __init__(self, *, tones: list[Tone], high_to_low: bool = False,
+                 _canonical: bool = False) -> None:
         """Initialize a Fretboard from a list of open-string Tone objects.
 
         Args:
             tones: A list of :class:`Tone` instances representing the
-                open strings (high to low).
+                open strings. By default these are read **low to high**
+                (low string first) — pass ``high_to_low=True`` if your
+                list runs high to low instead.
+            high_to_low: Orientation of this fretboard. When ``False``
+                (the default since v0.43.0), strings and fingerings read
+                low to high; when ``True``, they read high to low (the
+                pre-0.43 behavior).
+            _canonical: Internal flag — when ``True``, *tones* are already
+                in canonical (high-to-low) order and are stored as-is.
+                Used by the instrument presets.
         """
-        self.tones = tones
+        self.high_to_low = high_to_low
+        # Internally we always store strings high-to-low; this keeps the
+        # fingering scorer and chord-override tables (which assume that
+        # order) untouched. User-facing access is re-oriented on the way out.
+        if _canonical or high_to_low:
+            self._tones = list(tones)
+        else:
+            self._tones = list(reversed(tones))
+
+    def _orient(self, seq):
+        """Re-orient a canonical (high-to-low) sequence for display.
+
+        Returns *seq* unchanged when this board reads high-to-low, or
+        reversed when it reads low-to-high. Self-inverse, so it also maps
+        user-supplied (oriented) input back to canonical order.
+        """
+        return list(seq) if self.high_to_low else list(reversed(seq))
+
+    @property
+    def tones(self) -> list[Tone]:
+        """The open-string tones in this board's orientation.
+
+        Low-to-high by default; high-to-low when ``high_to_low=True``.
+        """
+        return self._orient(self._tones)
+
+    @classmethod
+    def _from_canonical(cls, tone_strings, high_to_low: bool = False) -> Fretboard:
+        """Build a board from canonical (high-to-low) tone-name strings.
+
+        Used by the instrument presets, whose tunings are written in the
+        conventional high-to-low order. *high_to_low* sets only the
+        board's display orientation.
+        """
+        from .tones import Tone
+        return cls(
+            tones=[Tone.from_string(t, system="western") for t in tone_strings],
+            high_to_low=high_to_low,
+            _canonical=True,
+        )
 
     def __repr__(self) -> str:
         l = tuple([tone.full_name for tone in self.tones])
@@ -1391,7 +1440,11 @@ class Fretboard:
         Returns:
             A new Fretboard with all strings raised by ``fret`` semitones.
         """
-        return Fretboard(tones=[t.add(fret) for t in self.tones])
+        return Fretboard(
+            tones=[t.add(fret) for t in self._tones],
+            high_to_low=self.high_to_low,
+            _canonical=True,
+        )
 
     def __iter__(self) -> Iterator[Tone]:
         """Iterate over the open-string tones of this fretboard."""
@@ -1399,7 +1452,7 @@ class Fretboard:
 
     def __len__(self) -> int:
         """Return the number of strings on this fretboard."""
-        return len(self.tones)
+        return len(self._tones)
 
     INSTRUMENTS = [
         "guitar", "twelve_string", "bass", "ukulele",
@@ -1423,84 +1476,76 @@ class Fretboard:
     }
 
     @classmethod
-    def guitar(cls, tuning: Union[str, tuple[str, ...]] = "standard", capo: int = 0) -> Fretboard:
+    def guitar(cls, tuning: Union[str, tuple[str, ...]] = "standard", capo: int = 0,
+               high_to_low: bool = False) -> Fretboard:
         """Guitar with the given tuning and optional capo.
 
         Args:
-            tuning: Tuning name or tuple of tone strings (high to low).
+            tuning: Tuning name, or a tuple of tone strings. A custom
+                tuple is read **low to high** by default (pass
+                ``high_to_low=True`` to give it high to low instead).
                 Built-in tunings: standard, drop d, open g, open d,
                 open e, open a, dadgad, half step down.
             capo: Fret number for the capo (0 = no capo). Raises all
                 strings by this many semitones.
+            high_to_low: When ``True``, the resulting board reads high to
+                low (pre-0.43 behavior); otherwise low to high.
         """
         from .tones import Tone
         if isinstance(tuning, str):
-            tuning = cls.TUNINGS[tuning]
-        fb = cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+            # Built-in tunings are defined canonically (high to low).
+            canonical = [Tone.from_string(t, system="western") for t in cls.TUNINGS[tuning]]
+            fb = cls(tones=canonical, high_to_low=high_to_low, _canonical=True)
+        else:
+            # A user-supplied tuple is in the board's orientation.
+            fb = cls(tones=[Tone.from_string(t, system="western") for t in tuning],
+                     high_to_low=high_to_low)
         if capo:
             fb = fb.capo(capo)
         return fb
 
     @classmethod
-    def bass(cls, five_string: bool = False) -> Fretboard:
+    def bass(cls, five_string: bool = False, high_to_low: bool = False) -> Fretboard:
         """Standard bass guitar tuning.
 
         Args:
             five_string: If True, adds a low B string (B0).
+            high_to_low: When ``True``, the board reads high to low.
         """
-        from .tones import Tone
         strings = ["G2", "D2", "A1", "E1"]
         if five_string:
             strings.append("B0")
-        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     @classmethod
-    def ukulele(cls) -> Fretboard:
+    def ukulele(cls, high_to_low: bool = False) -> Fretboard:
         """Standard ukulele tuning (A4 E4 C4 G4).
 
         Re-entrant tuning: the G4 string is higher than C4.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("E4", system="western"),
-            Tone.from_string("C4", system="western"),
-            Tone.from_string("G4", system="western"),
-        ])
+        return cls._from_canonical(["A4", "E4", "C4", "G4"], high_to_low)
 
     @classmethod
-    def mandolin(cls) -> Fretboard:
+    def mandolin(cls, high_to_low: bool = False) -> Fretboard:
         """Standard mandolin tuning (E5 A4 D4 G3).
 
         Tuned in fifths, same as a violin but one octave relationship.
         Strings are typically doubled (paired courses).
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("E5", system="western"),
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("D4", system="western"),
-            Tone.from_string("G3", system="western"),
-        ])
+        return cls._from_canonical(["E5", "A4", "D4", "G3"], high_to_low)
 
     @classmethod
-    def mandola(cls) -> Fretboard:
+    def mandola(cls, high_to_low: bool = False) -> Fretboard:
         """Standard mandola tuning (A4 D4 G3 C3).
 
         The mandola (or tenor mandola) is to the mandolin what the
         viola is to the violin — a fifth lower, with a warmer,
         darker tone. Tuned in fifths like all the mandolin family.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("D4", system="western"),
-            Tone.from_string("G3", system="western"),
-            Tone.from_string("C3", system="western"),
-        ])
+        return cls._from_canonical(["A4", "D4", "G3", "C3"], high_to_low)
 
     @classmethod
-    def octave_mandolin(cls) -> Fretboard:
+    def octave_mandolin(cls, high_to_low: bool = False) -> Fretboard:
         """Octave mandolin tuning (E4 A3 D3 G2).
 
         Also called the octave mandola in European terminology.
@@ -1508,84 +1553,57 @@ class Fretboard:
         family's cello-to-violin relationship. Popular in Irish
         and Celtic folk music.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("E4", system="western"),
-            Tone.from_string("A3", system="western"),
-            Tone.from_string("D3", system="western"),
-            Tone.from_string("G2", system="western"),
-        ])
+        return cls._from_canonical(["E4", "A3", "D3", "G2"], high_to_low)
 
     @classmethod
-    def mandocello(cls) -> Fretboard:
+    def mandocello(cls, high_to_low: bool = False) -> Fretboard:
         """Mandocello tuning (A3 D3 G2 C2).
 
         The bass of the mandolin family. Tuned like a cello — an
         octave below the mandola. Rare but beautiful; used in
         mandolin orchestras.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A3", system="western"),
-            Tone.from_string("D3", system="western"),
-            Tone.from_string("G2", system="western"),
-            Tone.from_string("C2", system="western"),
-        ])
+        return cls._from_canonical(["A3", "D3", "G2", "C2"], high_to_low)
 
     @classmethod
-    def violin(cls) -> Fretboard:
+    def violin(cls, high_to_low: bool = False) -> Fretboard:
         """Standard violin tuning (E5 A4 D4 G3).
 
         Tuned in perfect fifths. The violin has no frets — intonation
         is continuous, allowing vibrato and microtonal inflections
         not possible on fretted instruments.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("E5", system="western"),
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("D4", system="western"),
-            Tone.from_string("G3", system="western"),
-        ])
+        return cls._from_canonical(["E5", "A4", "D4", "G3"], high_to_low)
 
     @classmethod
-    def viola(cls) -> Fretboard:
+    def viola(cls, high_to_low: bool = False) -> Fretboard:
         """Standard viola tuning (A4 D4 G3 C3).
 
         A perfect fifth below the violin. The viola's darker, warmer
         tone comes from its larger body and lower register.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("D4", system="western"),
-            Tone.from_string("G3", system="western"),
-            Tone.from_string("C3", system="western"),
-        ])
+        return cls._from_canonical(["A4", "D4", "G3", "C3"], high_to_low)
 
     @classmethod
-    def cello(cls) -> Fretboard:
+    def cello(cls, high_to_low: bool = False) -> Fretboard:
         """Standard cello tuning (A3 D3 G2 C2).
 
         An octave below the viola. Tuned in fifths. The cello spans
         the range of the human voice — tenor through bass.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A3", system="western"),
-            Tone.from_string("D3", system="western"),
-            Tone.from_string("G2", system="western"),
-            Tone.from_string("C2", system="western"),
-        ])
+        return cls._from_canonical(["A3", "D3", "G2", "C2"], high_to_low)
 
     @classmethod
-    def banjo(cls, tuning: Union[str, tuple[str, ...]] = "open g") -> Fretboard:
+    def banjo(cls, tuning: Union[str, tuple[str, ...]] = "open g",
+              high_to_low: bool = False) -> Fretboard:
         """Banjo with the given tuning.
 
         Args:
             tuning: ``"open g"`` (default, bluegrass) or ``"open d"``
                 (old-time, clawhammer). The 5th string is a high
-                drone — a defining feature of the banjo sound.
+                drone — a defining feature of the banjo sound. A custom
+                tuple is read low to high unless ``high_to_low=True``.
+            high_to_low: When ``True``, the board reads high to low.
 
         Standard open G: G4 D3 G3 B3 D4 (5th string is the short
         high G4 drone).
@@ -1597,11 +1615,12 @@ class Fretboard:
             "double c": ("D4", "C4", "G3", "C3", "G4"),
         }
         if isinstance(tuning, str):
-            tuning = tunings[tuning]
-        return cls(tones=[Tone.from_string(t, system="western") for t in tuning])
+            return cls._from_canonical(tunings[tuning], high_to_low)
+        return cls(tones=[Tone.from_string(t, system="western") for t in tuning],
+                   high_to_low=high_to_low)
 
     @classmethod
-    def double_bass(cls) -> Fretboard:
+    def double_bass(cls, high_to_low: bool = False) -> Fretboard:
         """Standard double bass (upright bass) tuning (G2 D2 A1 E1).
 
         The largest and lowest-pitched bowed string instrument in the
@@ -1611,16 +1630,10 @@ class Fretboard:
 
         The 5-string double bass adds a low B0 or C1.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("G2", system="western"),
-            Tone.from_string("D2", system="western"),
-            Tone.from_string("A1", system="western"),
-            Tone.from_string("E1", system="western"),
-        ])
+        return cls._from_canonical(["G2", "D2", "A1", "E1"], high_to_low)
 
     @classmethod
-    def harp(cls) -> Fretboard:
+    def harp(cls, high_to_low: bool = False) -> Fretboard:
         """Concert harp strings — 47 strings spanning C1 to G7.
 
         The pedal harp has 7 strings per octave (one per note name),
@@ -1630,7 +1643,6 @@ class Fretboard:
         This returns the full set of 47 strings in the default
         Cb (enharmonic B) tuning.
         """
-        from .tones import Tone
         # 47 strings: C1 to G7, one per diatonic note
         notes = ["C", "D", "E", "F", "G", "A", "B"]
         strings = []
@@ -1643,30 +1655,33 @@ class Fretboard:
             else:
                 continue
             break
-        # Harp strings are high to low
+        # Canonical (high to low)
         strings.reverse()
-        return cls(tones=[Tone.from_string(s, system="western") for s in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     @classmethod
-    def pedal_steel(cls) -> Fretboard:
+    def pedal_steel(cls, high_to_low: bool = False) -> Fretboard:
         """Pedal steel guitar — E9 Nashville tuning (10 strings).
 
         The standard tuning for country music. The pedal steel has
         foot pedals and knee levers that change string pitches during
         play, enabling its signature swooping, crying sound.
         """
-        from .tones import Tone
-        # E9 Nashville tuning (high to low)
+        # E9 Nashville tuning (canonical: high to low)
         strings = ["F#4", "D#4", "G#3", "E3", "B3", "G#3",
                     "F#3", "E3", "D3", "B2"]
-        return cls(tones=[Tone.from_string(s, system="western") for s in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     @classmethod
-    def bouzouki(cls, variant: Union[str, tuple[str, ...]] = "irish") -> Fretboard:
+    def bouzouki(cls, variant: Union[str, tuple[str, ...]] = "irish",
+                 high_to_low: bool = False) -> Fretboard:
         """Bouzouki tuning.
 
         Args:
             variant: ``"irish"`` (default, GDAD) or ``"greek"`` (CFAD).
+                A custom tuple is read low to high unless
+                ``high_to_low=True``.
+            high_to_low: When ``True``, the board reads high to low.
 
         The Irish bouzouki is a staple of Celtic music, usually tuned
         in unison or octave pairs. The Greek bouzouki traditionally
@@ -1678,11 +1693,12 @@ class Fretboard:
             "greek": ("D4", "A3", "F3", "C3"),
         }
         if isinstance(variant, str):
-            variant = tunings[variant]
-        return cls(tones=[Tone.from_string(t, system="western") for t in variant])
+            return cls._from_canonical(tunings[variant], high_to_low)
+        return cls(tones=[Tone.from_string(t, system="western") for t in variant],
+                   high_to_low=high_to_low)
 
     @classmethod
-    def oud(cls) -> Fretboard:
+    def oud(cls, high_to_low: bool = False) -> Fretboard:
         """Standard Arabic oud tuning (C4 G3 D3 A2 G2 C2).
 
         The oud is the ancestor of the European lute and the defining
@@ -1691,12 +1707,11 @@ class Fretboard:
         essential to maqam performance. 6 courses (11 strings),
         typically tuned in fourths.
         """
-        from .tones import Tone
         strings = ["C4", "G3", "D3", "A2", "G2", "C2"]
-        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     @classmethod
-    def sitar(cls) -> Fretboard:
+    def sitar(cls, high_to_low: bool = False) -> Fretboard:
         """Sitar main playing strings (approximation).
 
         The sitar typically has 6-7 main strings and 11-13 sympathetic
@@ -1706,14 +1721,13 @@ class Fretboard:
         Main strings: Sa Sa Pa Sa Re Sa Ma (approximated in 12-TET).
         Represented here as the most common Ravi Shankar school tuning.
         """
-        from .tones import Tone
         # Common Ravi Shankar tuning mapped to Western notes
         # (sitar is tuned relative to Sa, typically C# or D)
         strings = ["C4", "C3", "G3", "C3", "D3", "C2", "F2"]
-        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     @classmethod
-    def shamisen(cls) -> Fretboard:
+    def shamisen(cls, high_to_low: bool = False) -> Fretboard:
         """Standard shamisen tuning — honchoshi (C4 G3 C3).
 
         The shamisen is a 3-stringed Japanese instrument played with
@@ -1723,15 +1737,10 @@ class Fretboard:
         - niagari (二上り): root-5th-2nd (raises 2nd string)
         - sansagari (三下り): root-5th-b7th (lowers 3rd string)
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("C4", system="western"),
-            Tone.from_string("G3", system="western"),
-            Tone.from_string("C3", system="western"),
-        ])
+        return cls._from_canonical(["C4", "G3", "C3"], high_to_low)
 
     @classmethod
-    def erhu(cls) -> Fretboard:
+    def erhu(cls, high_to_low: bool = False) -> Fretboard:
         """Standard erhu tuning (A4 D4).
 
         The erhu is a 2-stringed Chinese bowed instrument with a
@@ -1739,14 +1748,10 @@ class Fretboard:
         — the player presses the strings without touching the neck,
         allowing continuous pitch bending.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("D4", system="western"),
-        ])
+        return cls._from_canonical(["A4", "D4"], high_to_low)
 
     @classmethod
-    def charango(cls) -> Fretboard:
+    def charango(cls, high_to_low: bool = False) -> Fretboard:
         """Standard charango tuning (E5 A4 E5 C5 G4).
 
         A small Andean stringed instrument, traditionally made from
@@ -1754,54 +1759,38 @@ class Fretboard:
         — the 3rd course (E5) is the highest pitched, creating the
         charango's bright, sparkling sound.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("E5", system="western"),
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("E5", system="western"),
-            Tone.from_string("C5", system="western"),
-            Tone.from_string("G4", system="western"),
-        ])
+        return cls._from_canonical(["E5", "A4", "E5", "C5", "G4"], high_to_low)
 
     @classmethod
-    def pipa(cls) -> Fretboard:
+    def pipa(cls, high_to_low: bool = False) -> Fretboard:
         """Standard pipa tuning (D4 A3 E3 A2).
 
         The pipa is a 4-stringed Chinese lute with a pear-shaped
         body, dating back over 2000 years. Known for its percussive
         attack and rapid tremolo technique.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("D4", system="western"),
-            Tone.from_string("A3", system="western"),
-            Tone.from_string("E3", system="western"),
-            Tone.from_string("A2", system="western"),
-        ])
+        return cls._from_canonical(["D4", "A3", "E3", "A2"], high_to_low)
 
     @classmethod
-    def balalaika(cls) -> Fretboard:
+    def balalaika(cls, high_to_low: bool = False) -> Fretboard:
         """Standard balalaika prima tuning (A4 E4 E4).
 
         The Russian balalaika has a distinctive triangular body and
         3 strings. The two lower strings are tuned in unison — a
         unique feature that gives it a natural chorus effect.
         """
-        from .tones import Tone
-        return cls(tones=[
-            Tone.from_string("A4", system="western"),
-            Tone.from_string("E4", system="western"),
-            Tone.from_string("E4", system="western"),
-        ])
+        return cls._from_canonical(["A4", "E4", "E4"], high_to_low)
 
     @classmethod
-    def keyboard(cls, keys: int = 88, start: str = "A0") -> Fretboard:
+    def keyboard(cls, keys: int = 88, start: str = "A0",
+                 high_to_low: bool = False) -> Fretboard:
         """Piano or keyboard with the given number of keys.
 
         Args:
             keys: Number of keys (default 88 for a full piano).
                 Common sizes: 25, 37, 49, 61, 76, 88.
             start: The lowest note (default ``"A0"`` for standard piano).
+            high_to_low: When ``True``, the board reads high to low.
 
         A full 88-key piano spans A0 (27.5 Hz) to C8 (4186 Hz) —
         the widest range of any standard acoustic instrument.
@@ -1815,13 +1804,12 @@ class Fretboard:
         """
         from .tones import Tone
         start_tone = Tone.from_string(start, system="western")
-        tones = []
-        for i in range(keys - 1, -1, -1):
-            tones.append(start_tone.add(i))
-        return cls(tones=tones)
+        # Built high-to-low (canonical): highest key first, down to `start`.
+        tones = [start_tone.add(i) for i in range(keys - 1, -1, -1)]
+        return cls(tones=tones, high_to_low=high_to_low, _canonical=True)
 
     @classmethod
-    def lute(cls) -> Fretboard:
+    def lute(cls, high_to_low: bool = False) -> Fretboard:
         """Renaissance lute in G tuning (6 courses).
 
         The European lute was the dominant instrument of the
@@ -1829,21 +1817,19 @@ class Fretboard:
         a major third between the 3rd and 4th courses — the
         same intervallic pattern as a modern guitar.
         """
-        from .tones import Tone
         strings = ["G4", "D4", "A3", "F3", "C3", "G2"]
-        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     @classmethod
-    def twelve_string(cls) -> Fretboard:
+    def twelve_string(cls, high_to_low: bool = False) -> Fretboard:
         """12-string guitar in standard tuning.
 
         The lower 4 courses are doubled at the octave; the upper 2
         are doubled in unison. This creates the characteristic
         shimmering, chorus-like sound.
 
-        Represented as 12 strings (high to low, pairs together).
+        Represented as 12 strings (canonical: high to low, pairs together).
         """
-        from .tones import Tone
         strings = [
             "E4", "E4",      # 1st course (unison)
             "B3", "B3",      # 2nd course (unison)
@@ -1852,7 +1838,7 @@ class Fretboard:
             "A3", "A2",      # 5th course (octave)
             "E3", "E2",      # 6th course (octave)
         ]
-        return cls(tones=[Tone.from_string(t, system="western") for t in strings])
+        return cls._from_canonical(strings, high_to_low)
 
     def scale_diagram(self, scale, frets: int = 12, chord=None) -> str:
         """Render an ASCII diagram showing where scale notes fall on the neck.
@@ -1927,7 +1913,7 @@ class Fretboard:
 
             >>> fb = Fretboard.guitar()
             >>> fb.chord("G")
-            Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
+            Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
         """
         from .charts import CHARTS
         return CHARTS[system][name].fingering(fretboard=self)
@@ -1945,7 +1931,7 @@ class Fretboard:
 
             >>> fb = Fretboard.guitar()
             >>> fb["G"]
-            Fingering(e=3, B=0, G=0, D=0, A=2, E=3)
+            Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
         """
         return self.chord(name)
 
@@ -1964,12 +1950,12 @@ class Fretboard:
             >>> fb = Fretboard.guitar()
             >>> print(fb.tab("Am"))
             A minor
-            e|--0--
-            B|--1--
-            G|--2--
-            D|--2--
+            E|--x--
             A|--0--
-            E|--0--
+            D|--2--
+            G|--2--
+            B|--1--
+            e|--0--
         """
         return self.chord(name, system=system).tab()
 
@@ -1984,7 +1970,7 @@ class Fretboard:
             >>> fb = Fretboard.guitar()
             >>> chart = fb.chart()
             >>> chart["Am7"]
-            Fingering(e=0, B=1, G=0, D=2, A=0, E=0)
+            Fingering(E=0, A=0, D=2, G=0, B=1, e=0)
         """
         from .charts import charts_for_fretboard, CHARTS
         return charts_for_fretboard(chart=CHARTS[system], fretboard=self)
@@ -2009,13 +1995,16 @@ class Fretboard:
         """
         from .charts import Fingering
 
-        if not len(positions) == len(self.tones):
+        if not len(positions) == len(self._tones):
             raise ValueError(
                 "The number of positions must match the number of tones (strings)."
             )
 
-        string_names = tuple(t.name for t in self.tones)
-        return Fingering(positions, string_names, fretboard=self)
+        # Positions arrive in this board's orientation; canonicalise them
+        # (high-to-low) to match the internal tone order Fingering expects.
+        string_names = tuple(t.name for t in self._tones)
+        return Fingering(self._orient(positions), string_names, fretboard=self,
+                         high_to_low=self.high_to_low)
 
 
 def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major") -> list[str | None]:

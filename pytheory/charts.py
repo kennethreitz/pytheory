@@ -13,7 +13,8 @@ STANDARD_GUITAR_TUNING = ("E4", "B3", "G3", "D3", "A2", "E2")
 
 # Curated override fingerings for common guitar chords in standard tuning.
 # Key: chord name, Value: tuple of fret positions (-1 = muted string).
-# Order is high-to-low (matching Fretboard.guitar() string order).
+# Order is canonical high-to-low (high-E first); Fingering re-orients these
+# to the board's display orientation (low-to-high by default since v0.43.0).
 GUITAR_OVERRIDES = {
     "C":    (0, 1, 0, 2, 3, -1),
     "D":    (2, 3, 2, 0, -1, -1),
@@ -60,11 +61,16 @@ class Fingering:
         3
     """
 
-    def __init__(self, positions: tuple, string_names: tuple[str, ...], *, fretboard=None) -> None:
-        self.positions = tuple(positions)
+    def __init__(self, positions: tuple, string_names: tuple[str, ...], *,
+                 fretboard=None, high_to_low: bool = True) -> None:
+        # `positions` / `string_names` arrive in canonical (high-to-low)
+        # order; `high_to_low` controls only how they're presented. The
+        # default (True) keeps standalone construction high-to-low.
+        self.high_to_low = high_to_low
+        self._positions = tuple(positions)
         self._fretboard = fretboard
-        # Disambiguate duplicate names: for standard guitar tuning
-        # (high-to-low), the first occurrence of a duplicate becomes
+        # Disambiguate duplicate names in canonical (high-to-low) order:
+        # the first (higher-pitched) occurrence of a duplicate becomes
         # lowercase (e.g. high E → 'e') while the last keeps uppercase.
         from collections import Counter
         name_counts = Counter(string_names)
@@ -77,8 +83,22 @@ class Fingering:
             else:
                 unique_names.append(name)
 
-        self.string_names = tuple(unique_names)
-        self._map = dict(zip(self.string_names, self.positions))
+        self._string_names = tuple(unique_names)
+        self._map = dict(zip(self._string_names, self._positions))
+
+    def _orient(self, seq):
+        """Re-orient a canonical (high-to-low) sequence for display."""
+        return tuple(seq) if self.high_to_low else tuple(reversed(seq))
+
+    @property
+    def positions(self) -> tuple:
+        """Fret positions in this fingering's orientation (low-to-high by default)."""
+        return self._orient(self._positions)
+
+    @property
+    def string_names(self) -> tuple:
+        """String names in this fingering's orientation (low-to-high by default)."""
+        return self._orient(self._string_names)
 
     def __repr__(self) -> str:
         pairs = ", ".join(
@@ -114,11 +134,12 @@ class Fingering:
         """
         if self._fretboard is None:
             raise ValueError("Cannot resolve tones without a fretboard reference.")
-        tones = []
-        for pos, tone in zip(self.positions, self._fretboard.tones):
-            if pos is not None:
-                tones.append(tone.add(pos))
-        return tones
+        # Zip canonical positions with canonical open tones so they always
+        # align regardless of orientation, then present in display order.
+        tones = [tone.add(pos)
+                 for pos, tone in zip(self._positions, self._fretboard._tones)
+                 if pos is not None]
+        return tones if self.high_to_low else list(reversed(tones))
 
     def to_chord(self, fretboard=None) -> "Chord":
         """Apply this fingering to a fretboard, returning a Chord.
@@ -131,10 +152,9 @@ class Fingering:
         fb = fretboard or self._fretboard
         if fb is None:
             raise ValueError("No fretboard provided.")
-        tones = []
-        for pos, tone in zip(self.positions, fb.tones):
-            if pos is not None:
-                tones.append(tone.add(pos))
+        tones = [tone.add(pos)
+                 for pos, tone in zip(self._positions, fb._tones)
+                 if pos is not None]
         return Chord(tones=tones)
 
     def identify(self) -> Optional[str]:
@@ -151,12 +171,12 @@ class Fingering:
             >>> fb = Fretboard.guitar()
             >>> print(fb.chord("C").tab())
             C
-            e|--0--
-            B|--1--
-            G|--0--
-            D|--2--
+            E|--x--
             A|--3--
-            E|--0--
+            D|--2--
+            G|--0--
+            B|--1--
+            e|--0--
         """
         if self._fretboard is None:
             raise ValueError("Cannot render tab without a fretboard reference.")
@@ -306,7 +326,7 @@ class NamedChord:
             return tuple(fingerings)
 
         fingering = []
-        for i, tone in enumerate(fretboard.tones):
+        for i, tone in enumerate(fretboard._tones):
             frets = find_fingerings(tone)
             # Always allow muting as an option
             if frets:
@@ -335,8 +355,13 @@ class NamedChord:
         return tuple(itertools.product(*self._possible_fingerings(fretboard=fretboard)))
 
     def _cache_key(self, fretboard):
-        """Return a hashable key for memoization."""
-        return (self.name, tuple(t.full_name for t in fretboard.tones))
+        """Return a hashable key for memoization.
+
+        Keyed on canonical tones plus orientation so the two display
+        orderings of the same board don't collide in the result caches.
+        """
+        return (self.name, tuple(t.full_name for t in fretboard._tones),
+                fretboard.high_to_low)
 
     def fingering(self, *, fretboard, multiple=False):
         # Check cache first
@@ -348,19 +373,22 @@ class NamedChord:
             if key in _fingering_cache:
                 return _fingering_cache[key]
 
-        # Check for curated guitar chord overrides in standard tuning
-        tuning = tuple(t.full_name for t in fretboard.tones)
+        # Check for curated guitar chord overrides in standard tuning.
+        # Overrides are written in canonical (high-to-low) order.
+        tuning = tuple(t.full_name for t in fretboard._tones)
         if tuning == STANDARD_GUITAR_TUNING and self.name in GUITAR_OVERRIDES:
-            string_names = tuple(t.name for t in fretboard.tones)
+            string_names = tuple(t.name for t in fretboard._tones)
             override = GUITAR_OVERRIDES[self.name]
             if not multiple:
-                result = Fingering(self.fix_fingering(override), string_names, fretboard=fretboard)
+                result = Fingering(self.fix_fingering(override), string_names,
+                                   fretboard=fretboard, high_to_low=fretboard.high_to_low)
                 if len(_fingering_cache) >= _CACHE_MAX_SIZE:
                     _fingering_cache.clear()
                 _fingering_cache[key] = result
                 return result
             else:
-                result = (Fingering(self.fix_fingering(override), string_names, fretboard=fretboard),)
+                result = (Fingering(self.fix_fingering(override), string_names,
+                                    fretboard=fretboard, high_to_low=fretboard.high_to_low),)
                 if len(_fingering_multi_cache) >= _CACHE_MAX_SIZE:
                     _fingering_multi_cache.clear()
                 _fingering_multi_cache[key] = result
@@ -390,7 +418,7 @@ class NamedChord:
             sounding_names = set()
             for i, f in enumerate(fingering):
                 if f != -1:
-                    sounding_names.add(fretboard.tones[i].add(f).name)
+                    sounding_names.add(fretboard._tones[i].add(f).name)
             required = set(t.name for t in self.acceptable_tones)
             missing = required - sounding_names
             score -= len(missing) * 5.0
@@ -433,12 +461,13 @@ class NamedChord:
             if fingers_needed > 4:
                 score -= (fingers_needed - 4) * 5.0
 
-            # Reward root in bass — the lowest sounding string
+            # Reward root in bass — the lowest sounding string. `fingering`
+            # is canonical (high-to-low), so the last index is the bass.
             for i in range(len(fingering) - 1, -1, -1):
                 f = fingering[i]
                 if f == -1:
                     continue
-                bass_tone = fretboard.tones[i].add(f)
+                bass_tone = fretboard._tones[i].add(f)
                 if bass_tone.name == self.tone.name:
                     score += 4.0
                 else:
@@ -467,17 +496,20 @@ class NamedChord:
                 if s == max_score:
                     yield possible_fingering
 
-        string_names = tuple(t.name for t in fretboard.tones)
+        string_names = tuple(t.name for t in fretboard._tones)
         best_fingerings = tuple([g for g in gen()])
         if not multiple:
-            result = Fingering(self.fix_fingering(best_fingerings[0]), string_names, fretboard=fretboard)
+            result = Fingering(self.fix_fingering(best_fingerings[0]), string_names,
+                               fretboard=fretboard, high_to_low=fretboard.high_to_low)
             # Bounded cache: clear entirely if over limit
             if len(_fingering_cache) >= _CACHE_MAX_SIZE:
                 _fingering_cache.clear()
             _fingering_cache[key] = result
             return result
         else:
-            result = tuple([Fingering(self.fix_fingering(f), string_names, fretboard=fretboard) for f in best_fingerings])
+            result = tuple([Fingering(self.fix_fingering(f), string_names,
+                                      fretboard=fretboard, high_to_low=fretboard.high_to_low)
+                            for f in best_fingerings])
             # Bounded cache: clear entirely if over limit
             if len(_fingering_multi_cache) >= _CACHE_MAX_SIZE:
                 _fingering_multi_cache.clear()
@@ -491,18 +523,21 @@ class NamedChord:
 
             >>> print(CHARTS["western"]["C"].tab(fretboard=Fretboard.guitar()))
             C
-            e|--0--
-            B|--1--
-            G|--0--
-            D|--2--
+            E|--x--
             A|--3--
-            E|--0--
+            D|--2--
+            G|--0--
+            B|--1--
+            e|--0--
         """
         fingering = self.fingering(fretboard=fretboard)
-        string_names = [t.name for t in fretboard.tones]
+        # Use the fingering's oriented, disambiguated string names/positions
+        # so the tab honors the fretboard's orientation.
+        string_names = fingering.string_names
+        positions = fingering.positions
         lines = [self.name]
         max_name = max(len(n) for n in string_names)
-        for i, (name, fret) in enumerate(zip(string_names, fingering)):
+        for name, fret in zip(string_names, positions):
             fret_str = "x" if fret is None else str(fret)
             lines.append(f"{name:>{max_name}}|--{fret_str}--")
         return "\n".join(lines)

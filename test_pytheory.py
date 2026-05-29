@@ -482,7 +482,8 @@ def test_fretboard_creation():
         Tone(name="A", octave=2),
         Tone(name="E", octave=2),
     ]
-    fretboard = Fretboard(tones=standard_tuning)
+    # Literal is written high-to-low, so declare that orientation.
+    fretboard = Fretboard(tones=standard_tuning, high_to_low=True)
     assert len(fretboard.tones) == 6
     assert fretboard.tones[0].full_name == "E4"
     assert fretboard.tones[-1].full_name == "E2"
@@ -505,7 +506,8 @@ def guitar_fretboard():
         Tone.from_string("A2"),
         Tone.from_string("E2"),
     ]
-    return Fretboard(tones=tuning)
+    # Literal is written high-to-low, so declare that orientation.
+    return Fretboard(tones=tuning, high_to_low=True)
 
 
 def test_chord_fingering_c(guitar_fretboard):
@@ -1767,28 +1769,32 @@ def test_chord_contains_tone():
 def test_fretboard_guitar():
     fb = Fretboard.guitar()
     assert len(fb) == 6
+    # Low-to-high by default (v0.43.0).
     names = [t.name for t in fb]
-    assert names == ["E", "B", "G", "D", "A", "E"]
+    assert names == ["E", "A", "D", "G", "B", "E"]
+    # high_to_low=True restores the pre-0.43 order.
+    assert [t.name for t in Fretboard.guitar(high_to_low=True)] == \
+        ["E", "B", "G", "D", "A", "E"]
 
 
 def test_fretboard_guitar_octaves():
     fb = Fretboard.guitar()
     octaves = [t.octave for t in fb]
-    assert octaves == [4, 3, 3, 3, 2, 2]
+    assert octaves == [2, 2, 3, 3, 3, 4]
 
 
 def test_fretboard_bass():
     fb = Fretboard.bass()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["G", "D", "A", "E"]
+    assert names == ["E", "A", "D", "G"]
 
 
 def test_fretboard_ukulele():
     fb = Fretboard.ukulele()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["A", "E", "C", "G"]
+    assert names == ["G", "C", "E", "A"]
 
 
 def test_fretboard_iter():
@@ -1821,8 +1827,9 @@ def test_fretboard_ukulele_fingerings():
 def test_fretboard_guitar_drop_d():
     fb = Fretboard.guitar("drop d")
     assert len(fb) == 6
-    assert fb.tones[-1].name == "D"
-    assert fb.tones[-1].octave == 2
+    # Low-to-high: the dropped low D is now the first string.
+    assert fb.tones[0].name == "D"
+    assert fb.tones[0].octave == 2
 
 
 def test_fretboard_guitar_open_g():
@@ -1840,7 +1847,8 @@ def test_fretboard_guitar_custom_tuple():
 def test_fretboard_bass_five_string():
     fb = Fretboard.bass(five_string=True)
     assert len(fb) == 5
-    assert fb.tones[-1].name == "B"
+    # Low-to-high: the added low B is the first string.
+    assert fb.tones[0].name == "B"
 
 
 def test_fretboard_tunings_dict():
@@ -1852,36 +1860,37 @@ def test_fretboard_tunings_dict():
 def test_fretboard_mandolin():
     fb = Fretboard.mandolin()
     assert len(fb) == 4
-    assert fb.tones[0].name == "E"
-    assert fb.tones[-1].name == "G"
+    # Low-to-high.
+    assert fb.tones[0].name == "G"
+    assert fb.tones[-1].name == "E"
 
 
 def test_fretboard_violin():
     fb = Fretboard.violin()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["E", "A", "D", "G"]
+    assert names == ["G", "D", "A", "E"]
 
 
 def test_fretboard_viola():
     fb = Fretboard.viola()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["A", "D", "G", "C"]
+    assert names == ["C", "G", "D", "A"]
 
 
 def test_fretboard_cello():
     fb = Fretboard.cello()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["A", "D", "G", "C"]
-    assert fb.tones[0].octave == 3
+    assert names == ["C", "G", "D", "A"]
+    assert fb.tones[0].octave == 2
 
 
 def test_fretboard_banjo():
     fb = Fretboard.banjo()
     assert len(fb) == 5
-    assert fb.tones[-1].name == "G"  # high drone string
+    assert fb.tones[0].name == "G"  # high drone string (now first, low-to-high)
 
 
 def test_fretboard_banjo_open_d():
@@ -1898,46 +1907,49 @@ def test_fretboard_violin_tuned_in_fifths():
     """Violin strings should be a perfect 5th apart."""
     fb = Fretboard.violin()
     for i in range(len(fb.tones) - 1):
-        interval = fb.tones[i] - fb.tones[i + 1]
+        # Low-to-high: each next string is a 5th higher.
+        interval = fb.tones[i + 1] - fb.tones[i]
         assert interval == 7, f"Strings {i} and {i+1} not a 5th apart"
 
 
 def test_fretboard_octave_mandolin():
     fb = Fretboard.octave_mandolin()
     assert len(fb) == 4
-    assert fb.tones[0].name == "E"
-    assert fb.tones[0].octave == 4
+    assert fb.tones[-1].name == "E"
+    assert fb.tones[-1].octave == 4
 
 
 def test_fretboard_mandocello():
     fb = Fretboard.mandocello()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["A", "D", "G", "C"]
-    assert fb.tones[0].octave == 3
+    assert names == ["C", "G", "D", "A"]
+    assert fb.tones[0].octave == 2
 
 
 def test_fretboard_double_bass():
     fb = Fretboard.double_bass()
     assert len(fb) == 4
     names = [t.name for t in fb]
-    assert names == ["G", "D", "A", "E"]
+    assert names == ["E", "A", "D", "G"]
 
 
 def test_fretboard_double_bass_tuned_in_fourths():
     fb = Fretboard.double_bass()
     for i in range(len(fb.tones) - 1):
-        interval = fb.tones[i] - fb.tones[i + 1]
+        # Low-to-high: each next string is a 4th higher.
+        interval = fb.tones[i + 1] - fb.tones[i]
         assert interval == 5, f"Strings {i} and {i+1} not a 4th apart"
 
 
 def test_fretboard_harp():
     fb = Fretboard.harp()
     assert len(fb) == 47
-    assert fb.tones[0].name == "G"
-    assert fb.tones[0].octave == 7
-    assert fb.tones[-1].name == "C"
-    assert fb.tones[-1].octave == 1
+    # Low-to-high.
+    assert fb.tones[0].name == "C"
+    assert fb.tones[0].octave == 1
+    assert fb.tones[-1].name == "G"
+    assert fb.tones[-1].octave == 7
 
 
 def test_fretboard_pedal_steel():
@@ -1950,7 +1962,7 @@ def test_mandolin_family_fifths():
     for name in ["mandolin", "mandola", "octave_mandolin", "mandocello"]:
         fb = getattr(Fretboard, name)()
         for i in range(len(fb.tones) - 1):
-            interval = fb.tones[i] - fb.tones[i + 1]
+            interval = fb.tones[i + 1] - fb.tones[i]
             assert interval == 7, f"{name} strings {i},{i+1} not a 5th apart"
 
 
@@ -1982,7 +1994,7 @@ def test_fretboard_shamisen():
 def test_fretboard_erhu():
     fb = Fretboard.erhu()
     assert len(fb) == 2
-    assert fb.tones[0] - fb.tones[1] == 7  # tuned in 5ths
+    assert fb.tones[1] - fb.tones[0] == 7  # tuned in 5ths (low-to-high)
 
 
 def test_fretboard_bouzouki_irish():
@@ -2003,8 +2015,8 @@ def test_fretboard_charango():
 def test_fretboard_balalaika():
     fb = Fretboard.balalaika()
     assert len(fb) == 3
-    # Two unison strings
-    assert fb.tones[1].name == fb.tones[2].name
+    # Two unison strings (now the lowest two, low-to-high)
+    assert fb.tones[0].name == fb.tones[1].name
 
 
 def test_fretboard_lute():
@@ -2030,13 +2042,68 @@ def test_keyboard_88():
 def test_keyboard_25():
     kb = Fretboard.keyboard(25, "C3")
     assert len(kb) == 25
-    assert kb.tones[-1].name == "C"
-    assert kb.tones[-1].octave == 3
+    # Low-to-high: the start note is now the first key.
+    assert kb.tones[0].name == "C"
+    assert kb.tones[0].octave == 3
 
 
 def test_keyboard_custom():
     kb = Fretboard.keyboard(61, "C2")
     assert len(kb) == 61
+
+
+# ── Fingering orientation (low-to-high default, v0.43.0) ─────────────────────
+
+def test_chord_low_to_high_default():
+    """By default, chord fingerings read low-to-high (low E first)."""
+    fb = Fretboard.guitar()
+    g = fb.chord("G")
+    assert g.string_names == ("E", "A", "D", "G", "B", "e")
+    assert g.positions == (3, 2, 0, 0, 0, 3)
+
+
+def test_chord_high_to_low_opt_out():
+    """high_to_low=True restores the pre-0.43 high-to-low order."""
+    fb = Fretboard.guitar(high_to_low=True)
+    g = fb.chord("G")
+    assert g.string_names == ("e", "B", "G", "D", "A", "E")
+    assert g.positions == (3, 0, 0, 0, 2, 3)
+
+
+def test_orientation_is_a_reversal():
+    """The two orientations are exact reverses of each other."""
+    lo = Fretboard.guitar().chord("Am7")
+    hi = Fretboard.guitar(high_to_low=True).chord("Am7")
+    assert lo.positions == tuple(reversed(hi.positions))
+    # ...and identify to the same chord.
+    assert lo.identify() == hi.identify()
+
+
+def test_manual_fingering_input_orientation():
+    """Manual fret positions are read in the board's orientation."""
+    lo = Fretboard.guitar()
+    hi = Fretboard.guitar(high_to_low=True)
+    # Same physical G voicing, expressed in each orientation.
+    assert lo.fingering(3, 2, 0, 0, 0, 3) == lo.chord("G")
+    assert hi.fingering(3, 0, 0, 0, 2, 3) == hi.chord("G")
+
+
+def test_orientation_cache_no_collision():
+    """The two orientations must not collide in the fingering cache."""
+    lo = Fretboard.guitar().chord("C")
+    hi = Fretboard.guitar(high_to_low=True).chord("C")
+    assert lo.positions != hi.positions
+    assert lo.positions == tuple(reversed(hi.positions))
+
+
+def test_to_tab_orientation_agnostic():
+    """to_tab output is identical regardless of board orientation."""
+    from pytheory import Part
+    notes = ["C4", "E4", "G4"]
+    p_lo = Part("test"); [p_lo.add(n) for n in notes]
+    p_hi = Part("test"); [p_hi.add(n) for n in notes]
+    assert p_lo.to_tab(tuning=Fretboard.guitar()) == \
+        p_hi.to_tab(tuning=Fretboard.guitar(high_to_low=True))
 
 
 # ── Ergonomic integration tests ─────────────────────────────────────────────
