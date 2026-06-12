@@ -152,7 +152,7 @@ Drums::
      score.drums("bossa nova", repeats=4)
 
    pytheory> drums
-     (lists all 58 presets)
+     (lists all 100 presets)
 
 Parts — each with its own synth and envelope::
 

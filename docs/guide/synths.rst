@@ -565,7 +565,7 @@ more "wooden" than a raw saw wave.
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_strings.wav" type="audio/wav"></audio>
 
 Dedicated Instrument Synths
---------------------------
+---------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
 36 dedicated instrument synths. Each one uses tailored synthesis

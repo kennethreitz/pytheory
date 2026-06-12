@@ -715,7 +715,17 @@ class _DrumTone:
     """Wrapper so a DrumSound can be placed in a Part's note list."""
     __slots__ = ('sound',)
 
-    def __init__(self, sound: DrumSound):
+    def __init__(self, sound):
+        if isinstance(sound, str):
+            key = sound.strip().replace(" ", "_").replace("-", "_").upper()
+            try:
+                sound = DrumSound[key]
+            except KeyError:
+                raise ValueError(
+                    f"Unknown drum sound: {sound!r}. "
+                    f"Use a DrumSound member name like 'kick', 'snare', "
+                    f"or 'closed_hat'."
+                ) from None
         self.sound = sound
 
     def pitch(self, **kwargs):
@@ -3077,7 +3087,9 @@ class Part:
         all work on individual hits.
 
         Args:
-            sound: A :class:`DrumSound` enum member (e.g. ``DrumSound.KICK``).
+            sound: A :class:`DrumSound` enum member (e.g. ``DrumSound.KICK``)
+                or its name as a string (``"kick"``, ``"snare"``,
+                ``"closed_hat"`` — case-insensitive).
             duration: How long the hit occupies in the timeline (default 8th note).
             velocity: Hit loudness 1-127.
             articulation: ``"accent"``, ``"staccato"``, ``"marcato"``, etc.
@@ -3085,7 +3097,7 @@ class Part:
         Example::
 
             >>> drums = score.part("kit", synth="sine")
-            >>> drums.hit(DrumSound.KICK, Duration.QUARTER, articulation="accent")
+            >>> drums.hit("kick", Duration.QUARTER, articulation="accent")
             >>> drums.hit(DrumSound.CLOSED_HAT, Duration.EIGHTH)
         """
         if isinstance(duration, (int, float)):

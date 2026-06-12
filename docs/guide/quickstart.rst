@@ -202,8 +202,9 @@ signatures, modulation paths, borrowed chords), scale recommendation.
 with 5 patterns. Legato with pitch glide. Per-note velocity. Swing.
 Tempo changes. Fade in/out. Song sections with repeat. Humanize.
 
-**Synthesis** — 10 waveforms: sine, saw, triangle, square, pulse, FM,
-noise, supersaw, PWM slow, PWM fast. 8 ADSR envelopes. Detune.
+**Synthesis** — 56 waveforms: the 10 classics (sine, saw, triangle,
+square, pulse, FM, noise, supersaw, PWM slow, PWM fast) plus 46
+modeled instruments. 10 ADSR envelopes. Detune.
 Stereo pan and spread.
 
 **Effects** — distortion, chorus, lowpass filter (with resonance),
@@ -211,11 +212,11 @@ delay, reverb (algorithmic + 7 stereo convolution presets including
 Taj Mahal with 12-second tail). All per-part with automation and
 LFO modulation. Sidechain compression. Master bus compressor/limiter.
 
-**Drums** — 58 pattern presets (rock, jazz, salsa, bossa nova,
-afrobeat, house, trap, and 50+ more). 21 fill presets. 27 synthesized
+**Drums** — 100 pattern presets (rock, jazz, salsa, bossa nova,
+afrobeat, house, trap, and 90+ more). 37 fill presets. 74 synthesized
 drum voices with stereo panning.
 
-**Instruments** — 25 presets (guitar with 8 tunings, bass, ukulele,
+**Instruments** — 83 presets (guitar with 8 tunings, bass, ukulele,
 mandolin family, violin family, banjo, harp, oud, sitar, erhu, and
 more) with chord fingering generation and scale diagrams.
 
@@ -233,7 +234,7 @@ Where to Go Next
 - :doc:`scales` — scales, modes, and keys
 - :doc:`chords` — chord construction, analysis, and progressions
 - :doc:`sequencing` — composing multi-part arrangements
-- :doc:`synths` — the 10 waveforms and 8 envelopes
+- :doc:`synths` — the 56 waveforms and 10 envelopes
 - :doc:`effects` — reverb, delay, distortion, chorus, lowpass, automation
-- :doc:`drums` — 58 patterns, 21 fills, drum synthesis
+- :doc:`drums` — 100 patterns, 37 fills, drum synthesis
 - :doc:`playback` — play, save, export

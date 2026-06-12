@@ -29,6 +29,74 @@ SAMPLE_RATE = 44_100   # CD-quality sample rate (Hz)
 SAMPLE_PEAK = 4_096    # Peak amplitude for 16-bit integer samples
 
 
+def _feedback_comb(x, delay, gain):
+    """Feedback comb filter: y[n] = x[n-delay] + gain*y[n-delay].
+
+    The recurrence only couples samples exactly `delay` apart, so the
+    signal splits into `delay` independent first-order recurrences —
+    reshape to (k, delay) and run a first-order IIR down each column in C.
+    """
+    n = len(x)
+    k = -(-n // delay)
+    padded = numpy.zeros(k * delay, dtype=numpy.float64)
+    padded[:n] = x
+    cols = padded.reshape(k, delay)
+    out = scipy.signal.lfilter([0.0, 1.0], [1.0, -gain], cols, axis=0)
+    return out.reshape(-1)[:n].astype(numpy.float32)
+
+
+def _schroeder_allpass(x, delay, gain):
+    """Schroeder allpass: H(z) = (-g + z^-D) / (1 - g·z^-D).
+
+    Same stride-decoupling trick as :func:`_feedback_comb`.
+    """
+    n = len(x)
+    k = -(-n // delay)
+    padded = numpy.zeros(k * delay, dtype=numpy.float64)
+    padded[:n] = x
+    cols = padded.reshape(k, delay)
+    out = scipy.signal.lfilter([-gain, 1.0], [1.0, -gain], cols, axis=0)
+    return out.reshape(-1)[:n].astype(numpy.float32)
+
+
+def _karplus_strong(initial, n_samples, w_old, w_new, damp):
+    """Run a Karplus-Strong string as a single IIR filter in C.
+
+    Equivalent to the classic ring-buffer loop
+    ``buf[i%p] = damp*(w_old*buf[i%p] + w_new*buf[(i+1)%p])`` —
+    unrolled, that's ``y[n] = damp*(w_old*y[n-p] + w_new*y[n-p+1])``
+    seeded with the initial pluck buffer.
+    """
+    p = len(initial)
+    x = numpy.zeros(n_samples, dtype=numpy.float64)
+    seed_len = min(p, n_samples)
+    x[:seed_len] = initial[:seed_len]
+    # The recurrence only holds from n >= p; cancel the spurious
+    # y[n-p+1] tap that would otherwise fire once at n == p-1.
+    if p - 1 < n_samples:
+        x[p - 1] -= damp * w_new * x[0]
+    a = numpy.zeros(p + 1)
+    a[0] = 1.0
+    a[p - 1] -= damp * w_new
+    a[p] -= damp * w_old
+    return scipy.signal.lfilter([1.0], a, x)
+
+
+def _one_pole_lowpass(x, alpha, y0=None):
+    """One-pole smoother: y[n] = y[n-1] + alpha*(x[n] - y[n-1]).
+
+    If `y0` is given, the filter starts from that value (matching loops
+    that seed ``y[0] = x[0]``); otherwise it starts from rest.
+    """
+    b = [alpha]
+    a = [1.0, alpha - 1.0]
+    if y0 is None:
+        return scipy.signal.lfilter(b, a, x)
+    zi = numpy.array([(1.0 - alpha) * y0])
+    out, _ = scipy.signal.lfilter(b, a, x, zi=zi)
+    return out
+
+
 def sine_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Compute N samples of a sine wave with given frequency and peak amplitude.
     Defaults to one second.
@@ -226,17 +294,14 @@ def hard_sync_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     master_phase = (t * hz) % 1.0
     # Detect master zero-crossings (phase resets)
     resets = numpy.diff(master_phase, prepend=master_phase[0]) < -0.5
-    # Slave phase: runs at slave_ratio * hz, but resets with master
-    slave_phase = numpy.zeros(n_samples, dtype=numpy.float64)
-    phase = 0.0
+    # Slave phase: runs at slave_ratio * hz, but resets with master.
+    # Phase at sample i is just (samples since last reset) * freq * dt,
+    # so find each sample's most recent reset with a running maximum.
     slave_freq = hz * slave_ratio
     dt = 1.0 / SAMPLE_RATE
-    for i in range(n_samples):
-        if resets[i]:
-            phase = 0.0
-        slave_phase[i] = phase
-        phase += slave_freq * dt
-        phase %= 1.0
+    idx = numpy.arange(n_samples, dtype=numpy.int64)
+    last_reset = numpy.maximum.accumulate(numpy.where(resets, idx, 0))
+    slave_phase = ((idx - last_reset) * slave_freq * dt) % 1.0
     # Slave is a sawtooth: 2*phase - 1
     wave = 2.0 * slave_phase - 1.0
     return (peak * wave).astype(numpy.int16)
@@ -326,10 +391,8 @@ def drift_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
     jitter_raw = rng.normal(0, drift_amount * 0.08, n_samples)
     # Simple one-pole lowpass for jitter smoothing
     alpha = 2 * numpy.pi * 50.0 / SAMPLE_RATE
-    jitter = numpy.zeros(n_samples, dtype=numpy.float64)
-    jitter[0] = jitter_raw[0]
-    for i in range(1, n_samples):
-        jitter[i] = jitter[i-1] + alpha * (jitter_raw[i] - jitter[i-1])
+    jitter = _one_pole_lowpass(jitter_raw, alpha,
+                               y0=jitter_raw[0] if n_samples else None)
 
     # Instantaneous frequency with drift (in cents, converted to ratio)
     cents_offset = drift1 + drift2 + jitter
@@ -384,11 +447,7 @@ def pluck_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         period = 2
     # Initial noise burst — the "pluck"
     buf = numpy.random.uniform(-1.0, 1.0, period).astype(numpy.float64)
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        # Averaging filter: smooth adjacent samples (Karplus-Strong)
-        buf[i % period] = 0.5 * (buf[i % period] + buf[(i + 1) % period]) * 0.998
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.998)
     return (peak * out).astype(numpy.int16)
 
 
@@ -489,6 +548,7 @@ def piano_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Piano — steel strings struck by felt hammer.
 
     The piano sound has three key qualities:
+
     1. Metallic ring — steel strings produce clear, ringing harmonics
        (especially 2nd and 3rd) that sustain for seconds
     2. Smooth attack — felt hammer absorbs the initial transient,
@@ -1040,13 +1100,8 @@ def bass_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         for k in range(period - 1):
             buf[k] = 0.5 * buf[k] + 0.5 * buf[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        # Heavier damping on highs — thick string loses brightness fast
-        buf[i % period] = 0.45 * buf[i % period] + 0.55 * buf[next_idx]
-        buf[i % period] *= 0.9992
+    # Heavier damping on highs — thick string loses brightness fast
+    out = _karplus_strong(buf, n_samples, 0.45, 0.55, 0.9992)
 
     # Low-mid emphasis (pickup position)
     bl, al = scipy.signal.butter(2, 1200, btype='low', fs=SAMPLE_RATE)
@@ -1269,12 +1324,8 @@ def harpsichord_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     for k in range(period - 1):
         buf[k] = 0.7 * buf[k] + 0.3 * buf[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        # Moderate decay — not as long as piano, not as short as guitar
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.999
+    # Moderate decay — not as long as piano, not as short as guitar
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.999)
 
     # Harpsichord has a distinctive "chiff" — the quill release
     chiff_len = min(int(SAMPLE_RATE * 0.003), n_samples)
@@ -1411,11 +1462,7 @@ def upright_bass_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         for k in range(period - 1):
             buf[k] = 0.5 * buf[k] + 0.5 * buf[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9985
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.9985)
 
     # Wooden body resonance — big, round
     for center, bw, gain in [(80, 40, 0.4), (200, 60, 0.3), (400, 100, 0.15)]:
@@ -1491,6 +1538,7 @@ def saxophone_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Saxophone — single reed driving a conical brass bore.
 
     Models the key acoustic properties of a saxophone:
+
     1. Reed-bore interaction — nonlinear clipping creates the characteristic
        bright, edgy tone (not just additive sines)
     2. Conical bore formants — vocal-like resonances at ~500, ~1400, ~2300,
@@ -2123,12 +2171,8 @@ def banjo_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     for k in range(period - 1):
         buf[k] = 0.7 * buf[k] + 0.3 * buf[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        # Moderate decay — drum head rings but shorter than guitar
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9988
+    # Moderate decay — drum head rings but shorter than guitar
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.9988)
 
     # Drum-head resonance — nasal, ringy, mid-frequency peaks
     # The membrane head rings more than wood — that's the twang
@@ -2168,15 +2212,8 @@ def mandolin_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     for k in range(period2 - 1):
         buf2[k] = 0.65 * buf2[k] + 0.35 * buf2[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        s1 = buf1[i % period]
-        s2 = buf2[i % period2]
-        out[i] = s1 * 0.55 + s2 * 0.45
-        next1 = (i + 1) % period
-        buf1[i % period] = 0.5 * (s1 + buf1[next1]) * 0.9988
-        next2 = (i + 1) % period2
-        buf2[i % period2] = 0.5 * (s2 + buf2[next2]) * 0.9988
+    out = (_karplus_strong(buf1, n_samples, 0.5, 0.5, 0.9988) * 0.55
+           + _karplus_strong(buf2, n_samples, 0.5, 0.5, 0.9988) * 0.45)
 
     # Small bright body — higher resonance than guitar
     import scipy.signal as _sig
@@ -2211,11 +2248,7 @@ def ukulele_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         for k in range(period - 1):
             buf[k] = 0.55 * buf[k] + 0.45 * buf[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.998
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.998)
 
     # Small body resonance — mid-heavy, no deep bass
     import scipy.signal as _sig
@@ -2239,6 +2272,7 @@ def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Acoustic guitar — Karplus-Strong with wooden body resonance.
 
     Models a steel string exciting a resonant wooden body:
+
     1. Karplus-Strong plucked string (softer initial noise than pure KS)
     2. Body resonance — bandpass filters at the guitar body's natural
        frequencies (~100Hz air cavity, ~250Hz top plate, ~500Hz back)
@@ -2257,13 +2291,8 @@ def acoustic_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
         for k in range(period - 1):
             buf[k] = 0.6 * buf[k] + 0.4 * buf[k + 1]
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-
     # Karplus-Strong with moderate decay
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9988
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.9988)
 
     # Body resonance — three formant peaks modeling the guitar body
     # These interact with the string harmonics to create the "woody" tone
@@ -2292,6 +2321,7 @@ def electric_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Electric guitar — Karplus-Strong through magnetic pickup simulation.
 
     Models a steel string vibrating over a magnetic pickup:
+
     1. Karplus-Strong plucked string (brighter than acoustic)
     2. Pickup comb filter — a magnetic pickup at 1/4 string length
        cancels the 4th harmonic and boosts the 2nd, creating the
@@ -2307,14 +2337,9 @@ def electric_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     # Initial pluck — steel string, bright pick attack
     buf = rng.uniform(-1.0, 1.0, period).astype(numpy.float64)
 
-    out = numpy.zeros(n_samples, dtype=numpy.float64)
-
-    # Karplus-Strong with slightly less damping than acoustic
-    for i in range(n_samples):
-        out[i] = buf[i % period]
-        next_idx = (i + 1) % period
-        # Less damping = more sustain (steel string, no wood body absorbing)
-        buf[i % period] = 0.5 * (buf[i % period] + buf[next_idx]) * 0.9993
+    # Karplus-Strong with slightly less damping than acoustic —
+    # less damping = more sustain (steel string, no wood body absorbing)
+    out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.9993)
 
     # Magnetic pickup simulation — comb filter at pickup position.
     # A pickup at 1/4 of the string length cancels the 4th harmonic
@@ -2328,13 +2353,12 @@ def electric_guitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
     # Slight single-coil brightness boost
     # High-shelf boost above 2kHz using a simple 1-pole
-    t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
-    brightness = numpy.zeros(n_samples, dtype=numpy.float64)
     if n_samples > 1:
         alpha = 0.15
-        brightness[0] = out[0]
-        for i in range(1, n_samples):
-            brightness[i] = alpha * (out[i] - out[i-1]) + (1 - alpha) * brightness[i-1]
+        # y[i] = alpha*(x[i] - x[i-1]) + (1-alpha)*y[i-1], seeded y[0] = x[0]
+        zi = numpy.array([(1 - alpha) * out[0]])
+        brightness, _ = scipy.signal.lfilter(
+            [alpha, -alpha], [1.0, alpha - 1.0], out, zi=zi)
         out = out + brightness * 0.2
 
     # Normalize
@@ -2349,6 +2373,7 @@ def sitar_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Sitar — Karplus-Strong with jawari bridge buzz and sympathetic strings.
 
     The sitar's distinctive sound comes from three things:
+
     1. The jawari (bridge) — a wide, curved bridge where the string
        buzzes against the surface, creating rich harmonics and that
        characteristic "zzz" tone. Modeled as a soft-clip nonlinearity
@@ -4814,23 +4839,14 @@ def _apply_reverb(samples, mix=0.3, decay=1.0, sample_rate=SAMPLE_RATE):
     comb_gains = [0.001 ** (d / sample_rate / decay) for d in comb_delays]
 
     for delay, gain in zip(comb_delays, comb_gains):
-        buf = numpy.zeros(n + delay, dtype=numpy.float32)
-        for i in range(n):
-            buf[i + delay] += samples[i] + gain * buf[i]
-        out += buf[:n]
+        out += _feedback_comb(samples, delay, gain)
 
     out /= len(comb_delays)
 
     # Allpass filters for diffusion
     for delay_sec in [0.005, 0.0017]:
         delay = int(delay_sec * sample_rate)
-        gain = 0.7
-        buf = numpy.zeros(n + delay, dtype=numpy.float32)
-        result = numpy.zeros(n, dtype=numpy.float32)
-        for i in range(n):
-            buf[i + delay] = out[i] + gain * buf[i]
-            result[i] = -gain * buf[i + delay] + buf[i]
-        out = result
+        out = _schroeder_allpass(out, delay, 0.7)
 
     return samples * (1 - mix) + out * mix
 
@@ -4869,21 +4885,12 @@ def _apply_reverb_stereo(samples, mix=0.3, decay=1.0, width=0.8,
         out = numpy.zeros(n, dtype=numpy.float32)
         comb_gains = [0.001 ** (d / sample_rate / decay) for d in comb_delays]
         for delay, gain in zip(comb_delays, comb_gains):
-            buf = numpy.zeros(n + delay, dtype=numpy.float32)
-            for i in range(n):
-                buf[i + delay] += samples[i] + gain * buf[i]
-            out += buf[:n]
+            out += _feedback_comb(samples, delay, gain)
         out /= len(comb_delays)
         # Allpass diffusion
         for delay_sec in [0.005, 0.0017]:
             delay = int(delay_sec * sample_rate)
-            gain = 0.7
-            buf = numpy.zeros(n + delay, dtype=numpy.float32)
-            result = numpy.zeros(n, dtype=numpy.float32)
-            for i in range(n):
-                buf[i + delay] = out[i] + gain * buf[i]
-                result[i] = -gain * buf[i + delay] + buf[i]
-            out = result
+            out = _schroeder_allpass(out, delay, 0.7)
         return out
 
     wet_L = _run_reverb(comb_delays_L)
@@ -5060,10 +5067,9 @@ def _apply_chorus(samples, mix=0.5, rate=1.5, depth=0.003,
 
     # Build the modulated delayed copy
     wet = numpy.zeros(n, dtype=numpy.float32)
-    for i in range(n):
-        read_pos = i - delay_samples[i]
-        if 0 <= read_pos < n:
-            wet[i] = samples[read_pos]
+    read_pos = numpy.arange(n, dtype=numpy.int64) - delay_samples
+    valid = (read_pos >= 0) & (read_pos < n)
+    wet[valid] = samples[read_pos[valid]]
 
     return samples * (1 - mix * 0.5) + wet * mix * 0.5
 
@@ -5111,9 +5117,10 @@ def _apply_filter_envelope(samples, base_cutoff, amount, f_attack, f_decay,
     # Clamp cutoff to valid range
     cutoff_env = numpy.clip(cutoff_env, 20.0, sample_rate / 2 - 1)
 
-    # Block-based biquad processing with varying cutoff
-    # State variables for the filter
-    x1 = x2 = y1 = y2 = 0.0
+    # Block-based biquad processing with varying cutoff.
+    # Each block runs through lfilter in C; the filter state (zi)
+    # carries across block boundaries so sweeps stay click-free.
+    zi = numpy.zeros(2)
     pos = 0
     while pos < n:
         end = min(pos + block_size, n)
@@ -5132,17 +5139,9 @@ def _apply_filter_envelope(samples, base_cutoff, amount, f_attack, f_decay,
         a0 = 1 + alpha
         a1 = -2 * cos_w0
         a2 = 1 - alpha
-        # Normalize
-        b0 /= a0; b1 /= a0; b2 /= a0
-        a1 /= a0; a2 /= a0
-        # Process block sample by sample (maintaining state)
-        out_block = numpy.empty(len(block), dtype=numpy.float32)
-        for i in range(len(block)):
-            x0 = float(block[i])
-            y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
-            out_block[i] = y0
-            x2 = x1; x1 = x0
-            y2 = y1; y1 = y0
+        out_block, zi = scipy.signal.lfilter(
+            [b0 / a0, b1 / a0, b2 / a0], [1.0, a1 / a0, a2 / a0],
+            block.astype(numpy.float64), zi=zi)
         out[pos:end] = out_block
         pos = end
 
@@ -5437,18 +5436,37 @@ def _master_compress(samples, threshold=0.7, ratio=4.0, attack=0.002,
     if len(samples) == 0:
         return samples
 
-    # Compute envelope (absolute value, smoothed)
+    # Compute envelope (absolute value, smoothed). The attack/release
+    # follower runs at control rate — one value per 32-sample block,
+    # using the block peak so transients still register — then the
+    # gain curve is interpolated back to audio rate. The follower's
+    # time constants (≥2ms ≈ 88 samples) are much slower than a block
+    # (0.7ms), so the decimation is inaudible and ~30x faster than a
+    # per-sample Python loop.
     env = numpy.abs(samples)
-    alpha_a = 1.0 - numpy.exp(-1.0 / (attack * sample_rate))
-    alpha_r = 1.0 - numpy.exp(-1.0 / (release * sample_rate))
+    n = len(env)
+    block = 32
+    k = -(-n // block)
+    padded = numpy.zeros(k * block, dtype=numpy.float32)
+    padded[:n] = env
+    blk_peak = padded.reshape(k, block).max(axis=1)
 
-    smoothed = numpy.zeros(len(env), dtype=numpy.float32)
-    smoothed[0] = env[0]
-    for i in range(1, len(env)):
-        if env[i] > smoothed[i - 1]:
-            smoothed[i] = alpha_a * env[i] + (1 - alpha_a) * smoothed[i - 1]
-        else:
-            smoothed[i] = alpha_r * env[i] + (1 - alpha_r) * smoothed[i - 1]
+    alpha_a = 1.0 - numpy.exp(-block / (attack * sample_rate))
+    alpha_r = 1.0 - numpy.exp(-block / (release * sample_rate))
+
+    blk_smooth = numpy.empty(k, dtype=numpy.float32)
+    prev = blk_peak[0]
+    blk_smooth[0] = prev
+    for i in range(1, k):
+        e = blk_peak[i]
+        alpha = alpha_a if e > prev else alpha_r
+        prev = alpha * e + (1 - alpha) * prev
+        blk_smooth[i] = prev
+
+    # Interpolate block values back to per-sample resolution
+    blk_centers = numpy.arange(k) * block + block / 2
+    smoothed = numpy.interp(numpy.arange(n), blk_centers,
+                            blk_smooth).astype(numpy.float32)
 
     # Compute gain reduction
     gain = numpy.ones(len(samples), dtype=numpy.float32)
@@ -5531,7 +5549,15 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
 
     a, d, s, r = envelope_tuple
     _skw = synth_kwargs or {}
-    _synth_cache = {}  # (hz, n_samples) → waveform, avoids resynthesizing same note
+    _synth_cache = {}  # (hz, n_samples, kwargs) → waveform, avoids resynthesizing same note
+
+    def _synth_cached(hz, n_samples, skw):
+        cache_key = (hz, n_samples, tuple(sorted(skw.items())))
+        w = _synth_cache.get(cache_key)
+        if w is None:
+            w = synth_fn(hz, n_samples=n_samples, **skw)
+            _synth_cache[cache_key] = w
+        return w
     beat_pos = 0.0
     for note_index, note in enumerate(notes):
         if note.tone is not None:
@@ -5573,7 +5599,7 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 # Drum hit via Part.hit() — use drum synth directly
                 from .rhythm import _DrumTone
                 if isinstance(note.tone, _DrumTone):
-                    drum_wave = _render_drum_hit(note.tone.sound.value, n_samples)
+                    drum_wave = _render_drum_hit_cached(note.tone.sound.value, n_samples)
                     mixed = drum_wave.astype(numpy.float32)
                     # Staccato fade-out for drums
                     if art == 'staccato':
@@ -5648,15 +5674,8 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     if note_lyric:
                         note_skw['lyric'] = note_lyric
                     # Render oscillators (cached per hz+n_samples)
-                    waves = []
-                    for hz in pitches:
-                        cache_key = (hz, n_samples, tuple(sorted(note_skw.items())))
-                        if cache_key in _synth_cache:
-                            waves.append(_synth_cache[cache_key].copy())
-                        else:
-                            w = synth_fn(hz, n_samples=n_samples, **note_skw)
-                            _synth_cache[cache_key] = w
-                            waves.append(w)
+                    waves = [_synth_cached(hz, n_samples, note_skw)
+                             for hz in pitches]
                 # Sub-oscillator: octave-below sine
                 if sub_osc > 0:
                     for hz in pitches:
@@ -5671,8 +5690,8 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     for hz in pitches:
                         hz_up = hz * (2 ** (detune / 1200))
                         hz_down = hz * (2 ** (-detune / 1200))
-                        up_waves.append(synth_fn(hz_up, n_samples=n_samples, **_skw))
-                        down_waves.append(synth_fn(hz_down, n_samples=n_samples, **_skw))
+                        up_waves.append(_synth_cached(hz_up, n_samples, _skw))
+                        down_waves.append(_synth_cached(hz_down, n_samples, _skw))
                     if spread > 0 and stereo_buf is not None:
                         # Spread: detuned oscillators go to opposite channels
                         detune_up = sum(w.astype(numpy.float32) for w in up_waves) / SAMPLE_PEAK

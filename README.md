@@ -70,6 +70,30 @@ $ pytheory demo
 [('C', 'blues', 1.0), ...]
 ```
 
+## Guitar
+
+Chord fingerings, tabs, and scale diagrams for guitar and 24 other
+stringed instruments:
+
+```pycon
+>>> from pytheory import Fretboard
+
+>>> print(Fretboard.guitar().tab("Am"))
+A minor
+E|--x--
+A|--0--
+D|--2--
+G|--2--
+B|--1--
+e|--0--
+
+>>> Fretboard.guitar().chord("G")
+Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
+```
+
+Melodies and basslines render to ASCII tablature with `part.to_tab()`,
+and chord charts work in Nashville numbers too.
+
 ## Composition
 
 ```python
@@ -94,13 +118,13 @@ score.repeat("verse")
 score.repeat("chorus", times=2)
 ```
 
-## 10 Synth Waveforms
+## 56 Synth Waveforms
 
-sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM slow, PWM fast — with detune, stereo pan, and spread.
+The 10 classics — sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM slow, PWM fast — plus 46 modeled instruments (Rhodes, Wurlitzer, pipe organ, vibraphone, choir, sitar, theremin, and more), with detune, stereo pan, and spread.
 
-## 58 Drum Patterns
+## 100 Drum Patterns
 
-rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass — and 45 more. Plus 21 fill presets. Stereo panned like a real kit.
+rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass — and 87 more. Plus 37 fill presets and 74 synthesized percussion sounds. Stereo panned like a real kit.
 
 ## 6 Effects with Automation
 
@@ -132,9 +156,9 @@ pad = score.part("pad", synth="supersaw",
 
 Western, Indian (Hindustani), Arabic (Maqam), Japanese, Blues/Pentatonic, Javanese Gamelan — 40+ scales.
 
-## 25 Instrument Presets
+## 83 Instrument Presets
 
-Guitar (8 tunings), bass, ukulele, mandolin family, violin family, banjo, harp, oud, sitar, erhu, and more — with chord fingering generation.
+Guitar (8 tunings), bass, ukulele, mandolin family, violin family, banjo, harp, oud, sitar, erhu, and more — with chord fingering generation for 25 stringed instruments.
 
 ## Command Line
 

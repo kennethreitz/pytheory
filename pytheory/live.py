@@ -160,10 +160,10 @@ class _Channel:
             t = numpy.arange(len(wave_f), dtype=numpy.float32) / SAMPLE_RATE
             mod = (numpy.sin(2 * numpy.pi * 1.5 * t) * 0.002 * SAMPLE_RATE).astype(int)
             chorus_buf = numpy.zeros_like(wave_f)
-            for i in range(len(wave_f)):
-                idx = i - abs(mod[i]) - int(SAMPLE_RATE * 0.015)
-                if 0 <= idx < len(wave_f):
-                    chorus_buf[i] = wave_f[idx]
+            idx = (numpy.arange(len(wave_f), dtype=numpy.int64)
+                   - numpy.abs(mod) - int(SAMPLE_RATE * 0.015))
+            valid = idx >= 0
+            chorus_buf[valid] = wave_f[idx[valid]]
             wave_f = wave_f * (1 - self.chorus * 0.5) + chorus_buf * self.chorus * 0.5
 
         self._cache[midi_note] = wave_f
@@ -736,9 +736,14 @@ class LiveEngine:
                 by_channel[ch] = []
             by_channel[ch].append((ts, note, vel, is_on))
 
-        # Build parts
+        # Build parts — use the channel's configured synth as the
+        # part instrument so the exported Score sounds like the session
+        picks = getattr(self, 'picks', None)
         for ch, events in sorted(by_channel.items()):
-            inst = self.picks[ch - 1] if 1 <= ch <= 8 else "piano"
+            if picks and 1 <= ch <= len(picks):
+                inst = picks[ch - 1]
+            else:
+                inst = "piano"
             part = score.part(f"ch{ch}", instrument=inst)
 
             # Convert to note-on/off pairs

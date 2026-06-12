@@ -334,7 +334,7 @@ Play a drum pattern through the speakers:
    play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
    play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
 
-See :doc:`drums` for the full list of 80+ presets and 21 fills.
+See :doc:`drums` for the full list of 100 presets and 37 fills.
 
 play_progression() -- Quick Chord Playback
 ------------------------------------------

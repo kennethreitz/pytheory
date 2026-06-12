@@ -1,6 +1,6 @@
 [project]
 name = "pytheory"
-version = "0.43.1"
+version = "0.44.0"
 description = "Music Theory for Humans"
 readme = "README.md"
 license = "MIT"
@@ -25,6 +25,9 @@ dependencies = [
     "scipy",
     "rich>=14.3.3",
 ]
+
+[project.optional-dependencies]
+live = ["python-rtmidi"]
 
 [project.urls]
 Homepage = "https://github.com/kennethreitz/pytheory"

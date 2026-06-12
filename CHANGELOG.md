@@ -2,6 +2,40 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.44.0
+
+- **~11x faster rendering.** The DSP hot paths — Schroeder reverb,
+  Karplus-Strong string synthesis, chorus, filter envelopes, the master
+  compressor, and several one-pole filters — were per-sample Python
+  loops; they now run in C via vectorized `scipy.signal.lfilter`
+  recurrences and numpy indexing. A representative 35-second multi-part
+  score dropped from 9.1s to 0.8s. Reverb and chorus output is
+  bit-identical to 0.43; string synths match to float epsilon. The
+  compressor's envelope follower now runs at control rate (32-sample
+  blocks with peak detection), which is inaudible but much faster.
+  `ensemble=20` parts and the live engine's note-cache misses benefit
+  the most.
+- **Drum hits by name.** `Part.hit()`, `flam()`, `diddle()`, and
+  `cheese()` now accept drum names as plain strings — `kit.hit("kick")`,
+  `kit.hit("closed_hat")` — as well as `DrumSound` members. Previously
+  strings crashed at render time.
+- **`pip install "pytheory[live]"`** now actually works — the `live`
+  extra (python-rtmidi) was referenced in error messages but missing
+  from packaging.
+- **Fix `LiveEngine.export_recording()`** crashing with `AttributeError`
+  when called on an engine without the TUI (it referenced a TUI-only
+  attribute). Saving a recording from the live TUI works again.
+- **Detune oscillators are now cached** per pitch like main oscillators,
+  speeding up detuned parts with repeated notes.
+- **Documentation overhaul.** New homepage organized around what you
+  came for (theory, guitar, composing, live play) with guitar tabs and
+  chord identification front and center; new Live Performance guide;
+  new API reference pages for the sequencing layer (Score/Part/Pattern)
+  and the live engine; custom beat programming and `add_pattern()`
+  documented; stale feature counts corrected everywhere (56 waveforms,
+  100 drum patterns, 37 fills, 74 percussion sounds, 83 instrument
+  presets); Sphinx build is now warning-free.
+
 ## 0.43.1
 
 - **Fix `Fretboard.scale_diagram()` enharmonic matching.** Scale notes

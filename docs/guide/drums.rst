@@ -9,8 +9,8 @@ in Atlanta. Over a dancehall pattern, you're in Kingston. The drums ARE
 the genre -- they tell the listener's body how to move before a single
 melodic note is played.
 
-PyTheory includes a complete drum system -- 51 synthesized percussion
-sounds, 95+ pattern presets across dozens of genres, and 30 fill presets.
+PyTheory includes a complete drum system -- 74 synthesized percussion
+sounds, 100 pattern presets across dozens of genres, and 37 fill presets.
 Every sound is generated from waveforms; no samples needed.
 
 Drum Sounds
@@ -170,7 +170,7 @@ Each sound has a dedicated synthesizer:
 Pattern Presets
 ---------------
 
-80+ patterns spanning genres from rock to Afro-Cuban to electronic to
+100 patterns spanning genres from rock to Afro-Cuban to electronic to
 world percussion. Load them with ``Pattern.preset()``:
 
 .. code-block:: pycon
@@ -267,7 +267,7 @@ ending and a new one is about to begin. Without fills, a drum pattern
 just loops. With them, it breathes and has structure.
 
 ``Pattern.fill()`` loads a 1-bar drum fill -- a short break that
-transitions between sections. 30 fill presets are available:
+transitions between sections. 37 fill presets are available:
 
 .. code-block:: pycon
 
@@ -596,6 +596,47 @@ voice with per-player timing tendencies and micro pitch drift.
 **Sympathetic resonance:** The marching snare builds up snare wire
 buzz as hits accumulate, and the buzz decays during rests — just like
 a real drum.
+
+Programming Your Own Beats
+--------------------------
+
+When no preset fits, program hits directly. ``Part.hit()`` places a
+drum sound in a part's note stream, so everything that works on notes
+— articulations, velocity, humanize, effects, ensemble — works on
+individual drum hits. Sounds can be named with plain strings or
+:class:`DrumSound` members:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=95)
+   kit = score.part("kit", volume=0.8, humanize=0.15)
+
+   for bar in range(4):
+       kit.hit("kick", 0.75)
+       kit.hit("kick", 0.25)
+       kit.hit("snare", 1, articulation="accent")
+       kit.hit("kick", 1)
+       kit.hit("snare", 0.5)
+       kit.hit("open_hat", 0.5)
+
+Strings match the :class:`DrumSound` member names, case-insensitive:
+``"kick"``, ``"snare"``, ``"closed_hat"``, ``"ride_bell"``,
+``"conga_high"``, and so on — all 74 sounds.
+
+Mixing Preset Patterns
+----------------------
+
+``score.add_pattern()`` is the lower-level cousin of ``score.drums()``
+— it takes a :class:`Pattern` object instead of a preset name, so you
+can chain different grooves back to back:
+
+.. code-block:: python
+
+   from pytheory import Pattern
+
+   score.add_pattern(Pattern.preset("rock"), repeats=3)
+   score.add_pattern(Pattern.fill("rock"), repeats=1)
+   score.add_pattern(Pattern.preset("half time"), repeats=4)
 
 MIDI Export
 -----------

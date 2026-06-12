@@ -1,8 +1,9 @@
 Cookbook
-=======
+========
 
-Real-world recipes for common musical tasks. Each recipe is self-contained
-and ready to paste into a Python session.
+You know what you want to do; you just want the code. Each recipe
+below is self-contained and ready to paste into a Python session —
+grab one, run it, and adapt it.
 
 Analyze a Song
 --------------

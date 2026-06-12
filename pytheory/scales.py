@@ -855,6 +855,7 @@ class Key:
         """Suggest a chord-by-chord path from this key to a target key.
 
         Strategy:
+
         - Find pivot chords (common to both keys)
         - Build: [I of current key, pivot chord, V of target key, I of target key]
         - If no pivot chord exists, use chromatic approach:
