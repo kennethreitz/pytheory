@@ -30,6 +30,19 @@ For audio playback through your speakers, you'll also need
 PortAudio is only needed for live playback. MIDI export, WAV export,
 and all theory functions work without it.
 
+Two optional extras unlock the performance features::
+
+   $ pip install "pytheory[live]"   # MIDI input (python-rtmidi)
+   $ pip install "pytheory[link]"   # Ableton Link sync (LinkPython-extern)
+
+``[live]`` lets the live engine take input from a MIDI keyboard or
+controller; ``[link]`` lets it lock tempo and beat grid to an
+`Ableton Link <https://www.ableton.com/link/>`_ session (Ableton
+Live, most iOS music apps). They're independent — install either or
+both. ``[link]`` compiles Ableton's C++ Link library on first
+install, so expect the install to take a minute. See :doc:`live`
+for what they unlock.
+
 Hear Something Immediately
 --------------------------
 

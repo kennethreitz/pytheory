@@ -9,6 +9,10 @@ tutorial.
    Live MIDI input requires ``python-rtmidi`` — install with
    ``pip install "pytheory[live]"``.
 
+   Ableton Link sync (:meth:`LiveEngine.enable_link`) requires
+   ``LinkPython-extern`` — install with
+   ``pip install "pytheory[link]"``.
+
 .. automodule:: pytheory.live
    :members:
    :undoc-members:

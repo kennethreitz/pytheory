@@ -172,6 +172,16 @@ $ pytheory midi C major I V vi IV -o out.mid
 $ pytheory play Am7 --synth saw --envelope pluck
 $ pytheory modes C                         # show all modes
 $ pytheory circle C                        # circle of fifths
+$ pytheory tune --instrument guitar        # strobe tuner, string-locked
+$ pytheory studio                          # browser: recording → sheet music
+$ pytheory live --link                     # MIDI synth rig, Ableton Link sync
+```
+
+Live MIDI input and Ableton Link sync are optional extras:
+
+```
+$ pip install "pytheory[live]"   # MIDI input (python-rtmidi)
+$ pip install "pytheory[link]"   # Ableton Link sync
 ```
 
 ## Why Python?
