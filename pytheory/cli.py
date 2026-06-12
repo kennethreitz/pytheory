@@ -215,6 +215,20 @@ def cmd_live(args):
             drums=args.drums, buffer=args.buffer)
 
 
+def cmd_tune(args):
+    from .tuner import Tuner, serve, run_terminal
+    tuner = Tuner(reference_pitch=args.ref, device=args.device)
+    tuner.start()
+    try:
+        if args.serve:
+            serve(tuner, port=args.port, open_browser=not args.no_browser)
+        else:
+            print(f"  PyTheory Tuner (A4 = {args.ref:g} Hz) — Ctrl-C to stop")
+            run_terminal(tuner)
+    finally:
+        tuner.stop()
+
+
 def cmd_transcribe(args):
     from .rhythm import Score
     score = Score.from_wav(args.input, bpm=args.bpm,
@@ -561,6 +575,14 @@ def main():
     p.add_argument("--buffer", "-b", type=int, default=128,
                    help="Audio buffer size (default: 128)")
 
+    # tune
+    p = sub.add_parser("tune", help="Real-time instrument tuner (e.g. pytheory tune, or --serve for browser/JS)")
+    p.add_argument("--serve", action="store_true", help="Serve a browser tuner page + JS pitch stream (SSE)")
+    p.add_argument("--port", type=int, default=8123, help="Port for --serve (default: 8123)")
+    p.add_argument("--ref", type=float, default=440.0, help="Reference pitch for A4 in Hz (default: 440)")
+    p.add_argument("--device", type=int, default=None, help="Input device index (default: system default)")
+    p.add_argument("--no-browser", action="store_true", help="Don't auto-open the browser with --serve")
+
     # transcribe
     p = sub.add_parser("transcribe", help="Transcribe a recording to notes/MIDI (e.g. pytheory transcribe hum.m4a out.mid)")
     p.add_argument("input", help="Input audio file (WAV directly; .m4a/.mp3 via afconvert/ffmpeg)")
@@ -609,6 +631,7 @@ def main():
         "repl": lambda args: __import__('pytheory.repl', fromlist=['main']).main(),
         "live": cmd_live,
         "transcribe": cmd_transcribe,
+        "tune": cmd_tune,
         "detect": cmd_detect,
         "modes": cmd_modes,
         "circle": cmd_circle,

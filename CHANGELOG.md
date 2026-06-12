@@ -2,6 +2,29 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.47.0
+
+- **Full-arrangement transcription.** `Score.from_wav(split=True)` now
+  returns four parts plus the key: `"melody"`, `"bass"`, **`"chords"`**
+  (chromagram folded to 12 pitch classes, matched against major/minor
+  triad templates per chord window — a rendered Am-F-C-G mix comes back
+  exactly), and **`"drums"`** (onset detection on the percussive stem,
+  each hit classified as kick/snare/hat by band energy and spectral
+  centroid, calibrated against pytheory's own drum synths — including
+  kick+hat detected simultaneously). `score.detected_key` carries the
+  key via `Key.detect`. Import a song, `play_score(score)`, and you
+  have an instant cover version.
+- **Real-time tuner — `pytheory tune`.** Microphone → YIN pitch
+  tracking → note name and signed cents offset, 20 readings/second.
+  Terminal needle by default; `--serve` opens a browser tuner page fed
+  by a **Server-Sent Events stream at `/stream`** with CORS open, so
+  any JavaScript app can consume PyTheory's pitch detection with three
+  lines of `EventSource`. `--ref 442` for orchestras that tune high.
+  Python API: `pytheory.tuner.Tuner` and `analyze_frame()`.
+- **New public audio analysis functions** — `pytheory.audio.detect_chords`
+  and `detect_drums`.
+- Docs homepage now shows uv install instructions.
+
 ## 0.46.0
 
 - **Full-mix transcription — `Score.from_wav(split=True)`.** Runs

@@ -6,9 +6,13 @@ multi-part arrangements, and exporting them to MIDI, sheet music, or
 audio — with nothing to install but Python packages. No DAW, no
 samples, no plugins.
 
+New to `uv <https://docs.astral.sh/uv/getting-started/installation/>`_?
+It's the fast Python package manager — one command to install, no
+virtualenv ceremony.
+
 ::
 
-   $ pip install pytheory
+   $ uv add pytheory
 
 Why would I want this?
 ----------------------
@@ -130,7 +134,7 @@ LilyPond, or guitar tab.
 Or hear a randomly generated track from the command line — different
 every time::
 
-   $ pytheory demo
+   $ uv run pytheory demo
 
 .. toctree::
    :maxdepth: 2

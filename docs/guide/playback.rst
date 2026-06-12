@@ -415,22 +415,37 @@ monophonic tuners — implemented in pure numpy. Transcription is
 instrument line), not chords. Record melody and bass as separate
 takes.
 
-For full mixes, pass ``split=True``: PyTheory first separates the
-sustained, pitched material from the drums (harmonic-percussive
-separation — held notes are horizontal lines on a spectrogram, drum
-hits are vertical ones, and median filters tell them apart), then
-transcribes **two parts** — a ``"bass"`` and a ``"melody"``:
+For full mixes, pass ``split=True`` and you get a **full arrangement
+sketch** back — four parts plus the key:
 
 .. code-block:: python
 
    score = Score.from_wav("song.wav", split=True, quantize=0.5)
-   print(score.parts["bass"].notes)     # the bassline
-   print(score.parts["melody"].notes)   # the lead, if it carries the mix
 
-Expect the bassline to come out well (roots in order, occasional
-octave wobble) and the melody to come out as well as it dominates
-the mix. Chords stay out of reach — that's full polyphonic
-transcription, a different beast.
+   score.parts["melody"]    # the lead line
+   score.parts["bass"]      # the bassline
+   score.parts["chords"]    # chord symbols (Am, F, C, G...)
+   score.parts["drums"]     # kick / snare / hat hits
+   score.detected_key       # e.g. <Key C major>
+
+   play_score(score)        # an instant cover version
+
+Under the hood: harmonic-percussive separation splits sustained
+pitched material from drums (held notes are horizontal lines on a
+spectrogram, drum hits vertical ones — median filters tell them
+apart). The harmonic stem gets band-split YIN passes for bass and
+melody, plus a **chromagram** — the spectrum folded into 12 pitch
+classes — matched against major/minor triad templates per chord
+window. The percussive stem gets onset detection with each hit
+classified as kick, snare, or hat by where its energy lives. The
+key falls out of everything pitched via :meth:`Key.detect`.
+
+What to expect: chords and bassline come out well (a rendered
+Am-F-C-G test mix comes back exactly), the melody as well as it
+dominates the mix, and the drum groove reads correctly even when
+individual edge hits get fuzzy. It's a sketch to edit, not a record
+deal — but it turns "what is this song?" into an editable Score in
+one line.
 
 Tempo is estimated automatically when you don't pass ``bpm=`` — the
 onset pattern is autocorrelated to find the pulse (a rendered groove

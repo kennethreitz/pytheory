@@ -147,3 +147,44 @@ line to save and one to restore:
    engine = LiveEngine()
    engine.load_config("my_rig.json")
    engine.start()
+
+The Tuner
+---------
+
+Every musician needs a tuner, and you already have a microphone.
+PyTheory's tuner tracks your pitch live (same YIN algorithm as the
+transcriber) and shows the note plus how many cents sharp or flat
+you are::
+
+   $ pytheory tune
+     A4  ----------------------------●------ +12.3¢ ( 443.14 Hz)
+
+For a big, friendly needle, serve it to your browser instead::
+
+   $ pytheory tune --serve
+
+That opens ``http://localhost:8123`` — note name, frequency, and a
+needle that turns green within ±5 cents.
+
+The page is fed by a **Server-Sent Events stream at** ``/stream``,
+with CORS open — which means any JavaScript app can tap PyTheory's
+pitch detection directly, no client library required:
+
+.. code-block:: javascript
+
+   const tuner = new EventSource("http://localhost:8123/stream");
+   tuner.onmessage = (e) => {
+       const reading = JSON.parse(e.data);
+       if (reading) {
+           // { freq: 440.0, note: "A", octave: 4,
+           //   cents: -3.2, in_tune: true }
+           updateMyUI(reading);
+       }
+   };
+
+Build your own tuner page, drive a game, pitch-train an ear-training
+app — the stream doesn't care what's listening.
+
+Orchestras tuning high? ``pytheory tune --ref 442``. Python access is
+:class:`pytheory.tuner.Tuner` (``tuner.reading`` holds the latest
+analysis) and :func:`pytheory.tuner.analyze_frame` for one-shot use.

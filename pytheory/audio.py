@@ -333,6 +333,189 @@ def _segment_notes(times, freqs, voiced, samples, sample_rate, hop,
     return events
 
 
+def _chromagram(samples, sample_rate=SAMPLE_RATE):
+    """Fold a spectrogram into 12 pitch classes over time.
+
+    Every FFT bin maps to the pitch class of its frequency; summing
+    magnitudes per class gives a "chroma" vector per frame — a
+    fingerprint of what harmony is sounding, regardless of octave.
+
+    Returns:
+        (chroma, frame_times) — chroma is shape (12, n_frames),
+        columns normalized to unit sum.
+    """
+    from scipy.signal import stft
+
+    nperseg = 4096
+    hop = 1024
+    f, t, Z = stft(samples, fs=sample_rate, nperseg=nperseg,
+                   noverlap=nperseg - hop)
+    mag = numpy.abs(Z)
+
+    # Map bins to pitch classes (ignore rumble and air)
+    usable = (f >= 55.0) & (f <= 5000.0)
+    midi = 69 + 12 * numpy.log2(f[usable] / 440.0)
+    pcs = numpy.round(midi).astype(int) % 12
+
+    chroma = numpy.zeros((12, mag.shape[1]))
+    usable_mag = mag[usable]
+    for pc in range(12):
+        sel = pcs == pc
+        if sel.any():
+            chroma[pc] = usable_mag[sel].sum(axis=0)
+    totals = chroma.sum(axis=0)
+    totals[totals == 0] = 1.0
+    return chroma / totals, t
+
+
+# Chord templates: which pitch classes (relative to the root) sound.
+# The root gets extra weight — it's usually doubled and in the bass.
+_CHORD_QUALITIES = {
+    "": (0, 4, 7),        # major
+    "m": (0, 3, 7),       # minor
+}
+
+
+def detect_chords(samples, sample_rate=SAMPLE_RATE, *, bpm=120,
+                  beats_per_chord=2.0):
+    """Detect a chord progression from audio.
+
+    Folds the harmonic content into pitch classes (a chromagram),
+    averages it over chord-sized windows on the beat grid, and
+    matches each window against major/minor triad templates on all
+    twelve roots.
+
+    Returns:
+        List of (start_beat, duration_beats, symbol) tuples, with
+        consecutive identical chords merged — e.g.
+        ``[(0.0, 8.0, "Am"), (8.0, 4.0, "F")]``.
+    """
+    chroma, times = _chromagram(samples, sample_rate)
+    if chroma.shape[1] == 0:
+        return []
+
+    # Build the 24 templates once
+    templates = []
+    for root in range(12):
+        for quality, intervals in _CHORD_QUALITIES.items():
+            vec = numpy.zeros(12)
+            for iv in intervals:
+                vec[(root + iv) % 12] = 1.0
+            vec[root] = 1.5          # weight the root
+            vec /= numpy.linalg.norm(vec)
+            templates.append((root, quality, vec))
+
+    window_sec = beats_per_chord * 60.0 / bpm
+    total_sec = times[-1]
+    n_windows = max(1, int(round(total_sec / window_sec)))
+
+    raw = []
+    for w in range(n_windows):
+        lo, hi = w * window_sec, (w + 1) * window_sec
+        cols = (times >= lo) & (times < hi)
+        if not cols.any():
+            continue
+        avg = chroma[:, cols].mean(axis=1)
+        norm = numpy.linalg.norm(avg)
+        if norm < 1e-9:
+            continue
+        avg = avg / norm
+        scores = [(avg @ vec, root, quality)
+                  for root, quality, vec in templates]
+        score, root, quality = max(scores)
+        symbol = _NOTE_NAMES[root] + quality
+        raw.append((w * beats_per_chord, beats_per_chord, symbol))
+
+    # Merge consecutive identical chords
+    merged = []
+    for start, dur, sym in raw:
+        if merged and merged[-1][2] == sym \
+                and abs(merged[-1][0] + merged[-1][1] - start) < 1e-6:
+            prev = merged.pop()
+            merged.append((prev[0], prev[1] + dur, sym))
+        else:
+            merged.append((start, dur, sym))
+    return merged
+
+
+def detect_drums(samples, sample_rate=SAMPLE_RATE, *, bpm=120,
+                 quantize=0.25):
+    """Detect drum hits from (ideally percussive) audio.
+
+    Finds onsets in the energy envelope, then classifies each by
+    where its energy lives: kicks are bottom-heavy, hats are all
+    sizzle, snares are the broadband middle.
+
+    Returns:
+        List of (beat_position, sound_name, velocity) tuples, where
+        sound_name is ``"kick"``, ``"snare"``, or ``"closed_hat"``.
+    """
+    hop = 256
+    n_frames = (len(samples) - hop) // hop
+    if n_frames < 4:
+        return []
+    frames = samples[:n_frames * hop].reshape(n_frames, hop)
+    env = numpy.sqrt((frames ** 2).mean(axis=1))
+    peak_env = env.max() or 1.0
+
+    # Onsets: env rises sharply above its local past. Pad with
+    # silence so a hit on the very first sample still registers.
+    pad = 6
+    env_p = numpy.concatenate([numpy.zeros(pad), env])
+    onsets = []
+    last = -10_000
+    for i in range(n_frames):
+        recent = env_p[i:i + pad].min()
+        if (env[i] > 2.0 * recent + 0.02 * peak_env
+                and env[i] > 0.08 * peak_env
+                and i - last > int(0.09 * sample_rate / hop)):
+            onsets.append(i)
+            last = i
+
+    hits = []
+    win = int(sample_rate * 0.05)
+    for i in onsets:
+        start = i * hop
+        seg = samples[start:start + win]
+        if len(seg) < 64:
+            continue
+        spec = numpy.abs(numpy.fft.rfft(seg * numpy.hanning(len(seg))))
+        freqs = numpy.fft.rfftfreq(len(seg), 1 / sample_rate)
+        # Per-band MEAN magnitude (sums would bias toward the high
+        # band, which has ~100x more FFT bins than the low band)
+        low = spec[freqs < 150].mean()
+        mid = spec[(freqs >= 150) & (freqs < 2000)].mean()
+        high = spec[freqs >= 5000].mean()
+        power = spec ** 2
+        cent = (power * freqs).sum() / (power.sum() + 1e-12)
+        # Thresholds calibrated against pytheory's own kick/snare/hat
+        # synths, alone and in mixtures
+        sounds = []
+        if low > 5 * (mid + 1e-12):
+            sounds.append("kick")
+            if high > 0.15 * mid:
+                sounds.append("closed_hat")  # hat hiding under the kick
+        elif cent > 8800:
+            sounds.append("closed_hat")
+        else:
+            sounds.append("snare")
+        beat = start / sample_rate * bpm / 60.0
+        if quantize:
+            beat = round(beat / quantize) * quantize
+        vel = int(numpy.clip(50 + 70 * env[i] / peak_env, 1, 127))
+        for sound in sounds:
+            hits.append((beat, sound, vel))
+
+    # Dedupe hits quantized onto the same grid slot with the same sound
+    seen = set()
+    out = []
+    for beat, sound, vel in hits:
+        if (beat, sound) not in seen:
+            seen.add((beat, sound))
+            out.append((beat, sound, vel))
+    return out
+
+
 def _events_to_part(part, events, bpm, quantize):
     """Write (start, dur, midi, vel) events into a Part as notes/rests."""
     def snap(beats):
@@ -410,7 +593,7 @@ def transcribe(path, *, bpm=None, quantize=None, split=False,
 
     if split:
         from scipy.signal import butter, filtfilt
-        harmonic, _ = hpss(samples, sample_rate)
+        harmonic, percussive = hpss(samples, sample_rate)
 
         # Bass pass: lowpassed harmonic signal, bass-register search
         bl, al = butter(4, 300, btype='low', fs=sample_rate)
@@ -426,6 +609,44 @@ def transcribe(path, *, bpm=None, quantize=None, split=False,
         _events_to_part(melody, mel_events, bpm, quantize)
         bass = score.part("bass", synth="bass_guitar")
         _events_to_part(bass, bass_events, bpm, quantize)
+
+        # Chord pass: chromagram template matching on the harmonic stem
+        chord_track = detect_chords(harmonic, sample_rate, bpm=bpm)
+        if chord_track:
+            from .chords import Chord
+            chords = score.part("chords", synth="rhodes", volume=0.4)
+            pos = 0.0
+            for start, dur, symbol in chord_track:
+                if start - pos > 1e-6:
+                    chords.rest(start - pos)
+                    pos = start
+                chords.add(Chord.from_symbol(symbol), dur)
+                pos += dur
+
+        # Drum pass: onset classification on the percussive stem
+        drum_hits = detect_drums(percussive, sample_rate, bpm=bpm,
+                                 quantize=quantize or 0.25)
+        if drum_hits:
+            from .rhythm import (Pattern, DrumSound, _Hit)
+            sound_map = {"kick": DrumSound.KICK,
+                         "snare": DrumSound.SNARE,
+                         "closed_hat": DrumSound.CLOSED_HAT}
+            hits = [_Hit(sound_map[s], beat, vel)
+                    for beat, s, vel in drum_hits]
+            total = max(h.position for h in hits) + 1.0
+            score.add_pattern(Pattern("transcribed", hits, beats=total),
+                              repeats=1)
+
+        # Key detection from everything pitched we heard
+        from .scales import Key
+        pitch_classes = []
+        for events in (mel_events, bass_events):
+            pitch_classes.extend(_NOTE_NAMES[note % 12]
+                                 for _, _, note, _ in events)
+        for _, _, symbol in chord_track:
+            pitch_classes.append(symbol.rstrip("m"))
+        score.detected_key = (Key.detect(*dict.fromkeys(pitch_classes))
+                              if pitch_classes else None)
         return score
 
     events = _track_events(samples, sample_rate, fmin, fmax)

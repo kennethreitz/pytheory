@@ -4,7 +4,7 @@ Command-Line Interface
 Sometimes you don't want to open Python — you're mid-practice and just
 need to know what's in a B7 chord, or which key has those three sharps.
 The ``pytheory`` command answers theory questions, plays notes, and
-exports MIDI straight from your shell prompt — 17 commands, no session
+exports MIDI straight from your shell prompt — 18 commands, no session
 required.
 
 Interactive REPL

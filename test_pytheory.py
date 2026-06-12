@@ -7847,3 +7847,95 @@ def test_load_m4a_via_converter():
             os.unlink(m4a_path)
     assert rate == 44100
     assert abs(len(samples) / rate - 1.0) < 0.15
+
+
+# ── Tuner (v0.47.0) ──────────────────────────────────────────────────────
+
+def test_tuner_analyze_frame_in_tune():
+    import json
+    from pytheory.tuner import analyze_frame
+    t = numpy.arange(4096) / 44100
+    r = analyze_frame(numpy.sin(2 * numpy.pi * 440 * t), 44100)
+    assert r["note"] == "A" and r["octave"] == 4
+    assert abs(r["cents"]) < 2
+    assert r["in_tune"] is True
+    json.dumps(r)  # must be JSON-serializable for the SSE stream
+
+
+def test_tuner_analyze_frame_sharp():
+    from pytheory.tuner import analyze_frame
+    t = numpy.arange(4096) / 44100
+    # 440 * 2^(25/1200) ≈ 446.40 Hz — 25 cents sharp of A4
+    r = analyze_frame(numpy.sin(2 * numpy.pi * 446.40 * t), 44100)
+    assert r["note"] == "A"
+    assert 20 < r["cents"] < 30
+    assert r["in_tune"] is False
+
+
+def test_tuner_reference_pitch():
+    from pytheory.tuner import analyze_frame
+    t = numpy.arange(4096) / 44100
+    r = analyze_frame(numpy.sin(2 * numpy.pi * 442 * t), 44100,
+                      reference_pitch=442)
+    assert r["note"] == "A" and abs(r["cents"]) < 2
+
+
+def test_tuner_noise_returns_none():
+    from pytheory.tuner import analyze_frame
+    noise = numpy.random.default_rng(0).uniform(-1, 1, 4096)
+    assert analyze_frame(noise, 44100) is None
+
+
+# ── Full-arrangement transcription (v0.47.0) ─────────────────────────────
+
+def test_detect_chords_on_rendered_progression():
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    from pytheory import Chord
+    from pytheory.audio import detect_chords
+    s = Score(bpm=120)
+    p = s.part("p", synth="rhodes", volume=0.6)
+    for sym in ["Am", "F", "C", "G"]:
+        p.add(Chord.from_symbol(sym), 4)
+    buf = render_score(s).mean(axis=1).astype(numpy.float64)
+    track = detect_chords(buf, 44100, bpm=120, beats_per_chord=4)
+    symbols = [sym for _, _, sym in track]
+    assert symbols == ["Am", "F", "C", "G"]
+
+
+def test_detect_drums_classifies_kick_snare_hat():
+    from pytheory.audio import detect_drums
+    from pytheory.play import _synth_kick, _synth_snare, _synth_hat_closed
+    sr = 44100
+    sig = numpy.zeros(sr * 2)
+    layout = [(0.0, _synth_kick, "kick"), (0.5, _synth_snare, "snare"),
+              (1.0, _synth_hat_closed, "closed_hat"),
+              (1.5, _synth_kick, "kick")]
+    for t0, fn, _ in layout:
+        hit = fn(sr // 4)
+        start = int(t0 * sr)
+        sig[start:start + len(hit)] += hit
+    hits = detect_drums(sig / (numpy.abs(sig).max() or 1), sr,
+                        bpm=120, quantize=0.5)
+    found = {(b, s) for b, s, _ in hits}
+    for t0, _, name in layout:
+        assert (t0 * 2, name) in found  # 120bpm → beat = 2*seconds
+
+
+def test_from_wav_split_full_arrangement():
+    import os
+    from pytheory.rhythm import Score
+    path = _render_test_mix()   # Am, F over rock drums at 110
+    try:
+        score = Score.from_wav(path, bpm=110, split=True, quantize=0.5)
+    finally:
+        os.unlink(path)
+    assert set(score.parts) >= {"melody", "bass", "chords", "drums"}
+    chord_syms = [str(n.tone) for n in score.parts["chords"].notes
+                  if n.tone is not None]
+    assert any("A minor" in c for c in chord_syms)
+    assert any("F major" in c for c in chord_syms)
+    drum_sounds = {h.sound.name for h in score._drum_hits}
+    assert "CLOSED_HAT" in drum_sounds
+    assert "SNARE" in drum_sounds or "KICK" in drum_sounds
+    assert score.detected_key is not None
