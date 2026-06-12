@@ -5,8 +5,15 @@ You know what you want to do; you just want the code. Each recipe
 below is self-contained and ready to paste into a Python session —
 grab one, run it, and adapt it.
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
+Harmony and Analysis
+--------------------
+
 Analyze a Song
---------------
+~~~~~~~~~~~~~~
 
 Take the chord progression from "Let It Be" (C G Am F) and analyze it
 in the key of C major:
@@ -31,7 +38,7 @@ in the key of C major:
    ['C major', 'G major', 'A minor', 'F major']
 
 Write a 12-Bar Blues
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 The `12-bar blues <https://en.wikipedia.org/wiki/Twelve-bar_blues>`_ is
 built from the I, IV, and V chords. Here it is in the key of A:
@@ -56,7 +63,7 @@ built from the I, IV, and V chords. Here it is in the key of A:
    'E dominant 7th'
 
 Find Chords in a Key
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 The :class:`~pytheory.scales.Key` class builds diatonic chords for any
 key and lets you pull progressions by Roman numeral or Nashville number:
@@ -75,8 +82,91 @@ key and lets you pull progressions by Roman numeral or Nashville number:
    >>> [c.identify() for c in key.nashville(1, 5, 6, 4)]
    ['G major', 'D major', 'E minor', 'C major']
 
+Voice Leading Between Chords
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Find the smoothest path from one chord to the next — each voice moves
+the minimum distance:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> c_maj = Chord.from_tones("C", "E", "G")
+   >>> f_maj = Chord.from_tones("F", "A", "C")
+
+   >>> for src, dst, motion in c_maj.voice_leading(f_maj):
+   ...     print(f"{src} -> {dst}  ({motion:+d} semitones)")
+   G4 -> A4  (+2 semitones)
+   E4 -> F4  (+1 semitones)
+   C4 -> C4  (+0 semitones)
+
+Measure Harmonic Tension
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Quantify how much a chord "wants to resolve." Dominant 7ths have
+the most tension — the tritone between the 3rd and 7th pulls toward
+resolution:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> for name in ["C", "Am", "G7", "Cmaj7"]:
+   ...     ch = Chord.from_name(name)
+   ...     t = ch.tension
+   ...     print(f"{name:6s} tension={t['score']:.2f}  tritones={t['tritones']}  dominant={t['has_dominant_function']}")
+   C      tension=0.00  tritones=0  dominant=False
+   Am     tension=0.00  tritones=0  dominant=False
+   G7     tension=0.60  tritones=1  dominant=True
+   Cmaj7  tension=0.15  tritones=0  dominant=False
+
+Tritone Substitution (Jazz)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Replace any dominant chord with the one a
+`tritone <https://en.wikipedia.org/wiki/Tritone_substitution>`_ away —
+they share the same tritone interval:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> g7 = Chord.from_name("G7")
+   >>> g7.tritone_sub().identify()
+   'C# dominant 7th'
+
+   >>> # ii-V-I with tritone sub:
+   >>> #   Dm7 -> G7  -> Cmaj7   (standard)
+   >>> #   Dm7 -> Db7 -> Cmaj7   (chromatic bass line!)
+
+Borrowed Chords and Secondary Dominants
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add color by borrowing from the parallel key or building secondary
+dominants that approach other scale degrees:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key
+
+   >>> c = Key("C", "major")
+
+   >>> c.borrowed_chords[:4]
+   ['C minor', 'D diminished', 'Eb major', 'F minor']
+
+   >>> c.secondary_dominant(5).identify()
+   'D dominant 7th'
+   >>> c.secondary_dominant(2).identify()
+   'A dominant 7th'
+   >>> c.secondary_dominant(6).identify()
+   'E dominant 7th'
+
+Scales and Keys
+---------------
+
 Compare Scales
---------------
+~~~~~~~~~~~~~~
 
 Play the same tonic through different scales to hear how each mode
 reshapes the palette. The western modes share the same notes but start
@@ -100,8 +190,67 @@ on different degrees; the blues scale adds the "blue note" (flat 5th):
    >>> c_blues["blues"].note_names
    ['C', 'Eb', 'F', 'Gb', 'G', 'Bb', 'C']
 
+Key Signatures and Detection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+View the accidentals in any key, or detect the key from a set of notes:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key
+
+   >>> Key("C", "major").signature
+   {'sharps': 0, 'flats': 0, 'accidentals': []}
+   >>> Key("G", "major").signature
+   {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
+   >>> Key("D", "major").signature
+   {'sharps': 2, 'flats': 0, 'accidentals': ['F#', 'C#']}
+
+   >>> Key.detect("C", "E", "G", "A", "D")
+   <Key C major>
+
+Relative and Parallel Keys
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Every major key has a **relative minor** (same notes, different root)
+and a **parallel minor** (same root, different notes):
+
+.. code-block:: pycon
+
+   >>> from pytheory import Key
+
+   >>> c = Key("C", "major")
+   >>> c.relative
+   'A minor'
+   >>> c.parallel
+   'C minor'
+
+World Scales
+~~~~~~~~~~~~
+
+Explore scales from Indian, Arabic, and Japanese traditions:
+
+.. code-block:: pycon
+
+   >>> from pytheory import TonedScale
+
+   >>> indian = TonedScale(tonic="Sa", system="indian")
+   >>> indian["bhairav"].note_names
+   ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
+
+   >>> arabic = TonedScale(tonic="Do", system="arabic")
+   >>> arabic["hijaz"].note_names
+   ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
+
+   >>> japanese = TonedScale(tonic="C4", system="japanese")
+   >>> japanese["hirajoshi"].note_names
+   ['C', 'D', 'Eb', 'G', 'Ab', 'C']
+
+Guitar
+------
+
 Guitar Chord Chart
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Generate fingerings for guitar and ukulele with
 :class:`~pytheory.tones.Fretboard`:
@@ -126,8 +275,32 @@ Generate fingerings for guitar and ukulele with
    >>> uke.chord("G")
    Fingering(G=0, C=2, E=3, A=2)
 
+Visualize a Scale on Guitar
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+See where the notes fall across the fretboard — E minor pentatonic,
+the most-played scale in rock:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard, Scale
+
+   >>> fb = Fretboard.guitar()
+   >>> pent = Scale(tonic="E4", system="blues")["minor pentatonic"]
+   >>> print(fb.scale_diagram(pent, frets=12))
+       0   1   2   3   4   5   6   7   8   9  10  11  12
+   E| E | - | - | G | - | A | - | B | - | - | D | - | E |
+   B| B | - | - | D | - | E | - | - | G | - | A | - | B |
+   G| G | - | A | - | B | - | - | D | - | E | - | - | G |
+   D| D | - | E | - | - | G | - | A | - | B | - | - | D |
+   A| A | - | B | - | - | D | - | E | - | - | G | - | A |
+   E| E | - | - | G | - | A | - | B | - | - | D | - | E |
+
+Tones and Physics
+-----------------
+
 Explore an Interval
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Start from A4 (440 Hz) and walk through intervals, checking names and
 frequency ratios:
@@ -157,7 +330,7 @@ frequency ratios:
    2.0
 
 Walk the Circle of Fifths
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The `circle of fifths <https://en.wikipedia.org/wiki/Circle_of_fifths>`_
 is the backbone of Western harmony — each step adds one sharp or flat:
@@ -174,123 +347,8 @@ is the backbone of Western harmony — each step adds one sharp or flat:
    >>> [t.name for t in g.circle_of_fifths()]
    ['G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F', 'C']
 
-Voice Leading Between Chords
------------------------------
-
-Find the smoothest path from one chord to the next — each voice moves
-the minimum distance:
-
-.. code-block:: pycon
-
-   >>> from pytheory import Chord
-
-   >>> c_maj = Chord.from_tones("C", "E", "G")
-   >>> f_maj = Chord.from_tones("F", "A", "C")
-
-   >>> for src, dst, motion in c_maj.voice_leading(f_maj):
-   ...     print(f"{src} -> {dst}  ({motion:+d} semitones)")
-   G4 -> A4  (+2 semitones)
-   E4 -> F4  (+1 semitones)
-   C4 -> C4  (+0 semitones)
-
-Measure Harmonic Tension
-------------------------
-
-Quantify how much a chord "wants to resolve." Dominant 7ths have
-the most tension — the tritone between the 3rd and 7th pulls toward
-resolution:
-
-.. code-block:: pycon
-
-   >>> from pytheory import Chord
-
-   >>> for name in ["C", "Am", "G7", "Cmaj7"]:
-   ...     ch = Chord.from_name(name)
-   ...     t = ch.tension
-   ...     print(f"{name:6s} tension={t['score']:.2f}  tritones={t['tritones']}  dominant={t['has_dominant_function']}")
-   C      tension=0.00  tritones=0  dominant=False
-   Am     tension=0.00  tritones=0  dominant=False
-   G7     tension=0.60  tritones=1  dominant=True
-   Cmaj7  tension=0.15  tritones=0  dominant=False
-
-Tritone Substitution (Jazz)
----------------------------
-
-Replace any dominant chord with the one a
-`tritone <https://en.wikipedia.org/wiki/Tritone_substitution>`_ away —
-they share the same tritone interval:
-
-.. code-block:: pycon
-
-   >>> from pytheory import Chord
-
-   >>> g7 = Chord.from_name("G7")
-   >>> g7.tritone_sub().identify()
-   'C# dominant 7th'
-
-   >>> # ii-V-I with tritone sub:
-   >>> #   Dm7 -> G7  -> Cmaj7   (standard)
-   >>> #   Dm7 -> Db7 -> Cmaj7   (chromatic bass line!)
-
-Key Signatures and Detection
------------------------------
-
-View the accidentals in any key, or detect the key from a set of notes:
-
-.. code-block:: pycon
-
-   >>> from pytheory import Key
-
-   >>> Key("C", "major").signature
-   {'sharps': 0, 'flats': 0, 'accidentals': []}
-   >>> Key("G", "major").signature
-   {'sharps': 1, 'flats': 0, 'accidentals': ['F#']}
-   >>> Key("D", "major").signature
-   {'sharps': 2, 'flats': 0, 'accidentals': ['F#', 'C#']}
-
-   >>> Key.detect("C", "E", "G", "A", "D")
-   <Key C major>
-
-Relative and Parallel Keys
---------------------------
-
-Every major key has a **relative minor** (same notes, different root)
-and a **parallel minor** (same root, different notes):
-
-.. code-block:: pycon
-
-   >>> from pytheory import Key
-
-   >>> c = Key("C", "major")
-   >>> c.relative
-   'A minor'
-   >>> c.parallel
-   'C minor'
-
-Borrowed Chords and Secondary Dominants
----------------------------------------
-
-Add color by borrowing from the parallel key or building secondary
-dominants that approach other scale degrees:
-
-.. code-block:: pycon
-
-   >>> from pytheory import Key
-
-   >>> c = Key("C", "major")
-
-   >>> c.borrowed_chords[:4]
-   ['C minor', 'D diminished', 'Eb major', 'F minor']
-
-   >>> c.secondary_dominant(5).identify()
-   'D dominant 7th'
-   >>> c.secondary_dominant(2).identify()
-   'A dominant 7th'
-   >>> c.secondary_dominant(6).identify()
-   'E dominant 7th'
-
 The Overtone Series
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Every musical tone contains a stack of harmonics — the physics behind
 why intervals sound consonant:
@@ -308,7 +366,7 @@ why intervals sound consonant:
    >>> # Harmonic 5 = major 3rd + two octaves (5:1)
 
 Enharmonic Spellings
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Find the alternate name for any sharp or flat:
 
@@ -323,48 +381,6 @@ Find the alternate name for any sharp or flat:
    D# = Eb
    F# = Gb
    G# = Ab
-
-World Scales
-------------
-
-Explore scales from Indian, Arabic, and Japanese traditions:
-
-.. code-block:: pycon
-
-   >>> from pytheory import TonedScale
-
-   >>> indian = TonedScale(tonic="Sa", system="indian")
-   >>> indian["bhairav"].note_names
-   ['Sa', 'komal Re', 'Ga', 'Ma', 'Pa', 'komal Dha', 'Ni', 'Sa']
-
-   >>> arabic = TonedScale(tonic="Do", system="arabic")
-   >>> arabic["hijaz"].note_names
-   ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
-
-   >>> japanese = TonedScale(tonic="C4", system="japanese")
-   >>> japanese["hirajoshi"].note_names
-   ['C', 'D', 'Eb', 'G', 'Ab', 'C']
-
-Visualize a Scale on Guitar
-----------------------------
-
-See where the notes fall across the fretboard — E minor pentatonic,
-the most-played scale in rock:
-
-.. code-block:: pycon
-
-   >>> from pytheory import Fretboard, Scale
-
-   >>> fb = Fretboard.guitar()
-   >>> pent = Scale(tonic="E4", system="blues")["minor pentatonic"]
-   >>> print(fb.scale_diagram(pent, frets=12))
-       0   1   2   3   4   5   6   7   8   9  10  11  12
-   E| E | - | - | G | - | A | - | B | - | - | D | - | E |
-   B| B | - | - | D | - | E | - | - | G | - | A | - | B |
-   G| G | - | A | - | B | - | - | D | - | E | - | - | G |
-   D| D | - | E | - | - | G | - | A | - | B | - | - | D |
-   A| A | - | B | - | - | D | - | E | - | - | G | - | A |
-   E| E | - | - | G | - | A | - | B | - | - | D | - | E |
 
 Composition Recipes
 -------------------
@@ -417,7 +433,7 @@ Acid House Track
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/acid_house.wav" type="audio/wav"></audio>
 
 Dub Reggae with Delay Madness
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sparse notes into infinite echo:
 
@@ -453,7 +469,7 @@ Sparse notes into infinite echo:
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/dub_reggae.wav" type="audio/wav"></audio>
 
 Jazz Ballad with Humanize
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The difference between a robot and a musician:
 
@@ -494,7 +510,7 @@ The difference between a robot and a musician:
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/jazz_ballad.wav" type="audio/wav"></audio>
 
 Song with Sections
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Define once, arrange freely:
 
@@ -531,7 +547,7 @@ Define once, arrange freely:
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/song_sections.wav" type="audio/wav"></audio>
 
 Export Everything to MIDI
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The whole point — sketch fast, finish in your DAW:
 
@@ -544,6 +560,12 @@ The whole point — sketch fast, finish in your DAW:
    from pytheory import save_midi
    chords = Key("C", "major").progression("I", "V", "vi", "IV")
    save_midi(chords, "pop.mid", t=500, bpm=120)
+
+Listening Recipes
+-----------------
+
+These start from a recording instead of code — see :doc:`listening`
+for the full guide.
 
 Voice Memo → Sheet Music
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -585,5 +607,61 @@ the transcription has stray notes, the fix is almost always the
 pitch range: print the detected notes, find the artifacts (very low,
 very quiet, at phrase edges), and tighten ``fmin``/``fmax`` around
 the actual melody. Two or three runs gets it clean.
+
+What Chords Is This Song Playing?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You're trying to learn a song by ear. Let the chromagram do the
+listening — it reads the chord progression (including 7ths, sus
+chords, and inversions like ``C/E``) straight off the audio:
+
+.. code-block:: python
+
+   from pytheory.audio import load_wav, detect_chords, estimate_tempo
+
+   samples, sr = load_wav("song.m4a")
+   bpm = estimate_tempo(samples, sr) or 120
+
+   for start, dur, symbol in detect_chords(samples, sr, bpm=bpm):
+       print(f"beat {start:5g}  {symbol:8s} ({dur:g} beats)")
+
+Or get the whole arrangement — chords plus melody, bassline, drums,
+and the key — as an editable Score, and hear PyTheory's cover of it:
+
+.. code-block:: python
+
+   from pytheory import Score
+   from pytheory.play import play_score
+
+   score = Score.from_wav("song.m4a", split=True, quantize=0.5)
+   print(score.detected_key)             # e.g. <Key C major>
+   play_score(score)                     # instant cover version
+
+Playing Live
+------------
+
+Jam in Sync with Ableton Link
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Someone in the room is running Ableton Live (or an iOS drum app, or
+anything else that speaks `Ableton Link <https://www.ableton.com/link/>`_).
+Join their session — tempo, beat grid, and transport sync
+automatically, peer-to-peer (requires ``pip install "pytheory[link]"``):
+
+.. code-block:: python
+
+   from pytheory.live import LiveEngine
+
+   engine = LiveEngine()
+   engine.channel(1, instrument="electric_piano", reverb=0.3)
+   engine.channel(2, instrument="synth_bass", lowpass=800)
+   engine.drums("house", volume=0.5)     # locks to the shared beat grid
+
+   engine.enable_link()                  # find the session on the network
+   engine.start()                        # play your MIDI keyboard in time
+
+Or as one command, with the TUI dashboard::
+
+   $ pytheory live --link
 
 These are all starting points. Change the key, swap the chords, layer in your own ideas -- the best way to learn is to take something that works and make it yours.
