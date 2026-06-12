@@ -2,6 +2,11 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.48.1
+
+- **Docs URL updated to pytheory.org** in package metadata and README
+  (the docs site moved from pytheory.kennethreitz.org).
+
 ## 0.48.0
 
 - **PyTheory Studio — `pytheory studio`.** A local web app that ties

@@ -182,4 +182,4 @@ Tools like [Claude Code](https://claude.ai/code) can use PyTheory to prototype m
 
 ## Documentation
 
-**[pytheory.kennethreitz.org](https://pytheory.kennethreitz.org)**
+**[pytheory.org](https://pytheory.org)**

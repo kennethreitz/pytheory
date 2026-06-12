@@ -1,6 +1,6 @@
 [project]
 name = "pytheory"
-version = "0.48.0"
+version = "0.48.1"
 description = "Music Theory for Humans"
 readme = "README.md"
 license = "MIT"
@@ -31,7 +31,7 @@ live = ["python-rtmidi"]
 
 [project.urls]
 Homepage = "https://github.com/kennethreitz/pytheory"
-Documentation = "https://pytheory.kennethreitz.org"
+Documentation = "https://pytheory.org"
 Repository = "https://github.com/kennethreitz/pytheory"
 Issues = "https://github.com/kennethreitz/pytheory/issues"
 
