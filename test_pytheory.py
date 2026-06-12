@@ -8013,3 +8013,237 @@ def test_studio_server_endpoints():
     mid = urllib.request.urlopen(
         f"{base}/midi?id={res['id']}", timeout=30).read()
     assert mid[:4] == b"MThd"
+
+
+# ── Link, tuner presets, richer chords (v0.49.0) ─────────────────────────
+
+def test_from_symbol_slash_chord_inversion():
+    c = Chord.from_symbol("C/E")
+    assert [t.full_name for t in c.tones] == ["E4", "G4", "C5"]
+
+
+def test_from_symbol_slash_chord_second_inversion():
+    c = Chord.from_symbol("C/G")
+    assert [t.full_name for t in c.tones] == ["G4", "C5", "E5"]
+
+
+def test_from_symbol_slash_chord_foreign_bass():
+    c = Chord.from_symbol("C/D")
+    assert [t.full_name for t in c.tones] == ["D3", "C4", "E4", "G4"]
+
+
+def test_from_symbol_slash_chord_seventh():
+    c = Chord.from_symbol("Am7/G")
+    assert c.tones[0].name == "G"
+    assert c.tones[0].midi == min(t.midi for t in c.tones)
+    assert {t.name for t in c.tones} == {"A", "C", "E", "G"}
+
+
+def test_detect_chords_sus():
+    assert _chords_roundtrip(["Csus4", "Am", "G"]) == ["Csus4", "Am", "G"]
+
+
+def test_detect_chords_inversion_slash():
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    from pytheory import Chord
+    from pytheory.audio import detect_chords
+    s = Score(bpm=120)
+    p = s.part("p", synth="rhodes", volume=0.6)
+    b = s.part("b", synth="sine", volume=0.6)
+    for sym, bass in [("C", "C2"), ("C", "E2"), ("G", "G2")]:
+        p.add(Chord.from_symbol(sym, octave=4), 4)
+        b.add(bass, 4)
+    buf = render_score(s).mean(axis=1).astype(numpy.float64)
+    track = detect_chords(buf, 44100, bpm=120, beats_per_chord=4)
+    symbols = [sym for _, _, sym in track]
+    assert symbols == ["C", "C/E", "G"]
+
+
+def test_detect_chords_beat_aligned_lead_in():
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    from pytheory import Chord
+    from pytheory.audio import detect_chords
+    s = Score(bpm=120)
+    p = s.part("p", synth="rhodes", volume=0.6)
+    for sym in ["Am", "F", "C", "G"]:
+        p.add(Chord.from_symbol(sym), 4)
+    buf = render_score(s).mean(axis=1).astype(numpy.float64)
+    # Half a beat of near-silence up front — the grid must realign
+    lead = numpy.zeros(int(44100 * 0.25))
+    track = detect_chords(numpy.concatenate([lead, buf]), 44100,
+                          bpm=120, beats_per_chord=4)
+    symbols = [sym for _, _, sym in track]
+    assert symbols == ["Am", "F", "C", "G"]
+    assert 0.25 <= track[0][0] <= 0.75   # starts near the real downbeat
+
+
+def test_detect_chords_short_and_silent_input():
+    from pytheory.audio import detect_chords
+    assert detect_chords(numpy.zeros(100), 44100) == []
+    assert detect_chords(numpy.zeros(44100), 44100) == []
+
+
+def test_tuner_string_targets():
+    from pytheory.tuner import string_targets
+    targets = string_targets("guitar")
+    assert [n for n, _ in targets] == ["E2", "A2", "D3", "G3", "B3", "E4"]
+    assert abs(targets[0][1] - 82.41) < 0.01
+    # Reference pitch shifts every string
+    high = string_targets("guitar", reference_pitch=442.0)
+    assert high[0][1] > targets[0][1]
+
+
+def test_tuner_analyze_frame_locks_to_string():
+    import json
+    from pytheory.tuner import analyze_frame, string_targets
+    t = numpy.arange(8192) / 44100
+    # 145 Hz — 22 cents flat of the guitar D string (146.83 Hz)
+    r = analyze_frame(numpy.sin(2 * numpy.pi * 145 * t), 44100,
+                      targets=string_targets("guitar"))
+    assert r["target"] == "D3"
+    assert -30 < r["cents"] < -15
+    assert r["in_tune"] is False
+    json.dumps(r)
+
+
+def test_tuner_instrument_widens_range():
+    from pytheory.tuner import Tuner
+    t = Tuner(instrument="bass")
+    assert t.fmin < 41.3   # must reach the low E1 string
+    assert t.targets[0][0] == "E1"
+
+
+def test_tuner_unknown_instrument():
+    from pytheory.tuner import Tuner
+    with pytest.raises(ValueError):
+        Tuner(instrument="kazoo")
+
+
+def test_tuner_ws_frame_encoding():
+    from pytheory.tuner import _ws_frame
+    small = _ws_frame(b"x" * 10)
+    assert small[0] == 0x81 and small[1] == 10
+    medium = _ws_frame(b"x" * 200)
+    assert medium[1] == 126
+    assert int.from_bytes(medium[2:4], "big") == 200
+
+
+def test_tuner_serve_page_stream_and_websocket():
+    import base64
+    import hashlib
+    import json
+    import socket
+    import threading
+    import time
+    import types
+    import urllib.request
+    from pytheory import tuner as tuner_mod
+
+    fake = types.SimpleNamespace(
+        instrument="guitar",
+        targets=tuner_mod.string_targets("guitar"),
+        reference_pitch=440.0,
+        reading={"freq": 82.4, "note": "E", "octave": 2, "cents": -3.0,
+                 "in_tune": True, "target": "E2", "target_freq": 82.41})
+    port = 8342
+    th = threading.Thread(target=tuner_mod.serve, args=(fake,),
+                          kwargs={"port": port, "open_browser": False},
+                          daemon=True)
+    th.start()
+    time.sleep(0.6)
+
+    page = urllib.request.urlopen(
+        f"http://localhost:{port}/", timeout=10).read().decode()
+    assert "strobe" in page
+    assert '"strings": ["E2", "A2", "D3", "G3", "B3", "E4"]' in page
+
+    stream = urllib.request.urlopen(
+        f"http://localhost:{port}/stream", timeout=10)
+    line = stream.readline().decode()
+    stream.close()
+    assert line.startswith("data: ") and '"target": "E2"' in line
+
+    # WebSocket handshake (RFC 6455 sample key) + one frame
+    ws_key = "dGhlIHNhbXBsZSBub25jZQ=="
+    expect = base64.b64encode(hashlib.sha1(
+        (ws_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()
+    ).digest()).decode()
+    s = socket.create_connection(("localhost", port), timeout=10)
+    s.sendall((f"GET /ws HTTP/1.1\r\nHost: localhost\r\n"
+               f"Upgrade: websocket\r\nConnection: Upgrade\r\n"
+               f"Sec-WebSocket-Key: {ws_key}\r\n"
+               f"Sec-WebSocket-Version: 13\r\n\r\n").encode())
+    buf = b""
+    while b"\r\n\r\n" not in buf:
+        buf += s.recv(4096)
+    head, _, rest = buf.partition(b"\r\n\r\n")
+    assert b"101" in head.splitlines()[0]
+    assert f"Sec-WebSocket-Accept: {expect}".encode() in head
+    buf = rest
+    while len(buf) < 4:
+        buf += s.recv(4096)
+    assert buf[0] == 0x81
+    if buf[1] == 126:
+        need, off = int.from_bytes(buf[2:4], "big"), 4
+    else:
+        need, off = buf[1], 2
+    while len(buf) < off + need:
+        buf += s.recv(4096)
+    reading = json.loads(buf[off:off + need].decode())
+    assert reading["target"] == "E2"
+    s.close()
+
+
+def test_live_engine_link_sync():
+    pytest.importorskip("link")
+    import time
+    from pytheory.live import LiveEngine
+
+    e = LiveEngine()
+    e.channel(1, instrument="electric_piano")
+    e.drums("rock", volume=0.5)
+    e.enable_link(quantum=4)
+    try:
+        state = e._link.captureSessionState()
+        now = e._link.clock().micros()
+        state.setIsPlaying(True, now)
+        state.setTempo(140, now)
+        e._link.commitSessionState(state)
+        time.sleep(0.05)
+
+        hits = []
+        e._drum_channel.note_on = lambda n, v: hits.append(n)
+        for _ in range(120):
+            e._on_link_audio(512)
+            time.sleep(0.005)
+        assert abs(e._bpm - 140) < 0.5   # tempo followed the session
+        assert hits                       # drums fired on the Link grid
+    finally:
+        e.stop()
+    assert e._link is None
+
+
+def test_live_engine_link_stopped_transport_is_silent():
+    pytest.importorskip("link")
+    import time
+    from pytheory.live import LiveEngine
+
+    e = LiveEngine()
+    e.channel(1, instrument="electric_piano")
+    e.drums("rock", volume=0.5)
+    e.enable_link(quantum=4)
+    try:
+        state = e._link.captureSessionState()
+        state.setIsPlaying(False, e._link.clock().micros())
+        e._link.commitSessionState(state)
+        time.sleep(0.05)
+        hits = []
+        e._drum_channel.note_on = lambda n, v: hits.append(n)
+        for _ in range(40):
+            e._on_link_audio(512)
+            time.sleep(0.002)
+        assert hits == []
+    finally:
+        e.stop()

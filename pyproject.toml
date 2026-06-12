@@ -1,6 +1,6 @@
 [project]
 name = "pytheory"
-version = "0.48.1"
+version = "0.49.0"
 description = "Music Theory for Humans"
 readme = "README.md"
 license = "MIT"
@@ -28,6 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 live = ["python-rtmidi"]
+link = ["LinkPython-extern"]
 
 [project.urls]
 Homepage = "https://github.com/kennethreitz/pytheory"
@@ -39,7 +40,7 @@ Issues = "https://github.com/kennethreitz/pytheory/issues"
 pytheory = "pytheory.cli:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "LinkPython-extern"]
 docs = ["sphinx", "myst-parser"]
 
 [build-system]

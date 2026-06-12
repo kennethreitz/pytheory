@@ -20,11 +20,12 @@ def note_name(midi):
 
 class LiveTUI:
     def __init__(self, seed=None, port="OP-XY", n_channels=8,
-                 drum_pattern="rock", buffer_size=128):
+                 drum_pattern="rock", buffer_size=128, link=False):
         self.seed = seed or random.randint(0, 9999)
         self.port = port
         self.n_channels = n_channels
         self.buffer_size = buffer_size
+        self.link = link
         self.engine = None
         self.log_lines = []
         self.max_log = 500
@@ -48,6 +49,8 @@ class LiveTUI:
         if self.current_drum and self.current_drum not in ("none", "-"):
             self.engine.drums(self.current_drum, volume=0.5)
         self.engine.cc(0, "lowpass", min_val=300, max_val=8000)
+        if self.link:
+            self.engine.enable_link()
 
     def log(self, msg, color=0):
         self.log_lines.append((time.time(), msg, color))
@@ -199,7 +202,11 @@ class LiveTUI:
                 if self.engine._keyboard_channel:
                     kbd_mode = f"  KBD:ch{self.engine._keyboard_channel}"
                 rec_mode = "  ●REC" if self.engine._recording else ""
-                info = f"  BPM:{self.bpm}  drums:{self.current_drum}  seed:{self.seed}{kbd_mode}{rec_mode}"
+                link_mode = ""
+                if self.engine._link is not None:
+                    self.bpm = f"{self.engine._bpm:.0f}"
+                    link_mode = f"  ⇄Link:{self.engine.link_peers()}"
+                info = f"  BPM:{self.bpm}  drums:{self.current_drum}  seed:{self.seed}{link_mode}{kbd_mode}{rec_mode}"
                 try:
                     stdscr.addstr(0, x, info[:w - x], curses.color_pair(6))
                     # Fill rest of header
@@ -784,10 +791,11 @@ class LiveTUI:
             self.log(f"? {cmd}", 4)
 
 
-def run_tui(seed=None, port="OP-XY", channels=8, drums="rock", buffer=128):
+def run_tui(seed=None, port="OP-XY", channels=8, drums="rock", buffer=128,
+            link=False):
     """Launch the live TUI and print a resume command on exit."""
     tui = LiveTUI(seed=seed, port=port, n_channels=channels,
-                  drum_pattern=drums, buffer_size=buffer)
+                  drum_pattern=drums, buffer_size=buffer, link=link)
     curses.wrapper(tui.run)
 
     # Print resume command on exit
@@ -800,6 +808,8 @@ def run_tui(seed=None, port="OP-XY", channels=8, drums="rock", buffer=128):
         cmd_parts += ["--drums", tui.current_drum]
     if tui.buffer_size != 128:
         cmd_parts += ["--buffer", str(tui.buffer_size)]
+    if tui.link:
+        cmd_parts += ["--link"]
     print(f"\nResume this session with:\n  {' '.join(cmd_parts)}\n")
 
 
@@ -811,10 +821,12 @@ def main():
     parser.add_argument("--channels", "-c", type=int, default=8, help="Number of channels (default: 8)")
     parser.add_argument("--drums", "-d", default="rock", help="Drum pattern (default: rock, 'none' to disable)")
     parser.add_argument("--buffer", "-b", type=int, default=128, help="Audio buffer size (default: 128)")
+    parser.add_argument("--link", action="store_true",
+                        help="Sync tempo/beat/transport with an Ableton Link session")
     args = parser.parse_args()
 
     run_tui(seed=args.seed, port=args.port, channels=args.channels,
-            drums=args.drums, buffer=args.buffer)
+            drums=args.drums, buffer=args.buffer, link=args.link)
 
 
 if __name__ == "__main__":

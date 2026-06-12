@@ -146,6 +146,11 @@ class Chord:
         suffix. Unlike ``from_name()``, this doesn't rely on a lookup
         table and can handle any combination.
 
+        Slash chords are voiced with the named bass note lowest:
+        ``"C/E"`` gives the first inversion (E4 G4 C5), and a bass
+        note from outside the chord (``"C/D"``) is added below the
+        root.
+
         Args:
             symbol: A chord symbol string (e.g. ``"Am7"``, ``"Ebmaj9"``).
             octave: The octave for the root note (default 4).
@@ -166,6 +171,23 @@ class Chord:
             'Bbmaj7'
         """
         from .tones import Tone
+
+        # Slash chord: parse the main symbol, then re-voice so the
+        # named bass note is lowest.
+        if "/" in symbol:
+            main_sym, bass_name = symbol.split("/", 1)
+            chord = cls.from_symbol(main_sym, octave=octave)
+            bass_ref = Tone.from_string(f"{bass_name}{octave}",
+                                        system="western")
+            bass_pc = bass_ref.midi % 12
+            for n, tone in enumerate(chord.tones):
+                if tone.midi is not None and tone.midi % 12 == bass_pc:
+                    return chord.inversion(n)
+            bass = bass_ref
+            while (chord.tones and chord.tones[0].midi is not None
+                   and bass.midi >= chord.tones[0].midi):
+                bass = bass.subtract(12)
+            return cls(tones=[bass] + list(chord.tones))
 
         # Parse root note
         root_name = None

@@ -2,6 +2,49 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.49.0
+
+- **Ableton Link sync — `pytheory live --link`.** The live engine
+  joins an Ableton Link session on the local network
+  (`engine.enable_link()`): tempo follows the session peer-to-peer,
+  the drum pattern locks to the shared beat grid (quantum-aligned, so
+  your kick lands on everyone's downbeat), and transport start/stop
+  syncs with peers that support it. The TUI header shows the peer
+  count. Requires the new `pytheory[link]` extra (LinkPython-extern).
+- **Strobe tuner.** `pytheory tune --serve` now serves a strobe
+  display — a three-ring segmented disc that drifts clockwise when
+  sharp, counter-clockwise when flat, and freezes when you're in tune,
+  with the inner rings at half and quarter rate for fine reading.
+- **Tuner instrument presets — `pytheory tune --instrument guitar`.**
+  Readings lock to the nearest open string (guitar, bass, ukulele,
+  violin, viola, cello, mandolin, banjo), so tuning the D string never
+  gets misread as "80 cents flat of E". The reading carries a `target`
+  field, the browser page highlights the string you're on, and the
+  pitch search range widens automatically (bass low E1 = 41 Hz).
+  `string_targets()` exposes the (name, frequency) lists, and they
+  shift with `--ref`.
+- **Tuner WebSocket stream.** The pitch stream is now also served over
+  WebSocket at `/ws` (hand-rolled RFC 6455, server-to-client) alongside
+  the existing SSE `/stream` — for clients where EventSource is
+  awkward.
+- **Sus chords and inversions in chord detection.** `detect_chords`
+  matches sus2/sus4 templates, and when the bass sits steadily on a
+  chord tone that isn't the root, reports the inversion as a slash
+  chord ("C/E"). The bass check is a YIN pass on the lowpassed signal
+  with a spectral guard against YIN's missing-fundamental phantom (a
+  Csus4 with no bass note looks like a phantom F2 — it's rejected
+  because no energy actually sits at 87 Hz).
+- **Beat-aligned chord windows.** The chord grid aligns itself to the
+  music's onsets (circular phase histogram of spectral flux) instead of
+  marching from t=0, so a recording that starts mid-bar or with a
+  lead-in doesn't smear every chord across two windows. Near-silent
+  windows no longer produce junk chords, and the chord chromagram now
+  starts at 130 Hz, where FFT bins are finer than a semitone (a loud
+  bass note no longer smears into neighboring pitch classes).
+- **Slash chords in `Chord.from_symbol`** — `"C/E"` gives the first
+  inversion voicing, `"Am7/G"` the third, and a bass note from outside
+  the chord (`"C/D"`) is added below the root.
+
 ## 0.48.1
 
 - **Docs URL updated to pytheory.org** in package metadata and README

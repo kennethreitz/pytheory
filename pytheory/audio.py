@@ -333,7 +333,8 @@ def _segment_notes(times, freqs, voiced, samples, sample_rate, hop,
     return events
 
 
-def _chromagram(samples, sample_rate=SAMPLE_RATE):
+def _chromagram(samples, sample_rate=SAMPLE_RATE, *,
+                fmin=55.0, fmax=5000.0):
     """Fold a spectrogram into 12 pitch classes over time.
 
     Every FFT bin maps to the pitch class of its frequency; summing
@@ -353,7 +354,7 @@ def _chromagram(samples, sample_rate=SAMPLE_RATE):
     mag = numpy.abs(Z)
 
     # Map bins to pitch classes (ignore rumble and air)
-    usable = (f >= 55.0) & (f <= 5000.0)
+    usable = (f >= fmin) & (f <= fmax)
     midi = 69 + 12 * numpy.log2(f[usable] / 440.0)
     pcs = numpy.round(midi).astype(int) % 12
 
@@ -379,7 +380,61 @@ _CHORD_QUALITIES = {
     "7": ((0, 4, 7, 10), 0.96),   # dominant 7th
     "maj7": ((0, 4, 7, 11), 0.96),
     "m7": ((0, 3, 7, 10), 0.96),
+    "sus2": ((0, 2, 7), 0.94),
+    "sus4": ((0, 5, 7), 0.94),
 }
+
+
+def _grid_phase(samples, sample_rate, window_sec):
+    """Find where the chord grid should start, in seconds.
+
+    Chord changes land on beats, but the recording rarely starts on
+    one. Fold onset energy (spectral flux) onto the window period —
+    a circular histogram of "when in the window do onsets happen" —
+    and start the grid at the phase where they concentrate.
+    """
+    from scipy.signal import stft
+
+    hop = 512
+    nperseg = 2048
+    if len(samples) < nperseg * 2:
+        return 0.0
+    f, t, Z = stft(samples, fs=sample_rate, nperseg=nperseg,
+                   noverlap=nperseg - hop)
+    mag = numpy.abs(Z)
+    flux = numpy.maximum(numpy.diff(mag, axis=1), 0).sum(axis=0)
+    ftimes = t[1:]
+    if flux.std() < 1e-9:
+        return 0.0
+    flux = flux - flux.min()
+
+    nbins = 64
+    hist = numpy.zeros(nbins)
+    idx = ((ftimes % window_sec) / window_sec * nbins).astype(int) % nbins
+    numpy.add.at(hist, idx, flux)
+    # Circular smoothing so an onset straddling two bins still wins
+    kernel = numpy.array([0.25, 0.5, 1.0, 0.5, 0.25])
+    smooth = sum(k * numpy.roll(hist, s)
+                 for k, s in zip(kernel, range(-2, 3)))
+    return float(smooth.argmax()) / nbins * window_sec
+
+
+def _bass_is_real(bass_sig, sample_rate, lo, hi, f_bass):
+    """Is there actual spectral energy at the detected bass pitch?
+
+    YIN reports the period of the *composite* waveform, so a chord
+    with no bass note still yields its missing fundamental (Csus4
+    looks like a phantom F2). A real bass note carries energy at its
+    own fundamental; a phantom doesn't.
+    """
+    seg = bass_sig[int(lo * sample_rate):int(hi * sample_rate)]
+    if len(seg) < 1024 or f_bass <= 0:
+        return False
+    spec = numpy.abs(numpy.fft.rfft(seg * numpy.hanning(len(seg)))) ** 2
+    freqs = numpy.fft.rfftfreq(len(seg), 1 / sample_rate)
+    fund = spec[(freqs > f_bass * 0.94) & (freqs < f_bass * 1.06)].sum()
+    low = spec[freqs < 320.0].sum() + 1e-12
+    return fund > 0.2 * low
 
 
 def detect_chords(samples, sample_rate=SAMPLE_RATE, *, bpm=120,
@@ -387,18 +442,35 @@ def detect_chords(samples, sample_rate=SAMPLE_RATE, *, bpm=120,
     """Detect a chord progression from audio.
 
     Folds the harmonic content into pitch classes (a chromagram),
-    averages it over chord-sized windows on the beat grid, and
-    matches each window against major/minor triad templates on all
-    twelve roots.
+    averages it over chord-sized windows on a beat grid aligned to
+    the music's own onsets, and matches each window against
+    major/minor/sus triad and 7th-chord templates on all twelve
+    roots. When the bass clearly sits on a chord tone other than the
+    root, the chord is reported as a slash chord (``"C/E"``).
 
     Returns:
         List of (start_beat, duration_beats, symbol) tuples, with
         consecutive identical chords merged — e.g.
         ``[(0.0, 8.0, "Am"), (8.0, 4.0, "F")]``.
     """
-    chroma, times = _chromagram(samples, sample_rate)
+    samples = numpy.asarray(samples, dtype=numpy.float64)
+    if len(samples) < 8192:
+        return []
+    # Chroma from 130 Hz up — below that, FFT bins are a semitone
+    # wide and a loud bass smears into neighboring pitch classes.
+    # The bass still votes through its harmonics.
+    chroma, times = _chromagram(samples, sample_rate, fmin=130.0)
     if chroma.shape[1] == 0:
         return []
+    # Bass pitch track for inversion detection — the chromagram is
+    # octave-blind (and FFT bins are semitones wide down low), so
+    # "what's in the bass?" gets its own YIN pass on the lowpassed
+    # signal, like the bass stem in transcribe().
+    from scipy.signal import butter, filtfilt
+    bl, al = butter(4, 320, btype='low', fs=sample_rate)
+    bass_sig = filtfilt(bl, al, samples)
+    btimes, bfreqs, bvoiced = detect_pitch(bass_sig, sample_rate,
+                                           fmin=40.0, fmax=300.0)
 
     # Build the templates once (12 roots × qualities)
     templates = []
@@ -409,28 +481,72 @@ def detect_chords(samples, sample_rate=SAMPLE_RATE, *, bpm=120,
                 vec[(root + iv) % 12] = 1.0
             vec[root] = 1.5          # weight the root
             vec /= numpy.linalg.norm(vec)
-            templates.append((root, quality, vec * prior))
+            templates.append((root, quality,
+                              frozenset((root + iv) % 12 for iv in intervals),
+                              vec * prior))
 
     window_sec = beats_per_chord * 60.0 / bpm
     total_sec = times[-1]
-    n_windows = max(1, int(round(total_sec / window_sec)))
+    if total_sec < window_sec / 2:
+        return []
+
+    # Beat-align the grid: window boundaries snap to the phase where
+    # the music's onsets land, instead of marching blindly from t=0.
+    offset = _grid_phase(samples, sample_rate, window_sec)
+    boundaries = list(numpy.arange(offset, total_sec, window_sec))
+    if not boundaries or boundaries[0] > 1e-6:
+        # Leading partial window — usually a silent lead-in (the
+        # energy gate below skips it) or the tail of chord one
+        # (merged below).
+        boundaries.insert(0, 0.0)
+    boundaries.append(max(total_sec, boundaries[-1] + 1e-6))
+
+    def to_beats(sec):
+        # Snap to sixteenths so the score grid stays tidy
+        return round(sec * bpm / 60.0 * 4) / 4.0
+
+    peak_rms = numpy.sqrt((samples ** 2).mean()) or 1.0
 
     raw = []
-    for w in range(n_windows):
-        lo, hi = w * window_sec, (w + 1) * window_sec
+    for lo, hi in zip(boundaries[:-1], boundaries[1:]):
         cols = (times >= lo) & (times < hi)
         if not cols.any():
+            continue
+        # Skip near-silent windows (lead-ins, gaps) — any chroma
+        # there is just noise.
+        seg = samples[int(lo * sample_rate):int(hi * sample_rate)]
+        if len(seg) and numpy.sqrt((seg ** 2).mean()) < 0.05 * peak_rms:
             continue
         avg = chroma[:, cols].mean(axis=1)
         norm = numpy.linalg.norm(avg)
         if norm < 1e-9:
             continue
         avg = avg / norm
-        scores = [(avg @ vec, root, quality)
-                  for root, quality, vec in templates]
-        score, root, quality = max(scores)
+        scores = [(avg @ vec, root, quality, pcs)
+                  for root, quality, pcs, vec in templates]
+        score, root, quality, pcs = max(scores)
         symbol = _NOTE_NAMES[root] + quality
-        raw.append((w * beats_per_chord, beats_per_chord, symbol))
+
+        # Inversion: a confident, steady bass note on a chord tone
+        # that isn't the root makes it a slash chord.
+        bsel = bvoiced & (btimes >= lo) & (btimes < hi)
+        n_window = max(1, int(((btimes >= lo) & (btimes < hi)).sum()))
+        if bsel.sum() >= 0.4 * n_window:
+            bmidi = numpy.round(
+                69 + 12 * numpy.log2(bfreqs[bsel] / 440.0)).astype(int)
+            bpcs, counts = numpy.unique(bmidi % 12, return_counts=True)
+            bass_pc = int(bpcs[counts.argmax()])
+            if (counts.max() >= 0.6 * bsel.sum() and bass_pc != root
+                    and bass_pc in pcs
+                    and _bass_is_real(bass_sig, sample_rate, lo, hi,
+                                      float(numpy.median(
+                                          bfreqs[bsel][bmidi % 12
+                                                       == bass_pc])))):
+                symbol += "/" + _NOTE_NAMES[bass_pc]
+
+        start_b, end_b = to_beats(lo), to_beats(hi)
+        if end_b > start_b:
+            raw.append((start_b, end_b - start_b, symbol))
 
     # Merge consecutive identical chords
     merged = []

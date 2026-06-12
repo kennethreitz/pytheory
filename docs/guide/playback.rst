@@ -435,8 +435,12 @@ pitched material from drums (held notes are horizontal lines on a
 spectrogram, drum hits vertical ones — median filters tell them
 apart). The harmonic stem gets band-split YIN passes for bass and
 melody, plus a **chromagram** — the spectrum folded into 12 pitch
-classes — matched against major/minor triad templates per chord
-window. The percussive stem gets onset detection with each hit
+classes — matched against major/minor/sus triad and 7th-chord
+templates per chord window. The window grid aligns itself to the
+music's own onsets (so a pickup bar doesn't smear every chord
+across two windows), and when the bass sits steadily on a chord
+tone that isn't the root, you get the inversion as a slash chord
+(``C/E``). The percussive stem gets onset detection with each hit
 classified as kick, snare, or hat by where its energy lives. The
 key falls out of everything pitched via :meth:`Key.detect`.
 

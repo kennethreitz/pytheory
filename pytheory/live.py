@@ -22,6 +22,15 @@ plucks) decay naturally and end.
 Effects (lowpass, reverb, chorus, delay, tremolo, distortion,
 saturation) run on each channel's bus in real time, so MIDI CC
 sweeps are smooth and instant — no wavetable re-rendering.
+
+To play in time with Ableton Live, iOS apps, or anything else that
+speaks Ableton Link (requires ``pip install pytheory[link]``)::
+
+    engine.enable_link()
+    engine.start()
+
+Tempo, the drum-pattern beat grid, and transport start/stop all
+sync with the Link session — peer-to-peer, no master.
 """
 
 import threading
@@ -489,6 +498,11 @@ class LiveEngine:
         self._clock_times = []     # timestamps for BPM calculation
         self._bpm = 120.0
         self._playing = False
+        # Ableton Link
+        self._link = None
+        self._link_quantum = 4.0
+        self._link_start_stop = True
+        self._link_last_beat = None
         # Drum pattern
         self._drum_pattern = None
         self._drum_channel = None
@@ -589,9 +603,92 @@ class LiveEngine:
                                 channel._cache.clear()
                 return
 
+    def enable_link(self, *, quantum=4.0, start_stop_sync=True):
+        """Sync with an Ableton Link session on the local network.
+
+        Tempo follows the session (and the session follows you —
+        Link is peer-to-peer), the drum pattern locks to the shared
+        beat grid, and transport start/stop syncs with peers that
+        support it (Ableton Live, most iOS apps).
+
+        Args:
+            quantum: Bar length in beats for phase alignment
+                (default 4 — drums land on the same downbeat as
+                everyone else's bar).
+            start_stop_sync: Follow Link transport start/stop.
+
+        Requires the ``link`` extra::
+
+            pip install pytheory[link]
+        """
+        try:
+            import link as ablink
+        except ImportError:
+            raise ImportError(
+                "LinkPython-extern is required for Ableton Link sync. "
+                "Install it with: pip install pytheory[link]"
+            ) from None
+        self._link = ablink.Link(self._bpm)
+        self._link_quantum = quantum
+        self._link_start_stop = start_stop_sync
+        self._link.startStopSyncEnabled = start_stop_sync
+        self._link.setTempoCallback(self._on_link_tempo)
+        if start_stop_sync:
+            self._link.setStartStopCallback(self._on_link_start_stop)
+        self._link.enabled = True
+        return self
+
+    def link_peers(self):
+        """Number of Link peers currently on the network (0 if Link
+        is not enabled)."""
+        return self._link.numPeers() if self._link is not None else 0
+
+    def _on_link_tempo(self, bpm):
+        self._bpm = bpm
+
+    def _on_link_start_stop(self, playing):
+        self._playing = playing
+        if not playing:
+            self._all_notes_off()
+
+    def _on_link_audio(self, frames):
+        """Advance the Link beat grid by one audio block, triggering
+        any drum hits the block crosses."""
+        state = self._link.captureSessionState()
+        now = self._link.clock().micros()
+        tempo = state.tempo()
+        if tempo > 10:
+            self._bpm = tempo
+
+        if self._link_start_stop and not state.isPlaying():
+            self._link_last_beat = None
+            return
+        beat = state.beatAtTime(now, self._link_quantum)
+        if beat < 0:                # count-in before the bar starts
+            self._link_last_beat = None
+            return
+
+        last = self._link_last_beat
+        self._link_last_beat = beat
+        if last is None or beat < last:   # first block or beat jump
+            last = max(0.0, beat - frames / self.sample_rate * tempo / 60.0)
+
+        if not (self._drum_pattern and self._drum_channel):
+            return
+        pattern = self._drum_pattern
+        b0 = last % pattern.beats
+        b1 = b0 + (beat - last)
+        for hit in pattern.hits:
+            for pos in (hit.position, hit.position + pattern.beats):
+                if b0 < pos <= b1:
+                    self._drum_channel.note_on(hit.sound.value, hit.velocity)
+
     def _on_clock(self):
         """Handle MIDI clock pulse (24 per quarter note)."""
         import time as _time
+
+        if self._link is not None:
+            return  # Link owns tempo and the drum grid
 
         if not self._playing:
             return
@@ -694,6 +791,8 @@ class LiveEngine:
 
     def _audio_callback(self, outdata, frames, time_info, status):
         """sounddevice callback - mix all channels to stereo."""
+        if self._link is not None:
+            self._on_link_audio(frames)
         stereo = numpy.zeros((frames, 2), dtype=numpy.float32)
         for channel in self.channels.values():
             stereo += channel.render_stereo(frames)
@@ -790,7 +889,11 @@ class LiveEngine:
             kind = "drums" if channel.is_drums else channel.synth_name
             print(f"    {ch:2d}: {kind} (vol={channel.volume})")
         if self._drum_pattern:
-            print(f"  Drums: {self._drum_pattern.name} (synced to MIDI clock)")
+            sync = "Ableton Link" if self._link is not None else "MIDI clock"
+            print(f"  Drums: {self._drum_pattern.name} (synced to {sync})")
+        if self._link is not None:
+            print(f"  Link: enabled — {self.link_peers()} peer(s), "
+                  f"quantum {self._link_quantum:g}")
         print()
         print("  Playing... (Ctrl-C to stop)")
         print()
@@ -1011,6 +1114,9 @@ class LiveEngine:
     def stop(self):
         """Stop the engine."""
         self._stop_event.set()
+        if self._link is not None:
+            self._link.enabled = False
+            self._link = None
         if self._stream:
             self._stream.stop()
         if self._midi_in:

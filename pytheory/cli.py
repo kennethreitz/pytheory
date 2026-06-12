@@ -212,7 +212,7 @@ def cmd_circle(args):
 def cmd_live(args):
     from .live_tui import run_tui
     run_tui(seed=args.seed, port=args.port, channels=args.channels,
-            drums=args.drums, buffer=args.buffer)
+            drums=args.drums, buffer=args.buffer, link=args.link)
 
 
 def cmd_studio(args):
@@ -222,13 +222,16 @@ def cmd_studio(args):
 
 def cmd_tune(args):
     from .tuner import Tuner, serve, run_terminal
-    tuner = Tuner(reference_pitch=args.ref, device=args.device)
+    tuner = Tuner(reference_pitch=args.ref, device=args.device,
+                  instrument=args.instrument)
     tuner.start()
     try:
         if args.serve:
             serve(tuner, port=args.port, open_browser=not args.no_browser)
         else:
-            print(f"  PyTheory Tuner (A4 = {args.ref:g} Hz) — Ctrl-C to stop")
+            extra = f", {args.instrument}" if args.instrument else ""
+            print(f"  PyTheory Tuner (A4 = {args.ref:g} Hz{extra})"
+                  f" — Ctrl-C to stop")
             run_terminal(tuner)
     finally:
         tuner.stop()
@@ -579,6 +582,8 @@ def main():
                    help="Drum pattern (default: rock, 'none' to disable)")
     p.add_argument("--buffer", "-b", type=int, default=128,
                    help="Audio buffer size (default: 128)")
+    p.add_argument("--link", action="store_true",
+                   help="Sync tempo/beat/transport with an Ableton Link session (needs pytheory[link])")
 
     # studio
     p = sub.add_parser("studio", help="Browser studio: drop in a recording, get sheet music, playback, and MIDI")
@@ -587,7 +592,11 @@ def main():
 
     # tune
     p = sub.add_parser("tune", help="Real-time instrument tuner (e.g. pytheory tune, or --serve for browser/JS)")
-    p.add_argument("--serve", action="store_true", help="Serve a browser tuner page + JS pitch stream (SSE)")
+    p.add_argument("--serve", action="store_true", help="Serve a browser strobe tuner page + JS pitch stream (SSE + WebSocket)")
+    p.add_argument("--instrument", "-i", default=None,
+                   choices=["guitar", "bass", "ukulele", "violin", "viola",
+                            "cello", "mandolin", "banjo"],
+                   help="Lock readings to this instrument's open strings")
     p.add_argument("--port", type=int, default=8123, help="Port for --serve (default: 8123)")
     p.add_argument("--ref", type=float, default=440.0, help="Reference pitch for A4 in Hz (default: 440)")
     p.add_argument("--device", type=int, default=None, help="Input device index (default: system default)")

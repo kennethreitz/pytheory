@@ -134,6 +134,32 @@ printed so you can resume a setup you liked). Inside the TUI you can
 swap instruments per channel, change the drum pattern, record, and
 export — without leaving the keyboard.
 
+Ableton Link
+------------
+
+If anything else on your network speaks `Ableton Link
+<https://www.ableton.com/link/>`_ — Ableton Live, most iOS music
+apps, many DJ tools — the engine can lock to the shared session::
+
+   $ pip install "pytheory[link]"
+   $ pytheory live --link
+
+Or in Python:
+
+.. code-block:: python
+
+   engine = LiveEngine()
+   engine.channel(1, instrument="electric_piano")
+   engine.drums("house")
+   engine.enable_link()
+   engine.start()
+
+Tempo follows the session (and the session follows you — Link is
+peer-to-peer, nobody is the master), the drum pattern locks to the
+shared beat grid so your kick lands on everyone else's downbeat, and
+transport start/stop syncs with peers that support it. The TUI
+header shows the peer count while connected.
+
 Saving a Rig
 ------------
 
@@ -159,16 +185,30 @@ you are::
    $ pytheory tune
      A4  ----------------------------●------ +12.3¢ ( 443.14 Hz)
 
-For a big, friendly needle, serve it to your browser instead::
+Tuning a guitar? Tell it, and readings lock to the nearest open
+string — tuning the D string never gets misread as "80 cents flat
+of E"::
+
+   $ pytheory tune --instrument guitar
+     → D3 ------------------●---------------  -8.1¢ ( 146.15 Hz)
+
+Presets: guitar, bass, ukulele, violin, viola, cello, mandolin,
+banjo.
+
+For the full strobe-tuner experience, serve it to your browser::
 
    $ pytheory tune --serve
 
-That opens ``http://localhost:8123`` — note name, frequency, and a
-needle that turns green within ±5 cents.
+That opens ``http://localhost:8123`` — a strobe display (the
+segmented disc drifts clockwise when you're sharp, counter-clockwise
+when you're flat, and freezes when you're dead on — the same logic
+as a Peterson strobe), plus a needle, and your instrument's strings
+highlighted as you hit them with ``--instrument``.
 
-The page is fed by a **Server-Sent Events stream at** ``/stream``,
-with CORS open — which means any JavaScript app can tap PyTheory's
-pitch detection directly, no client library required:
+The page is fed by a **Server-Sent Events stream at** ``/stream``
+(CORS open) and the same stream over **WebSocket at** ``/ws`` —
+which means any JavaScript app can tap PyTheory's pitch detection
+directly, no client library required:
 
 .. code-block:: javascript
 
@@ -176,15 +216,18 @@ pitch detection directly, no client library required:
    tuner.onmessage = (e) => {
        const reading = JSON.parse(e.data);
        if (reading) {
-           // { freq: 440.0, note: "A", octave: 4,
-           //   cents: -3.2, in_tune: true }
+           // { freq: 146.15, note: "D", octave: 3,
+           //   cents: -8.1, in_tune: false, target: "D3" }
            updateMyUI(reading);
        }
    };
+
+   // or: new WebSocket("ws://localhost:8123/ws")
 
 Build your own tuner page, drive a game, pitch-train an ear-training
 app — the stream doesn't care what's listening.
 
 Orchestras tuning high? ``pytheory tune --ref 442``. Python access is
 :class:`pytheory.tuner.Tuner` (``tuner.reading`` holds the latest
-analysis) and :func:`pytheory.tuner.analyze_frame` for one-shot use.
+analysis; pass ``instrument="cello"`` for string targets) and
+:func:`pytheory.tuner.analyze_frame` for one-shot use.
