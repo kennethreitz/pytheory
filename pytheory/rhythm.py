@@ -5281,6 +5281,45 @@ class Score:
             f.write(struct.pack(">I", len(events)))
             f.write(events)
 
+    # ── Audio Import ─────────────────────────────────────────────────────
+
+    @classmethod
+    def from_wav(cls, path, *, bpm=120, quantize=None,
+                 part_name="melody", synth="piano_synth",
+                 fmin=50.0, fmax=1500.0) -> "Score":
+        """Transcribe a monophonic WAV recording into a Score.
+
+        Hum a melody, whistle a hook, record a bass line — load the
+        WAV and get editable notes back. Pitch tracking is the YIN
+        algorithm; works on one note at a time (voice, whistle, a
+        single instrument line), not chords.
+
+        Args:
+            path: Path to a .wav file.
+            bpm: Tempo to interpret the timing against (default 120).
+            quantize: Optional grid in beats — ``0.25`` snaps starts
+                and durations to sixteenths. Default keeps the timing
+                as performed.
+            part_name: Name of the created part (default "melody").
+            synth: Playback synth for the transcription.
+            fmin/fmax: Pitch search range in Hz. Tighten for better
+                results (e.g. ``fmin=60, fmax=350`` for bass).
+
+        Returns:
+            A Score with one Part of detected notes, rests, and
+            velocities.
+
+        Example::
+
+            >>> score = Score.from_wav("hum.wav", bpm=100, quantize=0.25)
+            >>> print(score.to_abc(title="My Hum"))
+            >>> score.save_midi("hum.mid")
+        """
+        from .audio import transcribe
+        return transcribe(path, bpm=bpm, quantize=quantize,
+                          part_name=part_name, synth=synth,
+                          fmin=fmin, fmax=fmax)
+
     # ── MIDI Import ──────────────────────────────────────────────────────
 
     @classmethod

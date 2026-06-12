@@ -545,82 +545,93 @@ def strings_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
 
 
 def piano_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
-    """Piano — steel strings struck by felt hammer.
+    """Piano — modal synthesis of stiff steel strings struck by a felt hammer.
 
-    The piano sound has three key qualities:
+    What makes a piano sound like a piano, in order of importance:
 
-    1. Metallic ring — steel strings produce clear, ringing harmonics
-       (especially 2nd and 3rd) that sustain for seconds
-    2. Smooth attack — felt hammer absorbs the initial transient,
-       no pick noise or pluck character
-    3. Two-stage decay — fast initial drop (~0.3s) as hammer energy
-       dissipates, then a long slow ring as the string sustains
-
-    Two slightly detuned strings per note create the natural
-    chorus/shimmer that makes piano sound like piano.
+    1. **Inharmonicity** — piano strings are stiff, so partials don't sit
+       at exact integer multiples: partial n rings at n·f0·√(1 + B·n²).
+       The 10th partial of middle C is ~20 cents sharp. This stretch is
+       why pianos shimmer, why their octaves are tuned wide (the
+       Railsback curve), and what every perfectly-harmonic additive
+       "piano" is missing.
+    2. **Strike-position comb** — the hammer hits ~1/8 along the string,
+       which can't excite partials with a node there. The dips carve the
+       woody, hollow midrange character.
+    3. **Register-correct strings** — one wound string per note in the
+       deep bass, three slightly detuned strings (a trichord) from the
+       tenor up. The detuned unison beating produces the singing
+       "aftersound" following the initial strike.
+    4. **Frequency-dependent damping** — high partials die in
+       milliseconds, low ones ring for seconds, so every note darkens
+       as it decays. Treble notes are short; bass notes bloom.
     """
     t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
     rng = numpy.random.default_rng(int(hz * 100) % 2**31)
 
-    # Two-stage decay: fast initial (3.0/s) then slow sustain (0.8/s)
-    decay = numpy.where(t < 0.3,
-                        numpy.exp(-3.0 * t),
-                        numpy.exp(-3.0 * 0.3) * numpy.exp(-0.8 * (t - 0.3)))
+    # Stiffness coefficient B by register: modest for long wound bass
+    # strings, rising steeply for the short stiff treble strings.
+    B = 0.00017 * (hz / 261.63) ** 0.8 + 0.00005
 
-    # Two detuned strings — subtle shimmer
-    detune = 1.5  # cents
-    hz2 = hz * (2 ** (detune / 1200))
+    # Partial count: deep bass notes have audible partials into the kHz;
+    # treble notes only fit a handful under Nyquist.
+    n_partials = min(56, int((SAMPLE_RATE / 2) / hz))
+    if n_partials < 1:
+        n_partials = 1
+    n_idx = numpy.arange(1, n_partials + 1, dtype=numpy.float64)
 
-    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    # Inharmonic partial frequencies: f_n = n·f0·sqrt(1 + B·n²)
+    stretch = numpy.sqrt(1.0 + B * n_idx ** 2)
+    partial_freqs = hz * n_idx * stretch
 
-    # Brightness scales with pitch — high notes are brighter, low notes warmer
-    # C2=65Hz → 0.0, C4=262Hz → 0.5, C6=1047Hz → 1.0
+    # Brightness scales with pitch — used for hammer hardness/thump
     brightness = numpy.clip((hz - 65) / 1000, 0.0, 1.0)
 
-    # Harmonics with the metallic spectral shape of steel strings
-    n_harmonics = min(15, int((SAMPLE_RATE / 2) / hz))
+    # Hammer excitation spectrum:
+    #   strike-position comb |sin(π·n·x̂)| at x̂ ≈ 1/8,
+    #   felt-hammer lowpass (soft contact rounds off the highs),
+    #   1/n string tilt.
+    strike_pos = 0.12
+    comb = numpy.abs(numpy.sin(numpy.pi * n_idx * strike_pos))
+    comb = 0.15 + 0.85 * comb          # don't fully null — strings couple
+    felt_cut = 1500.0 + 3500.0 * brightness
+    felt = 1.0 / (1.0 + (partial_freqs / felt_cut) ** 2)
+    amps = comb * felt / n_idx ** 0.9
+    amps /= amps.max()
 
-    # Vectorized harmonic synthesis — all harmonics at once
-    harmonics = numpy.arange(1, n_harmonics + 1, dtype=numpy.float64)
+    # Frequency-dependent damping — each partial's ring time set by its
+    # actual (inharmonic) frequency, plus a fast strike transient that
+    # melts into the aftersound (the coupled-string double decay).
+    rates = 0.35 + 1.2 * (partial_freqs / 1000.0) ** 1.1
+    decay_matrix = numpy.exp(-rates[:, numpy.newaxis] * t[numpy.newaxis, :])
+    attack_bloom = 1.0 + 0.8 * numpy.exp(-8.0 * t)
 
-    # Piano spectral shape as array
-    amps = numpy.zeros(n_harmonics, dtype=numpy.float64)
-    amps[0] = 1.0
-    if n_harmonics > 1:
-        amps[1] = 0.7 + 0.15 * brightness
-    if n_harmonics > 2:
-        amps[2] = 0.45 + 0.2 * brightness
-    for i in range(3, min(6, n_harmonics)):
-        amps[i] = (0.25 + 0.15 * brightness) / (i + 1)
-    for i in range(6, n_harmonics):
-        amps[i] = (0.1 + 0.1 * brightness) / ((i + 1) ** 2)
+    # Strings per note: 1 wound monochord in the deep bass, 2 in the
+    # low tenor, 3-string trichord above. Trichord unisons sit a hair
+    # apart, which is where the beating aftersound comes from.
+    if hz < 62:
+        detunes = [0.0]
+    elif hz < 110:
+        detunes = [-0.9, 0.9]
+    else:
+        detunes = [-1.2, 0.0, 1.2]
 
-    # Per-harmonic decay rates
-    h_decay_rates = (1.5 - 0.5 * brightness) * (harmonics - 1)
-
-    # Random phases
-    phases = rng.uniform(0, 2 * numpy.pi, n_harmonics)
-
-    for string_hz in [hz, hz2]:
-        freqs = string_hz * harmonics  # (n_harmonics,)
-        # Mask out harmonics above Nyquist
-        valid = freqs < SAMPLE_RATE / 2
-        if not valid.any():
+    valid = partial_freqs < SAMPLE_RATE / 2
+    wave = numpy.zeros(n_samples, dtype=numpy.float64)
+    for cents in detunes:
+        string_freqs = partial_freqs * (2 ** (cents / 1200))
+        phases = rng.uniform(0, 2 * numpy.pi, n_partials)
+        v = valid & (string_freqs < SAMPLE_RATE / 2)
+        if not v.any():
             continue
-        v_freqs = freqs[valid]
-        v_amps = amps[valid]
-        v_rates = h_decay_rates[valid]
-        v_phases = phases[valid]
+        phase_matrix = (2 * numpy.pi * string_freqs[v, numpy.newaxis]
+                        * t[numpy.newaxis, :] + phases[v, numpy.newaxis])
+        wave += (amps[v, numpy.newaxis] * numpy.sin(phase_matrix)
+                 * decay_matrix[v]).sum(axis=0)
+    wave *= attack_bloom / len(detunes)
 
-        # 2D: (n_valid, n_samples) — one sin() call for all harmonics
-        phase_matrix = 2 * numpy.pi * v_freqs[:, numpy.newaxis] * t[numpy.newaxis, :] + v_phases[:, numpy.newaxis]
-        decay_matrix = decay[numpy.newaxis, :] * numpy.exp(-v_rates[:, numpy.newaxis] * t[numpy.newaxis, :])
-        wave += (v_amps[:, numpy.newaxis] * numpy.sin(phase_matrix) * decay_matrix).sum(axis=0)
-
-    wave *= 0.5
-
-    # Hammer impact — felt-on-string thump
-    # Brighter and punchier on high notes, warmer on low notes
+    # Hammer impact — felt-on-string knock plus key-bed thump.
+    # Brighter and punchier on high notes, warmer on low notes.
     hammer_len = min(int(SAMPLE_RATE * (0.015 - 0.007 * brightness)), n_samples)
     if hammer_len < 4:
         hammer_len = 4
@@ -1008,6 +1019,59 @@ def pipe_organ_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     return (peak * wave).astype(numpy.int16)
 
 
+# Vowel formant frequencies + bandwidths (Hz) — F1, F2, F3, F4
+_CHOIR_FORMANTS = {
+    "ah": [(730, 90), (1090, 110), (2440, 170), (3400, 250)],
+    "ee": [(270, 60), (2290, 200), (3010, 300), (3500, 250)],
+    "oh": [(570, 80), (840, 100), (2410, 170), (3400, 250)],
+    "oo": [(300, 50), (870, 90), (2240, 170), (3400, 250)],
+    "eh": [(530, 70), (1840, 150), (2480, 200), (3400, 250)],
+}
+
+
+def _morph_formant_filter(source, formant_chain, sample_rate=SAMPLE_RATE):
+    """Filter through formant bands that glide along a vowel chain.
+
+    This is how a sung diphthong works: the vocal tract reshapes
+    continuously, sweeping the formant peaks from one vowel's
+    positions to the next. Each vowel is held for the first half of
+    its segment, then glides into the next — block-based bandpass
+    filtering with interpolated centers and filter state carried
+    across blocks.
+    """
+    n = len(source)
+    k = len(formant_chain)
+    n_bands = len(formant_chain[0])
+    block = 1024
+    out = numpy.zeros(n, dtype=numpy.float64)
+    zis = [numpy.zeros(4) for _ in range(n_bands)]
+    pos = 0
+    while pos < n:
+        end = min(pos + block, n)
+        p = ((pos + end) / 2) / n          # progress through the note
+        seg = min(int(p * (k - 1)), k - 2)
+        local = p * (k - 1) - seg
+        glide = min(max((local - 0.5) / 0.5, 0.0), 1.0)  # hold, then glide
+        for b_i in range(n_bands):
+            fc_a, bw_a = formant_chain[seg][b_i]
+            fc_b, bw_b = formant_chain[seg + 1][b_i]
+            fc = fc_a + (fc_b - fc_a) * glide
+            bw = bw_a + (bw_b - bw_a) * glide
+            g_a = 1.0 if fc_a < 1000 else 0.7
+            g_b = 1.0 if fc_b < 1000 else 0.7
+            gain = g_a + (g_b - g_a) * glide
+            lo = max(20, fc - bw)
+            hi = min(sample_rate / 2 - 1, fc + bw)
+            if lo < hi:
+                bp, ap = scipy.signal.butter(2, [lo, hi], btype='band',
+                                             fs=sample_rate)
+                band, zis[b_i] = scipy.signal.lfilter(
+                    bp, ap, source[pos:end], zi=zis[b_i])
+                out[pos:end] += band * gain
+        pos = end
+    return out
+
+
 def choir_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
     """Choir — voices singing vowels shaped by strong formant filters.
 
@@ -1015,18 +1079,22 @@ def choir_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
     vocal tract shape. We generate a rich glottal source then filter
     it hard through formant bandpass filters. The formants are what
     make "ah" sound different from "oo".
+
+    Vowels: ``"ah"``, ``"ee"``, ``"oh"``, ``"oo"``, ``"eh"``.
+
+    Vowel transitions: pass a chain like ``lyric="ah>oo"`` (or
+    ``"ah>ee>oo"``) and the formants glide between vowels across the
+    note — a sung diphthong. Each vowel holds, then morphs into the
+    next::
+
+        choir.add("C4", 2, lyric="ah>oo")
     """
     t = numpy.arange(n_samples, dtype=numpy.float64) / SAMPLE_RATE
 
-    # Vowel formant frequencies + bandwidths (Hz) — F1, F2, F3, F4
-    _FORMANTS = {
-        "ah": [(730, 90), (1090, 110), (2440, 170), (3400, 250)],
-        "ee": [(270, 60), (2290, 200), (3010, 300), (3500, 250)],
-        "oh": [(570, 80), (840, 100), (2410, 170), (3400, 250)],
-        "oo": [(300, 50), (870, 90), (2240, 170), (3400, 250)],
-        "eh": [(530, 70), (1840, 150), (2480, 200), (3400, 250)],
-    }
-    formants = _FORMANTS.get(lyric, _FORMANTS["ah"])
+    vowels = [v.strip() for v in lyric.split(">")] if ">" in lyric else [lyric]
+    formant_chain = [_CHOIR_FORMANTS.get(v, _CHOIR_FORMANTS["ah"])
+                     for v in vowels]
+    formants = formant_chain[0]
 
     # Glottal source — rich buzz with all harmonics
     n_harmonics = min(25, int((SAMPLE_RATE / 2) / hz))
@@ -1044,16 +1112,19 @@ def choir_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE, lyric="ah"):
         source += amp * numpy.sin(2 * numpy.pi * f_n * t)
 
     # Filter through formants — this is where the voice happens
-    wave = numpy.zeros(n_samples, dtype=numpy.float64)
-    for fc, bw in formants:
-        lo = max(20, fc - bw)
-        hi = min(SAMPLE_RATE // 2 - 1, fc + bw)
-        if lo < hi:
-            bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
-            filtered = scipy.signal.lfilter(bp, ap, source)
-            # Boost formants proportionally
-            gain = 1.0 if fc < 1000 else 0.7
-            wave += filtered * gain
+    if len(formant_chain) > 1:
+        wave = _morph_formant_filter(source, formant_chain)
+    else:
+        wave = numpy.zeros(n_samples, dtype=numpy.float64)
+        for fc, bw in formants:
+            lo = max(20, fc - bw)
+            hi = min(SAMPLE_RATE // 2 - 1, fc + bw)
+            if lo < hi:
+                bp, ap = scipy.signal.butter(2, [lo, hi], btype='band', fs=SAMPLE_RATE)
+                filtered = scipy.signal.lfilter(bp, ap, source)
+                # Boost formants proportionally
+                gain = 1.0 if fc < 1000 else 0.7
+                wave += filtered * gain
 
     # Breathy onset — air before phonation
     breath_len = min(int(SAMPLE_RATE * 0.08), n_samples)

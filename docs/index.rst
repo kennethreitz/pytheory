@@ -28,6 +28,9 @@ Different people come to PyTheory for different reasons. You might be:
   with :doc:`guide/sequencing`.
 - **Playing live** — you have a MIDI keyboard and want a synth rig in
   the terminal, with recording. Start with :doc:`guide/live`.
+- **Capturing ideas** — you hummed a melody into your phone and want
+  it as notes, MIDI, or sheet music. ``Score.from_wav("hum.wav")``
+  transcribes it. See :doc:`guide/playback`.
 - **Composing with AI** — Claude Code can drive PyTheory from natural
   language: "write me a bossa nova in G minor" becomes a Score you can
   hear, edit, and export.

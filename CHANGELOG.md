@@ -2,6 +2,54 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.45.0
+
+- **Audio import — `Score.from_wav()`.** Record yourself humming a
+  melody, whistling a hook, or playing a bass line; load the WAV and
+  get an editable Score back — notes, rests, durations, and velocities.
+  Pitch tracking is a pure-numpy YIN implementation (no new
+  dependencies); transcription is monophonic. Optional `quantize=`
+  snaps timing to a grid, `fmin`/`fmax` tighten the search range for
+  bass or whistle registers. Also available as `pytheory transcribe
+  in.wav out.mid`. Round-trip verified against pytheory's own synth
+  output, including repeated-note splitting and the inharmonic piano
+  timbre.
+- **New piano.** `piano_wave` is now a modal synthesis of stiff steel
+  strings: genuinely **inharmonic partials** stretched by string
+  stiffness (the 10th partial of middle C rings ~19 cents sharp, just
+  like a real piano — verified spectrally), a hammer strike-position
+  comb that carves the woody midrange, register-correct stringing (one
+  wound bass string up to a beating three-string trichord), and
+  frequency-dependent damping so every note darkens as it decays —
+  treble notes are short, bass notes bloom. Up to 56 partials in the
+  bass (previously 15), so low notes have actual body.
+- **Live notes sustain forever.** Sustaining instruments (organ, pads,
+  strings, choir — any envelope holding a level ≥ 0.7 whose source is
+  still ringing) now loop seamlessly inside their wavetables, so a held
+  key rings for as long as you hold it. Percussive instruments (piano,
+  plucks, mallets) still decay naturally and end. The loop seam is
+  crossfaded, click-free, and works through pitch bends. This removes
+  the documented "notes cut off after 3 seconds" limitation.
+- **Live effects moved to per-channel buses.** Lowpass, reverb, chorus,
+  delay, tremolo, distortion, and saturation now stream per audio block
+  with persistent state (filter memory, delay lines, LFO phases) instead
+  of being baked into each note's wavetable. MIDI CC sweeps and TUI
+  ``fx`` commands apply on the next block (~3ms) with no wavetable
+  re-rendering — turning a filter knob mid-phrase no longer stutters.
+  The live reverb is now the same Schroeder comb/allpass topology as the
+  offline renderer (block-size invariant, verified against the offline
+  math), replacing the old multi-tap echo.
+- **Live channels honor `detune`, `sub_osc`, and `noise_mix`** — these
+  Part parameters were silently ignored by the live engine.
+- **`pytheory live`** — the live TUI is now a first-class CLI command
+  (``pytheory live [seed] --port --channels --drums --buffer``) instead
+  of ``python -m pytheory.live_tui``.
+- **Choir vowel transitions.** ``lyric="ah>oo"`` glides the formant
+  filters from one vowel to the next across the note — a sung
+  diphthong. Chains work too (``"ah>ee>oo"``): each vowel holds, then
+  the vocal tract reshapes into the next. Works per-note through
+  ``Part.add(..., lyric=...)`` and directly via ``choir_wave()``.
+
 ## 0.44.0
 
 - **~11x faster rendering.** The DSP hot paths — Schroeder reverb,

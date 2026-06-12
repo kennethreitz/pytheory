@@ -545,4 +545,51 @@ The whole point — sketch fast, finish in your DAW:
    chords = Key("C", "major").progression("I", "V", "vi", "IV")
    save_midi(chords, "pop.mid", t=500, bpm=120)
 
+Voice Memo → Sheet Music
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+You hummed something into your phone and want it on a staff. The
+whole pipeline — recording to engraved PDF:
+
+.. code-block:: bash
+
+   # 1. Convert the voice memo to WAV
+   #    (macOS — built in; elsewhere: ffmpeg -i hum.m4a -ar 44100 hum.wav)
+   afconvert -f WAVE -d LEI16@44100 hum.m4a hum.wav
+
+.. code-block:: python
+
+   # 2. Transcribe it
+   from pytheory import Score
+
+   score = Score.from_wav(
+       "hum.wav",
+       bpm=100,          # tempo you hummed at (guess; adjust and re-run)
+       quantize=0.25,    # snap to sixteenths for a clean chart
+       fmin=100,         # floor above vocal fry — kills the creaky
+       fmax=350,         #   sub-bass blips at note starts and ends
+   )
+
+   # 3. Sanity-check what it heard
+   for n in score.parts["melody"].notes:
+       print(n.tone or "rest", n.beats)
+
+   # 4. Engrave it
+   with open("hum.ly", "w") as f:
+       f.write(score.to_lilypond(title="My Hum", key="G", mode="major"))
+
+   # ...and keep the MIDI for your DAW while you're at it
+   score.save_midi("hum.mid")
+
+.. code-block:: bash
+
+   # 5. Compile to PDF (brew install lilypond)
+   lilypond --pdf hum.ly
+
+A real hum is messy — breath noise, fry, scoops between notes. If
+the transcription has stray notes, the fix is almost always the
+pitch range: print the detected notes, find the artifacts (very low,
+very quiet, at phrase edges), and tighten ``fmin``/``fmax`` around
+the actual melody. Two or three runs gets it clean.
+
 These are all starting points. Change the key, swap the chords, layer in your own ideas -- the best way to learn is to take something that works and make it yours.

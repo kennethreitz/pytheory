@@ -46,7 +46,14 @@ instrument preset, synth waveform, envelope, or effect:
 
 Behind the scenes the engine pre-renders each note's waveform into a
 cache when it starts, so the audio callback only has to mix — that's
-what keeps latency low enough to play.
+what keeps latency low enough to play. Sustaining instruments
+(organs, pads, strings) loop seamlessly inside their wavetables, so a
+held key rings for as long as you hold it; percussive instruments
+(pianos, plucks, mallets) decay naturally, just like the real thing.
+
+Effects run on each channel's bus in real time — reverb tails,
+filter sweeps, and delay feedback are computed per audio block, not
+baked into the notes.
 
 No MIDI Hardware? Use Your Keyboard
 -----------------------------------
@@ -73,6 +80,10 @@ the knob while you play:
    engine.cc(11, "lowpass", min_val=200, max_val=8000)
    engine.cc(12, "volume", min_val=0.0, max_val=1.0)
    engine.cc(13, "reverb", min_val=0.0, max_val=0.8)
+
+Knob turns apply on the very next audio block (~3ms at the default
+buffer size) — sweep the filter mid-phrase and it responds like a
+hardware synth.
 
 Drums Synced to MIDI Clock
 --------------------------
@@ -116,7 +127,7 @@ For a ready-made performance setup, the live TUI builds an
 8-channel rig with randomly chosen instruments, a drum pattern, and a
 terminal dashboard showing what's playing::
 
-   $ python -m pytheory.live_tui
+   $ pytheory live
 
 Every run picks a different instrument combination (the seed is
 printed so you can resume a setup you liked). Inside the TUI you can

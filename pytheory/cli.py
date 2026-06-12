@@ -209,6 +209,35 @@ def cmd_circle(args):
     print(f"    → {' → '.join(t.name for t in fourths)}")
 
 
+def cmd_live(args):
+    from .live_tui import run_tui
+    run_tui(seed=args.seed, port=args.port, channels=args.channels,
+            drums=args.drums, buffer=args.buffer)
+
+
+def cmd_transcribe(args):
+    from .rhythm import Score
+    score = Score.from_wav(args.input, bpm=args.bpm,
+                           quantize=args.quantize,
+                           fmin=args.fmin, fmax=args.fmax)
+    notes = [n for n in score.parts["melody"].notes if n.tone is not None]
+    print(f"  Transcribed {len(notes)} notes from {args.input}:")
+    line = []
+    for n in notes:
+        line.append(f"{n.tone}({n.beats:g})")
+        if len(line) == 8:
+            print("    " + " ".join(line))
+            line = []
+    if line:
+        print("    " + " ".join(line))
+    if args.output:
+        score.save_midi(args.output)
+        print(f"  Saved → {args.output}")
+    if args.play:
+        from .play import play_score
+        play_score(score)
+
+
 def cmd_progressions(args):
     from .scales import Key
     key = Key(args.tonic, args.mode)
@@ -516,6 +545,29 @@ def main():
     # repl
     sub.add_parser("repl", help="Interactive music theory scratchpad")
 
+    # live
+    p = sub.add_parser("live", help="Real-time MIDI synth rig (e.g. pytheory live --port OP-XY)")
+    p.add_argument("seed", nargs="?", type=int, default=None,
+                   help="Random seed for instrument picks")
+    p.add_argument("--port", "-p", default="OP-XY",
+                   help="MIDI port name (default: OP-XY)")
+    p.add_argument("--channels", "-c", type=int, default=8,
+                   help="Number of channels (default: 8)")
+    p.add_argument("--drums", "-d", default="rock",
+                   help="Drum pattern (default: rock, 'none' to disable)")
+    p.add_argument("--buffer", "-b", type=int, default=128,
+                   help="Audio buffer size (default: 128)")
+
+    # transcribe
+    p = sub.add_parser("transcribe", help="Transcribe a WAV melody to notes/MIDI (e.g. pytheory transcribe hum.wav out.mid)")
+    p.add_argument("input", help="Input WAV file (monophonic — voice, whistle, single instrument)")
+    p.add_argument("output", nargs="?", default=None, help="Optional output MIDI file")
+    p.add_argument("--bpm", type=int, default=120, help="Tempo to interpret timing against (default: 120)")
+    p.add_argument("--quantize", type=float, default=None, help="Snap to grid in beats (e.g. 0.25 = sixteenths)")
+    p.add_argument("--fmin", type=float, default=50.0, help="Lowest pitch to search, Hz (default: 50)")
+    p.add_argument("--fmax", type=float, default=1500.0, help="Highest pitch to search, Hz (default: 1500)")
+    p.add_argument("--play", action="store_true", help="Play the transcription back")
+
     # detect
     p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
@@ -551,6 +603,8 @@ def main():
         "midi": cmd_midi,
         "demo": cmd_demo,
         "repl": lambda args: __import__('pytheory.repl', fromlist=['main']).main(),
+        "live": cmd_live,
+        "transcribe": cmd_transcribe,
         "detect": cmd_detect,
         "modes": cmd_modes,
         "circle": cmd_circle,

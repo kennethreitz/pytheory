@@ -13,10 +13,15 @@ Usage::
     engine.channel(10, drums=True)
     engine.start()  # blocks until Ctrl-C
 
-Note: sustained notes are pre-rendered to a 3-second wavetable.
-Instruments requiring longer sustain (pads, organ) will cut off
-after 3 seconds. This is a known limitation of the current
-wavetable approach.
+Notes are pre-rendered to a 3-second wavetable. Sustaining
+instruments (organ, pads, strings — any envelope with a nonzero
+sustain level) loop seamlessly inside the wavetable, so held keys
+ring for as long as you hold them. Percussive instruments (piano,
+plucks) decay naturally and end.
+
+Effects (lowpass, reverb, chorus, delay, tremolo, distortion,
+saturation) run on each channel's bus in real time, so MIDI CC
+sweeps are smooth and instant — no wavetable re-rendering.
 """
 
 import threading
@@ -36,16 +41,23 @@ from .play import (
 from .rhythm import INSTRUMENTS, DrumSound
 
 
+# Parameters baked into pre-rendered wavetables — changing one of these
+# requires clearing the channel's cache. Everything else streams on the
+# channel bus and updates instantly.
+_BAKED_PARAMS = frozenset({'detune', 'sub_osc', 'noise_mix'})
+
+
 # ── Voice ────────────────────────────────────────────────────────────────
 
 class _Voice:
     """A single sounding note - holds a pre-rendered wavetable and
     tracks playback position + envelope state."""
-    __slots__ = ('active', 'note', 'pitch_ratio', 'pos', 'release_len',
-                 'release_pos', 'releasing', 'velocity', 'wave')
+    __slots__ = ('active', 'loop_end', 'loop_start', 'note', 'pitch_ratio',
+                 'pos', 'release_len', 'release_pos', 'releasing',
+                 'velocity', 'wave')
 
-    def __init__(self, wave, velocity, note):
-        self.wave = wave           # float32 array - one shot
+    def __init__(self, wave, velocity, note, loop_start=None, loop_end=None):
+        self.wave = wave           # float32 array
         self.pos = 0.0             # current read position (float for pitch bend)
         self.velocity = velocity
         self.active = True
@@ -54,6 +66,60 @@ class _Voice:
         self.release_len = int(SAMPLE_RATE * 0.05)  # 50ms release
         self.note = note           # MIDI note number
         self.pitch_ratio = 1.0     # 1.0 = normal, >1 = up, <1 = down
+        self.loop_start = loop_start  # sustain loop region (None = one-shot)
+        self.loop_end = loop_end
+
+
+class _StreamReverb:
+    """Streaming Schroeder reverb — state persists across audio blocks.
+
+    Same topology and tuning as the offline reverb in play.py (4
+    parallel feedback combs + 2 series allpasses), but processable
+    one buffer at a time. Comb feedback never recurses within a
+    block (delays exceed typical block sizes; longer blocks are
+    chunked), so each block is pure vectorized ring-buffer reads.
+    """
+    COMB_DELAY_SECS = (0.0297, 0.0371, 0.0411, 0.0437)
+    ALLPASS_DELAY_SECS = (0.005, 0.0017)
+
+    def __init__(self, decay=1.0, sample_rate=SAMPLE_RATE):
+        self.combs = []
+        for d_sec in self.COMB_DELAY_SECS:
+            d = int(d_sec * sample_rate)
+            gain = 0.001 ** (d / sample_rate / decay)
+            # [ring buffer of u where u[t] = x[t] + g*u[t-D], write pos, gain]
+            self.combs.append([numpy.zeros(d, dtype=numpy.float32), 0, gain])
+        self.allpasses = []
+        for d_sec in self.ALLPASS_DELAY_SECS:
+            d = int(d_sec * sample_rate)
+            b = numpy.zeros(d + 1); b[0] = -0.7; b[d] = 1.0
+            a = numpy.zeros(d + 1); a[0] = 1.0; a[d] = -0.7
+            self.allpasses.append([b, a, numpy.zeros(d)])
+
+    def process(self, x):
+        """Process one block; returns the wet signal."""
+        from scipy.signal import lfilter
+        wet = numpy.zeros(len(x), dtype=numpy.float32)
+        for state in self.combs:
+            ring, pos, gain = state
+            d = len(ring)
+            out = numpy.empty(len(x), dtype=numpy.float32)
+            i = 0
+            while i < len(x):
+                m = min(d, len(x) - i)
+                idx = (pos + numpy.arange(m)) % d
+                u_old = ring[idx]              # u[t-D], which is y[t]
+                ring[idx] = x[i:i + m] + gain * u_old
+                out[i:i + m] = u_old
+                pos = (pos + m) % d
+                i += m
+            state[1] = pos
+            wet += out
+        wet /= len(self.combs)
+        for state in self.allpasses:
+            b, a, zi = state
+            wet, state[2] = lfilter(b, a, wet, zi=zi)
+        return wet.astype(numpy.float32)
 
 
 # ── Channel ──────────────────────────────────────────────────────────────
@@ -88,19 +154,42 @@ class _Channel:
         self.noise_mix = kwargs.get('noise_mix', 0)
 
         self.voices = []           # active _Voice objects
-        self._cache = {}           # MIDI note -> pre-rendered wave
+        self._cache = {}           # MIDI note -> (wave, loop_start, loop_end)
         self._lock = threading.Lock()
         self.level = 0.0           # current output level (for VU meter)
 
+        # Streaming effect state — effects run on the channel bus per
+        # audio block, so parameter changes (MIDI CC, TUI fx commands)
+        # take effect instantly without re-rendering wavetables.
+        self._lp_zi = numpy.zeros(2)
+        self._lp_coeffs = None              # (cutoff, q, b, a)
+        self._trem_phase = 0.0
+        self._chorus_ring = numpy.zeros(int(SAMPLE_RATE * 0.08),
+                                        dtype=numpy.float32)
+        self._chorus_pos = 0
+        self._chorus_phase = 0.0
+        self._delay_ring = numpy.zeros(int(SAMPLE_RATE * 1.0),
+                                       dtype=numpy.float32)
+        self._delay_pos = 0
+        self._reverb_state = None           # lazy _StreamReverb
+
+    # Loop region inside the 3s wavetable for sustaining instruments.
+    # Starts after attack+decay have settled, ends with margin to spare;
+    # the region is crossfaded so the wrap is click-free.
+    _LOOP_START = int(SAMPLE_RATE * 1.5)
+    _LOOP_END = int(SAMPLE_RATE * 2.75)
+    _LOOP_XFADE = 2048
+
     def _get_wave(self, midi_note, n_samples):
-        """Get or render a waveform for a MIDI note."""
+        """Get or render a wavetable. Returns (wave, loop_start, loop_end);
+        loop points are None for one-shot (percussive/drum) sounds."""
         if self.is_drums:
-            return _render_drum_hit_cached(midi_note, n_samples)
+            return _render_drum_hit_cached(midi_note, n_samples), None, None
 
         if midi_note in self._cache:
-            cached = self._cache[midi_note]
-            if len(cached) >= n_samples:
-                return cached[:n_samples]
+            wave_f, ls, le = self._cache[midi_note]
+            if len(wave_f) >= n_samples:
+                return wave_f, ls, le
 
         hz = 440.0 * (2 ** ((midi_note - 69) / 12.0))
 
@@ -113,74 +202,67 @@ class _Channel:
         wave = self.synth_fn(hz, n_samples=n_samples, **skw)
         wave_f = wave.astype(numpy.float32) / SAMPLE_PEAK
 
+        # Detuned oscillator layers (oscillator-level, baked into the table)
+        if self.detune > 0:
+            up = self.synth_fn(hz * 2 ** (self.detune / 1200),
+                               n_samples=n_samples, **skw)
+            down = self.synth_fn(hz * 2 ** (-self.detune / 1200),
+                                 n_samples=n_samples, **skw)
+            wave_f = (wave_f + up.astype(numpy.float32) / SAMPLE_PEAK
+                      + down.astype(numpy.float32) / SAMPLE_PEAK) / 3.0
+
+        # Sub-oscillator (octave-below sine)
+        if self.sub_osc > 0:
+            t = numpy.arange(n_samples, dtype=numpy.float32) / SAMPLE_RATE
+            sub = numpy.sin(2 * numpy.pi * (hz / 2) * t).astype(numpy.float32)
+            wave_f = wave_f * (1.0 - self.sub_osc * 0.3) + sub * self.sub_osc * 0.3
+
+        # Noise layer
+        if self.noise_mix > 0:
+            noise = numpy.random.uniform(-1, 1, n_samples).astype(numpy.float32)
+            wave_f = (wave_f * (1.0 - self.noise_mix * 0.5)
+                      + noise * self.noise_mix * 0.5)
+
         # Apply envelope
         a, d, s, r = self.env_tuple
         if a > 0 or d > 0 or s < 1.0 or r > 0:
             wave_f = _apply_envelope(wave_f, a, d, s, r)
 
-        # Apply lowpass
-        if self.lowpass > 0:
-            wave_f = _apply_lowpass(wave_f, self.lowpass, q=self.lowpass_q)
+        # Sustain loop — held notes ring indefinitely, but only for
+        # genuinely sustaining instruments: the envelope must hold a
+        # real level (organ/pad/strings) AND the source must still be
+        # ringing at the loop region. Struck/plucked sources (piano,
+        # guitar, mallets) decay on their own and stay one-shot.
+        loop_start = loop_end = None
+        if s >= 0.7 and n_samples > self._LOOP_END:
+            early = numpy.sqrt(numpy.mean(
+                wave_f[int(SAMPLE_RATE * 0.2):int(SAMPLE_RATE * 0.5)] ** 2))
+            late = numpy.sqrt(numpy.mean(
+                wave_f[self._LOOP_START:self._LOOP_START
+                       + SAMPLE_RATE // 4] ** 2))
+            if early > 0 and late > 0.3 * early:
+                loop_start, loop_end = self._LOOP_START, self._LOOP_END
+                xf = self._LOOP_XFADE
+                fade = numpy.linspace(0.0, 1.0, xf, dtype=numpy.float32)
+                wave_f[loop_end - xf:loop_end] = (
+                    wave_f[loop_end - xf:loop_end] * (1 - fade)
+                    + wave_f[loop_start - xf:loop_start] * fade)
 
-        # Apply reverb - simple feedback delay for real-time
-        if self.reverb > 0:
-            wet = self.reverb
-            delay_samples = int(SAMPLE_RATE * 0.03)  # 30ms early reflection
-            delay2 = int(SAMPLE_RATE * 0.047)        # second tap
-            delay3 = int(SAMPLE_RATE * 0.071)        # third tap
-            reverbed = wave_f.copy()
-            for delay, gain in [(delay_samples, 0.4), (delay2, 0.3), (delay3, 0.2)]:
-                if delay < len(reverbed):
-                    reverbed[delay:] += wave_f[:-delay] * gain
-            # Feedback loop for tail
-            fb_delay = int(SAMPLE_RATE * 0.05)
-            feedback = 0.35
-            for _ in range(6):
-                if fb_delay < len(reverbed):
-                    reverbed[fb_delay:] += reverbed[:-fb_delay] * feedback
-                    feedback *= 0.7
-                    fb_delay = int(fb_delay * 1.5)
-            wave_f = wave_f * (1.0 - wet) + reverbed * wet
-
-        # Apply distortion/saturation
-        if self.distortion > 0:
-            drive = 3.0
-            wave_f = numpy.tanh(wave_f * drive * (1 + self.distortion * 3)) / drive
-        if self.saturation > 0:
-            wave_f = numpy.tanh(wave_f * (1 + self.saturation * 2))
-
-        # Apply tremolo
-        if self.tremolo_depth > 0:
-            t = numpy.arange(len(wave_f), dtype=numpy.float32) / SAMPLE_RATE
-            trem = 1.0 - self.tremolo_depth * 0.5 * (1 + numpy.sin(2 * numpy.pi * 5.0 * t))
-            wave_f *= trem
-
-        # Apply chorus (simple delay modulation)
-        if self.chorus > 0:
-            t = numpy.arange(len(wave_f), dtype=numpy.float32) / SAMPLE_RATE
-            mod = (numpy.sin(2 * numpy.pi * 1.5 * t) * 0.002 * SAMPLE_RATE).astype(int)
-            chorus_buf = numpy.zeros_like(wave_f)
-            idx = (numpy.arange(len(wave_f), dtype=numpy.int64)
-                   - numpy.abs(mod) - int(SAMPLE_RATE * 0.015))
-            valid = idx >= 0
-            chorus_buf[valid] = wave_f[idx[valid]]
-            wave_f = wave_f * (1 - self.chorus * 0.5) + chorus_buf * self.chorus * 0.5
-
-        self._cache[midi_note] = wave_f
-        return wave_f
+        self._cache[midi_note] = (wave_f, loop_start, loop_end)
+        return wave_f, loop_start, loop_end
 
     def note_on(self, midi_note, velocity):
         """Start a new voice."""
         vel_scale = velocity / 127.0
-        # Render 3 seconds of audio (extra for reverb tail)
         n_samples = SAMPLE_RATE * 3
-        wave = self._get_wave(midi_note, n_samples)
+        wave, loop_start, loop_end = self._get_wave(midi_note, n_samples)
 
         with self._lock:
             # Voice stealing - kill oldest if at max
             if len(self.voices) >= self.max_voices:
                 self.voices.pop(0)
-            self.voices.append(_Voice(wave, vel_scale, midi_note))
+            self.voices.append(_Voice(wave, vel_scale, midi_note,
+                                      loop_start, loop_end))
 
     def note_off(self, midi_note):
         """Trigger release on voices playing this note."""
@@ -201,26 +283,48 @@ class _Channel:
                     dead.append(i)
                     continue
 
-                remaining = len(v.wave) - int(v.pos)
-                chunk = min(n_frames, remaining)
-
-                if chunk <= 0:
-                    v.active = False
-                    dead.append(i)
-                    continue
-
-                # Pitch bend: variable-rate read
-                if abs(v.pitch_ratio - 1.0) > 0.001:
-                    read_positions = v.pos + numpy.arange(chunk) * v.pitch_ratio
-                    read_positions = numpy.clip(read_positions, 0, len(v.wave) - 2)
-                    idx = read_positions.astype(numpy.int64)
-                    frac = (read_positions - idx).astype(numpy.float32)
-                    samples = (v.wave[idx] * (1 - frac) +
-                               v.wave[numpy.minimum(idx + 1, len(v.wave) - 1)] * frac)
+                if v.loop_end is not None:
+                    # Sustaining voice: read through the wavetable's
+                    # crossfaded loop region — never runs out.
+                    chunk = n_frames
+                    span = v.loop_end - v.loop_start
+                    positions = v.pos + numpy.arange(
+                        chunk, dtype=numpy.float64) * v.pitch_ratio
+                    over = positions >= v.loop_end
+                    if over.any():
+                        positions[over] = (v.loop_start
+                                           + (positions[over] - v.loop_start)
+                                           % span)
+                    idx = positions.astype(numpy.int64)
+                    frac = (positions - idx).astype(numpy.float32)
+                    nxt = numpy.minimum(idx + 1, len(v.wave) - 1)
+                    samples = (v.wave[idx] * (1 - frac) + v.wave[nxt] * frac)
                     samples *= v.velocity * self.volume
+                    v.pos += chunk * v.pitch_ratio
+                    if v.pos >= v.loop_end:
+                        v.pos = v.loop_start + (v.pos - v.loop_start) % span
                 else:
-                    int_pos = int(v.pos)
-                    samples = v.wave[int_pos:int_pos + chunk] * v.velocity * self.volume
+                    remaining = len(v.wave) - int(v.pos)
+                    chunk = min(n_frames, remaining)
+
+                    if chunk <= 0:
+                        v.active = False
+                        dead.append(i)
+                        continue
+
+                    # Pitch bend: variable-rate read
+                    if abs(v.pitch_ratio - 1.0) > 0.001:
+                        read_positions = v.pos + numpy.arange(chunk) * v.pitch_ratio
+                        read_positions = numpy.clip(read_positions, 0, len(v.wave) - 2)
+                        idx = read_positions.astype(numpy.int64)
+                        frac = (read_positions - idx).astype(numpy.float32)
+                        samples = (v.wave[idx] * (1 - frac) +
+                                   v.wave[numpy.minimum(idx + 1, len(v.wave) - 1)] * frac)
+                        samples *= v.velocity * self.volume
+                    else:
+                        int_pos = int(v.pos)
+                        samples = v.wave[int_pos:int_pos + chunk] * v.velocity * self.volume
+                    v.pos += chunk * v.pitch_ratio
 
                 # Release crossfade
                 if v.releasing:
@@ -238,12 +342,15 @@ class _Channel:
                         samples[fade_chunk:] = 0
 
                 mono[:chunk] += samples
-                v.pos += chunk * v.pitch_ratio
 
             # Clean up dead voices
             for i in reversed(dead):
                 if i < len(self.voices):
                     self.voices.pop(i)
+
+        # Channel bus effects — streamed per block with persistent
+        # state, so CC/TUI parameter changes apply instantly.
+        mono = self._process_bus(mono)
 
         # VU meter
         peak = numpy.abs(mono).max() if len(mono) > 0 else 0
@@ -259,6 +366,90 @@ class _Channel:
         stereo[:, 1] = mono * r_gain
 
         return stereo
+
+    def _process_bus(self, mono):
+        """Run the channel's effect chain on one audio block.
+
+        Mirrors the offline signal chain (distortion → chorus →
+        lowpass → delay → reverb) with tremolo/saturation alongside.
+        All state (filter memory, delay lines, LFO phases) persists
+        across blocks.
+        """
+        n = len(mono)
+        if n == 0:
+            return mono
+
+        if self.distortion > 0:
+            drive = 3.0
+            mono = numpy.tanh(mono * drive * (1 + self.distortion * 3)) / drive
+        if self.saturation > 0:
+            mono = numpy.tanh(mono * (1 + self.saturation * 2))
+
+        if self.tremolo_depth > 0:
+            ph = (self._trem_phase
+                  + 2 * numpy.pi * 5.0 * numpy.arange(n) / SAMPLE_RATE)
+            mono = mono * (1.0 - self.tremolo_depth * 0.5
+                           * (1 + numpy.sin(ph))).astype(numpy.float32)
+            self._trem_phase = (ph[-1] + 2 * numpy.pi * 5.0 / SAMPLE_RATE) \
+                % (2 * numpy.pi)
+
+        if self.chorus > 0:
+            ring = self._chorus_ring
+            L = len(ring)
+            t_idx = numpy.arange(n)
+            w_idx = (self._chorus_pos + t_idx) % L
+            ring[w_idx] = mono
+            ph = (self._chorus_phase
+                  + 2 * numpy.pi * 1.5 * t_idx / SAMPLE_RATE)
+            delay = (0.007 + 0.003 * numpy.sin(ph)) * SAMPLE_RATE
+            read = (self._chorus_pos + t_idx - delay) % L
+            ri = read.astype(numpy.int64)
+            frac = (read - ri).astype(numpy.float32)
+            wet = ring[ri] * (1 - frac) + ring[(ri + 1) % L] * frac
+            mono = mono * (1 - self.chorus * 0.5) + wet * self.chorus * 0.5
+            self._chorus_phase = (ph[-1]
+                                  + 2 * numpy.pi * 1.5 / SAMPLE_RATE) \
+                % (2 * numpy.pi)
+            self._chorus_pos = (self._chorus_pos + n) % L
+
+        if self.lowpass > 0 and self.lowpass < SAMPLE_RATE / 2:
+            from scipy.signal import lfilter
+            key = (self.lowpass, self.lowpass_q)
+            if self._lp_coeffs is None or self._lp_coeffs[0] != key:
+                w0 = 2 * numpy.pi * self.lowpass / SAMPLE_RATE
+                alpha = numpy.sin(w0) / (2 * self.lowpass_q)
+                cos_w0 = numpy.cos(w0)
+                a0 = 1 + alpha
+                b = numpy.array([(1 - cos_w0) / 2, 1 - cos_w0,
+                                 (1 - cos_w0) / 2]) / a0
+                a = numpy.array([1.0, -2 * cos_w0 / a0, (1 - alpha) / a0])
+                self._lp_coeffs = (key, b, a)
+            _, b, a = self._lp_coeffs
+            mono, self._lp_zi = lfilter(b, a, mono, zi=self._lp_zi)
+            mono = mono.astype(numpy.float32)
+
+        if self.delay > 0:
+            ring = self._delay_ring
+            L = len(ring)
+            d = int(self.kwargs.get('delay_time', 0.375) * SAMPLE_RATE)
+            d = max(n, min(d, L - 1))
+            t_idx = numpy.arange(n)
+            r_idx = (self._delay_pos + t_idx - d) % L
+            wet = ring[r_idx].copy()
+            feedback = self.kwargs.get('delay_feedback', 0.4)
+            w_idx = (self._delay_pos + t_idx) % L
+            ring[w_idx] = mono + wet * feedback
+            mono = mono * (1 - self.delay) + wet * self.delay
+            self._delay_pos = (self._delay_pos + n) % L
+
+        if self.reverb > 0:
+            if self._reverb_state is None:
+                self._reverb_state = _StreamReverb(
+                    decay=self.kwargs.get('reverb_decay', 1.0))
+            wet = self._reverb_state.process(mono)
+            mono = mono * (1 - self.reverb) + wet * self.reverb
+
+        return mono.astype(numpy.float32)
 
 
 # ── LiveEngine ───────────────────────────────────────────────────────────
@@ -387,18 +578,15 @@ class LiveEngine:
                 for target_ch in target_chs:
                     if target_ch in self.channels:
                         channel = self.channels[target_ch]
-                        if param == "volume":
-                            channel.volume = scaled
-                        elif param == "lowpass":
-                            channel.lowpass = scaled
-                            channel._cache.clear()
-                        elif param == "reverb":
-                            channel.reverb = scaled
-                            channel._cache.clear()
-                        elif hasattr(channel, param):
+                        if hasattr(channel, param):
                             setattr(channel, param, scaled)
-                            channel._cache.clear()
-                        print(f"  CC {cc_number}: {param}={scaled:.2f}")
+                            # Bus effects (lowpass, reverb, chorus, delay,
+                            # tremolo, distortion...) pick up the new value
+                            # on the next audio block. Only oscillator-level
+                            # params baked into the wavetables need a
+                            # re-render.
+                            if param in _BAKED_PARAMS:
+                                channel._cache.clear()
                 return
 
     def _on_clock(self):

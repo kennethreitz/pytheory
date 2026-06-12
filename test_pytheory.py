@@ -7441,3 +7441,267 @@ def test_metal_fills_exist():
 
 def test_render_score_exported():
     assert "render_score" in pytheory.__all__
+
+
+# ── Live engine: sustain loops + bus effects (v0.45.0) ──────────────────
+
+def test_live_sustaining_instrument_loops_past_wavetable():
+    from pytheory.live import _Channel
+    sr = 44100
+    ch = _Channel(synth_name="organ", envelope_name="organ", volume=0.5)
+    ch.note_on(60, 100)
+    assert ch.voices[0].loop_end is not None
+    blocks = [ch.render_stereo(512) for _ in range(int(4.5 * sr / 512))]
+    audio = numpy.concatenate(blocks)
+    late = audio[int(4.0 * sr):int(4.3 * sr)]
+    assert numpy.sqrt((late ** 2).mean()) > 0.01  # still sounding at 4s
+    assert len(ch.voices) == 1                    # voice never died
+
+
+def test_live_percussive_instrument_stays_one_shot():
+    from pytheory.live import _Channel
+    sr = 44100
+    ch = _Channel(synth_name="piano", envelope_name="piano", volume=0.5)
+    ch.note_on(60, 100)
+    assert ch.voices[0].loop_end is None
+    for _ in range(int(4.0 * sr / 512)):
+        last = ch.render_stereo(512)
+    assert len(ch.voices) == 0                    # decayed and cleaned up
+    assert numpy.abs(last).max() == 0.0
+
+
+def test_live_note_off_releases_looping_voice():
+    from pytheory.live import _Channel
+    ch = _Channel(synth_name="organ", envelope_name="organ")
+    ch.note_on(60, 100)
+    for _ in range(10):
+        ch.render_stereo(512)
+    ch.note_off(60)
+    for _ in range(20):
+        tail = ch.render_stereo(512)
+    assert len(ch.voices) == 0
+    assert numpy.abs(tail).max() == 0.0
+
+
+def test_live_cc_does_not_clear_cache_for_bus_params():
+    from pytheory.live import LiveEngine
+    engine = LiveEngine()
+    engine.channel(1, instrument="electric_piano")
+    ch = engine.channels[1]
+    ch._get_wave(60, 44100 * 3)
+    assert len(ch._cache) == 1
+    engine.cc(11, "lowpass", min_val=200, max_val=8000)
+    engine._apply_cc(1, 11, 64)
+    assert len(ch._cache) == 1     # no re-render needed
+    assert ch.lowpass > 200
+    engine.cc(12, "detune", min_val=0, max_val=20)
+    engine._apply_cc(1, 12, 64)
+    assert len(ch._cache) == 0     # baked param → cache cleared
+
+
+def test_live_stream_reverb_is_block_size_invariant():
+    from pytheory.live import _StreamReverb
+    rng = numpy.random.default_rng(1)
+    x = rng.uniform(-0.5, 0.5, 44100).astype(numpy.float32)
+    whole = _StreamReverb().process(x)
+    r = _StreamReverb()
+    parts = numpy.concatenate(
+        [r.process(x[i:i + 512]) for i in range(0, len(x), 512)])
+    assert numpy.abs(whole - parts).max() < 1e-5
+
+
+def test_live_bus_effects_chain_renders_finite():
+    from pytheory.live import _Channel
+    ch = _Channel(synth_name="saw", envelope_name="organ", volume=0.4,
+                  lowpass=2000, reverb=0.4, chorus=0.4, delay=0.3,
+                  tremolo_depth=0.3, distortion=0.2, saturation=0.2)
+    ch.note_on(57, 100)
+    out = numpy.concatenate([ch.render_stereo(512) for _ in range(100)])
+    assert numpy.isfinite(out).all()
+    assert numpy.abs(out).max() > 0.01
+
+
+# ── Choir vowel transitions (v0.45.0) ────────────────────────────────────
+
+def test_choir_vowel_morph_glides_formants():
+    from pytheory.play import choir_wave, SAMPLE_RATE
+
+    def f1_ratio(seg):
+        spec = numpy.abs(numpy.fft.rfft(seg.astype(numpy.float64)))
+        freqs = numpy.fft.rfftfreq(len(seg), 1 / SAMPLE_RATE)
+        hi = spec[(freqs >= 550) & (freqs < 950)].sum()
+        lo = spec[(freqs >= 200) & (freqs < 420)].sum()
+        return hi / (lo + 1e-9)
+
+    n = SAMPLE_RATE * 2
+    morph = choir_wave(220, n_samples=n, lyric="ah>oo")
+    start = morph[int(0.2 * SAMPLE_RATE):int(0.6 * SAMPLE_RATE)]
+    end = morph[int(1.6 * SAMPLE_RATE):]
+    # "ah" has F1 ≈ 730 Hz, "oo" has F1 ≈ 300 Hz: the energy balance
+    # between those regions must flip across the note.
+    assert f1_ratio(start) > 5.0
+    assert f1_ratio(end) < 1.0
+
+
+def test_choir_vowel_morph_three_vowel_chain():
+    from pytheory.play import choir_wave, SAMPLE_RATE
+    wave = choir_wave(220, n_samples=SAMPLE_RATE, lyric="ah>ee>oo")
+    assert len(wave) == SAMPLE_RATE
+    assert numpy.isfinite(wave.astype(numpy.float64)).all()
+    assert numpy.abs(wave).max() > 0
+
+
+def test_choir_static_vowel_unchanged_by_morph_support():
+    from pytheory.play import choir_wave, SAMPLE_RATE
+    ah = choir_wave(220, n_samples=SAMPLE_RATE // 2, lyric="ah")
+    morph = choir_wave(220, n_samples=SAMPLE_RATE // 2, lyric="ah>oo")
+    assert not numpy.array_equal(ah, morph)
+
+
+def test_choir_morph_through_score():
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    s = Score(bpm=120)
+    choir = s.part("choir", synth="choir_synth", envelope="strings")
+    choir.add("C4", 1, lyric="ah>oo")
+    buf = render_score(s)
+    assert numpy.isfinite(buf).all()
+    assert numpy.abs(buf).max() > 0
+
+
+# ── Modal piano (v0.45.0) ─────────────────────────────────────────────────
+
+def test_piano_partials_are_inharmonic():
+    """Piano partials must be stretched sharp by string stiffness."""
+    from pytheory.play import piano_wave, SAMPLE_RATE
+    f0 = 261.63
+    n = SAMPLE_RATE * 2
+    w = piano_wave(f0, n_samples=n).astype(numpy.float64)
+    spec = numpy.abs(numpy.fft.rfft(w * numpy.hanning(n)))
+    freqs = numpy.fft.rfftfreq(n, 1 / SAMPLE_RATE)
+    # Find the actual 10th partial near its stretched position
+    target = f0 * 10 * 1.011
+    m = (freqs > target - 40) & (freqs < target + 40)
+    measured = freqs[m][numpy.argmax(spec[m])]
+    cents_sharp = 1200 * numpy.log2(measured / (f0 * 10))
+    assert 10 < cents_sharp < 35   # ~19 cents in theory; 0 would be harmonic
+
+
+def test_piano_darkens_as_it_decays():
+    from pytheory.play import piano_wave, SAMPLE_RATE
+    n = SAMPLE_RATE * 2
+    w = piano_wave(261.63, n_samples=n).astype(numpy.float64)
+
+    def hi_lo(seg):
+        spec = numpy.abs(numpy.fft.rfft(seg * numpy.hanning(len(seg)))) ** 2
+        f = numpy.fft.rfftfreq(len(seg), 1 / SAMPLE_RATE)
+        return (spec[(f > 1500) & (f < 8000)].sum()
+                / spec[(f > 100) & (f < 800)].sum())
+
+    early = w[int(0.05 * SAMPLE_RATE):int(0.55 * SAMPLE_RATE)]
+    late = w[int(1.5 * SAMPLE_RATE):]
+    assert hi_lo(late) < hi_lo(early) * 0.2
+
+
+def test_piano_register_decay():
+    """Treble notes die quickly; bass notes ring on."""
+    from pytheory.play import piano_wave, SAMPLE_RATE
+    n = SAMPLE_RATE * 2
+
+    def late_over_early(hz):
+        w = piano_wave(hz, n_samples=n).astype(numpy.float64)
+        early = numpy.sqrt((w[:SAMPLE_RATE // 4] ** 2).mean())
+        late = numpy.sqrt((w[int(1.5 * SAMPLE_RATE):] ** 2).mean())
+        return late / early
+
+    assert late_over_early(27.5) > 0.2     # A0 still blooming
+    assert late_over_early(2093) < 0.05    # C7 essentially gone
+
+
+# ── Audio import: WAV → Score (v0.45.0) ──────────────────────────────────
+
+def _write_test_wav(buf, path):
+    import wave as wavemod
+    data = (numpy.clip(buf, -1, 1) * 32767).astype(numpy.int16)
+    with wavemod.open(path, "w") as f:
+        f.setnchannels(2)
+        f.setsampwidth(2)
+        f.setframerate(44100)
+        f.writeframes(data.tobytes())
+
+
+def _roundtrip_melody(melody, synth="sine", bpm=120, **kw):
+    import tempfile, os
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    s = Score(bpm=bpm)
+    p = s.part("m", synth=synth, volume=0.7)
+    for note, beats in melody:
+        if note == "rest":
+            p.rest(beats)
+        else:
+            p.add(note, beats)
+    path = tempfile.mktemp(suffix=".wav")
+    _write_test_wav(render_score(s), path)
+    try:
+        out = Score.from_wav(path, bpm=bpm, **kw)
+    finally:
+        os.unlink(path)
+    return [str(n.tone) for n in out.parts["melody"].notes
+            if n.tone is not None]
+
+
+def test_from_wav_roundtrips_melody():
+    names = _roundtrip_melody([("C4", 1), ("E4", 1), ("G4", 1), ("C5", 1)])
+    assert names == ["C4", "E4", "G4", "C5"]
+
+
+def test_from_wav_splits_repeated_notes():
+    names = _roundtrip_melody([("G4", 0.5), ("G4", 0.5), ("G4", 1)])
+    assert names == ["G4", "G4", "G4"]
+
+
+def test_from_wav_handles_inharmonic_piano_timbre():
+    names = _roundtrip_melody([("C4", 1), ("F4", 1), ("A4", 1)],
+                              synth="piano_synth")
+    assert names == ["C4", "F4", "A4"]
+
+
+def test_from_wav_bass_register():
+    names = _roundtrip_melody([("E2", 1), ("G2", 1), ("A2", 2)],
+                              synth="bass_guitar", fmin=40, fmax=400)
+    assert names == ["E2", "G2", "A2"]
+
+
+def test_from_wav_quantize_snaps_durations():
+    import tempfile, os
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    s = Score(bpm=120)
+    p = s.part("m", synth="sine", volume=0.7)
+    p.add("C4", 1.04)
+    p.add("D4", 0.49)
+    path = tempfile.mktemp(suffix=".wav")
+    _write_test_wav(render_score(s), path)
+    try:
+        out = Score.from_wav(path, quantize=0.25)
+    finally:
+        os.unlink(path)
+    beats = [n.beats for n in out.parts["melody"].notes if n.tone is not None]
+    assert beats == [1.0, 0.5]
+
+
+def test_detect_pitch_pure_tone():
+    from pytheory.audio import detect_pitch
+    t = numpy.arange(44100) / 44100
+    sig = numpy.sin(2 * numpy.pi * 440 * t)
+    times, freqs, voiced = detect_pitch(sig, 44100)
+    assert voiced.sum() > 50
+    assert abs(freqs[voiced].mean() - 440) < 1.0
+
+
+def test_detect_pitch_silence_is_unvoiced():
+    from pytheory.audio import detect_pitch
+    sig = numpy.zeros(44100)
+    times, freqs, voiced = detect_pitch(sig, 44100)
+    assert not voiced.any()

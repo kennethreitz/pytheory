@@ -577,9 +577,13 @@ total count to 56.
 Piano Synth
 ~~~~~~~~~~~
 
-Hammer-strike envelope with body resonance and subtle inharmonicity.
-Models the way a felt hammer excites steel strings inside a wooden
-soundboard.
+Modal synthesis of stiff steel strings struck by a felt hammer. The
+partials are genuinely **inharmonic** — stretched sharp by string
+stiffness, exactly like a real piano (the 10th partial of middle C
+rings ~19 cents sharp). The hammer's strike position carves a comb
+into the spectrum, deep bass notes get one wound string while the
+tenor up gets a beating three-string trichord, and high partials die
+faster than low ones so every note darkens as it decays.
 
 .. code-block:: python
 
@@ -704,6 +708,17 @@ to control the vowel. Best with ``ensemble=`` for a full section.
    choir = score.part("choir", synth="choir_synth")
    choir = score.part("choir", instrument="choir")  # ensemble=6 + cathedral reverb
    choir.add("C4", Duration.WHOLE, lyric="ah")
+
+Vowels: ``"ah"``, ``"ee"``, ``"oh"``, ``"oo"``, ``"eh"``.
+
+**Vowel transitions** — chain vowels with ``>`` and the formants glide
+between them across the note, like a sung diphthong. The vowel holds,
+then the vocal tract reshapes into the next one:
+
+.. code-block:: python
+
+   choir.add("C4", 2, lyric="ah>oo")      # "ah" melting into "oo"
+   choir.add("E4", 4, lyric="ah>ee>oo")   # three-vowel phrase
 
 .. raw:: html
 

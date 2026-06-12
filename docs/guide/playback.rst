@@ -388,3 +388,66 @@ note durations, and velocities are all preserved.
 
 Download any MIDI file from the internet, load it, play it through
 the synth engine with reverb and delay. That's the whole idea.
+
+Audio Import — WAV → Score
+--------------------------
+
+The reverse direction: record yourself humming a melody, whistling a
+hook, or playing a bass line, and turn the recording back into notes
+you can edit, harmonize, quantize, export to MIDI, or print as sheet
+music:
+
+.. code-block:: python
+
+   from pytheory import Score
+
+   score = Score.from_wav("hum.wav", bpm=100, quantize=0.25)
+
+   for note in score.parts["melody"].notes:
+       print(note.tone, note.beats)
+
+   score.save_midi("hum.mid")          # finish it in your DAW
+   print(score.to_abc(title="My Hum")) # or print the sheet music
+
+Pitch tracking uses the YIN algorithm — the same approach as most
+monophonic tuners — implemented in pure numpy. Transcription is
+**monophonic**: one note at a time (voice, whistle, a single
+instrument line), not chords. Record melody and bass as separate
+takes.
+
+Feed it a full mix and it won't crash — it locks onto the most
+periodic dominant component, which is usually the bassline. You'll
+get the harmonic roots in roughly the right order with some octave
+wobble and fragmentation, and the melody and chords will be
+invisible. Useful for "what's the progression?" reconnaissance;
+not a substitute for separate takes.
+
+Tips for good transcriptions:
+
+- **Tighten the pitch range** — ``fmin=60, fmax=350`` for a bass
+  line, ``fmin=150, fmax=1200`` for whistling. Less range to search
+  means fewer octave mistakes.
+- **Raise the floor above vocal fry** — voice recordings often carry
+  low creaky artifacts at note starts and ends that transcribe as
+  quiet sub-bass blips. If you see suspiciously low, low-velocity
+  notes at phrase boundaries, set ``fmin=100`` (or higher) and they
+  disappear.
+- **Pass the real tempo** — ``bpm=`` controls how seconds map to
+  beats. Record against a metronome and pass that tempo.
+- **Quantize when you want a clean chart** — ``quantize=0.25`` snaps
+  to sixteenths; leave it off to keep the timing as performed.
+
+**Phone recordings (.m4a) need one conversion step.** Voice memos
+come out as AAC, and the loader reads WAV. On macOS the built-in
+``afconvert`` handles it; elsewhere use ``ffmpeg``::
+
+   $ afconvert -f WAVE -d LEI16@44100 memo.m4a memo.wav
+   $ ffmpeg -i memo.m4a -ar 44100 memo.wav
+
+There's a CLI command too::
+
+   $ pytheory transcribe hum.wav hum.mid --bpm 100 --quantize 0.25
+   $ pytheory transcribe bass.wav --fmin 60 --fmax 350 --play
+
+See the :doc:`cookbook` for the full voice-memo-to-sheet-music
+recipe.

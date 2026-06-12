@@ -630,17 +630,13 @@ class LiveTUI:
                     self.log(f"Channel {n} not active", 4)
                     return
                 channel = self.engine.channels[n]
-                if param == "reverb":
-                    channel.reverb = val
-                    channel._cache.clear()
-                elif param == "lowpass":
-                    channel.lowpass = val
-                    channel._cache.clear()
-                elif param == "volume":
-                    channel.volume = val
-                elif hasattr(channel, param):
+                if hasattr(channel, param):
                     setattr(channel, param, val)
-                    channel._cache.clear()
+                    # Bus effects update live; only oscillator-level
+                    # params baked into wavetables need a re-render.
+                    from .live import _BAKED_PARAMS
+                    if param in _BAKED_PARAMS:
+                        channel._cache.clear()
                 else:
                     self.log(f"Unknown param: {param}", 4)
                     return
@@ -788,6 +784,25 @@ class LiveTUI:
             self.log(f"? {cmd}", 4)
 
 
+def run_tui(seed=None, port="OP-XY", channels=8, drums="rock", buffer=128):
+    """Launch the live TUI and print a resume command on exit."""
+    tui = LiveTUI(seed=seed, port=port, n_channels=channels,
+                  drum_pattern=drums, buffer_size=buffer)
+    curses.wrapper(tui.run)
+
+    # Print resume command on exit
+    cmd_parts = ["pytheory live", str(tui.seed)]
+    if tui.port != "OP-XY":
+        cmd_parts += ["--port", tui.port]
+    if tui.n_channels != 8:
+        cmd_parts += ["--channels", str(tui.n_channels)]
+    if tui.current_drum != "rock":
+        cmd_parts += ["--drums", tui.current_drum]
+    if tui.buffer_size != 128:
+        cmd_parts += ["--buffer", str(tui.buffer_size)]
+    print(f"\nResume this session with:\n  {' '.join(cmd_parts)}\n")
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="PyTheory Live — real-time MIDI synthesizer")
@@ -798,21 +813,8 @@ def main():
     parser.add_argument("--buffer", "-b", type=int, default=128, help="Audio buffer size (default: 128)")
     args = parser.parse_args()
 
-    tui = LiveTUI(seed=args.seed, port=args.port, n_channels=args.channels,
-                  drum_pattern=args.drums, buffer_size=args.buffer)
-    curses.wrapper(tui.run)
-
-    # Print resume command on exit
-    cmd_parts = ["pytheory-live", str(tui.seed)]
-    if tui.port != "OP-XY":
-        cmd_parts += ["--port", tui.port]
-    if tui.n_channels != 8:
-        cmd_parts += ["--channels", str(tui.n_channels)]
-    if tui.current_drum != "rock":
-        cmd_parts += ["--drums", tui.current_drum]
-    if tui.buffer_size != 128:
-        cmd_parts += ["--buffer", str(tui.buffer_size)]
-    print(f"\nResume this session with:\n  {' '.join(cmd_parts)}\n")
+    run_tui(seed=args.seed, port=args.port, channels=args.channels,
+            drums=args.drums, buffer=args.buffer)
 
 
 if __name__ == "__main__":
