@@ -15,7 +15,7 @@ virtualenv ceremony.
    $ uv add pytheory
 
 Or skip installing entirely and try PyTheory in your browser at the
-`playground <https://playground.kennethreitz.org>`_.
+`playground <https://playground.pytheory.org>`_.
 
 Why would I want this?
 ----------------------

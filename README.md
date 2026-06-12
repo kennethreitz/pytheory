@@ -194,4 +194,4 @@ Tools like [Claude Code](https://claude.ai/code) can use PyTheory to prototype m
 
 **[pytheory.org](https://pytheory.org)** — guides, API reference, and audio examples.
 
-**[playground.kennethreitz.org](https://playground.kennethreitz.org)** — try PyTheory in your browser, nothing to install.
+**[playground.pytheory.org](https://playground.pytheory.org)** — try PyTheory in your browser, nothing to install.
