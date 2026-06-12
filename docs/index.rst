@@ -34,11 +34,15 @@ Different people come to PyTheory for different reasons. You might be:
   Python. Export MIDI when it's good and finish in your DAW. Start
   with :doc:`guide/sequencing`.
 - **Playing live** — you have a MIDI keyboard and want a synth rig in
-  the terminal, with recording. Start with :doc:`guide/live`.
+  the terminal, with recording — or a session to join over Ableton
+  Link. Start with :doc:`guide/live`.
 - **Capturing ideas** — you hummed a melody into your phone and want
   it as notes, MIDI, or sheet music. ``Score.from_wav("hum.m4a")``
   transcribes it — or run ``pytheory studio`` and just drop the file
-  in your browser. See :doc:`guide/playback`.
+  in your browser. Start with :doc:`guide/listening`.
+- **Tuning up** — ``pytheory tune --instrument guitar`` is a
+  real-time strobe tuner that locks to your open strings. Also in
+  :doc:`guide/listening`.
 - **Composing with AI** — Claude Code can drive PyTheory from natural
   language: "write me a bossa nova in G minor" becomes a Score you can
   hear, edit, and export.
@@ -156,6 +160,7 @@ every time::
    guide/effects
    guide/drums
    guide/playback
+   guide/listening
    guide/live
 
 .. toctree::
@@ -192,6 +197,8 @@ every time::
    api/charts
    api/rhythm
    api/play
+   api/audio
+   api/tuner
    api/live
    api/systems
 

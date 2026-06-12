@@ -254,3 +254,5 @@ Where to Go Next
 - :doc:`effects` — reverb, delay, distortion, chorus, lowpass, automation
 - :doc:`drums` — 100 patterns, 37 fills, drum synthesis
 - :doc:`playback` — play, save, export
+- :doc:`listening` — transcribe recordings, the browser studio, the tuner
+- :doc:`live` — real-time MIDI performance, Ableton Link

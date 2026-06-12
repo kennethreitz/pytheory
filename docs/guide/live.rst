@@ -174,60 +174,10 @@ line to save and one to restore:
    engine.load_config("my_rig.json")
    engine.start()
 
-The Tuner
+Tuning Up
 ---------
 
-Every musician needs a tuner, and you already have a microphone.
-PyTheory's tuner tracks your pitch live (same YIN algorithm as the
-transcriber) and shows the note plus how many cents sharp or flat
-you are::
-
-   $ pytheory tune
-     A4  ----------------------------●------ +12.3¢ ( 443.14 Hz)
-
-Tuning a guitar? Tell it, and readings lock to the nearest open
-string — tuning the D string never gets misread as "80 cents flat
-of E"::
-
-   $ pytheory tune --instrument guitar
-     → D3 ------------------●---------------  -8.1¢ ( 146.15 Hz)
-
-Presets: guitar, bass, ukulele, violin, viola, cello, mandolin,
-banjo.
-
-For the full strobe-tuner experience, serve it to your browser::
-
-   $ pytheory tune --serve
-
-That opens ``http://localhost:8123`` — a strobe display (the
-segmented disc drifts clockwise when you're sharp, counter-clockwise
-when you're flat, and freezes when you're dead on — the same logic
-as a Peterson strobe), plus a needle, and your instrument's strings
-highlighted as you hit them with ``--instrument``.
-
-The page is fed by a **Server-Sent Events stream at** ``/stream``
-(CORS open) and the same stream over **WebSocket at** ``/ws`` —
-which means any JavaScript app can tap PyTheory's pitch detection
-directly, no client library required:
-
-.. code-block:: javascript
-
-   const tuner = new EventSource("http://localhost:8123/stream");
-   tuner.onmessage = (e) => {
-       const reading = JSON.parse(e.data);
-       if (reading) {
-           // { freq: 146.15, note: "D", octave: 3,
-           //   cents: -8.1, in_tune: false, target: "D3" }
-           updateMyUI(reading);
-       }
-   };
-
-   // or: new WebSocket("ws://localhost:8123/ws")
-
-Build your own tuner page, drive a game, pitch-train an ear-training
-app — the stream doesn't care what's listening.
-
-Orchestras tuning high? ``pytheory tune --ref 442``. Python access is
-:class:`pytheory.tuner.Tuner` (``tuner.reading`` holds the latest
-analysis; pass ``instrument="cello"`` for string targets) and
-:func:`pytheory.tuner.analyze_frame` for one-shot use.
+Before you play, get in tune — ``pytheory tune`` is a real-time
+tuner with instrument string presets and a browser strobe display.
+It's covered with the rest of the microphone-in tools in
+:doc:`listening`.

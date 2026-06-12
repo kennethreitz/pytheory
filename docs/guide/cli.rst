@@ -226,4 +226,18 @@ Show all named progressions realized in a key::
         ii-V-I                Dm → G7 → C
         ...
 
+Performance & Audio Tools
+-------------------------
+
+Four more commands open whole apps rather than answering a lookup.
+Each has its own guide::
+
+    $ pytheory tune --instrument guitar    # real-time strobe tuner
+    $ pytheory studio                      # browser: recording → sheet music
+    $ pytheory transcribe hum.m4a hum.mid  # recording → notes/MIDI
+    $ pytheory live --link                 # MIDI synth rig in the terminal
+
+The tuner, studio, and transcriber are covered in :doc:`listening`;
+the live rig in :doc:`live`.
+
 The CLI is there for quick lookups when you don't want to open a Python session -- just ask your question and get back to playing.
