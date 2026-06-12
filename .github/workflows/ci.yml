@@ -16,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install PortAudio (sounddevice's Linux wheels don't bundle it)
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
