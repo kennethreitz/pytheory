@@ -2,6 +2,28 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.50.0
+
+- **Real-time chord recognition — `pytheory tune --chords`.** Strum
+  and the tuner names the chord: the browser page shows the symbol and
+  tones above the strobe, the terminal tuner appends it to the needle
+  line, and the SSE/WebSocket stream gains `chord`, `chord_notes`, and
+  `chord_confidence` fields. Recognizes major, minor, sus2/sus4, and
+  7th chords on all twelve roots, and distinguishes chords from single
+  notes.
+- **`pytheory.audio.identify_chord()`** — the one-shot "what chord is
+  sounding in this buffer?" analyzer behind it. Chromagram with
+  harmonic discounting (each pitch class is reduced by the spill it
+  receives from 3rd/5th/7th partials of the others — a bright C major
+  puts real energy on B via its E's 3rd partial, which is what makes
+  naive matchers report Cmaj7), a polyphony gate that rejects single
+  notes, and template matching. Calibrated against pytheory's own
+  guitar/piano/rhodes renders: 93% on an 81-case battery spanning two
+  octaves; silence, noise, and single notes return None.
+- `_chromagram` gains `nperseg` and `normalized` options (longer FFT
+  windows resolve low voicings; unnormalized frames weight loud
+  moments more).
+
 ## 0.49.1
 
 - **Fix key detection.** `Key.detect` and `Scale.detect` compared note

@@ -41,6 +41,12 @@ the ``target`` field says which one — so "tune the D string" never
 gets misread as "you're 80 cents flat of E"::
 
     tuner = Tuner(instrument="guitar")
+
+With ``chords=True`` (CLI: ``pytheory tune --chords``) the tuner
+also identifies what chord is sounding — strum and the page (and
+the stream's ``chord`` field) names it::
+
+    $ pytheory tune --serve --chords
 """
 
 import json
@@ -155,7 +161,8 @@ class Tuner:
     """
 
     def __init__(self, *, reference_pitch=440.0, fmin=50.0, fmax=1500.0,
-                 device=None, sample_rate=SAMPLE_RATE, instrument=None):
+                 device=None, sample_rate=SAMPLE_RATE, instrument=None,
+                 chords=False):
         self.reference_pitch = reference_pitch
         self.fmin = fmin
         self.fmax = fmax
@@ -173,15 +180,20 @@ class Tuner:
             # 41 Hz, below the chromatic default)
             self.fmin = min(self.fmin, self.targets[0][1] * 0.7)
             self.fmax = min(self.fmax, self.targets[-1][1] * 2.5)
+        self.chords = chords
+        self.chord = None            # latest chord dict (or None)
         self.reading = None          # latest analysis dict (or None)
-        self._buf = numpy.zeros(4096, dtype=numpy.float64)
+        # Chord ID needs ~1s of audio for a stable chromagram; the
+        # pitch tracker only ever looks at the newest 4096 samples.
+        self._buf_len = sample_rate if chords else 4096
+        self._buf = numpy.zeros(self._buf_len, dtype=numpy.float64)
         self._lock = threading.Lock()
         self._stream = None
 
     def _callback(self, indata, frames, time_info, status):
         mono = indata[:, 0].astype(numpy.float64)
         with self._lock:
-            self._buf = numpy.concatenate([self._buf, mono])[-4096:]
+            self._buf = numpy.concatenate([self._buf, mono])[-self._buf_len:]
 
     def start(self):
         """Open the microphone and start analyzing."""
@@ -197,14 +209,20 @@ class Tuner:
         return self
 
     def _analyze_loop(self):
+        from .audio import identify_chord
+        tick = 0
         while self._analyzing:
             with self._lock:
                 frame = self._buf.copy()
             self.reading = analyze_frame(
-                frame, self.sample_rate,
+                frame[-4096:], self.sample_rate,
                 reference_pitch=self.reference_pitch,
                 fmin=self.fmin, fmax=self.fmax,
                 targets=self.targets)
+            # Chord ID is heavier (1s chromagram) — run at 5 Hz
+            if self.chords and tick % 4 == 0:
+                self.chord = identify_chord(frame, self.sample_rate)
+            tick += 1
             time.sleep(1 / 20)
 
     def stop(self):
@@ -238,9 +256,13 @@ _TUNER_PAGE = """<!doctype html>
             border-radius:3px; background:#e74c3c; left:50%;
             transition:left .08s linear, background .08s; }
   #cents { margin-top:.8rem; font-size:1.2rem; color:#888; }
+  #chordsym { min-height:3.6rem; font-size:2.6rem; font-weight:600;
+              color:#f1c40f; }
+  #chordsym small { font-size:1.2rem; color:#888; margin-left:.6rem; }
   .ok #needle { background:#2ecc71; }
   .ok #note { color:#2ecc71; }
 </style></head><body>
+<div id="chordsym"></div>
 <div id="note">&mdash;</div>
 <div id="freq"></div>
 <canvas id="strobe" width="340" height="340"></canvas>
@@ -265,6 +287,15 @@ let reading = null;
 const es = new EventSource("/stream");
 es.onmessage = (e) => {
   const d = JSON.parse(e.data);
+  if (CONFIG.chords) {
+    const el = document.getElementById("chordsym");
+    if (d && d.chord) {
+      el.innerHTML = d.chord +
+        "<small>" + (d.chord_notes || []).join(" ") + "</small>";
+    } else {
+      el.textContent = "";
+    }
+  }
   reading = (d && d.note) ? d : null;
   if (!reading) {
     document.getElementById("note").innerHTML = "&mdash;";
@@ -352,8 +383,21 @@ def serve(tuner, port=8123, open_browser=True):
         "strings": ([name for name, _ in tuner.targets]
                     if tuner.targets else None),
         "reference_pitch": tuner.reference_pitch,
+        "chords": bool(getattr(tuner, "chords", False)),
     }
     page = _TUNER_PAGE.replace("__CONFIG__", json.dumps(config)).encode()
+
+    def reading_payload():
+        r = tuner.reading
+        if not getattr(tuner, "chords", False):
+            return r
+        d = dict(r) if r else {}
+        c = tuner.chord
+        d["chord"] = c["symbol"] if c else None
+        if c:
+            d["chord_notes"] = c["notes"]
+            d["chord_confidence"] = c["confidence"]
+        return d
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"   # WebSocket needs 1.1
@@ -378,7 +422,7 @@ def serve(tuner, port=8123, open_browser=True):
                 self.close_connection = True
                 try:
                     while True:
-                        payload = json.dumps(tuner.reading)
+                        payload = json.dumps(reading_payload())
                         self.wfile.write(f"data: {payload}\n\n".encode())
                         self.wfile.flush()
                         time.sleep(1 / 15)
@@ -411,7 +455,7 @@ def serve(tuner, port=8123, open_browser=True):
             self.close_connection = True
             try:
                 while True:
-                    payload = json.dumps(tuner.reading).encode()
+                    payload = json.dumps(reading_payload()).encode()
                     self.wfile.write(_ws_frame(payload))
                     self.wfile.flush()
                     time.sleep(1 / 15)
@@ -424,6 +468,8 @@ def serve(tuner, port=8123, open_browser=True):
     if tuner.instrument:
         strings = " ".join(name for name, _ in tuner.targets)
         print(f"  Instrument:      {tuner.instrument} ({strings})")
+    if getattr(tuner, "chords", False):
+        print("  Chords:          strum and the page names the chord")
     print(f"  JS stream:       {url}/stream  (Server-Sent Events)")
     print(f"  WebSocket:       ws://localhost:{port}/ws")
     print("  Ctrl-C to stop.")
@@ -458,7 +504,10 @@ def run_terminal(tuner):
                         f"({r['freq']:7.2f} Hz)")
             else:
                 line = "  --  " + "-" * width + "  listening…"
-            print("\r" + line + " " * 4, end="", flush=True)
+            if getattr(tuner, "chords", False) and tuner.chord:
+                c = tuner.chord
+                line += f"  ♫ {c['symbol']} ({' '.join(c['notes'])})"
+            print("\r" + line + " " * 16, end="", flush=True)
             time.sleep(1 / 20)
     except KeyboardInterrupt:
         print("\n  Stopped.")

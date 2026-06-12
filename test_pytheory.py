@@ -8300,3 +8300,90 @@ def test_from_wav_detected_key_am_f_g():
     finally:
         os.unlink(path)
     assert str(score.detected_key) in ("C major", "A minor")
+
+
+# ── Live chord identification (v0.50.0) ───────────────────────────────────
+
+def _chord_buffer(symbol, synth="acoustic_guitar_synth", octave=4):
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    s = Score(bpm=120)
+    p = s.part("p", synth=synth, volume=0.6)
+    p.add(Chord.from_symbol(symbol, octave=octave), 2)
+    return render_score(s).mean(axis=1).astype(numpy.float64)[:44100]
+
+
+def test_identify_chord_triads_and_sevenths():
+    from pytheory.audio import identify_chord
+    for sym in ["Am", "C", "E", "Bm", "F#m", "Esus4"]:
+        r = identify_chord(_chord_buffer(sym), 44100)
+        assert r is not None and r["symbol"] == sym, (sym, r)
+        assert r["confidence"] > 0.7
+    r = identify_chord(_chord_buffer("Dm7", synth="rhodes"), 44100)
+    assert r["symbol"] == "Dm7"
+    assert r["notes"] == ["D", "F", "A", "C"]
+
+
+def test_identify_chord_rejects_single_notes():
+    from pytheory.audio import identify_chord
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    for note, synth in [("A4", "piano_synth"), ("C3", "saw"),
+                        ("A3", "rhodes")]:
+        s = Score(bpm=120)
+        p = s.part("p", synth=synth, volume=0.6)
+        p.add(note, 2)
+        buf = render_score(s).mean(axis=1).astype(numpy.float64)[:44100]
+        assert identify_chord(buf, 44100) is None, (note, synth)
+
+
+def test_identify_chord_rejects_silence_and_noise():
+    from pytheory.audio import identify_chord
+    assert identify_chord(numpy.zeros(44100), 44100) is None
+    noise = numpy.random.default_rng(0).normal(0, 0.1, 44100)
+    assert identify_chord(noise, 44100) is None
+    assert identify_chord(numpy.zeros(100), 44100) is None
+
+
+def test_tuner_chord_mode_buffer_and_state():
+    from pytheory.tuner import Tuner
+    t = Tuner(chords=True)
+    assert t.chords is True
+    assert t._buf_len == 44100   # 1s buffer for the chromagram
+    assert t.chord is None
+    plain = Tuner()
+    assert plain._buf_len == 4096
+
+
+def test_tuner_serve_chord_payload():
+    import json
+    import threading
+    import time
+    import types
+    import urllib.request
+    from pytheory import tuner as tuner_mod
+
+    fake = types.SimpleNamespace(
+        instrument=None, targets=None, reference_pitch=440.0, chords=True,
+        reading={"freq": 220.0, "note": "A", "octave": 3,
+                 "cents": 1.0, "in_tune": True},
+        chord={"symbol": "Am", "confidence": 0.91,
+               "notes": ["A", "C", "E"]})
+    port = 8343
+    th = threading.Thread(target=tuner_mod.serve, args=(fake,),
+                          kwargs={"port": port, "open_browser": False},
+                          daemon=True)
+    th.start()
+    time.sleep(0.6)
+
+    page = urllib.request.urlopen(
+        f"http://localhost:{port}/", timeout=10).read().decode()
+    assert "chordsym" in page and '"chords": true' in page
+
+    stream = urllib.request.urlopen(
+        f"http://localhost:{port}/stream", timeout=10)
+    d = json.loads(stream.readline().decode()[6:])
+    stream.close()
+    assert d["chord"] == "Am"
+    assert d["chord_notes"] == ["A", "C", "E"]
+    assert d["note"] == "A"

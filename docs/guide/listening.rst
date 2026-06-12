@@ -15,7 +15,8 @@ pure numpy):
 - **Studio** — ``pytheory studio``, the same thing as a drag-and-drop
   browser page with sheet music and playback.
 - **The tuner** — ``pytheory tune``, real-time pitch with a strobe
-  display in your browser.
+  display in your browser — and with ``--chords``, it names the
+  chord you're strumming.
 
 Audio Import — WAV → Score
 --------------------------
@@ -184,6 +185,44 @@ Orchestras tuning high? ``pytheory tune --ref 442``. Python access is
 :class:`pytheory.tuner.Tuner` (``tuner.reading`` holds the latest
 analysis; pass ``instrument="cello"`` for string targets) and
 :func:`pytheory.tuner.analyze_frame` for one-shot use.
+
+Chord Recognition
+-----------------
+
+The tuner can also name what you're *strumming*::
+
+   $ pytheory tune --serve --chords
+
+Play a chord and the page shows its symbol and tones — ``Am  A C E``
+— above the tuner. It recognizes major, minor, sus2/sus4, and 7th
+chords on all twelve roots, and it knows the difference between a
+chord and a single note (a lone note just gets the normal tuner
+readout). Works in the terminal too: ``pytheory tune --chords``.
+
+In chord mode the SSE/WebSocket stream carries three extra fields —
+``chord`` (the symbol, or ``null``), ``chord_notes``, and
+``chord_confidence`` — so a JS app can listen for chords the same
+way it listens for pitch.
+
+The analysis is :func:`pytheory.audio.identify_chord`: a chromagram
+of the last second of audio, with each pitch class discounted by the
+harmonic spill it receives from the others (a bright C major puts
+real energy on B — the 3rd partial of its E — which is what makes
+naive matchers cry "Cmaj7"), matched against chord templates on all
+twelve roots. You can call it yourself on any buffer:
+
+.. code-block:: python
+
+   from pytheory.audio import load_wav, identify_chord
+
+   samples, sr = load_wav("strum.wav")
+   identify_chord(samples, sr)
+   # {'symbol': 'Am', 'confidence': 0.93, 'notes': ['A', 'C', 'E']}
+
+One honest physics note: an instrument's low single notes carry
+their harmonics' pitch classes, so an open low E string played alone
+can occasionally read as an E chord — the polyphony gate catches
+most of these, but it can't beat Fourier. Strum two more strings.
 
 What Next
 ---------

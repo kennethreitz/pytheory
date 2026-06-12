@@ -223,13 +223,15 @@ def cmd_studio(args):
 def cmd_tune(args):
     from .tuner import Tuner, serve, run_terminal
     tuner = Tuner(reference_pitch=args.ref, device=args.device,
-                  instrument=args.instrument)
+                  instrument=args.instrument, chords=args.chords)
     tuner.start()
     try:
         if args.serve:
             serve(tuner, port=args.port, open_browser=not args.no_browser)
         else:
             extra = f", {args.instrument}" if args.instrument else ""
+            if args.chords:
+                extra += ", chord ID on"
             print(f"  PyTheory Tuner (A4 = {args.ref:g} Hz{extra})"
                   f" — Ctrl-C to stop")
             run_terminal(tuner)
@@ -597,6 +599,8 @@ def main():
                    choices=["guitar", "bass", "ukulele", "violin", "viola",
                             "cello", "mandolin", "banjo"],
                    help="Lock readings to this instrument's open strings")
+    p.add_argument("--chords", action="store_true",
+                   help="Identify chords too — strum and see the chord name")
     p.add_argument("--port", type=int, default=8123, help="Port for --serve (default: 8123)")
     p.add_argument("--ref", type=float, default=440.0, help="Reference pitch for A4 in Hz (default: 440)")
     p.add_argument("--device", type=int, default=None, help="Input device index (default: system default)")
