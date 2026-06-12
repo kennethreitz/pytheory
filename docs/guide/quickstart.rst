@@ -20,6 +20,9 @@ Installation
 
    $ pip install pytheory
 
+(Don't want to install anything yet? Try PyTheory in your browser at
+the `playground <https://playground.kennethreitz.org>`_.)
+
 For audio playback through your speakers, you'll also need
 `PortAudio <http://www.portaudio.com/>`_:
 
