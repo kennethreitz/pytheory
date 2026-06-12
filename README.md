@@ -1,15 +1,37 @@
-# PyTheory: Music Theory for Humans
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/kennethreitz/pytheory/master/ext/pytheory-small-dark.png">
+    <img src="https://raw.githubusercontent.com/kennethreitz/pytheory/master/ext/pytheory-small.png" alt="PyTheory: music theory for humans" width="380">
+  </picture>
+</p>
 
-Explore music theory, compose multi-part arrangements, and export to MIDI — all in Python.
+<p align="center">
+  <em>Explore music theory, compose multi-part arrangements, and hear them instantly — all in Python.</em>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/pytheory/"><img src="https://img.shields.io/pypi/v/pytheory.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/pytheory/"><img src="https://img.shields.io/pypi/pyversions/pytheory.svg" alt="Python versions"></a>
+  <a href="https://github.com/kennethreitz/pytheory/blob/master/LICENSE"><img src="https://img.shields.io/pypi/l/pytheory.svg" alt="License"></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://playground.pytheory.org">▶ Try it in your browser</a></strong> — a live demo of what PyTheory can do, nothing to install.
+  <br>
+  <a href="https://pytheory.org">Documentation</a> · <a href="https://pypi.org/project/pytheory/">PyPI</a> · <a href="https://pytheory.org/changelog.html">Changelog</a>
+</p>
+
+---
 
 ```
 $ pip install pytheory
+$ pytheory demo        # hear a generated track right now
 ```
 
 ## Sketch Ideas Fast
 
 ```python
-from pytheory import Score, Pattern, Key, Duration, Chord
+from pytheory import Score, Chord, Duration
 from pytheory.play import play_score
 
 score = Score("4/4", bpm=140)
@@ -36,12 +58,6 @@ play_score(score)              # hear it now
 score.save_midi("sketch.mid")  # open in your DAW
 ```
 
-## Hear It Instantly
-
-```
-$ pytheory demo
-```
-
 ## Music Theory
 
 ```pycon
@@ -61,9 +77,6 @@ $ pytheory demo
 
 >>> Key("C", "major").pivot_chords(Key("G", "major"))
 ['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
-
->>> Chord.from_tones("C", "E", "G").forte_number
-'3-11'
 
 >>> from pytheory.scales import Scale
 >>> Scale.recommend("C", "Eb", "F", "Gb", "G", "Bb", top=3)
@@ -96,6 +109,8 @@ and chord charts work in Nashville numbers too.
 
 ## Composition
 
+Song structure with sections, repeats, and parameter automation:
+
 ```python
 score = Score("4/4", bpm=124)
 score.drums("house", repeats=16, fill="house", fill_every=8)
@@ -106,7 +121,6 @@ lead = score.part("lead", synth="saw", envelope="pluck",
                   legato=True, glide=0.03, humanize=0.3)
 bass = score.part("bass", synth="sine", lowpass=300, sidechain=0.7)
 
-# Song structure
 score.section("verse")
 # ... add notes ...
 score.section("chorus")
@@ -118,47 +132,23 @@ score.repeat("verse")
 score.repeat("chorus", times=2)
 ```
 
-## 56 Synth Waveforms
+## Batteries Included
 
-The 10 classics — sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM slow, PWM fast — plus 46 modeled instruments (Rhodes, Wurlitzer, pipe organ, vibraphone, choir, sitar, theremin, and more), with detune, stereo pan, and spread.
-
-## 100 Drum Patterns
-
-rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass — and 87 more. Plus 37 fill presets and 74 synthesized percussion sounds. Stereo panned like a real kit.
-
-## 6 Effects with Automation
+- **56 synth waveforms** — the 10 classics (sine, saw, triangle, square, pulse, FM, noise, supersaw, PWM) plus 46 modeled instruments: Rhodes, Wurlitzer, pipe organ, vibraphone, choir, sitar, theremin, and more.
+- **100 drum patterns** — rock, jazz, bebop, bossa nova, salsa, samba, afrobeat, funk, reggae, house, trap, metal, drum and bass, and 87 more. 37 fill presets, 74 synthesized percussion sounds, stereo panned like a real kit.
+- **6 effects with automation** — distortion, chorus, lowpass, delay, reverb, and LFO modulation on any parameter. Sidechain compression, master bus compressor/limiter, stereo output.
+- **Convolution reverb** — 7 impulse responses: Taj Mahal (12s), cathedral, plate, spring, cave, parking garage, canyon.
+- **6 musical systems** — Western, Indian (Hindustani), Arabic (Maqam), Japanese, Blues/Pentatonic, Javanese Gamelan. 40+ scales.
+- **83 instrument presets** — guitar (8 tunings), bass, ukulele, mandolin family, violin family, banjo, harp, oud, sitar, erhu, and more.
 
 ```python
 lead = score.part("lead", synth="saw",
                   distortion=0.7, lowpass=1000, lowpass_q=5.0,
-                  delay=0.3, reverb=0.4, reverb_type="plate",
-                  chorus=0.3)
+                  delay=0.3, reverb=0.4, reverb_type="plate")
 
-# Automate mid-song
-lead.set(lowpass=4000, distortion=0.9)
-
-# LFO modulation
-lead.lfo("lowpass", rate=0.5, min=400, max=3000, bars=8)
+lead.set(lowpass=4000, distortion=0.9)                  # automate mid-song
+lead.lfo("lowpass", rate=0.5, min=400, max=3000, bars=8)  # LFO modulation
 ```
-
-Signal chain: distortion → chorus → lowpass → delay → reverb. Sidechain compression. Master bus compressor/limiter. Stereo output.
-
-## Convolution Reverb
-
-7 synthetic impulse responses: Taj Mahal (12s), cathedral, plate, spring, cave, parking garage, canyon.
-
-```python
-pad = score.part("pad", synth="supersaw",
-                 reverb=0.85, reverb_type="taj_mahal")
-```
-
-## 6 Musical Systems
-
-Western, Indian (Hindustani), Arabic (Maqam), Japanese, Blues/Pentatonic, Javanese Gamelan — 40+ scales.
-
-## 83 Instrument Presets
-
-Guitar (8 tunings), bass, ukulele, mandolin family, violin family, banjo, harp, oud, sitar, erhu, and more — with chord fingering generation for 25 stringed instruments.
 
 ## Command Line
 
@@ -190,8 +180,7 @@ A DAW is great for tweaking sounds. But when you're *thinking about music* — c
 
 Tools like [Claude Code](https://claude.ai/code) can use PyTheory to prototype musical ideas from natural language — "write a bossa nova in A minor with a saw lead and reverb" becomes real, playable music.
 
-## Documentation
+## Learn More
 
-**[pytheory.org](https://pytheory.org)** — guides, API reference, and audio examples.
-
-**[playground.pytheory.org](https://playground.pytheory.org)** — try PyTheory in your browser, nothing to install.
+- **[playground.pytheory.org](https://playground.pytheory.org)** — try PyTheory in your browser, nothing to install.
+- **[pytheory.org](https://pytheory.org)** — guides, API reference, and audio examples.
