@@ -215,6 +215,11 @@ def cmd_live(args):
             drums=args.drums, buffer=args.buffer)
 
 
+def cmd_studio(args):
+    from .studio import serve
+    serve(port=args.port, open_browser=not args.no_browser)
+
+
 def cmd_tune(args):
     from .tuner import Tuner, serve, run_terminal
     tuner = Tuner(reference_pitch=args.ref, device=args.device)
@@ -575,6 +580,11 @@ def main():
     p.add_argument("--buffer", "-b", type=int, default=128,
                    help="Audio buffer size (default: 128)")
 
+    # studio
+    p = sub.add_parser("studio", help="Browser studio: drop in a recording, get sheet music, playback, and MIDI")
+    p.add_argument("--port", type=int, default=8124, help="Port (default: 8124)")
+    p.add_argument("--no-browser", action="store_true", help="Don't auto-open the browser")
+
     # tune
     p = sub.add_parser("tune", help="Real-time instrument tuner (e.g. pytheory tune, or --serve for browser/JS)")
     p.add_argument("--serve", action="store_true", help="Serve a browser tuner page + JS pitch stream (SSE)")
@@ -632,6 +642,7 @@ def main():
         "live": cmd_live,
         "transcribe": cmd_transcribe,
         "tune": cmd_tune,
+        "studio": cmd_studio,
         "detect": cmd_detect,
         "modes": cmd_modes,
         "circle": cmd_circle,

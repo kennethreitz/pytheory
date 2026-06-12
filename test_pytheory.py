@@ -7939,3 +7939,77 @@ def test_from_wav_split_full_arrangement():
     assert "CLOSED_HAT" in drum_sounds
     assert "SNARE" in drum_sounds or "KICK" in drum_sounds
     assert score.detected_key is not None
+
+
+# ── Studio + 7th chords (v0.48.0) ────────────────────────────────────────
+
+def _chords_roundtrip(symbols, beats=4):
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    from pytheory import Chord
+    from pytheory.audio import detect_chords
+    s = Score(bpm=120)
+    p = s.part("p", synth="rhodes", volume=0.6)
+    for sym in symbols:
+        p.add(Chord.from_symbol(sym), beats)
+    buf = render_score(s).mean(axis=1).astype(numpy.float64)
+    return [sym for _, _, sym in
+            detect_chords(buf, 44100, bpm=120, beats_per_chord=beats)]
+
+
+def test_detect_chords_sevenths():
+    assert _chords_roundtrip(["Dm7", "G7", "Cmaj7"]) == ["Dm7", "G7", "Cmaj7"]
+
+
+def test_detect_chords_triads_not_promoted_to_sevenths():
+    assert _chords_roundtrip(["Am", "F", "C", "G"]) == ["Am", "F", "C", "G"]
+
+
+def test_studio_server_endpoints():
+    import io
+    import json
+    import threading
+    import time
+    import urllib.request
+    import wave as wavemod
+    from pytheory.studio import serve
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+
+    port = 8341
+    th = threading.Thread(target=serve,
+                          kwargs={"port": port, "open_browser": False},
+                          daemon=True)
+    th.start()
+    time.sleep(0.6)
+    base = f"http://localhost:{port}"
+
+    page = urllib.request.urlopen(base + "/", timeout=10).read().decode()
+    assert "PyTheory Studio" in page and "abcjs" in page
+
+    s = Score(bpm=100)
+    p = s.part("m", synth="sine", volume=0.7)
+    for n in ["C4", "E4", "G4"]:
+        p.add(n, 0.5)
+    data = (numpy.clip(render_score(s), -1, 1) * 32767).astype(numpy.int16)
+    out = io.BytesIO()
+    with wavemod.open(out, "wb") as f:
+        f.setnchannels(2)
+        f.setsampwidth(2)
+        f.setframerate(44100)
+        f.writeframes(data.tobytes())
+
+    req = urllib.request.Request(
+        base + "/transcribe?name=t.wav&bpm=100&quantize=0.25",
+        data=out.getvalue(), method="POST")
+    res = json.loads(urllib.request.urlopen(req, timeout=60).read())
+    assert res["bpm"] == 100
+    assert res["parts"]["melody"] == 3
+    assert "T:t" in res["abc"]
+
+    wav = urllib.request.urlopen(
+        f"{base}/render?id={res['id']}", timeout=60).read()
+    assert wav[:4] == b"RIFF"
+    mid = urllib.request.urlopen(
+        f"{base}/midi?id={res['id']}", timeout=30).read()
+    assert mid[:4] == b"MThd"

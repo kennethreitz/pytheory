@@ -370,9 +370,15 @@ def _chromagram(samples, sample_rate=SAMPLE_RATE):
 
 # Chord templates: which pitch classes (relative to the root) sound.
 # The root gets extra weight — it's usually doubled and in the bass.
+# Each entry is (intervals, prior): four-note chords get a slight
+# handicap so a plain triad with a passing melody note doesn't get
+# promoted to a 7th.
 _CHORD_QUALITIES = {
-    "": (0, 4, 7),        # major
-    "m": (0, 3, 7),       # minor
+    "": ((0, 4, 7), 1.0),         # major
+    "m": ((0, 3, 7), 1.0),        # minor
+    "7": ((0, 4, 7, 10), 0.96),   # dominant 7th
+    "maj7": ((0, 4, 7, 11), 0.96),
+    "m7": ((0, 3, 7, 10), 0.96),
 }
 
 
@@ -394,16 +400,16 @@ def detect_chords(samples, sample_rate=SAMPLE_RATE, *, bpm=120,
     if chroma.shape[1] == 0:
         return []
 
-    # Build the 24 templates once
+    # Build the templates once (12 roots × qualities)
     templates = []
     for root in range(12):
-        for quality, intervals in _CHORD_QUALITIES.items():
+        for quality, (intervals, prior) in _CHORD_QUALITIES.items():
             vec = numpy.zeros(12)
             for iv in intervals:
                 vec[(root + iv) % 12] = 1.0
             vec[root] = 1.5          # weight the root
             vec /= numpy.linalg.norm(vec)
-            templates.append((root, quality, vec))
+            templates.append((root, quality, vec * prior))
 
     window_sec = beats_per_chord * 60.0 / bpm
     total_sec = times[-1]
@@ -644,7 +650,9 @@ def transcribe(path, *, bpm=None, quantize=None, split=False,
             pitch_classes.extend(_NOTE_NAMES[note % 12]
                                  for _, _, note, _ in events)
         for _, _, symbol in chord_track:
-            pitch_classes.append(symbol.rstrip("m"))
+            root = symbol[:2] if len(symbol) > 1 and symbol[1] == "#" \
+                else symbol[:1]
+            pitch_classes.append(root)
         score.detected_key = (Key.detect(*dict.fromkeys(pitch_classes))
                               if pitch_classes else None)
         return score

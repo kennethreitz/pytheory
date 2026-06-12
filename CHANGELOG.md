@@ -2,6 +2,25 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.48.0
+
+- **PyTheory Studio — `pytheory studio`.** A local web app that ties
+  the whole listening pipeline together: drag in a recording (.wav,
+  .m4a voice memo, .mp3) and the transcription renders as sheet music
+  on the page (abcjs); press play to hear it through PyTheory's
+  synths; download the MIDI; tuner at the bottom of the page. "Full
+  mix" mode runs the four-part bass/melody/chords/drums split.
+  Everything runs on localhost — only the notation renderer comes
+  from a CDN.
+- **7th chords in chord recognition.** `detect_chords` (and therefore
+  `from_wav(split=True)`) now matches dominant 7th, major 7th, and
+  minor 7th templates alongside triads, with a small prior so plain
+  triads aren't promoted by passing melody notes. A rendered
+  Dm7-G7-Cmaj7 progression comes back exactly; Am-F-C-G still comes
+  back as triads.
+- **Fix key detection with 7th-chord symbols** — the chord-root
+  extraction mishandled symbols like "Am7".
+
 ## 0.47.0
 
 - **Full-arrangement transcription.** `Score.from_wav(split=True)` now

@@ -479,3 +479,19 @@ There's a CLI command too::
 
 See the :doc:`cookbook` for the full voice-memo-to-sheet-music
 recipe.
+
+PyTheory Studio — the Browser Front Door
+----------------------------------------
+
+All of the above, without writing any code::
+
+   $ pytheory studio
+
+opens a local web app: **drop in a recording** (.wav, voice memo,
+.mp3) and the transcription renders as sheet music right on the page
+(via abcjs). Press play to hear it through PyTheory's synths,
+download the MIDI for your DAW, and there's a tuner at the bottom.
+Check "full mix" for the four-part bass/melody/chords/drums split.
+
+Everything runs on your machine — the only thing fetched from the
+internet is the notation renderer. Your audio never leaves localhost.
