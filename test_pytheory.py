@@ -8247,3 +8247,56 @@ def test_live_engine_link_stopped_transport_is_silent():
         assert hits == []
     finally:
         e.stop()
+
+
+# ── Key detection fixes (v0.49.1) ─────────────────────────────────────────
+
+def test_key_detect_enharmonic_spellings():
+    """Sharp and flat spellings of the same notes give the same key."""
+    flats = Key.detect("Bb", "C", "D", "Eb", "F", "G", "A")
+    sharps = Key.detect("A#", "C", "D", "D#", "F", "G", "A")
+    assert str(flats) == str(sharps) == "Bb major"
+
+
+def test_key_detect_conventional_spelling():
+    """No theoretical keys — Bb major, never A# major."""
+    k = Key.detect("A#", "D", "F")
+    assert k.tonic_name == "Bb"
+
+
+def test_key_detect_tonic_tiebreak():
+    """A-C-E is an A minor triad, not a C major fragment."""
+    k = Key.detect("A", "C", "E")
+    assert str(k) == "A minor"
+
+
+def test_key_detect_unparseable_notes():
+    assert Key.detect("Sa", "komal Re") is None
+
+
+def test_from_wav_detected_key_am_f_g():
+    """An Am-F-G progression is C major / A minor territory —
+    regression for the name-matching bug that returned A# major."""
+    import os
+    import tempfile
+    import wave as wavemod
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+
+    s = Score(bpm=120)
+    p = s.part("p", synth="rhodes", volume=0.6)
+    for sym in ["Am", "F", "G"]:
+        p.add(Chord.from_symbol(sym), 4)
+    data = (numpy.clip(render_score(s), -1, 1) * 32767).astype(numpy.int16)
+    fd, path = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    try:
+        with wavemod.open(path, "wb") as f:
+            f.setnchannels(2)
+            f.setsampwidth(2)
+            f.setframerate(44100)
+            f.writeframes(data.tobytes())
+        score = Score.from_wav(path, split=True, quantize=0.5)
+    finally:
+        os.unlink(path)
+    assert str(score.detected_key) in ("C major", "A minor")

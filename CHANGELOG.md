@@ -2,6 +2,21 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.49.1
+
+- **Fix key detection.** `Key.detect` and `Scale.detect` compared note
+  *spellings*, so "A#" never matched a scale spelled with "Bb" — and
+  keys whose scales rendered with mixed spellings (A# major contains
+  both "A#" and "Bb") got inflated match counts and won far too often.
+  Both now compare pitch classes, so enharmonic spelling is irrelevant.
+- `Key.detect` breaks ties by whether the candidate's tonic (then its
+  fifth) actually occurs in the notes — A-C-E now detects as A minor,
+  not C major — and reports conventional key spellings (Bb major, C#
+  minor; never theoretical keys like A# major).
+- Transcription key detection (`from_wav(split=True)`) now feeds full
+  chord tones into `Key.detect` instead of just chord roots — an
+  Am-F-G mix detects as C major instead of a spurious sharp key.
+
 ## 0.49.0
 
 - **Ableton Link sync — `pytheory live --link`.** The live engine

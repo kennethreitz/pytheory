@@ -5,6 +5,32 @@ from typing import Optional, Union
 from .systems import SYSTEMS, System
 from .tones import Tone
 
+_PC_LETTERS = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+
+def _pitch_classes(names):
+    """Note names → set of pitch-class ints (enharmonic-aware).
+
+    Accepts a letter plus any run of sharps/flats ("C", "A#", "Bb",
+    "C##"); a trailing octave digit is ignored, and names that don't
+    parse as Western notes are skipped.
+    """
+    out = set()
+    for name in names:
+        name = str(name).strip()
+        if not name or name[0].upper() not in _PC_LETTERS:
+            continue
+        pc = _PC_LETTERS[name[0].upper()]
+        for ch in name[1:]:
+            if ch in "#♯":
+                pc += 1
+            elif ch in "b♭":
+                pc -= 1
+            else:
+                break
+        out.add(pc % 12)
+    return out
+
 
 class Scale:
     def __init__(self, *, tones: tuple[Tone, ...], degrees: Optional[tuple[str, ...]] = None, system: Union[str, System] = 'western') -> None:
@@ -267,21 +293,22 @@ class Scale:
         if not note_names:
             return None
 
-        notes = set(note_names)
+        # Compare pitch classes, not spellings — "A#" and "Bb" are the
+        # same note, and some scales render with mixed spellings.
+        notes = _pitch_classes(note_names)
+        if not notes:
+            return None
         best = None
 
         chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-        scale_names = ["major", "minor", "harmonic minor",
-                       "dorian", "phrygian", "lydian", "mixolydian",
-                       "aeolian", "locrian"]
 
         for tonic in chromatic:
             ts = TonedScale(tonic=f"{tonic}4")
             for scale_name in ts.scales:
                 try:
                     scale = ts[scale_name]
-                    scale_notes = set(scale.note_names)
-                    match = len(notes & scale_notes)
+                    scale_pcs = _pitch_classes(scale.note_names)
+                    match = len(notes & scale_pcs)
                     score = (match, 1 if scale_name == "major" else 0)
                     if best is None or score > best[0]:
                         best = (score, tonic, scale_name, match)
@@ -505,6 +532,11 @@ class Key:
         Tries every possible major and minor key and returns the one
         whose scale contains the most of the given notes.
 
+        Notes are compared as pitch classes, so enharmonic spellings
+        don't matter — ``"A#"`` and ``"Bb"`` count the same. Ties go
+        to the key whose tonic (then fifth) is actually among the
+        notes, then to major over minor.
+
         Example::
 
             >>> Key.detect("C", "D", "E", "F", "G", "A", "B")
@@ -512,7 +544,7 @@ class Key:
             >>> Key.detect("A", "B", "C", "D", "E", "F", "G")
             <Key C major>
             >>> Key.detect("A", "C", "E")
-            <Key C major>
+            <Key A minor>
 
         Returns:
             The best-matching Key, or None if no notes given.
@@ -520,19 +552,36 @@ class Key:
         if not note_names:
             return None
 
-        notes = set(note_names)
+        # Compare pitch classes, not spellings — "A#" and "Bb" are the
+        # same note, and a key whose scale renders with mixed spellings
+        # must not get extra name-matches for it.
+        notes = _pitch_classes(note_names)
+        if not notes:
+            return None
         best_key = None
-        best_score = (-1, 0)
+        best_score = (-1, 0, 0, 0)
 
-        chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-        for tonic in chromatic:
-            for mode in ("major", "minor"):
+        # Conventional key spellings — Bb major, not the theoretical
+        # A# major; C# minor, not Db minor.
+        tonics = {
+            "major": ["C", "Db", "D", "Eb", "E", "F",
+                      "F#", "G", "Ab", "A", "Bb", "B"],
+            "minor": ["C", "C#", "D", "Eb", "E", "F",
+                      "F#", "G", "G#", "A", "Bb", "B"],
+        }
+        for mode in ("major", "minor"):
+            for tonic_pc, tonic in enumerate(tonics[mode]):
                 try:
                     k = cls(tonic, mode)
-                    scale_notes = set(k.note_names)
-                    match = len(notes & scale_notes)
-                    # Tiebreak: prefer major over minor
-                    score = (match, 1 if mode == "major" else 0)
+                    scale_pcs = _pitch_classes(k.note_names)
+                    match = len(notes & scale_pcs)
+                    # Tiebreaks: a key is more plausible when its tonic
+                    # (then its fifth) actually occurs in the notes;
+                    # prefer major over minor last.
+                    score = (match,
+                             1 if tonic_pc in notes else 0,
+                             1 if (tonic_pc + 7) % 12 in notes else 0,
+                             1 if mode == "major" else 0)
                     if score > best_score:
                         best_score = score
                         best_key = k

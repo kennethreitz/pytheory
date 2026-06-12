@@ -759,16 +759,21 @@ def transcribe(path, *, bpm=None, quantize=None, split=False,
             score.add_pattern(Pattern("transcribed", hits, beats=total),
                               repeats=1)
 
-        # Key detection from everything pitched we heard
+        # Key detection from everything pitched we heard — full chord
+        # tones, not just roots (Am-F-G's roots alone are ambiguous;
+        # its tones spell out C major / A minor exactly)
+        from .chords import Chord
         from .scales import Key
         pitch_classes = []
         for events in (mel_events, bass_events):
             pitch_classes.extend(_NOTE_NAMES[note % 12]
                                  for _, _, note, _ in events)
         for _, _, symbol in chord_track:
-            root = symbol[:2] if len(symbol) > 1 and symbol[1] == "#" \
-                else symbol[:1]
-            pitch_classes.append(root)
+            try:
+                pitch_classes.extend(
+                    t.name for t in Chord.from_symbol(symbol).tones)
+            except ValueError:
+                pass
         score.detected_key = (Key.detect(*dict.fromkeys(pitch_classes))
                               if pitch_classes else None)
         return score
