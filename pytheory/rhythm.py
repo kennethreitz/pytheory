@@ -5284,39 +5284,48 @@ class Score:
     # ── Audio Import ─────────────────────────────────────────────────────
 
     @classmethod
-    def from_wav(cls, path, *, bpm=120, quantize=None,
+    def from_wav(cls, path, *, bpm=None, quantize=None, split=False,
                  part_name="melody", synth="piano_synth",
                  fmin=50.0, fmax=1500.0) -> "Score":
-        """Transcribe a monophonic WAV recording into a Score.
+        """Transcribe an audio recording into a Score.
 
         Hum a melody, whistle a hook, record a bass line — load the
-        WAV and get editable notes back. Pitch tracking is the YIN
-        algorithm; works on one note at a time (voice, whistle, a
-        single instrument line), not chords.
+        recording and get editable notes back. Pitch tracking is the
+        YIN algorithm; transcription is monophonic per pass (voice,
+        whistle, a single instrument line), not chords.
+
+        Reads WAV directly; .m4a voice memos, .mp3, and anything else
+        convert automatically through afconvert (macOS) or ffmpeg.
 
         Args:
-            path: Path to a .wav file.
-            bpm: Tempo to interpret the timing against (default 120).
+            path: Path to an audio file.
+            bpm: Tempo to interpret the timing against. Default
+                ``None`` estimates it from the recording's onset
+                pattern (falling back to 120 for pulse-free rubato).
             quantize: Optional grid in beats — ``0.25`` snaps starts
                 and durations to sixteenths. Default keeps the timing
                 as performed.
+            split: If True, separate harmonics from drums first and
+                transcribe a ``"bass"`` part and a ``"melody"`` part.
+                For full mixes — the bassline comes out well; the
+                melody only as well as it dominates the mix.
             part_name: Name of the created part (default "melody").
             synth: Playback synth for the transcription.
             fmin/fmax: Pitch search range in Hz. Tighten for better
                 results (e.g. ``fmin=60, fmax=350`` for bass).
 
         Returns:
-            A Score with one Part of detected notes, rests, and
-            velocities.
+            A Score of detected notes, rests, and velocities, with
+            ``score.bpm`` set to the estimated (or given) tempo.
 
         Example::
 
-            >>> score = Score.from_wav("hum.wav", bpm=100, quantize=0.25)
+            >>> score = Score.from_wav("hum.m4a", quantize=0.25)
             >>> print(score.to_abc(title="My Hum"))
             >>> score.save_midi("hum.mid")
         """
         from .audio import transcribe
-        return transcribe(path, bpm=bpm, quantize=quantize,
+        return transcribe(path, bpm=bpm, quantize=quantize, split=split,
                           part_name=part_name, synth=synth,
                           fmin=fmin, fmax=fmax)
 

@@ -7705,3 +7705,145 @@ def test_detect_pitch_silence_is_unvoiced():
     sig = numpy.zeros(44100)
     times, freqs, voiced = detect_pitch(sig, 44100)
     assert not voiced.any()
+
+
+# ── Audio import v2: split, tempo, formats (v0.46.0) ─────────────────────
+
+def _render_test_mix(tmp_path=None):
+    """Four-track mix at 110 BPM with known bass/lead lines."""
+    import tempfile
+    from pytheory.rhythm import Score
+    from pytheory.play import render_score
+    from pytheory import Chord
+    s = Score(bpm=110)
+    s.drums("rock", repeats=2)
+    chords = s.part("chords", synth="rhodes", volume=0.5)
+    bass = s.part("bass", synth="bass_guitar", volume=0.6)
+    lead = s.part("lead", synth="saw", volume=0.5)
+    for sym, b in [("Am", "A2"), ("F", "F2")]:
+        chords.add(Chord.from_symbol(sym), 4)
+        for _ in range(4):
+            bass.add(b, 1)
+    for n in ["A4", "C5", "B4", "G4", "A4", "F4", "E4", "C4"]:
+        lead.add(n, 1)
+    path = tempfile.mktemp(suffix=".wav")
+    _write_test_wav(render_score(s), path)
+    return path
+
+
+def test_estimate_tempo_full_mix():
+    import os
+    from pytheory.audio import estimate_tempo, load_wav
+    path = _render_test_mix()
+    try:
+        samples, sr = load_wav(path)
+    finally:
+        os.unlink(path)
+    bpm = estimate_tempo(samples, sr)
+    assert bpm is not None
+    # Accept the true tempo or a metrical multiple
+    assert any(abs(bpm - 110 * m) <= 4 for m in (0.5, 1, 2))
+
+
+def test_hpss_separates_drums_from_notes():
+    from pytheory.audio import hpss
+    from pytheory.play import organ_wave, _synth_snare, SAMPLE_PEAK
+    sr = 44100
+    tone = organ_wave(220, n_samples=sr * 2).astype(numpy.float64) / SAMPLE_PEAK
+
+    def rms(x):
+        return numpy.sqrt((x ** 2).mean())
+
+    h, p = hpss(tone, sr)
+    assert rms(h) > 3 * rms(p)         # held note → harmonic
+
+    drums = numpy.zeros(sr * 2)
+    for i in range(8):
+        hit = _synth_snare(sr // 8)
+        start = i * sr // 4
+        drums[start:start + len(hit)] += hit
+    h, p = hpss(drums, sr)
+    assert rms(p) > rms(h)             # snare hits → percussive
+
+
+def test_from_wav_split_recovers_bass_and_melody():
+    import os
+    from pytheory.rhythm import Score
+    path = _render_test_mix()
+    try:
+        score = Score.from_wav(path, bpm=110, split=True, quantize=0.5)
+    finally:
+        os.unlink(path)
+    assert set(score.parts) >= {"melody", "bass"}
+    # Bass: pitch classes must walk A → F in order
+    bass_pcs = [str(n.tone)[:-1].rstrip("#b")
+                for n in score.parts["bass"].notes if n.tone is not None]
+    deduped = [pc for i, pc in enumerate(bass_pcs)
+               if i == 0 or pc != bass_pcs[i - 1]]
+    a_idx = deduped.index("A") if "A" in deduped else -1
+    f_idx = deduped.index("F") if "F" in deduped else -1
+    assert a_idx != -1 and f_idx != -1 and a_idx < f_idx
+    # Melody: most detected notes belong to the true lead line
+    truth = {"A4", "C5", "B4", "G4", "F4", "E4", "C4"}
+    mel = [str(n.tone) for n in score.parts["melody"].notes
+           if n.tone is not None]
+    assert len(mel) >= 6
+    hits = sum(1 for n in mel if n in truth)
+    assert hits / len(mel) > 0.6
+
+
+def test_from_wav_auto_bpm_sets_score_tempo():
+    import os
+    from pytheory.rhythm import Score
+    path = _render_test_mix()
+    try:
+        score = Score.from_wav(path)     # no bpm — estimate
+    finally:
+        os.unlink(path)
+    assert 55 <= score.bpm <= 224
+
+
+def test_load_wav_normalizes_stereo_int16():
+    import os, tempfile
+    from pytheory.audio import load_wav
+    sr = 44100
+    t = numpy.arange(sr) / sr
+    sig = numpy.sin(2 * numpy.pi * 440 * t) * 0.9
+    stereo = numpy.stack([sig, sig], axis=1).astype(numpy.float32)
+    path = tempfile.mktemp(suffix=".wav")
+    _write_test_wav(stereo, path)
+    try:
+        samples, _ = load_wav(path)
+    finally:
+        os.unlink(path)
+    assert 0.5 < numpy.abs(samples).max() <= 1.0
+
+
+def test_load_m4a_via_converter():
+    import os, shutil, subprocess, tempfile
+    if not (shutil.which("afconvert") or shutil.which("ffmpeg")):
+        import pytest
+        pytest.skip("no audio converter available")
+    from pytheory.audio import load_wav
+    sr = 44100
+    t = numpy.arange(sr) / sr
+    sig = numpy.sin(2 * numpy.pi * 440 * t) * 0.8
+    stereo = numpy.stack([sig, sig], axis=1).astype(numpy.float32)
+    wav_path = tempfile.mktemp(suffix=".wav")
+    m4a_path = tempfile.mktemp(suffix=".m4a")
+    _write_test_wav(stereo, wav_path)
+    try:
+        if shutil.which("afconvert"):
+            subprocess.run(["afconvert", "-f", "m4af", "-d", "aac",
+                            wav_path, m4a_path],
+                           check=True, capture_output=True)
+        else:
+            subprocess.run(["ffmpeg", "-y", "-i", wav_path, m4a_path],
+                           check=True, capture_output=True)
+        samples, rate = load_wav(m4a_path)
+    finally:
+        os.unlink(wav_path)
+        if os.path.exists(m4a_path):
+            os.unlink(m4a_path)
+    assert rate == 44100
+    assert abs(len(samples) / rate - 1.0) < 0.15

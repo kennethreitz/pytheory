@@ -415,12 +415,26 @@ monophonic tuners — implemented in pure numpy. Transcription is
 instrument line), not chords. Record melody and bass as separate
 takes.
 
-Feed it a full mix and it won't crash — it locks onto the most
-periodic dominant component, which is usually the bassline. You'll
-get the harmonic roots in roughly the right order with some octave
-wobble and fragmentation, and the melody and chords will be
-invisible. Useful for "what's the progression?" reconnaissance;
-not a substitute for separate takes.
+For full mixes, pass ``split=True``: PyTheory first separates the
+sustained, pitched material from the drums (harmonic-percussive
+separation — held notes are horizontal lines on a spectrogram, drum
+hits are vertical ones, and median filters tell them apart), then
+transcribes **two parts** — a ``"bass"`` and a ``"melody"``:
+
+.. code-block:: python
+
+   score = Score.from_wav("song.wav", split=True, quantize=0.5)
+   print(score.parts["bass"].notes)     # the bassline
+   print(score.parts["melody"].notes)   # the lead, if it carries the mix
+
+Expect the bassline to come out well (roots in order, occasional
+octave wobble) and the melody to come out as well as it dominates
+the mix. Chords stay out of reach — that's full polyphonic
+transcription, a different beast.
+
+Tempo is estimated automatically when you don't pass ``bpm=`` — the
+onset pattern is autocorrelated to find the pulse (a rendered groove
+comes back exact; pulse-free rubato humming falls back to 120).
 
 Tips for good transcriptions:
 
@@ -432,22 +446,21 @@ Tips for good transcriptions:
   quiet sub-bass blips. If you see suspiciously low, low-velocity
   notes at phrase boundaries, set ``fmin=100`` (or higher) and they
   disappear.
-- **Pass the real tempo** — ``bpm=`` controls how seconds map to
-  beats. Record against a metronome and pass that tempo.
+- **Pin the tempo if you know it** — auto-estimation reads the pulse
+  from the onsets, but if you recorded against a metronome, pass
+  that ``bpm=`` and remove the guesswork.
 - **Quantize when you want a clean chart** — ``quantize=0.25`` snaps
   to sixteenths; leave it off to keep the timing as performed.
 
-**Phone recordings (.m4a) need one conversion step.** Voice memos
-come out as AAC, and the loader reads WAV. On macOS the built-in
-``afconvert`` handles it; elsewhere use ``ffmpeg``::
-
-   $ afconvert -f WAVE -d LEI16@44100 memo.m4a memo.wav
-   $ ffmpeg -i memo.m4a -ar 44100 memo.wav
+Phone voice memos (.m4a), mp3s, and other formats load directly —
+they're converted on the fly through ``afconvert`` (built into
+macOS) or ``ffmpeg``, whichever is on your PATH.
 
 There's a CLI command too::
 
-   $ pytheory transcribe hum.wav hum.mid --bpm 100 --quantize 0.25
+   $ pytheory transcribe hum.m4a hum.mid --quantize 0.25
    $ pytheory transcribe bass.wav --fmin 60 --fmax 350 --play
+   $ pytheory transcribe song.wav --split
 
 See the :doc:`cookbook` for the full voice-memo-to-sheet-music
 recipe.

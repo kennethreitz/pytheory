@@ -218,18 +218,21 @@ def cmd_live(args):
 def cmd_transcribe(args):
     from .rhythm import Score
     score = Score.from_wav(args.input, bpm=args.bpm,
-                           quantize=args.quantize,
+                           quantize=args.quantize, split=args.split,
                            fmin=args.fmin, fmax=args.fmax)
-    notes = [n for n in score.parts["melody"].notes if n.tone is not None]
-    print(f"  Transcribed {len(notes)} notes from {args.input}:")
-    line = []
-    for n in notes:
-        line.append(f"{n.tone}({n.beats:g})")
-        if len(line) == 8:
+    tempo_src = "given" if args.bpm else "estimated"
+    print(f"  Tempo: {score.bpm} BPM ({tempo_src})")
+    for pname, part in score.parts.items():
+        notes = [n for n in part.notes if n.tone is not None]
+        print(f"  {pname}: {len(notes)} notes")
+        line = []
+        for n in notes:
+            line.append(f"{n.tone}({n.beats:g})")
+            if len(line) == 8:
+                print("    " + " ".join(line))
+                line = []
+        if line:
             print("    " + " ".join(line))
-            line = []
-    if line:
-        print("    " + " ".join(line))
     if args.output:
         score.save_midi(args.output)
         print(f"  Saved → {args.output}")
@@ -559,10 +562,11 @@ def main():
                    help="Audio buffer size (default: 128)")
 
     # transcribe
-    p = sub.add_parser("transcribe", help="Transcribe a WAV melody to notes/MIDI (e.g. pytheory transcribe hum.wav out.mid)")
-    p.add_argument("input", help="Input WAV file (monophonic — voice, whistle, single instrument)")
+    p = sub.add_parser("transcribe", help="Transcribe a recording to notes/MIDI (e.g. pytheory transcribe hum.m4a out.mid)")
+    p.add_argument("input", help="Input audio file (WAV directly; .m4a/.mp3 via afconvert/ffmpeg)")
     p.add_argument("output", nargs="?", default=None, help="Optional output MIDI file")
-    p.add_argument("--bpm", type=int, default=120, help="Tempo to interpret timing against (default: 120)")
+    p.add_argument("--bpm", type=int, default=None, help="Tempo to interpret timing against (default: estimate from the recording)")
+    p.add_argument("--split", action="store_true", help="Separate drums out and transcribe bass + melody parts (for full mixes)")
     p.add_argument("--quantize", type=float, default=None, help="Snap to grid in beats (e.g. 0.25 = sixteenths)")
     p.add_argument("--fmin", type=float, default=50.0, help="Lowest pitch to search, Hz (default: 50)")
     p.add_argument("--fmax", type=float, default=1500.0, help="Highest pitch to search, Hz (default: 1500)")

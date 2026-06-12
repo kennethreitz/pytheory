@@ -2,6 +2,30 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.46.0
+
+- **Full-mix transcription — `Score.from_wav(split=True)`.** Runs
+  harmonic-percussive separation first (median-filtered spectrogram
+  masks, pure scipy — held notes are horizontal lines on a
+  spectrogram, drum hits vertical), then transcribes a `"bass"` part
+  and a `"melody"` part from band-split passes. On a four-track test
+  mix (drums/bass/Rhodes/lead) the melody came back 15/16 notes
+  correct and the bass walked the right roots. Also
+  `pytheory transcribe song.wav --split`.
+- **Automatic tempo estimation.** `from_wav` now estimates BPM from
+  the recording's onset pattern when `bpm=` isn't given
+  (autocorrelated spectral flux with a 120-BPM log-gaussian prior);
+  a rendered 110 BPM groove estimates exactly 110. Pulse-free rubato
+  falls back to 120. `score.bpm` carries the result.
+- **Voice memos load directly.** `.m4a`, `.mp3`, and other non-WAV
+  formats convert on the fly through `afconvert` (macOS) or `ffmpeg`
+  — no manual conversion step.
+- **Fix stereo WAV normalization** — stereo int16/int32 files were
+  loaded without amplitude scaling (the dtype check ran after the
+  channel mixdown converted to float). Transcription was unaffected
+  (the pitch tracker is scale-invariant), but `load_wav` output is
+  now correctly in [-1, 1].
+
 ## 0.45.0
 
 - **Audio import — `Score.from_wav()`.** Record yourself humming a

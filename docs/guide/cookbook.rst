@@ -551,30 +551,24 @@ Voice Memo → Sheet Music
 You hummed something into your phone and want it on a staff. The
 whole pipeline — recording to engraved PDF:
 
-.. code-block:: bash
-
-   # 1. Convert the voice memo to WAV
-   #    (macOS — built in; elsewhere: ffmpeg -i hum.m4a -ar 44100 hum.wav)
-   afconvert -f WAVE -d LEI16@44100 hum.m4a hum.wav
-
 .. code-block:: python
 
-   # 2. Transcribe it
+   # 1. Transcribe it — .m4a voice memos load directly
    from pytheory import Score
 
    score = Score.from_wav(
-       "hum.wav",
-       bpm=100,          # tempo you hummed at (guess; adjust and re-run)
+       "hum.m4a",
        quantize=0.25,    # snap to sixteenths for a clean chart
        fmin=100,         # floor above vocal fry — kills the creaky
        fmax=350,         #   sub-bass blips at note starts and ends
-   )
+   )                     # tempo is estimated; pass bpm= to pin it
 
-   # 3. Sanity-check what it heard
+   # 2. Sanity-check what it heard
+   print(f"estimated tempo: {score.bpm}")
    for n in score.parts["melody"].notes:
        print(n.tone or "rest", n.beats)
 
-   # 4. Engrave it
+   # 3. Engrave it
    with open("hum.ly", "w") as f:
        f.write(score.to_lilypond(title="My Hum", key="G", mode="major"))
 
@@ -583,7 +577,7 @@ whole pipeline — recording to engraved PDF:
 
 .. code-block:: bash
 
-   # 5. Compile to PDF (brew install lilypond)
+   # 4. Compile to PDF (brew install lilypond)
    lilypond --pdf hum.ly
 
 A real hum is messy — breath noise, fry, scoops between notes. If
