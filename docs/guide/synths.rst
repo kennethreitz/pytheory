@@ -14,6 +14,18 @@ PyTheory, you're reaching for the same raw materials that defined
 decades of music. The difference between a Moog bass and a DX7 bell
 isn't magic; it's which waveforms you start with and how you shape them.
 
+This is a big cabinet. The drawers, in order: the classic and
+extended **waveforms**, the **ensemble** and **analog** sounds, the
+**physically modeled** and **dedicated instrument** synths, then the
+things you apply to any of them — **envelopes**, **fattening and
+width** — and finally the **instrument presets** that bundle good
+choices for you. If you'd rather start from "what sound do I want,"
+jump straight to `Choosing Synth and Envelope Combos`_ at the bottom.
+
+.. contents:: On this page
+   :local:
+   :depth: 1
+
 Classic Waveforms
 -----------------
 
@@ -142,6 +154,22 @@ pop music in the 80s, you heard FM synthesis.
        volume=0.3,
        reverb=0.4,
    )
+
+Two parameters dial in the timbre:
+
+- ``fm_ratio``: Modulator frequency as a multiple of the carrier
+  (default 2.0). Integer ratios = harmonic timbres; non-integer =
+  metallic/inharmonic.
+- ``fm_index``: Modulation depth (default 3.0). Higher = more
+  harmonics.
+
+.. code-block:: python
+
+   # Warm electric piano (low ratio, low index)
+   ep = score.part("ep", synth="fm", fm_ratio=1.0, fm_index=1.5)
+
+   # Bright metallic bell (high ratio, high index)
+   bell = score.part("bell", synth="fm", fm_ratio=3.5, fm_index=5.0)
 
 .. raw:: html
 
@@ -372,144 +400,6 @@ Drift amount controls how unstable the oscillator is:
 - **0.05** = studio-grade (Sequential, Oberheim)
 - **0.15** = classic vintage (Minimoog, ARP) — the default
 - **0.30** = barely-holding-it-together (old SH-101)
-
-ADSR Envelopes
---------------
-
-Here's a question: a piano and an organ can play the exact same note at
-the exact same frequency. Why do they sound completely different? The
-answer is the envelope -- the *shape* of the sound over time. A piano
-hits hard and immediately starts fading. An organ snaps on at full
-volume and stays there until you lift the key. A violin swells in
-gradually. The frequency is the same; the envelope is what makes each
-instrument feel like itself.
-
-ADSR stands for Attack, Decay, Sustain, Release -- four stages that
-describe how any sound's volume changes from the moment you press a key
-to the moment it falls silent. Understanding ADSR is the single most
-important thing you can learn about synthesis, because it's the
-difference between a sound that feels like an instrument and a sound
-that feels like a test tone.
-
-Raw waveforms click at the start and end of each note. An ADSR envelope
-shapes the amplitude over time for natural-sounding notes:
-
-- **Attack** -- how quickly the sound reaches full volume.
-- **Decay** -- how quickly it drops to the sustain level.
-- **Sustain** -- the held volume while the note is on.
-- **Release** -- how quickly it fades to silence after the note ends.
-
-PyTheory includes 10 presets:
-
-.. code-block:: python
-
-   from pytheory import play, Envelope, Tone
-
-   tone = Tone.from_string("C4", system="western")
-
-   play(tone, envelope=Envelope.PIANO)     # Quick attack, natural decay
-   play(tone, envelope=Envelope.PLUCK)     # Sharp attack, fast decay
-   play(tone, envelope=Envelope.PAD)       # Slow fade in, lush sustain
-   play(tone, envelope=Envelope.ORGAN)     # Instant on/off, no shaping
-   play(tone, envelope=Envelope.BELL)      # Instant attack, long ring
-   play(tone, envelope=Envelope.STRINGS)   # Gradual bow attack
-   play(tone, envelope=Envelope.BOWED)     # Bow bite into sustain
-   play(tone, envelope=Envelope.MALLET)    # Strike with ringing sustain
-   play(tone, envelope=Envelope.STACCATO)  # Short and punchy
-   play(tone, envelope=Envelope.NONE)      # Raw waveform, no shaping
-
-Envelope Descriptions
-~~~~~~~~~~~~~~~~~~~~~
-
-===============  ================================================
-Name             Character
-===============  ================================================
-``"piano"``      Quick attack, natural decay -- acoustic piano feel
-``"pluck"``      Sharp attack, fast decay -- guitar pick, harp
-``"pad"``        Slow fade in, lush sustain -- strings, synth pads
-``"organ"``      Instant on/off -- Hammond organ, no shaping
-``"bell"``       Instant attack, no sustain -- short metallic ring
-``"strings"``    Gradual bow attack -- orchestral strings, slow
-``"bowed"``      Bow bite into sustain -- solo strings, brass
-``"mallet"``     Strike with ringing sustain -- vibraphone, celesta
-``"staccato"``   Short and punchy -- funk stabs, percussive hits
-``"none"``       Raw waveform, no amplitude shaping at all
-===============  ================================================
-
-Detune
-------
-
-Any synth can be fattened with the ``detune`` parameter — it renders
-three oscillators per note: the center pitch plus one shifted up and
-one shifted down by the specified number of cents. The slight frequency
-differences create beating and width, like an analog synth with
-oscillator drift.
-
-.. code-block:: python
-
-   # Juno-style analog drift — subtle, warm
-   pad = score.part("pad", synth="saw", detune=15)
-
-   # Trance supersaw territory — wide, shimmery
-   lead = score.part("lead", synth="saw", detune=25)
-
-   # Subtle thickening on a bass
-   bass = score.part("bass", synth="pulse", detune=8)
-
-   # Works on any synth — even FM
-   bells = score.part("bells", synth="fm", detune=12)
-
-Detune values:
-
-- **5–10** = subtle thickening (barely noticeable, just warmer)
-- **12–18** = classic analog drift (Juno, Prophet)
-- **20–30** = wide and shimmery (trance, EDM)
-- **40+** = extreme, almost chorus-like
-
-This is different from the ``chorus`` effect — detune creates
-additional oscillators at render time (three per note), while chorus
-processes the audio after rendering with a modulated delay line.
-Detune is "wider at the source," chorus is "wider after the fact."
-Stack both for maximum fatness.
-
-Stereo Placement
-----------------
-
-Every part can be placed in the stereo field with ``pan`` and ``spread``.
-
-**Pan** positions a part left or right. Constant-power panning keeps
-the perceived loudness even as you move across the field:
-
-.. code-block:: python
-
-   rhythm = score.part("rhythm", synth="saw", pan=-0.7)     # left
-   lead = score.part("lead", synth="saw", pan=0.6)          # right
-   bass = score.part("bass", synth="sine", pan=0.0)         # center
-   hats = score.part("hats", synth="noise", pan=0.3)        # slightly right
-
-Pan values: -1.0 (hard left), 0.0 (center), 1.0 (hard right).
-
-**Spread** works with ``detune`` — the up-detuned oscillator goes to
-the right channel and the down-detuned goes to the left, creating
-stereo width at the source:
-
-.. code-block:: python
-
-   # Wide pad: detuned + spread across the stereo field
-   pad = score.part(
-       "pad",
-       synth="saw",
-       detune=20,
-       spread=1.0,       # full L/R separation of detuned voices
-       reverb=0.4,
-   )
-
-Spread values: 0.0 (detuned voices stay mono), 1.0 (full L/R split).
-Stack with pan to offset the center of the spread.
-
-Reverb is also stereo — the left and right channels get different
-early reflection patterns, so the reverb tail occupies real space
-in the stereo field rather than sitting dead center.
 
 Physical Modeling
 -----------------
@@ -1176,98 +1066,165 @@ and out as the bowl resonates.
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_singing_bowl_ring.wav" type="audio/wav"></audio>
 
-Rain Stick
-~~~~~~~~~~
+.. note::
 
-Cascading pebbles through a cactus tube with internal pins. Two variants:
-steep angle (fast cascade) and shallow angle (slow trickle).
+   Looking for rain sticks, ocean drums, cabasa, wind chimes, or
+   finger cymbals? Those are drum sounds, not synths — they live in
+   :doc:`drums` under *Texture and Hand Percussion*.
+
+ADSR Envelopes
+--------------
+
+Here's a question: a piano and an organ can play the exact same note at
+the exact same frequency. Why do they sound completely different? The
+answer is the envelope -- the *shape* of the sound over time. A piano
+hits hard and immediately starts fading. An organ snaps on at full
+volume and stays there until you lift the key. A violin swells in
+gradually. The frequency is the same; the envelope is what makes each
+instrument feel like itself.
+
+ADSR stands for Attack, Decay, Sustain, Release -- four stages that
+describe how any sound's volume changes from the moment you press a key
+to the moment it falls silent. Understanding ADSR is the single most
+important thing you can learn about synthesis, because it's the
+difference between a sound that feels like an instrument and a sound
+that feels like a test tone.
+
+Raw waveforms click at the start and end of each note. An ADSR envelope
+shapes the amplitude over time for natural-sounding notes:
+
+- **Attack** -- how quickly the sound reaches full volume.
+- **Decay** -- how quickly it drops to the sustain level.
+- **Sustain** -- the held volume while the note is on.
+- **Release** -- how quickly it fades to silence after the note ends.
+
+PyTheory includes 10 presets:
 
 .. code-block:: python
 
-   p.hit(DrumSound.RAINSTICK, Duration.WHOLE * 3)       # steep — fast cascade
-   p.hit(DrumSound.RAINSTICK_SLOW, Duration.WHOLE * 4)  # shallow — gentle trickle
+   from pytheory import play, Envelope, Tone
 
-.. raw:: html
+   tone = Tone.from_string("C4", system="western")
 
-   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rainstick.wav" type="audio/wav"></audio>
-   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rainstick_slow.wav" type="audio/wav"></audio>
+   play(tone, envelope=Envelope.PIANO)     # Quick attack, natural decay
+   play(tone, envelope=Envelope.PLUCK)     # Sharp attack, fast decay
+   play(tone, envelope=Envelope.PAD)       # Slow fade in, lush sustain
+   play(tone, envelope=Envelope.ORGAN)     # Instant on/off, no shaping
+   play(tone, envelope=Envelope.BELL)      # Instant attack, long ring
+   play(tone, envelope=Envelope.STRINGS)   # Gradual bow attack
+   play(tone, envelope=Envelope.BOWED)     # Bow bite into sustain
+   play(tone, envelope=Envelope.MALLET)    # Strike with ringing sustain
+   play(tone, envelope=Envelope.STACCATO)  # Short and punchy
+   play(tone, envelope=Envelope.NONE)      # Raw waveform, no shaping
 
-Ocean Drum
-~~~~~~~~~~
+Envelope Descriptions
+~~~~~~~~~~~~~~~~~~~~~
 
-Steel beads rolling inside a frame drum — tilting produces a smooth surf wash.
+===============  ================================================
+Name             Character
+===============  ================================================
+``"piano"``      Quick attack, natural decay -- acoustic piano feel
+``"pluck"``      Sharp attack, fast decay -- guitar pick, harp
+``"pad"``        Slow fade in, lush sustain -- strings, synth pads
+``"organ"``      Instant on/off -- Hammond organ, no shaping
+``"bell"``       Instant attack, no sustain -- short metallic ring
+``"strings"``    Gradual bow attack -- orchestral strings, slow
+``"bowed"``      Bow bite into sustain -- solo strings, brass
+``"mallet"``     Strike with ringing sustain -- vibraphone, celesta
+``"staccato"``   Short and punchy -- funk stabs, percussive hits
+``"none"``       Raw waveform, no amplitude shaping at all
+===============  ================================================
 
-.. code-block:: python
+Fattening and Width
+-------------------
 
-   p.hit(DrumSound.OCEAN_DRUM, Duration.WHOLE * 3)
+Three parameters work on any synth to make one oscillator sound like
+several, and to place the result in the stereo field.
 
-.. raw:: html
-
-   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/ocean_drum.wav" type="audio/wav"></audio>
-
-Cabasa
+Detune
 ~~~~~~
 
-Metal bead chain scraped against a textured cylinder — brighter and
-more metallic than a shaker.
+Any synth can be fattened with the ``detune`` parameter — it renders
+three oscillators per note: the center pitch plus one shifted up and
+one shifted down by the specified number of cents. The slight frequency
+differences create beating and width, like an analog synth with
+oscillator drift.
 
 .. code-block:: python
 
-   p.hit(DrumSound.CABASA, Duration.EIGHTH)
+   # Juno-style analog drift — subtle, warm
+   pad = score.part("pad", synth="saw", detune=15)
 
-.. raw:: html
+   # Trance supersaw territory — wide, shimmery
+   lead = score.part("lead", synth="saw", detune=25)
 
-   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/cabasa.wav" type="audio/wav"></audio>
+   # Subtle thickening on a bass
+   bass = score.part("bass", synth="pulse", detune=8)
 
-Wind Chimes
-~~~~~~~~~~~
+   # Works on any synth — even FM
+   bells = score.part("bells", synth="fm", detune=12)
 
-Suspended metal tubes struck by hand or breeze. Each tube rings at
-its own pitch with slight time offsets.
+Detune values:
 
-.. code-block:: python
+- **5–10** = subtle thickening (barely noticeable, just warmer)
+- **12–18** = classic analog drift (Juno, Prophet)
+- **20–30** = wide and shimmery (trance, EDM)
+- **40+** = extreme, almost chorus-like
 
-   p.hit(DrumSound.WIND_CHIMES, Duration.WHOLE * 3)
+This is different from the ``chorus`` effect — detune creates
+additional oscillators at render time (three per note), while chorus
+processes the audio after rendering with a modulated delay line.
+Detune is "wider at the source," chorus is "wider after the fact."
+Stack both for maximum fatness.
 
-.. raw:: html
+Stereo Placement
+~~~~~~~~~~~~~~~~
 
-   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/wind_chimes.wav" type="audio/wav"></audio>
+Every part can be placed in the stereo field with ``pan`` and ``spread``.
 
-Finger Cymbal
-~~~~~~~~~~~~~
-
-Single small cymbal tap (zill) — bright metallic ping.
-
-.. code-block:: python
-
-   p.hit(DrumSound.FINGER_CYMBAL, Duration.HALF)
-
-.. raw:: html
-
-   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/finger_cymbal.wav" type="audio/wav"></audio>
-
-Analog Oscillator Drift
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-All waveform synths support the ``analog_drift`` parameter, which adds
-subtle, slow random pitch variation to each oscillator -- modeling the
-voltage instability of vintage analog circuits. This is what makes a
-real Minimoog sound slightly different on every note, and why analog
-synths feel "alive" compared to their digital counterparts.
+**Pan** positions a part left or right. Constant-power panning keeps
+the perceived loudness even as you move across the field:
 
 .. code-block:: python
 
-   # Subtle vintage drift
-   pad = score.part("pad", synth="saw", analog_drift=0.1)
+   rhythm = score.part("rhythm", synth="saw", pan=-0.7)     # left
+   lead = score.part("lead", synth="saw", pan=0.6)          # right
+   bass = score.part("bass", synth="sine", pan=0.0)         # center
+   hats = score.part("hats", synth="noise", pan=0.3)        # slightly right
 
-   # More pronounced, wobbly analog character
-   lead = score.part("lead", synth="square", analog_drift=0.3)
+Pan values: -1.0 (hard left), 0.0 (center), 1.0 (hard right).
 
-Drift values:
+**Spread** works with ``detune`` — the up-detuned oscillator goes to
+the right channel and the down-detuned goes to the left, creating
+stereo width at the source:
 
-- **0.05--0.1** = subtle warmth (studio-grade analog)
-- **0.15--0.25** = noticeable drift (vintage gear warming up)
-- **0.3+** = unstable, wobbly (broken tape machine)
+.. code-block:: python
+
+   # Wide pad: detuned + spread across the stereo field
+   pad = score.part(
+       "pad",
+       synth="saw",
+       detune=20,
+       spread=1.0,       # full L/R separation of detuned voices
+       reverb=0.4,
+   )
+
+Spread values: 0.0 (detuned voices stay mono), 1.0 (full L/R split).
+Stack with pan to offset the center of the spread.
+
+Reverb is also stereo — the left and right channels get different
+early reflection patterns, so the reverb tail occupies real space
+in the stereo field rather than sitting dead center.
+
+Analog Drift
+~~~~~~~~~~~~
+
+Every waveform synth also takes ``analog_drift`` — slow random pitch
+variation per oscillator, modeling vintage voltage instability
+(``0.05–0.1`` subtle, ``0.15–0.25`` vintage, ``0.3+`` wobbly). It's
+covered with the other per-note parameters in :doc:`effects`; for a
+waveform with the drift *built in* (plus jitter, noise floor, and
+rounded edges), see the `Drift Oscillator`_ above.
 
 Instrument Presets
 ------------------
@@ -1330,30 +1287,24 @@ Choosing Synth and Envelope Combos
 
 The right combination of synth and envelope defines the character of a
 voice. This is where you stop thinking about waveforms and start
-thinking about *instruments*. Here are some starting points:
+thinking about *instruments*. Combos worth memorizing:
 
-- **Funk stabs:** ``saw`` + ``staccato`` -- bright, punchy, rhythmic.
-- **Jazz keys:** ``fm`` + ``bell`` -- glassy DX7 electric piano.
-- **Ambient pads:** ``supersaw`` + ``pad`` -- massive, slow-building wash.
-- **Acid bass:** ``saw`` + ``pluck`` with lowpass and glide -- 303-style.
-- **Chiptune lead:** ``square`` + ``none`` -- raw 8-bit.
-- **Film strings:** ``triangle`` + ``strings`` -- soft, bowed, organic.
-- **Sub bass:** ``sine`` + ``pluck`` with lowpass -- deep and round.
-- **Retro synth:** ``pwm_slow`` + ``pad`` -- Juno-style analog warmth.
-- **Percussive hit:** ``noise`` + ``staccato`` with lowpass -- snare layer.
-- **E-piano ballad:** ``fm`` + ``piano`` with reverb -- intimate jazz club.
-
-Some practical combos worth memorizing:
-
+- ``saw`` + ``pluck`` = **funk stab.** Short, sharp, bright. The
+  sound of Nile Rodgers' right hand.
 - ``saw`` + ``staccato`` + legato = **acid 303 line.** Add a resonant
   lowpass and some glide and you're in a warehouse in 1988.
 - ``fm`` + ``bell`` = **jazz vibraphone.** The glassy, harmonic-rich
   attack with a long ring-out. Add reverb for a late-night club feel.
+- ``fm`` + ``piano`` = **e-piano ballad.** Glassy DX7 keys; add
+  reverb for the intimate jazz-club feel.
 - ``supersaw`` + ``pad`` = **ambient wash.** The slow attack lets the
   detuned oscillators build into a shimmering wall. Add chorus and
   long reverb and you're scoring a nature documentary.
-- ``saw`` + ``pluck`` = **funk stab.** Short, sharp, bright. The
-  sound of Nile Rodgers' right hand.
+- ``pwm_slow`` + ``pad`` = **retro synth.** Juno-style analog warmth.
+- ``sine`` + ``pluck`` + lowpass = **sub bass.** Deep and round.
+- ``square`` + ``none`` = **chiptune lead.** Raw 8-bit.
+- ``triangle`` + ``strings`` = **film strings.** Soft, bowed, organic.
+- ``noise`` + ``staccato`` + lowpass = **percussive hit.** Snare layer.
 - ``hard_sync`` + ``pluck`` = **prophet lead.** Bright formant peak
   that cuts through any mix. The opening riff of every 80s synth solo.
 - ``wavefold`` + ``organ`` = **west coast bass.** Warm, harmonically

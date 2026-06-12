@@ -545,6 +545,70 @@ bass-slap groove).
 
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/cajon.wav" type="audio/wav"></audio>
 
+Texture and Hand Percussion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Atmosphere makers — long washes and small metallic accents you
+sprinkle over a groove rather than build one from.
+
+**Rain stick** — cascading pebbles through a cactus tube with internal
+pins. Two variants: steep angle (fast cascade) and shallow angle
+(slow trickle):
+
+.. code-block:: python
+
+   p.hit(DrumSound.RAINSTICK, Duration.WHOLE * 3)       # fast cascade
+   p.hit(DrumSound.RAINSTICK_SLOW, Duration.WHOLE * 4)  # gentle trickle
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rainstick.wav" type="audio/wav"></audio>
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/rainstick_slow.wav" type="audio/wav"></audio>
+
+**Ocean drum** — steel beads rolling inside a frame drum; tilting
+produces a smooth surf wash:
+
+.. code-block:: python
+
+   p.hit(DrumSound.OCEAN_DRUM, Duration.WHOLE * 3)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/ocean_drum.wav" type="audio/wav"></audio>
+
+**Cabasa** — metal bead chain scraped against a textured cylinder,
+brighter and more metallic than a shaker:
+
+.. code-block:: python
+
+   p.hit(DrumSound.CABASA, Duration.EIGHTH)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/cabasa.wav" type="audio/wav"></audio>
+
+**Wind chimes** — suspended metal tubes struck by hand or breeze, each
+ringing at its own pitch with slight time offsets:
+
+.. code-block:: python
+
+   p.hit(DrumSound.WIND_CHIMES, Duration.WHOLE * 3)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/wind_chimes.wav" type="audio/wav"></audio>
+
+**Finger cymbal** — a single small cymbal tap (zill), a bright
+metallic ping:
+
+.. code-block:: python
+
+   p.hit(DrumSound.FINGER_CYMBAL, Duration.HALF)
+
+.. raw:: html
+
+   <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/finger_cymbal.wav" type="audio/wav"></audio>
+
 Marching Percussion
 ~~~~~~~~~~~~~~~~~~~
 
