@@ -180,8 +180,20 @@ A DAW is great for tweaking sounds. But when you're *thinking about music* — c
 
 Tools like [Claude Code](https://claude.ai/code) can use PyTheory to prototype musical ideas from natural language — "write a bossa nova in A minor with a saw lead and reverb" becomes real, playable music.
 
+## Talk to it with Claude
+
+PyTheory ships an [official Claude Code plugin](https://github.com/kennethreitz/pytheory-skill) — six skills that let Claude compose, analyze, and notate music for you. In Claude Code:
+
+```
+/plugin marketplace add kennethreitz/pytheory-skill
+/plugin install composing-with-pytheory@pytheory
+```
+
+Then just ask — *"write me a bossa nova in G minor"*, *"what's the fingering for F#m7b5?"*, *"turn this hum into a lead sheet"*. See the [guide](https://pytheory.org/guide/claude.html). For a real album made entirely in PyTheory, hear [Interpretations](https://interpretations.kennethreitz.org).
+
 ## Learn More
 
 - **[playground.pytheory.org](https://playground.pytheory.org)** — try PyTheory in your browser, nothing to install.
 - **[pytheory.org](https://pytheory.org)** — guides, API reference, and audio examples.
+- **[pytheory-skill](https://github.com/kennethreitz/pytheory-skill)** — the official Claude Code plugin (six skills) to make music by talking to Claude.
 - **[ableton-pytheory](https://github.com/kennethreitz/ableton-pytheory)** — drive Ableton Live from PyTheory, for those interested.
