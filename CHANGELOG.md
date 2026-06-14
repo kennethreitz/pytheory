@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.52.0
 
 - **Guitar-aware LilyPond export.** `Score.to_lilypond()` gains
   `chord_names`, `fretboards`, and `tab` flags (plus `chord_part` and
