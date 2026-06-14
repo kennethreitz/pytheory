@@ -160,6 +160,10 @@ shared beat grid so your kick lands on everyone else's downbeat, and
 transport start/stop syncs with peers that support it. The TUI
 header shows the peer count while connected.
 
+If you want to drive Ableton Live itself from PyTheory, see
+`ableton-pytheory <https://github.com/kennethreitz/ableton-pytheory>`_,
+a companion project for those interested.
+
 Saving a Rig
 ------------
 
