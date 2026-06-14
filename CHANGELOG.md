@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- **Guitar-aware LilyPond export.** `Score.to_lilypond()` gains
+  `chord_names`, `fretboards`, and `tab` flags (plus `chord_part` and
+  `fretboard`) that turn a chord part into a lead sheet — a `ChordNames`
+  row, a `FretBoards` row, and/or a `TabStaff` driven by a single
+  `\chordmode` block. Fret diagrams use PyTheory's *own* voicings (emitted
+  via `\storePredefinedDiagram`) so they match what it would play, not
+  LilyPond's defaults. Default output is unchanged.
+
 ## 0.51.0
 
 - **Custom drum patterns are now first-class.** `Hit` is a public,

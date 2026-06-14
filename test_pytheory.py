@@ -8436,3 +8436,83 @@ def test_tuner_serve_chord_payload():
     assert d["chord"] == "Am"
     assert d["chord_notes"] == ["A", "C", "E"]
     assert d["note"] == "A"
+
+
+# ── Guitar-aware LilyPond export ──────────────────────────────────────────
+
+def _progression_score():
+    from pytheory import Score, Key, Duration
+    score = Score("4/4", bpm=120)
+    chords = score.part("chords")
+    for c in Key("C", "major").progression("I", "V", "vi", "IV"):
+        chords.add(c, Duration.WHOLE)
+    return score
+
+
+def test_to_lilypond_default_has_no_chord_contexts():
+    # Default output: plain notation staves, no chord contexts/diagrams.
+    out = _progression_score().to_lilypond()
+    assert out.startswith('\\version "2.24.0"')
+    for marker in ("chordProg", "ChordNames", "FretBoards", "TabStaff",
+                   "storePredefinedDiagram"):
+        assert marker not in out
+    assert out.endswith("  >>\n  \\layout { }\n}\n")
+
+
+def test_to_lilypond_chord_names():
+    out = _progression_score().to_lilypond(chord_names=True)
+    assert "chordProg = \\chordmode { c1 g1 a1:m f1 }" in out
+    assert "\\new ChordNames \\chordProg" in out
+    assert "\\new FretBoards" not in out
+
+
+def test_to_lilypond_fretboards_explicit_diagrams():
+    out = _progression_score().to_lilypond(fretboards=True)
+    assert "\\new FretBoards \\chordProg" in out
+    # PyTheory's own C voicing (x32010) emitted as a predefined diagram.
+    assert ('\\storePredefinedDiagram #default-fret-table \\chordmode {c} '
+            '#guitar-tuning #"x;3;2;0;1;0;"') in out
+    assert out.count("storePredefinedDiagram") == 4
+
+
+def test_to_lilypond_tab():
+    out = _progression_score().to_lilypond(tab=True)
+    assert "\\new TabStaff \\chordProg" in out
+
+
+def test_to_lilypond_chord_part_selects_named_part():
+    from pytheory import Score, Key, Duration
+    score = Score("4/4", bpm=120)
+    score.part("piano")  # also a chord part, but we want "comp"
+    comp = score.part("comp")
+    for c in Key("G", "major").progression("I", "IV", "V", "I"):
+        comp.add(c, Duration.WHOLE)
+    out = score.to_lilypond(chord_names=True, chord_part="comp")
+    assert "chordProg = \\chordmode { g1 c1 d1 g1 }" in out
+
+
+def test_chord_to_chordmode_qualities():
+    from pytheory import Chord, Score
+    cases = {
+        "C": ("c", ""), "Am": ("a", ":m"), "G7": ("g", ":7"),
+        "Fmaj7": ("f", ":maj7"), "Dm7": ("d", ":m7"), "Bdim": ("b", ":dim"),
+        "Caug": ("c", ":aug"), "Am7b5": ("a", ":m7.5-"),
+    }
+    for sym, expected in cases.items():
+        assert Score._chord_to_chordmode(Chord.from_symbol(sym)) == expected
+
+
+@pytest.mark.slow
+def test_to_lilypond_compiles_with_lilypond(tmp_path):
+    import shutil
+    import subprocess
+    if not shutil.which("lilypond"):
+        pytest.skip("lilypond not on PATH")
+    src = tmp_path / "leadsheet.ly"
+    src.write_text(_progression_score().to_lilypond(
+        chord_names=True, fretboards=True, tab=True))
+    result = subprocess.run(
+        ["lilypond", "-dno-point-and-click", "-o", str(tmp_path / "out"), str(src)],
+        capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "out.pdf").exists()
