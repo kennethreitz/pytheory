@@ -687,12 +687,41 @@ Strings match the :class:`DrumSound` member names, case-insensitive:
 ``"kick"``, ``"snare"``, ``"closed_hat"``, ``"ride_bell"``,
 ``"conga_high"``, and so on — all 74 sounds.
 
-Mixing Preset Patterns
-----------------------
+Reusable Custom Patterns
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To package a groove you can repeat, reuse, or export, build a
+:class:`Pattern` from a list of :class:`Hit` objects. Each :class:`Hit`
+names a sound, its position in beats (``0.0`` is beat 1, ``0.5`` the
+following eighth, ``0.25`` a sixteenth), and an optional velocity for
+ghost notes:
+
+.. code-block:: python
+
+   from pytheory import Score, Pattern, Hit, DrumSound
+
+   K, S, CH = DrumSound.KICK, DrumSound.SNARE, DrumSound.CLOSED_HAT
+
+   beat = Pattern("my beat", [
+       Hit(K, 0.0),  Hit(CH, 0.0),  Hit(CH, 0.5),
+       Hit(S, 1.0),  Hit(CH, 1.0),  Hit(CH, 1.5),
+       Hit(K, 2.0),  Hit(CH, 2.0),  Hit(K, 2.5),  Hit(CH, 2.5),
+       Hit(S, 3.0),  Hit(CH, 3.0),  Hit(S, 1.75, velocity=35),  # ghost
+   ], beats=4.0)
+
+   score = Score("4/4", bpm=120, drum_humanize=0.15)
+   score.drums(beat, repeats=4)
+
+``score.drums()`` accepts a :class:`Pattern` object anywhere it accepts
+a preset name, so your own grooves get the same ``repeats``, ``fill``,
+``split``, and ``layer`` options as the built-ins.
+
+Mixing and Layering Patterns
+----------------------------
 
 ``score.add_pattern()`` is the lower-level cousin of ``score.drums()``
-— it takes a :class:`Pattern` object instead of a preset name, so you
-can chain different grooves back to back:
+— it takes a :class:`Pattern` object, so you can chain different grooves
+back to back:
 
 .. code-block:: python
 
@@ -701,6 +730,33 @@ can chain different grooves back to back:
    score.add_pattern(Pattern.preset("rock"), repeats=3)
    score.add_pattern(Pattern.fill("rock"), repeats=1)
    score.add_pattern(Pattern.preset("half time"), repeats=4)
+
+By default each call lands *after* the previous one, so they play in
+sequence. To stack grooves so they sound at the same time — a clave
+over a backbeat, or a polyrhythm — pass ``layer=True``. The layered
+pattern is laid down from the start, in parallel with what's already
+there:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   score.drums("rock", repeats=4)
+   score.drums("son clave 3-2", repeats=4, layer=True)   # on top, not after
+
+For a true polyrhythm, put both voices in one pattern at their
+fractional positions — three evenly-spaced congas against four kicks
+across the same four beats:
+
+.. code-block:: python
+
+   from pytheory import Pattern, Hit, DrumSound
+
+   three = [Hit(DrumSound.CONGA_HIGH, i * 4 / 3) for i in range(3)]
+   four  = [Hit(DrumSound.KICK,       i * 1.0)   for i in range(4)]
+   poly  = Pattern("3-against-4", three + four, beats=4.0)
+
+   score = Score("4/4", bpm=120)
+   score.add_pattern(poly, repeats=4)
 
 MIDI Export
 -----------

@@ -5303,6 +5303,55 @@ def test_score_add_pattern_chaining():
     assert result is score
 
 
+def test_hit_public_export_and_alias():
+    from pytheory import Hit, DrumSound
+    from pytheory.rhythm import _Hit
+    assert Hit is _Hit  # back-compat alias
+    h = Hit(DrumSound.KICK, 1.5, velocity=80)
+    assert h.sound is DrumSound.KICK
+    assert h.position == 1.5
+    assert h.velocity == 80
+
+
+def test_pattern_from_public_hits():
+    from pytheory import Pattern, Hit, DrumSound
+    beat = Pattern("custom", [Hit(DrumSound.KICK, 0.0),
+                              Hit(DrumSound.SNARE, 2.0)])
+    assert len(beat.hits) == 2
+    assert beat.beats == 4.0
+
+
+def test_drums_accepts_pattern_object():
+    from pytheory import Score, Pattern, Hit, DrumSound
+    beat = Pattern("custom", [Hit(DrumSound.KICK, 0.0),
+                              Hit(DrumSound.SNARE, 2.0)])
+    score = Score("4/4", bpm=120)
+    score.drums(beat, repeats=2)
+    assert len(score._drum_hits) == 4
+    assert score._drum_pattern_beats == 8.0
+
+
+def test_add_pattern_layer_overlays():
+    from pytheory import Score, Pattern
+    score = Score("4/4", bpm=120)
+    score.add_pattern(Pattern.preset("rock"), repeats=1)  # beats 0..3.5
+    score.add_pattern(Pattern.preset("rock"), repeats=1, layer=True)
+    # Layered copy overlays from beat 0, so nothing lands past the first bar.
+    assert max(h.position for h in score._drum_hits) < 4.0
+    # ...and the running playhead is left untouched.
+    assert score._drum_pattern_beats == 4.0
+
+
+def test_drums_layer_keeps_cursor_at_furthest_extent():
+    from pytheory import Score
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=2)            # 8 beats
+    score.drums("rock", repeats=1, layer=True)  # overlaid, shorter
+    assert score._drum_pattern_beats == 8.0   # unchanged — shorter overlay
+    score.drums("rock", repeats=1)            # sequential add resumes after 8
+    assert max(h.position for h in score._drum_hits) >= 8.0
+
+
 def test_part_repr():
     from pytheory import Score, Duration
     score = Score("4/4", bpm=120)
