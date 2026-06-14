@@ -732,8 +732,21 @@ class _DrumTone:
         return -self.sound.value
 
 
-class _Hit:
-    """A single drum hit at a specific position in a pattern."""
+class Hit:
+    """A single drum hit at a specific position in a pattern.
+
+    Args:
+        sound: A :class:`DrumSound` (e.g. ``DrumSound.KICK``).
+        position: Position within the pattern, in beats. ``0.0`` is beat 1,
+            ``0.5`` the following eighth, ``0.25`` a sixteenth, and so on.
+        velocity: MIDI velocity, 1–127. Lower values make ghost notes.
+
+    Example::
+
+        >>> from pytheory import Hit, DrumSound, Pattern
+        >>> beat = Pattern("my beat", [Hit(DrumSound.KICK, 0.0),
+        ...                            Hit(DrumSound.SNARE, 2.0)])
+    """
     __slots__ = ("sound", "position", "velocity")
 
     def __init__(self, sound: DrumSound, position: float, velocity: int = 100):
@@ -743,6 +756,10 @@ class _Hit:
 
     def __repr__(self):
         return f"Hit({self.sound.name}, beat={self.position}, vel={self.velocity})"
+
+
+# Back-compat alias — ``_Hit`` was the original (private) name.
+_Hit = Hit
 
 
 class Pattern:
@@ -759,7 +776,7 @@ class Pattern:
         <Pattern 'rock' 4/4 4.0 beats 12 hits>
     """
 
-    def __init__(self, name: str, hits: list[_Hit], beats: float = 4.0,
+    def __init__(self, name: str, hits: list[Hit], beats: float = 4.0,
                  time_signature: str = "4/4"):
         self.name = name
         self.hits = hits
@@ -4263,22 +4280,32 @@ class Score:
         """
         return sorted(INSTRUMENTS.keys())
 
-    def add_pattern(self, pattern, repeats: int = 1) -> "Score":
+    def add_pattern(self, pattern, repeats: int = 1,
+                    layer: bool = False) -> "Score":
         """Add a drum pattern to this score.
+
+        By default each call is placed *after* the previously added drums, so
+        successive calls play in sequence. Pass ``layer=True`` to overlay this
+        pattern on top of what's already there (starting from the beginning),
+        which is how you stack grooves for polyrhythms.
 
         Args:
             pattern: A :class:`Pattern` object.
             repeats: Number of times to repeat.
+            layer: If True, overlay starting at beat 0 instead of appending,
+                and leave the running position unchanged.
 
         Returns:
             Self for chaining.
         """
+        base = 0.0 if layer else self._drum_pattern_beats
         for r in range(repeats):
-            offset = self._drum_pattern_beats + r * pattern.beats
+            offset = base + r * pattern.beats
             for hit in pattern.hits:
                 self._drum_hits.append(
-                    _Hit(hit.sound, hit.position + offset, hit.velocity))
-        self._drum_pattern_beats += repeats * pattern.beats
+                    Hit(hit.sound, hit.position + offset, hit.velocity))
+        if not layer:
+            self._drum_pattern_beats += repeats * pattern.beats
         return self
 
     def fill(self, name: str = "rock") -> "Score":
@@ -4304,18 +4331,23 @@ class Score:
                        DrumSound.GUIRO.value, DrumSound.MARACAS.value},
     }
 
-    def drums(self, preset: str, repeats: int = 4, fill: str = None,
-              fill_every: int = None, split: bool = False) -> "Score":
-        """Add a drum pattern by preset name, with optional auto-fills.
+    def drums(self, preset, repeats: int = 4, fill: str = None,
+              fill_every: int = None, split: bool = False,
+              layer: bool = False) -> "Score":
+        """Add a drum pattern, with optional auto-fills.
 
         Args:
-            preset: Pattern preset name (e.g. ``"bossa nova"``, ``"rock"``).
+            preset: A pattern preset name (e.g. ``"bossa nova"``, ``"rock"``)
+                or a :class:`Pattern` object you built yourself.
             repeats: Number of times to repeat (default 4).
-            fill: Optional fill name.
+            fill: Optional fill name (preset names only).
             fill_every: Replace every Nth bar with a fill.
             split: If True, create separate Parts for kick, snare, hats,
                 toms, cymbals, and percussion — each with independent
                 effects. Access via ``score.parts["kick"]``, etc.
+            layer: If True, overlay these drums on top of what's already
+                there (starting at the beginning) instead of appending them
+                in sequence — use this to stack grooves for polyrhythms.
 
         Returns:
             Self for chaining.
@@ -4325,11 +4357,21 @@ class Score:
             >>> score.drums("rock", repeats=4, split=True)
             >>> score.parts["snare"].reverb_mix = 0.3
             >>> score.parts["hats"].lowpass = 6000
+
+            >>> # Layer a clave on top of the rock beat
+            >>> score.drums("son clave 3-2", repeats=4, layer=True)
         """
+        groove = preset if isinstance(preset, Pattern) else Pattern.preset(preset)
+
+        # To layer, lay these drums down from the start in parallel with what's
+        # already there, then restore the playhead so later calls aren't moved.
+        saved = self._drum_pattern_beats
+        if layer:
+            self._drum_pattern_beats = 0.0
+
         if fill is None:
-            self.add_pattern(Pattern.preset(preset), repeats=repeats)
+            self.add_pattern(groove, repeats=repeats)
         else:
-            groove = Pattern.preset(preset)
             fill_pattern = Pattern.fill(fill)
             if fill_every is None:
                 fill_every = repeats
@@ -4338,6 +4380,9 @@ class Score:
                     self.add_pattern(fill_pattern, repeats=1)
                 else:
                     self.add_pattern(groove, repeats=1)
+
+        if layer:
+            self._drum_pattern_beats = max(saved, self._drum_pattern_beats)
 
         if split:
             self._split_drums()

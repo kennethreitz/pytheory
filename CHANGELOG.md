@@ -2,6 +2,20 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- **Custom drum patterns are now first-class.** `Hit` is a public,
+  top-level export (`from pytheory import Hit`) — no more reaching for
+  the private `pytheory.rhythm._Hit` to build a pattern. The old name
+  stays as an alias for back-compat.
+- **`score.drums()` accepts a `Pattern` object**, not just a preset
+  name string — so a groove you built yourself gets the same
+  `repeats`, `fill`, `split`, and `layer` options as the built-ins.
+- **`layer=True` on `score.drums()` / `score.add_pattern()`** overlays
+  a pattern on top of the existing drums instead of appending it in
+  sequence — the supported way to stack grooves and polyrhythms,
+  replacing the `_drum_pattern_beats` cursor hack. (#52, #55, #56)
+
 ## 0.50.0
 
 - **Real-time chord recognition — `pytheory tune --chords`.** Strum
