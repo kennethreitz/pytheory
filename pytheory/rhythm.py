@@ -4757,44 +4757,103 @@ class Score:
 
     # ── LilyPond notation export ─────────────────────────────────────
 
-    def to_lilypond(self, *, title="Untitled", key="C", mode="major"):
+    def to_lilypond(self, *, title="Untitled", key="C", mode="major",
+                    chord_names=False, fretboards=False, tab=False,
+                    chord_part=None, fretboard=None):
         """Export the score as a LilyPond source string.
+
+        With no chord flags this emits one notation staff per pitched voice
+        (the default, unchanged). The chord flags turn the harmony part into
+        guitar-oriented contexts on top of the staves:
 
         Args:
             title: Title for the ``\\header`` block.
             key: Key signature root (e.g. ``"C"``, ``"D"``, ``"Bb"``).
             mode: LilyPond mode string (``"major"``, ``"minor"``, etc.).
+            chord_names: Add a ``ChordNames`` row (chord symbols C / G / Am / F)
+                driven by the harmony part.
+            fretboards: Add a ``FretBoards`` row of fret-diagram grids. PyTheory's
+                own voicings are emitted via ``\\storePredefinedDiagram`` (from
+                ``fretboard``, default a standard guitar) so the diagrams match
+                what it would actually play; non-standard tunings fall back to
+                LilyPond's computed diagrams.
+            tab: Add a ``TabStaff`` of the progression.
+            chord_part: Name of the part supplying the harmony. If None, the
+                first part whose notes are chords (e.g. one built from
+                ``Key().progression()``) is used.
+            fretboard: A :class:`Fretboard` supplying the explicit diagrams for
+                ``fretboards`` (defaults to a standard guitar).
 
         Returns:
             A complete LilyPond source string.
+
+        Example::
+
+            >>> score = Score("4/4", bpm=120)
+            >>> chords = score.part("chords")
+            >>> for c in Key("C", "major").progression("I", "V", "vi", "IV"):
+            ...     _ = chords.add(c, Duration.WHOLE)
+            >>> ly = score.to_lilypond(chord_names=True, fretboards=True)
+            >>> "c1 g1 a1:m f1" in ly and "\\\\new ChordNames" in ly
+            True
         """
         ts = self.time_signature
+        ly_key = self._tone_name_to_lilypond(key)
+        want_chords = chord_names or fretboards or tab
 
-        # Collect voices (same filter as to_abc)
-        voices: list[tuple[str, list]] = []
-        if self.notes:
-            voices.append(("default", self.notes))
-        for name, part in self.parts.items():
-            if part.is_drums:
-                continue
-            if not part.notes:
-                continue
-            has_pitched = any(
+        def _is_chord_notes(notes):
+            return any(n.tone is not None and hasattr(n.tone, "tones")
+                       and hasattr(n.tone, "symbol") for n in notes)
+
+        candidates = ([("default", self.notes)] if self.notes else []) + [
+            (name, part.notes) for name, part in self.parts.items()
+            if not part.is_drums and part.notes and any(
                 n.tone is not None
                 and (hasattr(n.tone, "name") or hasattr(n.tone, "tones"))
                 for n in part.notes
             )
-            if not has_pitched:
-                continue
-            voices.append((name, part.notes))
+        ]
 
-        ly_key = self._tone_name_to_lilypond(key)
+        # Peel off the harmony part (named via chord_part, else first chord one).
+        voices: list[tuple[str, list]] = []
+        chord_notes = None
+        for name, notes in candidates:
+            picked = (name == chord_part) if chord_part is not None \
+                else _is_chord_notes(notes)
+            if want_chords and chord_notes is None and picked:
+                chord_notes = notes
+            else:
+                voices.append((name, notes))
+
+        diagram_defs = []
+        chord_body = ""
+        if want_chords and chord_notes is not None:
+            chord_body = self._chordmode_body(chord_notes)
+            if fretboards:
+                fb = fretboard
+                if fb is None:
+                    from .chords import Fretboard
+                    fb = Fretboard.guitar()
+                if self._is_standard_guitar(fb):
+                    seen = set()
+                    for n in chord_notes:
+                        sym = getattr(n.tone, "symbol", None)
+                        if not sym or sym in seen:
+                            continue
+                        seen.add(sym)
+                        line = self._fret_diagram_def(n.tone, fb)
+                        if line:
+                            diagram_defs.append(line)
 
         staves = []
+        if chord_names and chord_notes is not None:
+            staves.append("  \\new ChordNames \\chordProg")
+        if fretboards and chord_notes is not None:
+            staves.append("  \\new FretBoards \\chordProg")
         for vname, notes in voices:
             clef = self._guess_clef(notes)
             body = self._notes_to_lilypond(notes, ts)
-            staff = (
+            staves.append(
                 f'  \\new Staff \\with {{ instrumentName = "{vname}" }} {{\n'
                 f"    \\clef {clef}\n"
                 f"    \\key {ly_key} \\{mode}\n"
@@ -4803,15 +4862,21 @@ class Score:
                 f"    {body}\n"
                 f"  }}"
             )
-            staves.append(staff)
+        if tab and chord_notes is not None:
+            staves.append("  \\new TabStaff \\chordProg")
 
         staves_block = "\n".join(staves)
+        defs_block = ("\n".join(diagram_defs) + "\n\n") if diagram_defs else ""
+        var_block = (f"chordProg = \\chordmode {{ {chord_body} }}\n\n"
+                     if chord_body else "")
 
         return (
             f'\\version "2.24.0"\n'
             f"\\header {{\n"
             f'  title = "{title}"\n'
             f"}}\n\n"
+            f"{defs_block}"
+            f"{var_block}"
             f"\\score {{\n"
             f"  \\new StaffGroup <<\n"
             f"{staves_block}\n"
@@ -4819,6 +4884,63 @@ class Score:
             f"  \\layout {{ }}\n"
             f"}}\n"
         )
+
+    # quality string (Chord.quality) -> LilyPond chordmode modifier
+    _QUALITY_TO_CHORDMODE = {
+        "major": "", "minor": ":m",
+        "diminished": ":dim", "augmented": ":aug",
+        "sus2": ":sus2", "sus4": ":sus4", "power": ":5",
+        "dominant 7th": ":7", "major 7th": ":maj7", "minor 7th": ":m7",
+        "diminished 7th": ":dim7", "half-diminished 7th": ":m7.5-",
+        "minor-major 7th": ":m7+", "augmented 7th": ":aug7",
+        "dominant 9th": ":9", "major 9th": ":maj9", "minor 9th": ":m9",
+    }
+
+    @staticmethod
+    def _chord_to_chordmode(chord):
+        """LilyPond chordmode ``(root, modifier)`` for a Chord, derived from its
+        root and ``quality`` — e.g. ('a', ':m'), ('g', ':7'), ('f', ':maj7')."""
+        root_tone = getattr(chord, "root", None)
+        root_name = root_tone.name if root_tone is not None else "C"
+        root = Score._tone_name_to_lilypond(root_name)
+        quality = getattr(chord, "quality", None) or "major"
+        return (root, Score._QUALITY_TO_CHORDMODE.get(quality, ""))
+
+    def _chordmode_body(self, notes):
+        """Build a LilyPond ``\\chordmode`` body from chord-bearing notes."""
+        toks = []
+        for n in notes:
+            dur = self._beats_to_lilypond_dur(n.duration.value)
+            if n.tone is None or not hasattr(n.tone, "symbol"):
+                toks.append(f"r{dur}")
+                continue
+            root, mod = self._chord_to_chordmode(n.tone)
+            toks.append(f"{root}{dur}{mod}")
+        return " ".join(toks)
+
+    @staticmethod
+    def _is_standard_guitar(fretboard):
+        """True if the fretboard is a standard-tuned 6-string guitar."""
+        try:
+            tones = list(fretboard.tones)
+            return ([t.name for t in tones] == ["E", "A", "D", "G", "B", "E"]
+                    and [t.octave for t in tones] == [2, 2, 3, 3, 3, 4])
+        except Exception:
+            return False
+
+    def _fret_diagram_def(self, chord, fretboard):
+        """A ``\\storePredefinedDiagram`` line carrying PyTheory's own fingering
+        for ``chord`` (or None if the fretboard can't voice it)."""
+        try:
+            fingering = fretboard.chord(chord.symbol)
+        except Exception:
+            return None
+        fret_str = "".join(
+            ("x;" if v is None else f"{int(v)};") for v in fingering.positions
+        )
+        root, mod = self._chord_to_chordmode(chord)
+        return (f'\\storePredefinedDiagram #default-fret-table '
+                f'\\chordmode {{{root}{mod}}} #guitar-tuning #"{fret_str}"')
 
     @staticmethod
     def _tone_name_to_lilypond(name):

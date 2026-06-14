@@ -68,6 +68,24 @@ print(score.to_tab("part_name"))                             # ASCII guitar tab 
 - `to_musicxml` opens in MuseScore/Finale/Sibelius; `to_lilypond` engraves to PDF
   via LilyPond; `to_abc` is compact plain-text notation.
 
+### Lead sheets (chord symbols + fret diagrams)
+
+`to_lilypond` can render a chord part as a **lead sheet** — chord names, fret
+diagrams, and/or tab above the melody staff:
+
+```python
+ly = score.to_lilypond(chord_names=True, fretboards=True, tab=True)
+# chord_names -> a ChordNames row (C  G  Am  F)
+# fretboards  -> a FretBoards row using PyTheory's OWN voicings (not LilyPond's)
+# tab         -> a TabStaff of the progression
+# chord_part="comp" picks which part supplies the harmony (else the first
+#   chord-bearing part); fretboard=Fretboard.guitar(...) sets the diagram source
+```
+
+The fret diagrams come straight from PyTheory's `Fretboard`, so they match
+`score.to_tab()` / what it would actually play. Compile with
+`lilypond leadsheet.ly` → PDF.
+
 ## A complete round-trip
 
 ```python
