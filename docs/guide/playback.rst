@@ -267,6 +267,40 @@ Parameters:
 - **mode** -- LilyPond mode string (default ``"major"``). Use ``"minor"``
   for minor keys.
 
+Lead sheets (chord symbols, fret diagrams, tab)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When a part holds chords (for example one built from
+``Key().progression()``), the chord flags turn it into a guitar-style
+lead sheet on top of the melody staff:
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=120)
+   comp = score.part("chords")
+   for chord in Key("C", "major").progression("I", "V", "vi", "IV"):
+       comp.add(chord, Duration.WHOLE)
+
+   lead = score.part("melody")
+   for note in ["E5", "D5", "C5", "G4"]:
+       lead.add(note, Duration.HALF)
+
+   ly = score.to_lilypond(chord_names=True, fretboards=True, tab=True)
+
+- **chord_names** -- add a ``ChordNames`` row (``C  G  Am  F``).
+- **fretboards** -- add a ``FretBoards`` row of fret-diagram grids. The
+  diagrams use PyTheory's *own* fingerings (via
+  ``\storePredefinedDiagram``), so they match what ``score.to_tab()``
+  would play rather than LilyPond's computed defaults (standard guitar
+  tuning; other tunings fall back to LilyPond's diagrams).
+- **tab** -- add a ``TabStaff`` of the progression.
+- **chord_part** -- name of the part supplying the harmony (default: the
+  first chord-bearing part).
+- **fretboard** -- a :class:`~pytheory.Fretboard` supplying the diagram
+  voicings (default: a standard guitar).
+
+With no chord flags the output is unchanged -- plain notation staves.
+
 to_musicxml() -- MusicXML Export
 ---------------------------------
 
