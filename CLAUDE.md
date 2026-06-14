@@ -20,7 +20,7 @@ Don't forget to update `CHANGELOG.md` *before* the release commit.
 ## Testing
 
 ```
-uv run python -m pytest test_pytheory.py -x -q --tb=short -m "not slow"
+uv run python -m pytest tests/ -x -q --tb=short -m "not slow"
 ```
 
 ## Publishing

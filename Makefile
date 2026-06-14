@@ -4,7 +4,7 @@ docs:
 	uv run --group docs sphinx-build -b html docs docs/_build/html
 
 test:
-	uv run pytest test_pytheory.py -v
+	uv run pytest tests/ -v
 
 # ── Claude Code plugin ──────────────────────────────────────────────
 # The skill source of truth lives in plugin/. `sync-skill` mirrors it into the

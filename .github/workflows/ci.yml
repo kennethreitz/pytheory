@@ -29,4 +29,4 @@ jobs:
         run: uv sync --python ${{ matrix.python-version }}
 
       - name: Run tests
-        run: uv run --python ${{ matrix.python-version }} pytest test_pytheory.py -v
+        run: uv run --python ${{ matrix.python-version }} pytest tests/ -v
