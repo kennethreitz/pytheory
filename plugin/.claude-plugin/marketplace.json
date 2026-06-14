@@ -1,0 +1,22 @@
+{
+  "name": "pytheory",
+  "owner": {
+    "name": "Kenneth Reitz",
+    "email": "me@kennethreitz.org"
+  },
+  "description": "PyTheory's official Claude Code plugins — compose music from natural language.",
+  "version": "0.51.0",
+  "plugins": [
+    {
+      "name": "composing-with-pytheory",
+      "source": "./plugins/composing-with-pytheory",
+      "description": "Compose music with PyTheory — progressions, melodies, drums, and full arrangements rendered to audio or MIDI from pure Python.",
+      "author": { "name": "Kenneth Reitz" },
+      "homepage": "https://pytheory.org",
+      "repository": "https://github.com/kennethreitz/pytheory-skill",
+      "license": "MIT",
+      "category": "creative",
+      "keywords": ["music", "music-theory", "composition", "midi", "audio", "pytheory"]
+    }
+  ]
+}
