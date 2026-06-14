@@ -2,7 +2,6 @@
   "name": "composing-with-pytheory",
   "displayName": "Composing with PyTheory",
   "description": "Compose music with PyTheory — progressions, melodies, drums, and full arrangements rendered to audio or MIDI from pure Python.",
-  "version": "0.51.0",
   "author": {
     "name": "Kenneth Reitz",
     "email": "me@kennethreitz.org"
