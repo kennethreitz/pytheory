@@ -40,6 +40,10 @@ pip install pytheory
 - PyTheory source — https://github.com/kennethreitz/pytheory
 - Try it in your browser — https://playground.pytheory.org
 
+## Privacy
+
+This plugin collects no data — see [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 MIT © Kenneth Reitz
