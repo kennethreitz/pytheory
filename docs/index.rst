@@ -45,7 +45,8 @@ Different people come to PyTheory for different reasons. You might be:
   :doc:`guide/listening`.
 - **Composing with AI** — Claude Code can drive PyTheory from natural
   language: "write me a bossa nova in G minor" becomes a Score you can
-  hear, edit, and export.
+  hear, edit, and export. Install the official plugin and just talk to
+  it — see :doc:`guide/claude`.
 
 Theory
 ------
@@ -185,6 +186,7 @@ every time::
 
    guide/repl
    guide/cli
+   guide/claude
    guide/cookbook
 
 .. toctree::
