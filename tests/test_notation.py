@@ -59,7 +59,7 @@ def test_from_midi_a4():
     assert Tone.from_midi(69).octave == 4
 
 
-def test_from_midi_roundtrip():
+def test_tone_from_midi_roundtrip():
     """from_midi(tone.midi) should return the same note."""
     for midi in [48, 60, 69, 72, 84]:
         t = Tone.from_midi(midi)
