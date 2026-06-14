@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.51.0
 
 - **Custom drum patterns are now first-class.** `Hit` is a public,
   top-level export (`from pytheory import Hit`) — no more reaching for
