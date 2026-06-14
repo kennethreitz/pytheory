@@ -43,12 +43,20 @@ shape.string_names           # ('E', 'A', 'D', 'G', 'B', 'e')
 print(shape.tab())           # same ASCII tab
 ```
 
-- `Fretboard.guitar()` and friends build a fretboard; `.chord("F#m7b5")` returns
-  a **`Fingering`**, `.tab("F#m7b5")` returns the ASCII tab string directly.
+- `Fretboard.guitar()` and friends build a fretboard; `.chord("Cmaj7")` returns
+  a **`Fingering`**, `.tab("Cmaj7")` returns the ASCII tab string directly.
 - `.fingering(0, 2, 2, 1, 0, 0)` builds a `Fingering` from explicit fret numbers
   (low-to-high), e.g. to check a shape you have in mind.
 - A `Fingering` has `.positions`, `.string_names`, `.tones`, `.tab()`,
   `.identify()`, and `.to_chord()`.
+
+> **Charted-chord coverage:** `.chord()`/`.tab()` look the name up in a library of
+> ~144 common voicings — every root in major, minor, `5`, `6`, `7`, `m7`,
+> `maj7`, `9`, `m9`, `maj9`, and `dim`. Names *outside* that set (e.g. `sus4`,
+> `m7b5`, `aug`, `add9`) raise `KeyError`. For those, either build the shape
+> yourself with `.fingering(...)`, or work from the chord's notes via
+> `Chord.from_symbol("F#m7b5")` (see "Identify a chord"). `CHARTS["western"].keys()`
+> lists everything charted.
 
 ## Other instruments
 
