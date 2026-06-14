@@ -18,7 +18,7 @@
 <p align="center">
   <strong><a href="https://playground.pytheory.org">▶ Try it in your browser</a></strong> — a live demo of what PyTheory can do, nothing to install.
   <br>
-  <a href="https://pytheory.org">Documentation</a> · <a href="https://pypi.org/project/pytheory/">PyPI</a> · <a href="https://pytheory.org/changelog.html">Changelog</a>
+  <a href="https://pytheory.org">Documentation</a> · <a href="https://pypi.org/project/pytheory/">PyPI</a> · <a href="https://pytheory.org/changelog.html">Changelog</a> · <a href="https://github.com/kennethreitz/pytheory-skill">Claude Skill</a>
 </p>
 
 ---
