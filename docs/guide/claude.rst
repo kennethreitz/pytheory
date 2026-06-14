@@ -38,6 +38,22 @@ ask:
 Claude composes, plays, analyzes, and exports — to WAV, MIDI, MusicXML,
 LilyPond, ABC, or guitar tab — all from the same PyTheory you'd use in a script.
 
+Heard in the wild
+-----------------
+
+`Interpretations <https://interpretations.kennethreitz.org>`_ is a full 24-track
+album composed entirely in PyTheory — Indian ragas colliding with trap beats,
+singing bowls ringing over 808 sub bass, microtonal shruti tunings, a string
+quartet ambushed by drum & bass. Every sound is generated from code: each track
+is a ``.py`` file, with no samples and no DAW. It's a real, published example of
+where this code-first workflow can go.
+
+Listen on `Apple Music <https://music.apple.com/us/album/interpretations/1890986989>`_,
+`Spotify <https://open.spotify.com/album/1jYjggrr6HEKfV4FchcJWD>`_, or the
+`web player <https://interpretations.kennethreitz.org>`_ — and read the source
+(every track as Python you can run) at
+https://github.com/kennethreitz/interpretations.
+
 The skills
 ----------
 
