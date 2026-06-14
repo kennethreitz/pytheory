@@ -19,7 +19,8 @@ diagrams, alternate tunings, and chord identification — for guitar and ~20 oth
 stringed instruments — plus a real-time tuner. The fretboard tools are pure
 Python (run a script or one-liner); the tuner is a CLI that listens to your mic.
 
-If PyTheory isn't installed: `pip install pytheory`.
+If PyTheory isn't installed, prefer uv when available: `uv pip install pytheory`
+(or `uv add pytheory` in a uv project); otherwise `pip install pytheory`.
 
 ## Fingerings, chord shapes & tab
 

@@ -23,12 +23,16 @@ install.
 1. **Write a short Python script** that builds a `Score` and either plays it or
    saves it. Don't compose by chaining shell one-liners — a script is clearer,
    reproducible, and easy to iterate on.
-2. **Run it** with `python3 song.py` (or `uv run python song.py` in a uv project).
+2. **Run it** with `uv run python song.py` when uv is available, otherwise
+   `python3 song.py`.
 3. To let the user *hear* it, call `play_score(score)` (speakers) or render to a
    WAV they can open. To hand off to a DAW, save MIDI.
 
-If PyTheory isn't installed: `pip install pytheory` (add `"pytheory[live]"` only
-for live MIDI input).
+If PyTheory isn't installed, prefer uv when available: `uv pip install pytheory`
+(or `uv add pytheory` in a uv project); otherwise `pip install pytheory`. For live
+MIDI input add the extra: `uv pip install "pytheory[live]"` (or `pip install
+"pytheory[live]"`). NumPy/SciPy ship as PyTheory dependencies, so the
+`scipy.io.wavfile` WAV export below needs no extra install.
 
 ## Core building blocks
 

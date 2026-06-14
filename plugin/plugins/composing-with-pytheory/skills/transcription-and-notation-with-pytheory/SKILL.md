@@ -87,3 +87,5 @@ print("Detected key:", key)
   is interpreted against that estimate.
 - `identify_chord` returns a dict (or `None`) — check `confidence` before trusting
   the `symbol`.
+- NumPy/SciPy ship as PyTheory dependencies, so `scipy.io.wavfile` (for reading
+  the audio buffer) needs no extra install.
