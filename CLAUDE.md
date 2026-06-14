@@ -25,9 +25,14 @@ uv run python -m pytest test_pytheory.py -x -q --tb=short -m "not slow"
 
 ## Publishing
 
+Preferred — uses the existing `~/.pypirc` credentials, no token in the chat:
+
 ```
-uv build && uv publish --token <token> dist/pytheory-0.X.Y*
+uv build && uvx twine upload dist/pytheory-0.X.Y*
 ```
+
+(`uv publish` does NOT read `~/.pypirc`; only use `uv publish --token <token>`
+as a fallback if `.pypirc` isn't available.)
 
 ## Music Preferences
 
