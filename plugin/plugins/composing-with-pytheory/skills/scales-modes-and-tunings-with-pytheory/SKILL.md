@@ -4,9 +4,10 @@ description: >-
   Explore scales, modes, tones, and tuning systems with PyTheory. Use when the
   user asks about a scale or mode (notes of D dorian, harmonize a scale), which
   scale to solo with over some notes, intervals between notes, the overtone
-  series, the circle of fifths, microtonal / non-Western systems (raga, maqam,
-  gamelan, 19-TET, just/meantone temperament), or note↔frequency↔MIDI
-  conversions. For chords/keys use the chord-lab or keys-and-harmony skills.
+  series, the circle of fifths, Hindustani ragas (aroha/avaroha, pakad, time of
+  day, shruti just intonation), microtonal / non-Western systems (maqam, gamelan,
+  19-TET, just/meantone temperament), or note↔frequency↔MIDI conversions. For
+  chords/keys use the chord-lab or keys-and-harmony skills.
 license: MIT
 allowed-tools: Write, Read, Bash(python3:*), Bash(uv run:*)
 ---
@@ -78,9 +79,39 @@ list(SYSTEMS)        # 16: 'western','indian','arabic','japanese','blues',
 Build scales in any system, e.g. an Indian raga or Arabic maqam:
 
 ```python
-TonedScale(tonic="C4", system="indian").scales      # available ragas
+TonedScale(tonic="C4", system="indian").scales      # the 10 thaats (parent scales)
 TonedScale(tonic="C4", system="arabic")["..."]      # maqamat
 ```
+
+## Ragas (Hindustani)
+
+The `indian` system gives the ten **thaats** (parent scales). For the living
+**ragas** — ascending/descending lines, characteristic phrase, time of day, and
+rasa — use `Raga`, which intones them in the shruti (just) tuning, not 12-TET:
+
+```python
+from pytheory import Raga
+
+r = Raga.get("yaman")
+r.aroha_swaras()        # ['N.', 'R', 'G', 'M', 'D', 'N', "S'"]
+r.avaroha_swaras()
+r.note_names("D")       # voice it in any key — Sa is movable
+r.vadi, r.samvadi, r.time, r.rasa, r.jati
+
+r.shruti_table("C")     # each swara's just ratio + cents off 12-TET
+r.just_ratios()["G"]    # Fraction(5, 4) — the just major third
+
+r.play("C4")            # sitar, just intonation, light reverb (just=False = 12-TET)
+
+Raga.names()            # all 36
+Raga.by_thaat("kafi")
+Raga.by_time("night")
+```
+
+From the CLI: `pytheory raga yaman --shruti --play` (prints the shruti table, then
+plays it); `pytheory raga --thaat bhairav` lists ragas by thaat.
+
+## Temperament
 
 Temperament affects the actual pitch (Hz) of a tone:
 

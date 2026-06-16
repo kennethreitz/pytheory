@@ -2,10 +2,11 @@
 name: playing-guitar-with-pytheory
 description: >-
   Help guitarists and string players with PyTheory — chord fingerings and shapes,
-  ASCII tablature, chord identification, scale diagrams, alternate tunings and
-  capo, Nashville number charts, and a real-time strobe tuner. Use whenever the
-  user asks for a chord shape or fingering ("how do I play F#m7b5"), a tab, what
-  chord some frets/notes make, a scale diagram on the fretboard, a drop-D / DADGAD
+  ASCII tablature, chord identification, scale diagrams, SVG/PNG diagram images,
+  alternate tunings and capo, Nashville number charts, and a real-time strobe
+  tuner. Use whenever the user asks for a chord shape or fingering ("how do I play
+  F#m7b5"), a tab, a chord/scale/arpeggio *image* to embed, what chord some
+  frets/notes make, a scale diagram on the fretboard, a drop-D / DADGAD
   / open-G voicing, a capo position, a Nashville chart, or how to tune up — for
   guitar, bass, ukulele, mandolin, banjo, and ~20 other stringed instruments.
 license: MIT
@@ -117,6 +118,35 @@ print(Fretboard.guitar().scale_diagram(scale, frets=5))
 > Pentatonic and blues scales live in the **`blues`** system, not `western`:
 > `TonedScale(tonic="E2", system="blues")["minor pentatonic"]` (also
 > `"major pentatonic"`, `"blues"`, `"major blues"`).
+
+## Diagram images (SVG/PNG)
+
+The ASCII diagrams above also render as clean **SVG** you can embed in a video,
+slide, or worksheet (roots in red; PNG needs the optional `cairosvg`):
+
+```python
+from pytheory import Fretboard, TonedScale
+fb = Fretboard.guitar()
+
+# Chord box — open/muted markers, barres auto-detected
+fb.tab_image("Am", "Am.svg")
+for name in ["C", "Am", "F", "G"]:          # iterate a whole set
+    fb.tab_image(name, f"{name}.svg")
+fb.chord("Am").to_svg(path="Am.svg")        # same, straight from a Fingering
+
+# Scale position shapes — e.g. the five pentatonic boxes, roots marked
+pent = TonedScale(tonic="A4", system="blues")["minor pentatonic"]
+for shape in fb.scale_shapes(pent):         # one box per position (1-based .index)
+    shape.to_svg(path=f"pos{shape.index}.svg")
+
+# Arpeggio map — every chord tone across the neck, labelled R/3/5/7…
+fb.arpeggio_diagram("Am", "Am_arp.svg")
+```
+
+`tab_image()` covers the same ~144 charted chords as `.tab()`; an uncharted name
+raises `ValueError`, so build the shape and call `Fingering.to_svg()` instead.
+Pass `fmt="png"` (or a `.png` path) to rasterize via `cairosvg`. Each call returns
+the SVG string, or the path when one is given.
 
 ## Nashville number charts
 

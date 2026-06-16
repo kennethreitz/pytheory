@@ -66,6 +66,12 @@ c.beat_frequencies     # [(Tone, Tone, hz), …]  beating between pairs in ET
 ```python
 Chord.from_symbol("G7").tritone_sub()        # -> Db7 (the classic sub)
 
+# Negative harmony — mirror across a key's tonic↔dominant axis (Levy/Collier):
+Chord.from_symbol("C").negative_harmony("C").identify()    # 'C minor'
+Chord.from_symbol("G7").negative_harmony("C")              # the negative dominant
+# (Key("C","major").negative_harmony() gives the axis, hinge notes, and bridge
+#  chord — that's the keys-and-harmony skill.)
+
 # Smoothest motion from one chord to the next, voice by voice:
 for frm, to, semis in Chord.from_symbol("Cmaj7").voice_leading(Chord.from_symbol("Fmaj7")):
     print(frm, "->", to, f"({semis:+d} semitones)")

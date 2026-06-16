@@ -6,7 +6,8 @@ description: >-
   to audio or MIDI. Use whenever the user wants to write, sketch, generate, or
   arrange music — "write me a bossa nova in G minor", "make a four-chord pop
   loop", "lay down a funk beat", "turn this progression into a song" — or export
-  the result to WAV, MIDI, MusicXML, LilyPond, ABC, or guitar tab.
+  the result to WAV, MIDI, MusicXML, LilyPond, ABC, or guitar tab. Also covers the
+  metronome / chord-practice click / tempo trainer (`pytheory metronome`).
 license: MIT
 allowed-tools: Write, Read, Bash(python3:*), Bash(uv run:*)
 ---
@@ -245,6 +246,25 @@ print(score.to_tab("guitar_part"))      # ASCII tab for a part
 
 In a headless/CI context (no speakers), prefer `render_score` + WAV over
 `play_score`.
+
+## Metronome, practice click & tempo trainer
+
+A real-time click that also plays a progression to practise over, and ramps the
+tempo like the phone trainer apps. It makes sound and blocks, so the **user** runs
+the CLI (suggest the `!` prefix); from Python it's `pytheory.metronome.Metronome`.
+
+```
+$ pytheory metronome 120
+$ pytheory metronome 90 --chords Am F C G          # click + soft chords, cycling per bar
+$ pytheory metronome 100 --subdivide 2             # eighth-note clicks
+$ pytheory metronome 80 --to 120 --step 5 --every 8   # tempo trainer (start→end BPM)
+```
+
+```python
+from pytheory.metronome import Metronome
+Metronome(bpm=90, progression=["Am", "F", "C", "G"]).start()
+Metronome(bpm=80, end_bpm=120, step=5, every=8).start()   # trainer
+```
 
 ## House style (apply unless the user asks otherwise)
 

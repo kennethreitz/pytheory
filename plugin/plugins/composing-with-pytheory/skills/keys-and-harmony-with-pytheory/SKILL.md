@@ -4,9 +4,11 @@ description: >-
   Analyze and generate keys and chord progressions with PyTheory. Use when the
   user asks what key some notes are in, the diatonic chords of a key, a Roman-
   numeral analysis of a progression, what chord comes next, secondary dominants,
-  borrowed chords, how to modulate between keys (pivot chords / modulation path),
-  or to generate a progression. For a single chord's voicing/analysis use the
-  chord-lab skill; for full arrangements use the composing skill.
+  borrowed chords, chords grouped by function (tonic/subdominant/dominant), the
+  key-level circle of fifths, negative harmony, how to modulate between keys
+  (pivot chords / modulation path), or to generate a progression. For a single
+  chord's voicing/analysis use the chord-lab skill; for full arrangements use the
+  composing skill.
 license: MIT
 allowed-tools: Write, Read, Bash(python3:*), Bash(uv run:*)
 ---
@@ -58,6 +60,25 @@ k = Key("C", "major")
 k.secondary_dominant(5).symbol     # 'D7'  — the V/V
 k.borrowed_chords                  # chords from the parallel minor (modal interchange)
 k.suggest_next(Chord.from_symbol("G"))   # ranked next-chord candidates
+```
+
+Chords grouped by **harmonic function** (interchangeable within a group), the
+key-level **circle of fifths**, and **negative harmony**:
+
+```python
+k = Key("C", "major")
+k.chords_by_function()   # {'tonic': [C,Em,Am], 'subdominant': [Dm,F], 'dominant': [G,Bdim]}
+k.tonic_chords(); k.subdominant_chords(); k.dominant_chords()
+
+cof = k.circle_of_fifths()
+cof["position"]                 # 0  (sharps +, flats -)
+cof["relative"], cof["parallel"]               # A minor, C minor
+cof["dominant"]["key"], cof["dominant"]["shared_chords"]   # G major + the 4 shared chords
+
+neg = k.negative_harmony()       # Levy/Collier reflection across the tonic↔dominant axis
+neg["axis"]                      # ('C', 'G')
+neg["negative_dominant"]         # Fm — the chord that bridges the two families
+neg["scale"], neg["chords"]      # the mirrored scale and diatonic chords
 ```
 
 ## Modulation
