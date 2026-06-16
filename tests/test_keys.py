@@ -495,3 +495,97 @@ def test_key_detect_tonic_tiebreak():
 
 def test_key_detect_unparseable_notes():
     assert Key.detect("Sa", "komal Re") is None
+
+
+# ── chord families by harmonic function ──────────────────────────────
+
+def test_chords_by_function_major():
+    fams = Key("C", "major").chords_by_function()
+    assert [c.symbol for c in fams["tonic"]] == ["C", "Em", "Am"]
+    assert [c.symbol for c in fams["subdominant"]] == ["Dm", "F"]
+    assert [c.symbol for c in fams["dominant"]] == ["G", "Bdim"]
+
+
+def test_chords_by_function_convenience_methods():
+    k = Key("C", "major")
+    assert [c.symbol for c in k.tonic_chords()] == ["C", "Em", "Am"]
+    assert [c.symbol for c in k.subdominant_chords()] == ["Dm", "F"]
+    assert [c.symbol for c in k.dominant_chords()] == ["G", "Bdim"]
+
+
+def test_chords_by_function_minor():
+    """Function follows scale degree, so minor keys group the same way."""
+    fams = Key("A", "minor").chords_by_function()
+    assert [c.symbol for c in fams["tonic"]] == ["Am", "C", "F"]
+    assert [c.symbol for c in fams["subdominant"]] == ["Bdim", "Dm"]
+    assert [c.symbol for c in fams["dominant"]] == ["Em", "G"]
+
+
+# ── key-level circle of fifths ───────────────────────────────────────
+
+def test_circle_of_fifths_neighbors():
+    cof = Key("C", "major").circle_of_fifths()
+    assert str(cof["dominant"]["key"]) == "G major"
+    assert str(cof["subdominant"]["key"]) == "F major"
+    assert str(cof["relative"]) == "A minor"
+    assert str(cof["parallel"]) == "C minor"
+    assert cof["position"] == 0
+
+
+def test_circle_of_fifths_position_signed():
+    assert Key("G", "major").circle_of_fifths()["position"] == 1
+    assert Key("F", "major").circle_of_fifths()["position"] == -1
+    assert Key("Eb", "major").circle_of_fifths()["position"] == -3
+
+
+def test_circle_of_fifths_shared_chords():
+    """Adjacent keys differ by one note, sharing four diatonic triads."""
+    cof = Key("C", "major").circle_of_fifths()
+    assert cof["dominant"]["shared_chords"] == [
+        "A minor", "C major", "E minor", "G major"]
+
+
+def test_circle_of_fifths_twelve_keys():
+    circle = Key("C", "major").circle_of_fifths()["circle"]
+    assert [str(k) for k in circle][:4] == [
+        "C major", "G major", "D major", "A major"]
+    assert len(circle) == 12
+
+
+def test_circle_of_fifths_minor():
+    cof = Key("A", "minor").circle_of_fifths()
+    assert str(cof["relative"]) == "C major"
+    assert str(cof["dominant"]["key"]) == "E minor"
+    assert str(cof["circle"][1]) == "E minor"
+
+
+# ── negative harmony ─────────────────────────────────────────────────
+
+def test_negative_harmony_major_to_minor():
+    assert Chord.from_symbol("C").negative_harmony("C").identify() == "C minor"
+
+
+def test_negative_harmony_accepts_key_object():
+    neg = Chord.from_symbol("F").negative_harmony(Key("C", "major"))
+    # F major reflects to G minor in the key of C.
+    assert neg.identify() == "G minor"
+
+
+def test_negative_harmony_dominant_reflection():
+    """G7 mirrors to the Fm6/Dm7b5 pitch set — the negative dominant."""
+    neg = Chord.from_symbol("G7").negative_harmony("C")
+    assert {t.name for t in neg.tones} == {"D", "F", "G#", "C"}
+
+
+def test_key_negative_harmony_map():
+    neg = Key("C", "major").negative_harmony()
+    assert neg["axis"] == ("C", "G")
+    assert neg["axis_notes"] == ("Eb", "E")
+    assert neg["negative_dominant"].symbol == "Fm"
+    assert neg["scale"] == ["C", "D", "Eb", "F", "G", "Ab", "Bb"]
+
+
+def test_key_negative_harmony_chords_count():
+    neg = Key("G", "major").negative_harmony()
+    assert neg["axis"] == ("G", "D")
+    assert len(neg["chords"]) == 7

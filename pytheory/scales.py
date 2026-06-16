@@ -971,6 +971,203 @@ class Key:
         other = set(target.chords)
         return sorted(own & other)
 
+    # Functional grouping of scale degrees (0-indexed). The same degree
+    # positions carry tonic / subdominant / dominant function in both
+    # major and minor keys — function follows scale degree, not quality.
+    _FUNCTION_DEGREES = {
+        "tonic": (0, 2, 5),        # I/i, iii/III, vi/VI
+        "subdominant": (1, 3),     # ii/ii°, IV/iv
+        "dominant": (4, 6),        # V/v, vii°/VII
+    }
+
+    def chords_by_function(self) -> dict[str, list[Chord]]:
+        """Group the diatonic triads by harmonic function.
+
+        Functional harmony sorts the seven diatonic chords into three
+        families by how they behave: **tonic** chords feel like home
+        (I, iii, vi), **subdominant** chords move away from it (ii, IV),
+        and **dominant** chords pull back toward it (V, vii°). Chords in
+        the same family are largely interchangeable — swapping vi for I,
+        or ii for IV, keeps a progression's function intact while
+        changing its color.
+
+        The grouping is by scale degree, so it holds for minor keys too
+        (i/III/VI are tonic, ii°/iv subdominant, V/VII dominant).
+
+        Returns:
+            A dict with ``"tonic"``, ``"subdominant"`` and ``"dominant"``
+            keys, each mapping to a list of :class:`Chord` objects.
+
+        Example::
+
+            >>> fams = Key("C", "major").chords_by_function()
+            >>> [c.symbol for c in fams["tonic"]]
+            ['C', 'Em', 'Am']
+            >>> [c.symbol for c in fams["dominant"]]
+            ['G', 'Bdim']
+        """
+        harmonized = self._scale.harmonize()
+        n = len(harmonized)
+        result: dict[str, list[Chord]] = {}
+        for function, degrees in self._FUNCTION_DEGREES.items():
+            result[function] = [harmonized[d] for d in degrees if d < n]
+        return result
+
+    def tonic_chords(self) -> list[Chord]:
+        """Diatonic chords with tonic function (I, iii, vi)."""
+        return self.chords_by_function()["tonic"]
+
+    def subdominant_chords(self) -> list[Chord]:
+        """Diatonic chords with subdominant function (ii, IV)."""
+        return self.chords_by_function()["subdominant"]
+
+    def dominant_chords(self) -> list[Chord]:
+        """Diatonic chords with dominant function (V, vii°)."""
+        return self.chords_by_function()["dominant"]
+
+    def circle_of_fifths(self) -> dict:
+        """Map this key's neighborhood on the circle of fifths.
+
+        The circle of fifths arranges keys so that immediate neighbors
+        differ by a single accidental and share most of their diatonic
+        chords — which is exactly what makes them feel close and easy to
+        modulate between.
+
+        Returns relational data centered on this key:
+
+        - ``key`` — this Key
+        - ``position`` — signed place on the circle: number of sharps,
+          or negative for flats (C major = 0, G major = 1, F major = -1)
+        - ``relative`` — the relative minor/major (shares all notes)
+        - ``parallel`` — the parallel minor/major (shares the tonic)
+        - ``dominant`` — neighbor a fifth up (sharp side), with the
+          diatonic chords shared with it
+        - ``subdominant`` — neighbor a fifth down (flat side), with the
+          diatonic chords shared with it
+        - ``circle`` — the twelve keys of this mode, clockwise from here
+
+        Example::
+
+            >>> cof = Key("C", "major").circle_of_fifths()
+            >>> str(cof["dominant"]["key"]), str(cof["subdominant"]["key"])
+            ('G major', 'F major')
+            >>> str(cof["relative"]), str(cof["parallel"])
+            ('A minor', 'C minor')
+            >>> len(cof["dominant"]["shared_chords"])
+            4
+        """
+        # The key's own spelling gives conventional neighbor names:
+        # the 5th scale degree is the dominant, the 4th the subdominant.
+        dominant = Key(self._scale.tones[4].name, self.mode, self._system)
+        subdominant = Key(self._scale.tones[3].name, self.mode, self._system)
+
+        sig = self.signature
+        position = sig["sharps"] - sig["flats"]
+
+        circle = self._circle_keys()
+
+        return {
+            "key": self,
+            "position": position,
+            "relative": self.relative,
+            "parallel": self.parallel,
+            "dominant": {"key": dominant,
+                         "shared_chords": self.pivot_chords(dominant)},
+            "subdominant": {"key": subdominant,
+                            "shared_chords": self.pivot_chords(subdominant)},
+            "circle": circle,
+        }
+
+    # Conventional key-name spelling for each pitch class around the
+    # circle, so the twelve-key tour avoids double accidentals.
+    _CIRCLE_NAMES = {
+        "major": {0: "C", 7: "G", 2: "D", 9: "A", 4: "E", 11: "B",
+                  6: "Gb", 1: "Db", 8: "Ab", 3: "Eb", 10: "Bb", 5: "F"},
+        "minor": {9: "A", 4: "E", 11: "B", 6: "F#", 1: "C#", 8: "G#",
+                  3: "Eb", 10: "Bb", 5: "F", 0: "C", 7: "G", 2: "D"},
+    }
+
+    def _circle_keys(self) -> list[Key]:
+        """The twelve keys of this mode, clockwise (by fifths) from here."""
+        tonic_pc = Tone.from_string(
+            f"{self.tonic_name}4", system=self._system).midi % 12
+        names = self._CIRCLE_NAMES.get(
+            "minor" if self.mode in ("minor", "aeolian") else
+            "major" if self.mode == "major" else None)
+        keys = []
+        for i in range(12):
+            pc = (tonic_pc + 7 * i) % 12
+            if names is not None:
+                keys.append(Key(names[pc], self.mode, self._system))
+            else:
+                # Unusual mode: step by fifths, accept default spelling.
+                name = Tone.from_string(
+                    f"{self.tonic_name}4", system=self._system).add(7 * i).name
+                keys.append(Key(name, self.mode, self._system))
+        return keys
+
+    def negative_harmony(self) -> dict:
+        """Negative-harmony map of this key (Ernst Levy reflection).
+
+        Negative harmony mirrors every pitch across the axis that runs
+        between the tonic and the dominant. The reflection turns a major
+        key's harmony into its "shadow" — major becomes minor, the
+        dominant becomes a minor subdominant — while preserving the
+        gravitational pull toward the tonic.
+
+        Returns:
+            A dict with:
+
+            - ``axis`` — the tonic↔dominant pair the mirror runs between
+            - ``axis_notes`` — the two pitches the mirror actually
+              bisects (the "hinge": where major and minor third meet)
+            - ``negative_dominant`` — the reflection of V, the chord
+              that does the dominant's job in the negative world and so
+              **bridges** the two harmonic families (e.g. C major → Fm)
+            - ``scale`` — the negative scale's note names, from the tonic
+            - ``chords`` — each diatonic triad's negative reflection
+
+        Example::
+
+            >>> neg = Key("C", "major").negative_harmony()
+            >>> neg["axis"]
+            ('C', 'G')
+            >>> neg["negative_dominant"].symbol
+            'Fm'
+            >>> neg["scale"]
+            ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb']
+        """
+        tonic_pc = Tone.from_string(
+            f"{self.tonic_name}4", system=self._system).midi % 12
+        axis_sum = (2 * tonic_pc + 7) % 12
+
+        # Negative harmony darkens toward minor, so flat spellings read
+        # more naturally than sharps (Eb, not D#).
+        _FLATS = ["C", "Db", "D", "Eb", "E", "F",
+                  "Gb", "G", "Ab", "A", "Bb", "B"]
+
+        def pc_name(pc: int) -> str:
+            return _FLATS[pc % 12]
+
+        hinge_a, hinge_b = axis_sum // 2, axis_sum - axis_sum // 2
+
+        harmonized = self._scale.harmonize()
+        neg_chords = [c.negative_harmony(self) for c in harmonized]
+
+        # Negative scale, spelled from the tonic upward.
+        scale_pcs = sorted(
+            {(axis_sum - (t.midi % 12)) % 12 for t in self._scale.tones},
+            key=lambda pc: (pc - tonic_pc) % 12)
+        scale = [pc_name(pc) for pc in scale_pcs]
+
+        return {
+            "axis": (self.tonic_name, self._scale.tones[4].name),
+            "axis_notes": (pc_name(hinge_a), pc_name(hinge_b)),
+            "negative_dominant": self.triad(4).negative_harmony(self),
+            "scale": scale,
+            "chords": neg_chords,
+        }
+
 
 class TonedScale:
     def __init__(self, *, system: Union[str, System] = SYSTEMS["western"], tonic: Union[str, Tone]) -> None:

@@ -273,6 +273,64 @@ class Chord:
         """
         return self.transpose(6)
 
+    def negative_harmony(self, key="C") -> Chord:
+        """Reflect this chord across the negative-harmony axis of a key.
+
+        Negative harmony (Ernst Levy, popularized by Jacob Collier)
+        mirrors every pitch across the axis running between a key's
+        tonic and its dominant. The reflection swaps the bright and
+        dark worlds: in C major a C major triad becomes C minor, and
+        the dominant G becomes a minor subdominant (Fm) that resolves
+        home just as strongly — its "negative dominant."
+
+        Reflected tones are placed in the nearest octave to the
+        originals, so the result keeps a compact voicing, then sorted
+        low to high.
+
+        Args:
+            key: The tonal center to mirror around — a :class:`Key`, a
+                :class:`Tone`, or a tonic name like ``"C"`` or ``"Eb"``
+                (default ``"C"``).
+
+        Returns:
+            A new :class:`Chord`, the negative-harmony reflection.
+
+        Example::
+
+            >>> Chord.from_symbol("C").negative_harmony("C").identify()
+            'C minor'
+            >>> # the dominant's reflection — same four notes as Fm6
+            >>> Chord.from_symbol("G7").negative_harmony("C").identify()
+            'D half-diminished 7th'
+        """
+        from .tones import Tone
+
+        if hasattr(key, "tonic_name"):        # a Key
+            tonic_name = key.tonic_name
+        elif isinstance(key, Tone):
+            tonic_name = key.name
+        else:
+            tonic_name = str(key)
+        tonic_pc = Tone.from_string(f"{tonic_name}4", system="western").midi % 12
+        axis_sum = (2 * tonic_pc + 7) % 12
+
+        new_tones = []
+        for t in self.tones:
+            if t.midi is None:
+                new_tones.append(t)
+                continue
+            m = t.midi
+            refl_pc = (axis_sum - (m % 12)) % 12
+            base = (m // 12) * 12 + refl_pc
+            nearest = min((base - 12, base, base + 12),
+                          key=lambda x: abs(x - m))
+            new_tones.append(Tone.from_midi(nearest))
+
+        new_tones.sort(key=lambda t: t.midi if t.midi is not None else 0)
+        result = Chord(tones=new_tones)
+        result._identify_cache = None
+        return result
+
     def inversion(self, n: int = 1) -> Chord:
         """Return the nth inversion of this chord.
 
