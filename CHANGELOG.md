@@ -12,9 +12,19 @@ All notable changes to PyTheory are documented here.
   across all parts — pass an explicit `seconds` to override. Opt-in, so
   seamless loops are unaffected. (Resolves #60.) Documented in the effects
   guide and the composing skill.
+- **New `"hall"` reverb — and a bug fix.** The `vocal`, `mellotron_flute`,
+  and `ring_mod_metallic` instrument presets asked for a `"hall"` reverb
+  that never existed, so they silently fell back to the plain algorithmic
+  reverb. `"hall"` is now a real convolution space (a warm 2.5-second
+  concert hall), so those instruments sound as intended — and it's
+  available to everyone as `reverb_type="hall"`.
+- **Typos in `reverb_type` now raise** instead of silently falling back to
+  the algorithmic reverb — `part()`, `part.set()`, and `set_drum_effects()`
+  validate the name and list the valid presets.
 - **Internal:** convolution-reverb presets now have a single source of
-  truth (`_IR_DURATIONS`) shared by IR generation, ring-out sizing, and
-  the reverb-type dispatch, so preset names and tail lengths can't drift.
+  truth (`_IR_DURATIONS`) shared by IR generation, ring-out sizing, the
+  reverb-type dispatch, and validation, so preset names and tail lengths
+  can't drift.
 
 ## 0.53.1
 

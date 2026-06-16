@@ -462,6 +462,8 @@ Set ``reverb_type`` to any preset name instead of ``"algorithmic"``:
   you've ever heard.
 - ``"cathedral"`` -- Gothic stone cathedral. 6 seconds, strong early
   reflections off parallel walls, dark reverberant tail.
+- ``"hall"`` -- Concert hall. 2.5 seconds, warm and smooth with balanced
+  brightness. The natural ambience for vocals, strings, and acoustic leads.
 - ``"plate"`` -- EMT 140 plate reverb. 4 seconds, dense, bright, smooth.
   The studio classic that defined pop records from the 60s onward.
 - ``"spring"`` -- Spring reverb tank. 3 seconds, metallic, boingy, lo-fi.

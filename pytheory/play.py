@@ -4613,6 +4613,7 @@ def _apply_sidechain(samples, trigger_samples, amount=0.8, attack=0.001, release
 _IR_DURATIONS = {
     "taj_mahal": 12.0,
     "cathedral": 6.0,
+    "hall": 2.5,
     "plate": 4.0,
     "spring": 3.0,
     "cave": 8.0,
@@ -4632,6 +4633,8 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
                    long diffuse tail with high-frequency rolloff.
         cathedral: Gothic stone cathedral — 6s decay, strong early reflections
                    off parallel walls, dark reverberant tail.
+        hall: Concert hall — 2.5s, warm and smooth, balanced brightness.
+              The natural ambience for vocals, strings, and acoustic leads.
         plate: EMT 140 plate reverb — 4s, dense, bright, smooth.
                 The studio classic.
         spring: Spring reverb tank — 3s, metallic, boingy, lo-fi character.
@@ -4661,6 +4664,15 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             density=5000,
             brightness=0.4,
             modulation=0.002,
+        ),
+        "hall": dict(
+            early_delays=[0.011, 0.023, 0.037, 0.052, 0.069, 0.088, 0.109],
+            early_gains=[0.82, 0.72, 0.63, 0.55, 0.47, 0.40, 0.34],
+            decay_time=2.5,
+            hf_damping=0.55,      # warm — gentle air absorption
+            density=7000,         # smooth, dense concert-hall tail
+            brightness=0.55,      # balanced, neither dark nor bright
+            modulation=0.0015,
         ),
         "plate": dict(
             early_delays=[0.003, 0.007, 0.011, 0.016, 0.022, 0.029],
@@ -4813,7 +4825,7 @@ def _apply_convolution_reverb(samples, preset="taj_mahal", mix=0.3,
 
     Args:
         samples: Float32 numpy array.
-        preset: IR preset name (taj_mahal, cathedral, plate, spring,
+        preset: IR preset name (taj_mahal, cathedral, hall, plate, spring,
                 cave, parking_garage, canyon).
         mix: Wet/dry ratio 0.0–1.0.
         sample_rate: Sample rate in Hz.
@@ -5463,10 +5475,7 @@ def _apply_effects_with_params(samples, params, skip_reverb=False):
                                feedback=params.get("delay_feedback", 0.4))
     if not skip_reverb and params.get("reverb_mix", 0) > 0:
         reverb_type = params.get("reverb_type", "algorithmic")
-        if reverb_type != "algorithmic" and reverb_type in (
-            "taj_mahal", "cathedral", "plate", "spring",
-            "cave", "parking_garage", "canyon",
-        ):
+        if reverb_type in _IR_DURATIONS:
             samples = _apply_convolution_reverb(
                 samples, preset=reverb_type, mix=params["reverb_mix"])
         else:

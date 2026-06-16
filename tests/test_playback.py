@@ -280,6 +280,43 @@ def test_ring_out_is_opt_in_and_explicit():
 
 
 @needs_portaudio
+def test_hall_reverb_preset_is_a_real_convolution_space():
+    from pytheory import Score, Duration
+    from pytheory.play import _generate_ir, _IR_DURATIONS, render_score
+
+    # "hall" is referenced by the vocal/mellotron_flute/ring_mod_metallic
+    # instrument presets; it must resolve to a convolution IR, not silently
+    # fall back to the algorithmic reverb.
+    assert "hall" in _IR_DURATIONS
+    ir = _generate_ir("hall")
+    assert abs(len(ir) / 44100 - _IR_DURATIONS["hall"]) < 0.01
+
+    for inst in ("vocal", "mellotron_flute", "ring_mod_metallic"):
+        score = Score("4/4", bpm=120)
+        part = score.part("p", instrument=inst)
+        assert part.reverb_type in _IR_DURATIONS  # convolution, not fallback
+        part.add("C5", Duration.WHOLE)
+        assert len(render_score(score)) > 0
+
+
+def test_unknown_reverb_type_raises():
+    from pytheory import Score
+
+    score = Score("4/4", bpm=120)
+    with pytest.raises(ValueError, match="Unknown reverb_type"):
+        score.part("lead", reverb_type="cavern")          # typo for "cave"
+    with pytest.raises(ValueError, match="Unknown reverb_type"):
+        score.set_drum_effects(reverb_type="bogus")
+    with pytest.raises(ValueError, match="Unknown reverb_type"):
+        score.part("ok", reverb_type="hall").set(reverb_type="nope")
+
+    # Valid types (and instrument presets) must not raise.
+    score.part("a", reverb_type="hall")
+    score.part("b", reverb_type="algorithmic")
+    score.part("c", instrument="vocal")
+
+
+@needs_portaudio
 def test_chorus_effect():
     from pytheory.play import _apply_chorus
     t = numpy.arange(44100, dtype=numpy.float32) / 44100

@@ -125,7 +125,7 @@ Effects are part kwargs (set once at creation, or change later with `.set()`):
 | Mix glue | `sidechain` (0..0.5 duck by the kick), `sidechain_release`, `humanize` |
 
 **`reverb_type`** picks a convolution space: `"algorithmic"` (default),
-`"taj_mahal"`, `"cathedral"`, `"plate"`, `"spring"`, `"cave"`,
+`"taj_mahal"`, `"cathedral"`, `"hall"`, `"plate"`, `"spring"`, `"cave"`,
 `"parking_garage"`, `"canyon"`.
 
 **`score.ring_out()`** appends trailing silence so reverb/delay tails decay

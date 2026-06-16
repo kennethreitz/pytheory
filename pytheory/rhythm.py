@@ -2924,6 +2924,22 @@ Pattern._FILLS["metal cascade"] = dict(
 )
 
 
+def _check_reverb_type(value) -> None:
+    """Raise ValueError if ``value`` isn't a known reverb type.
+
+    Catches typos like ``reverb_type="cavern"`` early instead of silently
+    falling back to the algorithmic reverb at render time.
+    """
+    if value is None:
+        return
+    from .play import _IR_DURATIONS
+    if value != "algorithmic" and value not in _IR_DURATIONS:
+        raise ValueError(
+            f"Unknown reverb_type {value!r}. Use 'algorithmic' (default) or a "
+            f"convolution preset: {', '.join(sorted(_IR_DURATIONS))}."
+        )
+
+
 class Part:
     """A named voice within a Score, with its own synth, envelope, and effects.
 
@@ -3359,6 +3375,8 @@ class Part:
             >>> lead.set(distortion=0.6, lowpass=1500)    # grit
             >>> lead.add("G5", Duration.WHOLE)
         """
+        if "reverb_type" in params:
+            _check_reverb_type(params["reverb_type"])
         beat_pos = sum(n.beats for n in self.notes)
         # Map shorthand param names to internal attribute names
         param_map = {
@@ -4098,6 +4116,8 @@ class Score:
 
             score.set_drum_effects(reverb=0.2, reverb_type="plate")
         """
+        if "reverb_type" in kwargs:
+            _check_reverb_type(kwargs["reverb_type"])
         param_map = {"reverb": "reverb_mix", "delay": "delay_mix",
                      "distortion": "distortion_mix", "chorus": "chorus_mix"}
         drum_parts = [p for p in self.parts.values() if p.is_drums]
@@ -4208,8 +4228,8 @@ class Score:
             reverb_decay: Reverb tail length in seconds (default 1.0).
             reverb_type: Reverb algorithm — ``"algorithmic"`` (Schroeder, default)
                 or a convolution IR preset: ``"taj_mahal"``, ``"cathedral"``,
-                ``"plate"``, ``"spring"``, ``"cave"``, ``"parking_garage"``,
-                ``"canyon"``.
+                ``"hall"``, ``"plate"``, ``"spring"``, ``"cave"``,
+                ``"parking_garage"``, ``"canyon"``.
             delay: Delay wet/dry mix, 0.0–1.0 (default 0, off).
             delay_time: Delay time in seconds (default 0.375, dotted 8th).
             delay_feedback: Delay feedback 0.0–1.0 (default 0.4).
@@ -4248,6 +4268,7 @@ class Score:
             # Or use an instrument preset:
             piano = score.part("keys", instrument="piano")
         """
+        _check_reverb_type(reverb_type)
         # Default values for all Part parameters.
         _defaults = {
             "synth": "sine", "envelope": "piano", "volume": 0.5,
