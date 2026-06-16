@@ -275,6 +275,56 @@ def cmd_progressions(args):
         print(f"    {name:<20s}  {' → '.join(symbols)}")
 
 
+def cmd_metronome(args):
+    from .metronome import Metronome
+
+    progression = None
+    if args.chords:
+        # Allow a key + Roman numerals (e.g. "C major I V vi IV") or a
+        # literal list of chord symbols (e.g. "Am F C G").
+        toks = args.chords
+        if len(toks) >= 3 and toks[1] in (
+                "major", "minor", "dorian", "phrygian", "lydian",
+                "mixolydian", "locrian", "aeolian", "ionian"):
+            from .scales import Key
+            key = Key(toks[0], toks[1])
+            progression = [c.symbol or str(c)
+                           for c in key.progression(*toks[2:])]
+        else:
+            progression = toks
+
+    metro = Metronome(
+        bpm=args.bpm, beats=args.beats, subdivide=args.subdivide,
+        accent=not args.no_accent, progression=progression,
+        end_bpm=args.to, step=args.step, every=args.every,
+        hold=not args.no_hold)
+
+    sig = f"{args.beats}/4"
+    if args.to:
+        print(f"  Tempo trainer: {args.bpm} → {args.to} BPM, "
+              f"+{args.step} every {args.every} beats  ({sig})")
+    else:
+        print(f"  Metronome: {args.bpm} BPM  ({sig})")
+    if progression:
+        print(f"  Cycling: {' | '.join(progression)}")
+    print("  Press Ctrl-C to stop.\n")
+
+    last = {"bpm": None, "sym": None}
+
+    def on_bar(index, bpm, symbol):
+        # Reprint only when something changes, so the terminal stays calm.
+        if bpm != last["bpm"] or symbol != last["sym"]:
+            chord = f"  {symbol}" if symbol else ""
+            print(f"  bar {index + 1:>3}   {bpm:>5g} BPM{chord}")
+            last["bpm"], last["sym"] = bpm, symbol
+
+    try:
+        metro.start(on_bar=on_bar)
+    except KeyboardInterrupt:
+        pass
+    print("\n  Stopped.")
+
+
 def cmd_demo(args):
     import random
     from .rhythm import Score, Pattern, Duration
@@ -566,6 +616,30 @@ def main():
     p.add_argument("--bpm", type=int, default=120, help="BPM (default: 120)")
     p.add_argument("--duration", type=int, default=500, help="Duration per chord in ms (default: 500)")
 
+    # metronome
+    p = sub.add_parser("metronome", aliases=["metro"],
+                       help="Metronome, chord-practice click, and tempo trainer")
+    p.add_argument("bpm", nargs="?", type=float, default=120,
+                   help="Tempo in BPM (default: 120)")
+    p.add_argument("--beats", "-b", type=int, default=4,
+                   help="Beats per bar (default: 4)")
+    p.add_argument("--subdivide", "-s", type=int, default=1,
+                   help="Clicks per beat: 2=eighths, 3=triplets, 4=sixteenths (default: 1)")
+    p.add_argument("--no-accent", action="store_true",
+                   help="Don't accent the downbeat")
+    p.add_argument("--chords", "-c", nargs="+", default=None,
+                   metavar="CHORD",
+                   help="Cycle chords under the click — symbols (Am F C G) "
+                        "or a key + numerals (C major I V vi IV)")
+    p.add_argument("--to", type=float, default=None,
+                   help="Tempo-trainer target BPM — ramp from BPM to this")
+    p.add_argument("--step", type=float, default=5,
+                   help="BPM change per ramp step (default: 5)")
+    p.add_argument("--every", type=int, default=8,
+                   help="Beats between ramp steps (default: 8)")
+    p.add_argument("--no-hold", action="store_true",
+                   help="Stop when the trainer reaches the target (default: keep going)")
+
     # demo
     sub.add_parser("demo", help="Play a randomly generated track (different every time)")
 
@@ -648,6 +722,8 @@ def main():
         "fingering": cmd_fingering,
         "progression": cmd_progression,
         "play": cmd_play,
+        "metronome": cmd_metronome,
+        "metro": cmd_metronome,
         "identify": cmd_identify,
         "midi": cmd_midi,
         "demo": cmd_demo,
