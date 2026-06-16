@@ -235,6 +235,51 @@ def test_part_effects_change_output():
 
 
 @needs_portaudio
+def test_ring_out_appends_tail_for_effects():
+    from pytheory import Score
+    from pytheory.play import render_score, effects_tail_seconds
+
+    score = Score("4/4", bpm=120)
+    score.drums("funk", repeats=4)
+    score.set_drum_effects(reverb=0.5, reverb_type="cave",
+                           delay=0.3, delay_time=0.25, delay_feedback=0.4)
+    before = render_score(score)
+
+    # ring_out() appends auto-sized trailing silence; the render grows.
+    assert score.ring_out() is score          # chainable
+    after = render_score(score)
+    assert len(after) > len(before)
+
+    # The appended region carries the reverb/delay tail (not pure silence).
+    tail = after[len(before):]
+    assert numpy.sqrt(numpy.mean(tail ** 2)) > 1e-4
+
+    # Auto length matches the computed effects tail (cave reverb + delay).
+    drum_part = next(p for p in score.parts.values() if p.is_drums)
+    tail_beats = effects_tail_seconds(drum_part) * score.bpm / 60.0
+    assert score.total_beats == pytest.approx(16.0 + tail_beats)
+
+
+@needs_portaudio
+def test_ring_out_is_opt_in_and_explicit():
+    from pytheory import Score
+    from pytheory.play import render_score
+
+    # No effects + no explicit length => no tail added.
+    plain = Score("4/4", bpm=120)
+    plain.drums("rock", repeats=2)
+    assert plain.ring_out().total_beats == 4.0 * 2
+
+    # Explicit seconds override the auto-sizing.
+    score = Score("4/4", bpm=120)
+    score.drums("rock", repeats=2)
+    score.ring_out(2.0)
+    # 2.0s at 120bpm = 4 extra beats appended after the 8-beat groove.
+    assert score.total_beats == pytest.approx(8.0 + 4.0)
+    assert len(render_score(score)) > 0
+
+
+@needs_portaudio
 def test_chorus_effect():
     from pytheory.play import _apply_chorus
     t = numpy.arange(44100, dtype=numpy.float32) / 44100

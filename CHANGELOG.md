@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- **`Score.ring_out()` — let reverb/delay tails breathe.** Rendering used
+  to stop dead on the final beat, clipping the tail of any reverb or delay
+  on the last hit (especially noticeable on drum tracks with a long
+  reverb). Call `score.ring_out()` once before playing or exporting and it
+  appends trailing silence sized automatically to the longest effect tail
+  across all parts — pass an explicit `seconds` to override. Opt-in, so
+  seamless loops are unaffected. (Resolves #60.)
+
 ## 0.53.1
 
 - **More ragas, and reverb on playback.** The raga set grows from 20 to

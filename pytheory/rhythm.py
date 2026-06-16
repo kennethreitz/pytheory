@@ -4048,6 +4048,10 @@ class Score:
         self._tempo_changes: list[tuple[float, int]] = []
         self._sections: dict[str, Section] = {}
         self._current_section: Optional[Section] = None
+        # Trailing silence (in beats) appended after all content so reverb
+        # and delay tails can ring out instead of being cut off. Set via
+        # ring_out().
+        self._tail_beats: float = 0.0
 
     def _ensure_drums_part(self) -> Part:
         """Get or create the drums Part."""
@@ -4103,6 +4107,45 @@ class Score:
             for k, v in kwargs.items():
                 attr = param_map.get(k, k)
                 setattr(p, attr, v)
+        return self
+
+    def ring_out(self, seconds: float = None) -> "Score":
+        """Append trailing silence so reverb/delay tails ring out fully.
+
+        Without this, the rendered audio stops exactly at the last beat,
+        which clips the tail of any reverb or delay on the final hit. Call
+        ``ring_out()`` once (typically just before playing or exporting) to
+        pad the end with enough silence for the effects to decay naturally.
+
+        Args:
+            seconds: Length of trailing silence in seconds. When omitted,
+                it's computed automatically from the longest reverb/delay
+                tail across all parts (including drums). Pass an explicit
+                value to override.
+
+        Returns:
+            Self for chaining.
+
+        Example::
+
+            score.set_drum_effects(reverb=0.4, reverb_type="cave",
+                                   delay=0.3, delay_time=0.25)
+            score.drums("funk", repeats=8)
+            score.ring_out()          # auto-sized tail
+            play_score(score)
+
+        Note:
+            The added silence makes the score longer, so avoid calling this
+            on a pattern you intend to loop seamlessly.
+        """
+        if seconds is None:
+            from .play import effects_tail_seconds
+            seconds = max(
+                (effects_tail_seconds(p) for p in self.parts.values()),
+                default=0.0,
+            )
+        beats = seconds * self.bpm / 60.0
+        self._tail_beats = max(self._tail_beats, beats)
         return self
 
     def part(self, name: str, *, instrument: str = None,
@@ -4522,7 +4565,9 @@ class Score:
         beats = [sum(n.beats for n in self.notes), self._drum_pattern_beats]
         for p in self.parts.values():
             beats.append(p.total_beats)
-        return max(beats) if beats else 0.0
+        content = max(beats) if beats else 0.0
+        # Trailing silence (ring_out) is appended *after* the content.
+        return content + self._tail_beats
 
     @property
     def measures(self) -> float:
