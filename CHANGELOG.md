@@ -2,6 +2,48 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.53.0
+
+- **SVG fretboard diagrams.** A new `pytheory.diagrams` module renders
+  fretboard data as clean, dependency-free SVG you can drop into a
+  video, slide, or worksheet — ASCII tabs finally have a graphical
+  twin.
+  - `Fretboard.tab_image(name)` (and `Fingering.to_svg()`) draw the
+    vertical chord box you see in songbooks, with open/muted markers,
+    automatic barre detection, and the root highlighted in red.
+  - `Fretboard.scale_shapes(scale)` splits a scale into positional
+    boxes — the five pentatonic positions, the seven diatonic ones —
+    each a small fret window with the roots marked. Boxes follow the
+    slant via a notes-per-string cap, so they connect like real CAGED
+    shapes. Render one with `shape.to_svg(path=...)`.
+  - `Fretboard.arpeggio_diagram(chord)` maps every chord tone across
+    the neck, labelled by role (R/3/5/7…), roots highlighted — for
+    seeing where the chord lives.
+  - SVG is pure text (no dependencies); pass `fmt="png"` to rasterize
+    via the optional `cairosvg` package.
+- **Metronome and tempo trainer — `pytheory metronome`.** A real-time
+  click (accented downbeat, optional subdivisions) that also does two
+  practice jobs: `--chords Am F C G` plays a soft chord stab under the
+  click, cycling a progression one chord per bar; and `--to`/`--step`/
+  `--every` ramp the tempo from a start BPM toward a target, the way
+  the phone trainer apps do. Also a library: `pytheory.metronome.Metronome`.
+- **Key-level circle of fifths.** `Key.circle_of_fifths()` returns a
+  neighborhood map: the dominant and subdominant neighbors with the
+  diatonic chords shared with each, the relative and parallel keys, the
+  key's signed circle position (sharps positive, flats negative), and
+  the twelve-key tour.
+- **Chord families by harmonic function.** `Key.chords_by_function()`
+  (and `tonic_chords()` / `subdominant_chords()` / `dominant_chords()`)
+  group the diatonic triads into tonic (I, iii, vi), subdominant (ii,
+  IV), and dominant (V, vii°) families, so you can see which chords are
+  interchangeable. Grouping is by scale degree, so it holds for minor
+  keys too.
+- **Negative harmony.** `Chord.negative_harmony(key)` reflects a chord
+  across the tonic↔dominant axis (Ernst Levy / Jacob Collier). `Key.
+  negative_harmony()` surfaces the axis, the hinge notes, the negative
+  scale and chords, and the *negative dominant* — the minor-subdominant
+  reflection of V that bridges the two harmonic families.
+
 ## 0.52.0
 
 - **Guitar-aware LilyPond export.** `Score.to_lilypond()` gains
