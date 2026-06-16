@@ -5027,6 +5027,59 @@ def _apply_delay(samples, mix=0.25, time=0.375, feedback=0.4,
     return samples * (1 - mix) + wet * mix
 
 
+# Reverb tail length (seconds) for each convolution IR preset. Must mirror
+# the ``duration`` values in _generate_ir(); used to size ring-out silence.
+_IR_DURATIONS = {
+    "taj_mahal": 12.0,
+    "cathedral": 6.0,
+    "plate": 4.0,
+    "spring": 3.0,
+    "cave": 8.0,
+    "parking_garage": 3.0,
+    "canyon": 5.0,
+}
+
+
+def effects_tail_seconds(part) -> float:
+    """Estimate how long a part's reverb/delay tail keeps ringing.
+
+    Used by :meth:`Score.ring_out` to auto-size the trailing silence so
+    effect tails decay naturally instead of being clipped at the last beat.
+
+    Args:
+        part: A :class:`~pytheory.rhythm.Part` (or anything exposing the
+            reverb_mix / delay_mix effect attributes).
+
+    Returns:
+        Tail length in seconds (0.0 if the part has no time-based effects).
+    """
+    tail = 0.0
+
+    # Reverb: convolution presets have a fixed IR length; the algorithmic
+    # reverb rings for roughly its decay time.
+    if getattr(part, "reverb_mix", 0.0) > 0:
+        rev_type = getattr(part, "reverb_type", "algorithmic")
+        if rev_type in _IR_DURATIONS:
+            tail += _IR_DURATIONS[rev_type]
+        else:
+            tail += getattr(part, "reverb_decay", 1.0)
+
+    # Delay: echoes repeat until they fall below the audible floor, capped
+    # at the same 8 taps _apply_delay() generates.
+    if getattr(part, "delay_mix", 0.0) > 0:
+        delay_time = getattr(part, "delay_time", 0.375)
+        feedback = getattr(part, "delay_feedback", 0.4)
+        echoes, gain = 0, 1.0
+        for _ in range(8):
+            gain *= feedback
+            if gain < 0.01:
+                break
+            echoes += 1
+        tail += delay_time * (echoes + 1)
+
+    return tail
+
+
 def _apply_lowpass(samples, cutoff, q=0.707, sample_rate=SAMPLE_RATE):
     """Apply a 2nd-order Butterworth lowpass filter (12 dB/octave).
 
