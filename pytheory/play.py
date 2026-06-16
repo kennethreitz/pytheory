@@ -4606,6 +4606,21 @@ def _apply_sidechain(samples, trigger_samples, amount=0.8, attack=0.001, release
 
 # ── Convolution reverb impulse responses ───────────────────────────────────
 
+# Reverb tail length (seconds) for each convolution IR preset. Single source
+# of truth: _generate_ir() sizes the IR buffer from this, effects_tail_seconds()
+# sizes ring-out silence from it, and render_score() uses its keys to tell
+# convolution presets apart from the algorithmic reverb.
+_IR_DURATIONS = {
+    "taj_mahal": 12.0,
+    "cathedral": 6.0,
+    "plate": 4.0,
+    "spring": 3.0,
+    "cave": 8.0,
+    "parking_garage": 3.0,
+    "canyon": 5.0,
+}
+
+
 def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
     """Generate a synthetic impulse response for convolution reverb.
 
@@ -4626,7 +4641,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
     """
     presets = {
         "taj_mahal": dict(
-            duration=12.0,
             early_delays=[0.018, 0.037, 0.052, 0.071, 0.089, 0.112, 0.134,
                           0.158, 0.183, 0.211, 0.243, 0.278, 0.315],
             early_gains=[0.8, 0.72, 0.65, 0.58, 0.52, 0.46, 0.41,
@@ -4638,7 +4652,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             modulation=0.003,     # subtle pitch modulation from dome shape
         ),
         "cathedral": dict(
-            duration=6.0,
             early_delays=[0.012, 0.024, 0.041, 0.058, 0.073, 0.095,
                           0.118, 0.145, 0.172],
             early_gains=[0.85, 0.75, 0.65, 0.55, 0.48, 0.40,
@@ -4650,7 +4663,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             modulation=0.002,
         ),
         "plate": dict(
-            duration=4.0,
             early_delays=[0.003, 0.007, 0.011, 0.016, 0.022, 0.029],
             early_gains=[0.9, 0.85, 0.78, 0.70, 0.62, 0.54],
             decay_time=4.0,
@@ -4660,7 +4672,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             modulation=0.001,
         ),
         "spring": dict(
-            duration=3.0,
             early_delays=[0.005, 0.032, 0.064, 0.097, 0.131],
             early_gains=[0.95, 0.7, 0.5, 0.35, 0.25],
             decay_time=3.0,
@@ -4670,7 +4681,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             modulation=0.012,     # springy wobble
         ),
         "cave": dict(
-            duration=8.0,
             early_delays=[0.025, 0.058, 0.094, 0.138, 0.189, 0.248, 0.312],
             early_gains=[0.7, 0.55, 0.42, 0.32, 0.24, 0.18, 0.13],
             decay_time=8.0,
@@ -4680,7 +4690,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             modulation=0.005,
         ),
         "parking_garage": dict(
-            duration=3.0,
             early_delays=[0.008, 0.016, 0.024, 0.033, 0.041, 0.050,
                           0.058, 0.067],
             early_gains=[0.9, 0.82, 0.75, 0.68, 0.62, 0.56, 0.50, 0.45],
@@ -4691,7 +4700,6 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             modulation=0.0005,
         ),
         "canyon": dict(
-            duration=5.0,
             early_delays=[0.12, 0.28, 0.45, 0.67, 0.91],
             early_gains=[0.6, 0.4, 0.28, 0.18, 0.11],
             decay_time=5.0,
@@ -4709,7 +4717,7 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
         )
 
     p = presets[preset]
-    n_samples = int(p["duration"] * sample_rate)
+    n_samples = int(_IR_DURATIONS[preset] * sample_rate)
     ir = numpy.zeros(n_samples, dtype=numpy.float32)
 
     # 1. Early reflections — discrete taps
@@ -5025,19 +5033,6 @@ def _apply_delay(samples, mix=0.25, time=0.375, feedback=0.4,
             wet += shifted
 
     return samples * (1 - mix) + wet * mix
-
-
-# Reverb tail length (seconds) for each convolution IR preset. Must mirror
-# the ``duration`` values in _generate_ir(); used to size ring-out silence.
-_IR_DURATIONS = {
-    "taj_mahal": 12.0,
-    "cathedral": 6.0,
-    "plate": 4.0,
-    "spring": 3.0,
-    "cave": 8.0,
-    "parking_garage": 3.0,
-    "canyon": 5.0,
-}
 
 
 def effects_tail_seconds(part) -> float:
@@ -6179,9 +6174,7 @@ def render_score(score):
                 # Pan mono part into stereo, then apply stereo reverb
                 if part.reverb_mix > 0:
                     rev_type = getattr(part, 'reverb_type', 'algorithmic')
-                    conv_presets = ('taj_mahal', 'cathedral', 'plate',
-                                   'spring', 'cave', 'parking_garage', 'canyon')
-                    if rev_type in conv_presets:
+                    if rev_type in _IR_DURATIONS:
                         # Stereo convolution reverb
                         rev_stereo = _apply_convolution_reverb_stereo(
                             part_buf, preset=rev_type,

@@ -531,6 +531,28 @@ You can switch reverb types mid-song with automation:
    lead.set(reverb_type="cathedral", reverb=0.8)
    lead.add("E5", Duration.WHOLE)
 
+Letting Tails Ring Out
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Rendering normally stops exactly on the last beat. That is what you want
+for a seamless loop, but it means a long reverb or delay on the final hit
+gets cut off mid-tail -- most noticeable on a drum track ending with a
+``"cave"`` or ``"cathedral"`` verb. Call ``score.ring_out()`` once before
+playing or exporting to append just enough trailing silence for the
+effects to decay naturally:
+
+.. code-block:: python
+
+   score.set_drum_effects(reverb=0.4, reverb_type="cave",
+                          delay=0.3, delay_time=0.25)
+   score.drums("funk", repeats=8)
+   score.ring_out()          # tail auto-sized to the longest effect
+   play_score(score)
+
+With no argument the silence is sized to the longest reverb/delay tail
+across every part (drums included); pass ``ring_out(seconds)`` to set it
+yourself. It is opt-in, so loops are unaffected unless you ask for it.
+
 Sidechain Compression
 ---------------------
 

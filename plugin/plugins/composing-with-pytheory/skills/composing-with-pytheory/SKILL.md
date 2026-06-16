@@ -128,6 +128,12 @@ Effects are part kwargs (set once at creation, or change later with `.set()`):
 `"taj_mahal"`, `"cathedral"`, `"plate"`, `"spring"`, `"cave"`,
 `"parking_garage"`, `"canyon"`.
 
+**`score.ring_out()`** appends trailing silence so reverb/delay tails decay
+naturally instead of being clipped at the last beat (most audible on a final
+drum hit with a long reverb). Call it once before playing or exporting; the
+length auto-sizes to the longest effect tail, or pass `ring_out(seconds)`.
+Skip it for seamless loops, where you *want* the hard cut.
+
 ```python
 pad  = score.part("pad", synth="supersaw", envelope="pad", reverb=0.5,
                   reverb_type="cathedral", sidechain=0.2, sub_osc=0.3)
