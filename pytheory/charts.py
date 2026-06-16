@@ -188,6 +188,20 @@ class Fingering:
             lines.append(f"{sname:>{max_name}}|--{fret_str}--")
         return "\n".join(lines)
 
+    def to_svg(self, name=None, path=None, *, fmt: str = "svg", **kw):
+        """Render this fingering as an SVG (or PNG) chord-box image.
+
+        The graphical version of :meth:`tab`. Returns the SVG string, or
+        writes ``path`` and returns it when given.
+
+        Example::
+
+            >>> Fretboard.guitar().chord("Am").to_svg(path="Am.svg")
+            'Am.svg'
+        """
+        from .diagrams import chord_svg
+        return chord_svg(self, name, path=path, fmt=fmt, **kw)
+
 CHARTS = {}
 CHARTS["western"] = []
 

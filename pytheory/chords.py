@@ -2055,6 +2055,73 @@ class Fretboard:
         """
         return self.chord(name, system=system).tab()
 
+    def tab_image(self, name: str, path=None, *, system: str = "western",
+                  fmt: str = "svg", **kw):
+        """Render a chord as an SVG (or PNG) chord-box image.
+
+        The graphical counterpart of :meth:`tab` — a vertical chord
+        diagram you can embed in a video, slide, or worksheet. Returns
+        the SVG string, or writes ``path`` and returns it when given.
+
+        Args:
+            name: chord name like ``"Am"``, ``"G"``, ``"F#m7b5"``.
+            path: optional file to write (``.svg`` or ``.png``).
+            fmt: ``"svg"`` (default) or ``"png"`` (needs ``cairosvg``).
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> fb.tab_image("Am", "Am.svg")
+            'Am.svg'
+            >>> for n in ["C", "Am", "F", "G"]:
+            ...     fb.tab_image(n, f"{n}.svg")
+        """
+        from .diagrams import chord_svg
+        return chord_svg(self.chord(name, system=system), name,
+                         path=path, fmt=fmt, **kw)
+
+    def scale_shapes(self, scale, **kw):
+        """Split a scale into positional boxes (e.g. the 5 pentatonic shapes).
+
+        Returns a list of :class:`~pytheory.diagrams.ScaleShape`, each a
+        small fret window with the roots marked. Render one with
+        ``shape.to_svg(path=...)``.
+
+        Example::
+
+            >>> fb = Fretboard.guitar()
+            >>> scale = TonedScale(tonic="A4", system="blues")["minor pentatonic"]
+            >>> shapes = fb.scale_shapes(scale)
+            >>> len(shapes)
+            5
+            >>> shapes[0].to_svg(path="A_pent_pos1.svg")
+        """
+        from .diagrams import scale_shapes
+        return scale_shapes(self, scale, **kw)
+
+    def scale_shape_image(self, scale, position: int, path=None, **kw):
+        """Render a single scale position to SVG/PNG (``position`` is 1-based)."""
+        from .diagrams import scale_shape_svg
+        return scale_shape_svg(self, scale, position, path=path, **kw)
+
+    def arpeggio_diagram(self, chord, path=None, **kw):
+        """Map a chord's tones across the neck, labelled by role (R/3/5/7…).
+
+        For practising arpeggios — see where the root, 3rd, 5th and 7th
+        of a chord fall everywhere on the fretboard, roots highlighted.
+
+        Args:
+            chord: a :class:`Chord` or a chord-symbol string (``"Am"``).
+            path: optional ``.svg``/``.png`` file to write.
+
+        Example::
+
+            >>> Fretboard.guitar().arpeggio_diagram("Am", "Am_arp.svg")
+            'Am_arp.svg'
+        """
+        from .diagrams import arpeggio_svg
+        return arpeggio_svg(self, chord, path=path, **kw)
+
     def chart(self, *, system: str = "western") -> dict:
         """Generate fingerings for every chord in the given system.
 
