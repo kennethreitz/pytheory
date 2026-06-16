@@ -1,18 +1,7 @@
 {% extends "!layout.html" %}
 {% block footer %}
 {{ super() }}
-<script type="text/javascript">
-  var _gauges = _gauges || [];
-  (function() {
-    var t   = document.createElement('script');
-    t.type  = 'text/javascript';
-    t.async = true;
-    t.id    = 'gauges-tracker';
-    t.setAttribute('data-site-id', '69bfc431e7e47c1200fc74bc');
-    t.setAttribute('data-track-path', 'https://track.gaug.es/track.gif');
-    t.src = 'https://d2fuc4clr7gvcn.cloudfront.net/track.js';
-    var s = document.getElementsByTagName('script')[0];
-    s.parentNode.insertBefore(t, s);
-  })();
-</script>
+<!-- Umami analytics (self-hosted, analytics.kennethreitz.org) -->
+<script defer src="https://analytics.kennethreitz.org/script.js"
+        data-website-id="abaa0013-d524-4583-b70e-6d0ff5b7360c"></script>
 {% endblock %}
