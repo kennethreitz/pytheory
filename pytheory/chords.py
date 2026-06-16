@@ -2077,8 +2077,15 @@ class Fretboard:
             ...     fb.tab_image(n, f"{n}.svg")
         """
         from .diagrams import chord_svg
-        return chord_svg(self.chord(name, system=system), name,
-                         path=path, fmt=fmt, **kw)
+        try:
+            fingering = self.chord(name, system=system)
+        except KeyError:
+            raise ValueError(
+                f"No charted fingering for {name!r}. tab_image covers the "
+                "charted chords (major/minor/5/6/7/9/dim/m6/m7/m9/maj7/maj9 "
+                "on each root). For an uncharted voicing, build a Fingering "
+                "yourself and call .to_svg().")
+        return chord_svg(fingering, name, path=path, fmt=fmt, **kw)
 
     def scale_shapes(self, scale, **kw):
         """Split a scale into positional boxes (e.g. the 5 pentatonic shapes).

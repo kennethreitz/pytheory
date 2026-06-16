@@ -8,3 +8,6 @@ __pycache__
 pytheory.egg-info
 docs/_build
 .claude/worktrees/
+
+# showcase output
+examples/showcase_out/
