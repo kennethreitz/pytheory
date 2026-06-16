@@ -10,7 +10,11 @@ All notable changes to PyTheory are documented here.
   reverb). Call `score.ring_out()` once before playing or exporting and it
   appends trailing silence sized automatically to the longest effect tail
   across all parts — pass an explicit `seconds` to override. Opt-in, so
-  seamless loops are unaffected. (Resolves #60.)
+  seamless loops are unaffected. (Resolves #60.) Documented in the effects
+  guide and the composing skill.
+- **Internal:** convolution-reverb presets now have a single source of
+  truth (`_IR_DURATIONS`) shared by IR generation, ring-out sizing, and
+  the reverb-type dispatch, so preset names and tail lengths can't drift.
 
 ## 0.53.1
 
