@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.53.2
 
 - **`Score.ring_out()` — let reverb/delay tails breathe.** Rendering used
   to stop dead on the final beat, clipping the tail of any reverb or delay
