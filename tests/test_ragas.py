@@ -34,7 +34,18 @@ def test_all_ragas_well_formed():
 
 
 def test_known_raga_count():
-    assert len(Raga.all()) >= 20
+    assert len(Raga.all()) >= 36
+
+
+def test_new_ragas_present_and_correct():
+    # A few of the extended set, by their distinctive note sets.
+    assert Raga.get("ahir bhairav").note_names("C") == [
+        "C", "C#", "E", "F", "G", "A", "A#"]
+    assert Raga.get("sohni").note_names("C") == [
+        "C", "C#", "E", "F#", "A", "B"]            # no Pa
+    assert Raga.get("brindabani sarang").note_names("C") == [
+        "C", "D", "F", "G", "A#", "B"]             # no Ga, no Dha
+    assert Raga.get("Sarang").name == "Brindabani Sarang"   # alias
 
 
 def test_yaman_scale_is_lydian():
@@ -123,6 +134,16 @@ def test_just_note_renders():
     buf = _render(_JustNote(261.63), synth=Synth.SINE, t=50,
                   envelope=Envelope.PLUCK)
     assert len(buf) > 0
+
+
+def test_render_with_reverb():
+    import numpy
+    y = Raga.get("yaman")
+    wet = y.render("C4", synth="sine", t=80, reverb=0.4)
+    dry = y.render("C4", synth="sine", t=80, reverb=0)
+    assert numpy.all(numpy.isfinite(wet))
+    assert len(wet) > len(dry)        # reverb pads a tail
+    assert len(dry) > 0
 
 
 # ── CLI ──────────────────────────────────────────────────────────────

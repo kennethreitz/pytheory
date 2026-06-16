@@ -309,8 +309,9 @@ def cmd_raga(args):
                   f"{row['hz']:>8.2f} Hz  {row['cents_off']:+6.1f}¢")
     if args.play:
         print(f"\n  Playing {raga.name} "
-              f"({'just intonation' if not args.equal else '12-TET'})…")
-        raga.play(f"{sa}4", just=not args.equal)
+              f"({'just intonation' if not args.equal else '12-TET'}, "
+              f"reverb {args.reverb:g})…")
+        raga.play(f"{sa}4", just=not args.equal, reverb=args.reverb)
 
 
 def cmd_metronome(args):
@@ -663,6 +664,8 @@ def main():
     p.add_argument("--shruti", action="store_true",
                    help="Show just-intonation shruti detail (cents off 12-TET)")
     p.add_argument("--play", action="store_true", help="Play the aroha/avaroha")
+    p.add_argument("--reverb", type=float, default=0.35,
+                   help="Reverb wet mix 0..1 for --play (default: 0.35)")
     p.add_argument("--equal", action="store_true",
                    help="Play in 12-TET instead of just intonation")
     p.add_argument("--list", action="store_true", help="List all ragas")

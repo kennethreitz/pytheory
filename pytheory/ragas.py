@@ -279,23 +279,55 @@ class Raga:
             })
         return rows
 
-    def play(self, sa="C4", *, synth="sitar", t=420, envelope="pluck",
-             just=True):
-        """Play the aroha then avaroha through the speakers.
+    def render(self, sa="C4", *, synth="sitar", t=420, envelope="pluck",
+               just=True, reverb=0.35):
+        """Render the aroha→avaroha run to a mono sample buffer.
 
-        Defaults to the sitar voice in **just intonation** (the shruti
-        tuning a raga is meant to be heard in). Pass ``just=False`` for
-        the tempered 12-TET rendering, or any synth name you like.
+        Notes are laid end to end and a hall reverb is mixed over the
+        whole phrase, so the tail of one swara bleeds into the next —
+        much closer to how a raga actually breathes than dry, separate
+        notes. Returns a NumPy array (no audio device needed).
+
+        Args:
+            sa: the tonic for Sa.
+            synth: waveform name (default sitar).
+            t: duration per swara in ms.
+            envelope: ADSR preset name.
+            just: just intonation (True, default) vs tempered 12-TET.
+            reverb: wet mix 0..1 (0 disables); default 0.35.
         """
-        from .play import play, Synth, Envelope
+        import numpy
+        from .play import _render, _apply_reverb, Synth, Envelope, SAMPLE_RATE
+
         s = Synth[synth.upper()]
         env = Envelope[envelope.upper()]
         if just:
-            for hz in self.just_frequencies(sa):
-                play(_JustNote(hz), synth=s, t=t, envelope=env)
+            notes = [_JustNote(hz) for hz in self.just_frequencies(sa)]
         else:
-            for tone in self.melody(sa):
-                play(tone, synth=s, t=t, envelope=env)
+            notes = self.melody(sa)
+
+        buffers = [_render(n, synth=s, t=t, envelope=env) for n in notes]
+        buf = numpy.concatenate(buffers).astype(numpy.float32)
+
+        if reverb and reverb > 0:
+            # Pad so the reverb tail isn't clipped off the end.
+            tail = numpy.zeros(int(SAMPLE_RATE * 1.5), dtype=numpy.float32)
+            buf = _apply_reverb(numpy.concatenate([buf, tail]), mix=reverb)
+        return buf
+
+    def play(self, sa="C4", *, synth="sitar", t=420, envelope="pluck",
+             just=True, reverb=0.35):
+        """Play the aroha then avaroha through the speakers.
+
+        Defaults to the sitar voice in **just intonation** (the shruti
+        tuning a raga is meant to be heard in), with a touch of reverb so
+        the phrase rings like a hall. Pass ``just=False`` for tempered
+        12-TET, ``reverb=0`` for a dry run, or any synth name you like.
+        """
+        from .play import _play_for, SAMPLE_RATE
+        buf = self.render(sa, synth=synth, t=t, envelope=envelope,
+                          just=just, reverb=reverb)
+        _play_for(buf, ms=int(len(buf) / SAMPLE_RATE * 1000))
 
     # ── lookup ───────────────────────────────────────────────────────
 
@@ -432,6 +464,75 @@ _RAGA_LIST = [
          aroha="S G M D N S'", avaroha="S' N D M G S",
          pakad="S G, M D, N D, M G S", vadi="D", samvadi="G",
          time="morning", rasa="joyful, spring", aka=["Hindolam"]),
+    Raga("Ahir Bhairav", thaat="bhairav",
+         aroha="S r G m P D n S'", avaroha="S' n D P m G r S",
+         pakad="S r, G m, D n D, P", vadi="m", samvadi="S",
+         time="early morning", rasa="serene, devotional",
+         aka=["Ahir Bhairon"]),
+    Raga("Jogiya", thaat="bhairav",
+         aroha="S r m P d S'", avaroha="S' n d P m r S",
+         pakad="m P d, P, m r S", vadi="m", samvadi="S",
+         time="early morning", rasa="pathos, renunciation"),
+    Raga("Sohni", thaat="marwa",
+         aroha="S G M D N S'", avaroha="S' N D M G r S",
+         pakad="M D N S', N D M G, M G r S", vadi="D", samvadi="G",
+         time="late night", rasa="longing, pathos", aka=["Sohini"]),
+    Raga("Puriya", thaat="marwa",
+         aroha="N. r G M D N S'", avaroha="S' N D M G r S",
+         pakad="N. r G, M G, M D N D M G", vadi="G", samvadi="N",
+         time="evening", rasa="serious, contemplative"),
+    Raga("Puriya Dhanashri", thaat="purvi",
+         aroha="S r G M P d N S'", avaroha="S' N d P M G r S",
+         pakad="N. r G, M d, P, M G r G r S", vadi="P", samvadi="r",
+         time="sunset", rasa="pathos, devotion",
+         aka=["Puriya Dhanashree", "Poorya Dhanashri"]),
+    Raga("Shree", thaat="purvi",
+         aroha="S r M P N S'", avaroha="S' N d P M G r S",
+         pakad="r r S, N. r S, P P, M G r S", vadi="r", samvadi="P",
+         time="sunset", rasa="serious, devotional", aka=["Shri", "Sri"]),
+    Raga("Multani", thaat="todi",
+         aroha="S g M P N S'", avaroha="S' N d P M g r S",
+         pakad="N. S g, M g, P g, r S", vadi="P", samvadi="S",
+         time="afternoon", rasa="serious, yearning"),
+    Raga("Brindabani Sarang", thaat="kafi",
+         aroha="S R m P N S'", avaroha="S' n P m R S",
+         pakad="N. S R, m R, P m R, n P", vadi="R", samvadi="P",
+         time="afternoon", rasa="bright, restful",
+         aka=["Vrindavani Sarang", "Brindavani Sarang", "Sarang"]),
+    Raga("Megh", thaat="kafi",
+         aroha="S R m P n S'", avaroha="S' n P m R S",
+         pakad="S R, m R, P, m R n. S", vadi="S", samvadi="P",
+         time="monsoon", rasa="monsoon, valour", aka=["Megh Malhar"]),
+    Raga("Shivaranjani", thaat="kafi",
+         aroha="S R g P D S'", avaroha="S' D P g R S",
+         pakad="S R g, P, g R S, D. S", vadi="P", samvadi="R",
+         time="night", rasa="pathos, longing",
+         aka=["Shivranjani", "Sivaranjani"]),
+    Raga("Tilang", thaat="khamaj",
+         aroha="S G m P N S'", avaroha="S' n P m G S",
+         pakad="S G, m G, P, N S', n P", vadi="G", samvadi="N",
+         time="night", rasa="light, romantic", aka=["Tilung"]),
+    Raga("Jhinjhoti", thaat="khamaj",
+         aroha="S R m P D S'", avaroha="S' n D P m G R S",
+         pakad="S R m, P D, m G R, n. S", vadi="G", samvadi="D",
+         time="night", rasa="playful, folk", aka=["Jhinjhuti"]),
+    Raga("Rageshri", thaat="khamaj",
+         aroha="S G m D n S'", avaroha="S' n D m G R S",
+         pakad="S G m D, n D, m G R S", vadi="m", samvadi="S",
+         time="night", rasa="serene, devotional",
+         aka=["Rageshree", "Rageshwari"]),
+    Raga("Kalavati", thaat="khamaj",
+         aroha="S G P D n S'", avaroha="S' n D P G S",
+         pakad="S G P, D n D, P G S", vadi="P", samvadi="G",
+         time="night", rasa="sweet, romantic"),
+    Raga("Deshkar", thaat="bilawal",
+         aroha="S R G P D S'", avaroha="S' D P G R S",
+         pakad="D. S R, G P, D P, G R S", vadi="D", samvadi="G",
+         time="morning", rasa="bright, expansive"),
+    Raga("Shankara", thaat="bilawal",
+         aroha="S G P D N S'", avaroha="S' N D P G R S",
+         pakad="G P, N S', N D P, G R S", vadi="G", samvadi="N",
+         time="late night", rasa="majestic, heroic", aka=["Shankra"]),
 ]
 
 _RAGAS = {r.name.lower(): r for r in _RAGA_LIST}

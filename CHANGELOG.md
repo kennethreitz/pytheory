@@ -2,6 +2,17 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.53.1
+
+- **More ragas, and reverb on playback.** The raga set grows from 20 to
+  36 — adding Ahir Bhairav, Jogiya, Sohni, Puriya, Puriya Dhanashri,
+  Shree, Multani, Brindabani Sarang, Megh, Shivaranjani, Tilang,
+  Jhinjhoti, Rageshri, Kalavati, Deshkar, and Shankara. `Raga.play()`
+  now lays the swaras end to end and mixes a hall reverb over the whole
+  phrase (so each note's tail bleeds into the next), with a new
+  `Raga.render()` that returns the buffer. Tune it with the `reverb`
+  argument or `pytheory raga <name> --play --reverb 0.5`.
+
 ## 0.53.0
 
 - **Hindustani ragas — `pytheory.Raga` and `pytheory raga`.** The ten
