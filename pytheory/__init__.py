@@ -5,6 +5,7 @@ __version__ = "0.53.0"
 from .tones import Tone, Interval
 from .systems import System, SYSTEMS, TET
 from .scales import TonedScale, Key, PROGRESSIONS
+from .ragas import Raga
 from .chords import Chord, Fretboard, analyze_progression
 from .charts import CHARTS, Fingering, charts_for_fretboard
 
@@ -20,7 +21,7 @@ Scale = TonedScale
 
 __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
-    "PROGRESSIONS", "Chord", "Fretboard", "Fingering", "analyze_progression",
+    "PROGRESSIONS", "Raga", "Chord", "Fretboard", "Fingering", "analyze_progression",
     "System", "SYSTEMS", "TET", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "play_pattern",
     "play_score", "render_score", "Synth", "Envelope",

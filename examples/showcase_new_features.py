@@ -10,7 +10,7 @@ sound, so they're left for you to run).
 """
 import os
 
-from pytheory import Key, Chord, Fretboard, TonedScale
+from pytheory import Key, Chord, Fretboard, TonedScale, Raga
 
 
 def hr(title):
@@ -74,8 +74,24 @@ print("  arpeggio map   : Am_arpeggio.svg")
 print(f"\n  → open {out}/ in a browser to view them")
 
 
-# ── 5. Metronome / tempo trainer (commands to try) ───────────────────
-hr("5. Metronome + tempo trainer  —  these make sound, so run them yourself")
+# ── 5. Hindustani ragas (with shruti just intonation) ────────────────
+hr("5. Hindustani ragas  —  living forms, intoned in shruti")
+for name in ["Yaman", "Bhairav", "Malkauns"]:
+    r = Raga.get(name)
+    print(f"  {r.name} ({r.thaat}, {r.time}, {r.rasa})")
+    print(f"    aroha {' '.join(r.aroha_swaras())}  /  "
+          f"avaroha {' '.join(r.avaroha_swaras())}")
+yaman = Raga.get("Yaman")
+print("\n  Yaman in just intonation (Sa=C) — note the flat shruti thirds:")
+for row in yaman.shruti_table("C"):
+    print(f"    {row['swara']:<2} {row['ratio']:>6}  {row['note']:<3} "
+          f"{row['cents_off']:+6.1f}¢ vs 12-TET")
+print("\n  hear it:  pytheory raga yaman --play     (just intonation, sitar)")
+print(f"  ({len(Raga.all())} ragas across all ten thaats — Raga.names())")
+
+
+# ── 6. Metronome / tempo trainer (commands to try) ───────────────────
+hr("6. Metronome + tempo trainer  —  these make sound, so run them yourself")
 print("  pytheory metronome 120")
 print("  pytheory metronome 90 --chords Am F C G        # practice a loop")
 print("  pytheory metronome 100 --subdivide 2           # eighth-note clicks")

@@ -4,6 +4,18 @@ All notable changes to PyTheory are documented here.
 
 ## 0.53.0
 
+- **Hindustani ragas — `pytheory.Raga` and `pytheory raga`.** The ten
+  thaats described parent scales; this adds twenty of the living ragas
+  built on them, each with its ascending line (*aroha*), descending line
+  (*avaroha*), catch-phrase (*pakad*), vadi/samvadi, time of day, rasa,
+  and jati. `Raga.get("yaman")`, `Raga.by_thaat("kafi")`,
+  `Raga.by_time("night")`; `.aroha_tones(sa)` / `.note_names(sa)` voice
+  it in any key (Sa is movable). Crucially, ragas render in **just
+  intonation** off the bundled 22-shruti ratios — `.just_ratios()`,
+  `.shruti_table(sa)` (each swara's ratio and cents off 12-TET), and
+  `.play(sa, just=True)` (the default) so a komal Ga or tivra Ma is
+  intoned the way it's meant to be heard, not snapped to the tempered
+  grid. CLI: `pytheory raga yaman --shruti --play`.
 - **SVG fretboard diagrams.** A new `pytheory.diagrams` module renders
   fretboard data as clean, dependency-free SVG you can drop into a
   video, slide, or worksheet — ASCII tabs finally have a graphical

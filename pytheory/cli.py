@@ -275,6 +275,44 @@ def cmd_progressions(args):
         print(f"    {name:<20s}  {' → '.join(symbols)}")
 
 
+def cmd_raga(args):
+    from .ragas import Raga
+
+    # Bare `pytheory raga` (or `--list`) lists everything.
+    if not args.name or args.list:
+        if args.thaat:
+            ragas = Raga.by_thaat(args.thaat)
+        elif args.time:
+            ragas = Raga.by_time(args.time)
+        else:
+            ragas = Raga.all()
+        print(f"  {len(ragas)} ragas:\n")
+        for r in ragas:
+            print(f"    {r.name:<16} {r.thaat:<9} {r.time:<13} {r.rasa}")
+        return
+
+    raga = Raga.get(args.name)
+    sa = args.sa
+    print(f"  Raga {raga.name}"
+          + (f"  (aka {', '.join(raga.aka)})" if raga.aka else ""))
+    print(f"  thaat {raga.thaat} · {raga.jati} · {raga.time} · {raga.rasa}")
+    print(f"  vadi {raga.vadi}  samvadi {raga.samvadi}")
+    print(f"  aroha  : {' '.join(raga.aroha_swaras())}")
+    print(f"  avaroha: {' '.join(raga.avaroha_swaras())}")
+    if raga.pakad:
+        print(f"  pakad  : {raga.pakad}")
+    print(f"  scale (Sa={sa}): {' '.join(raga.note_names(sa))}")
+    if args.shruti:
+        print("\n  shruti intonation (just vs 12-TET):")
+        for row in raga.shruti_table(sa):
+            print(f"    {row['swara']:<2} {row['ratio']:>6}  {row['note']:<3} "
+                  f"{row['hz']:>8.2f} Hz  {row['cents_off']:+6.1f}¢")
+    if args.play:
+        print(f"\n  Playing {raga.name} "
+              f"({'just intonation' if not args.equal else '12-TET'})…")
+        raga.play(f"{sa}4", just=not args.equal)
+
+
 def cmd_metronome(args):
     from .metronome import Metronome
 
@@ -616,6 +654,21 @@ def main():
     p.add_argument("--bpm", type=int, default=120, help="BPM (default: 120)")
     p.add_argument("--duration", type=int, default=500, help="Duration per chord in ms (default: 500)")
 
+    # raga
+    p = sub.add_parser("raga",
+                       help="Explore a Hindustani raga (e.g. pytheory raga yaman)")
+    p.add_argument("name", nargs="?", default=None,
+                   help="Raga name (e.g. yaman, bhairav, malkauns); omit to list all")
+    p.add_argument("--sa", default="C", help="Tonic note for Sa (default: C)")
+    p.add_argument("--shruti", action="store_true",
+                   help="Show just-intonation shruti detail (cents off 12-TET)")
+    p.add_argument("--play", action="store_true", help="Play the aroha/avaroha")
+    p.add_argument("--equal", action="store_true",
+                   help="Play in 12-TET instead of just intonation")
+    p.add_argument("--list", action="store_true", help="List all ragas")
+    p.add_argument("--thaat", default=None, help="Filter the list by thaat")
+    p.add_argument("--time", default=None, help="Filter the list by time of day")
+
     # metronome
     p = sub.add_parser("metronome", aliases=["metro"],
                        help="Metronome, chord-practice click, and tempo trainer")
@@ -722,6 +775,7 @@ def main():
         "fingering": cmd_fingering,
         "progression": cmd_progression,
         "play": cmd_play,
+        "raga": cmd_raga,
         "metronome": cmd_metronome,
         "metro": cmd_metronome,
         "identify": cmd_identify,
