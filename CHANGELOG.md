@@ -25,6 +25,13 @@ All notable changes to PyTheory are documented here.
   left and right impulse responses from the same fixed random seed, so both
   channels were identical and the "stereo" reverb had no width. Each channel
   now uses a distinct seed, opening up a real stereo image.
+- **Stereo-linked master bus.** The master compressor ran independently on
+  the left and right channels, so whenever one side was louder it ducked
+  harder and dragged the stereo image off-centre. The bus now detects gain
+  reduction from the louder channel and applies one shared gain curve to
+  both, keeping the image rock-steady. The old hard brick-wall clip is
+  replaced by a soft-knee limiter, so peaks bend into the ceiling with a
+  touch of warmth instead of harsh clipping.
 - **Faster rendering.** Convolution impulse responses are memoised per
   `(preset, sample_rate, seed)` — they're deterministic, so they're built at
   most once per process, making re-renders of a reverbed score ~50% faster.

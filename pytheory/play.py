@@ -5646,6 +5646,87 @@ def _master_compress(samples, threshold=0.7, ratio=4.0, attack=0.002,
     return compressed
 
 
+def _soft_clip(x, knee=0.8, ceiling=0.98):
+    """Soft-knee limiter: transparent below ``knee``, smoothly saturating
+    toward ``ceiling`` above it.
+
+    Unlike a hard ``numpy.clip``, peaks bend into the ceiling instead of
+    being sliced flat, so loud transients add a touch of warmth rather than
+    harsh clipping distortion. Output magnitude never reaches ``ceiling``.
+    """
+    out = numpy.array(x, dtype=numpy.float32, copy=True)
+    mag = numpy.abs(out)
+    over = mag > knee
+    if numpy.any(over):
+        span = ceiling - knee
+        excess = (mag[over] - knee) / span
+        out[over] = numpy.sign(out[over]) * (knee + span * numpy.tanh(excess))
+    return out
+
+
+def _master_bus(stereo, threshold=0.7, ratio=4.0, attack=0.002,
+                release=0.05, ceiling=0.98, sample_rate=SAMPLE_RATE):
+    """Stereo-linked master bus: glue compression + soft limiter.
+
+    Gain reduction is detected once from the *louder* of the two channels
+    and applied identically to both, so compression never pulls the stereo
+    image off-centre — the flaw in compressing each channel independently.
+    A soft-knee limiter then tames peaks smoothly instead of hard-clipping.
+
+    Args:
+        stereo: Float32 ``(N, 2)`` mix buffer.
+        threshold/ratio/attack/release: Compressor settings (see
+            :func:`_master_compress`).
+        ceiling: Soft-limit ceiling (always < 1.0, so the mix never clips).
+
+    Returns:
+        Float32 ``(N, 2)`` mastered buffer.
+    """
+    n = stereo.shape[0]
+    if n == 0:
+        return stereo
+
+    # 1. Stereo-linked detector — the louder channel drives both.
+    detector = numpy.maximum(numpy.abs(stereo[:, 0]), numpy.abs(stereo[:, 1]))
+
+    # Block-rate attack/release follower (as in _master_compress).
+    block = 32
+    k = -(-n // block)
+    padded = numpy.zeros(k * block, dtype=numpy.float32)
+    padded[:n] = detector
+    blk_peak = padded.reshape(k, block).max(axis=1)
+
+    alpha_a = 1.0 - numpy.exp(-block / (attack * sample_rate))
+    alpha_r = 1.0 - numpy.exp(-block / (release * sample_rate))
+    blk_smooth = numpy.empty(k, dtype=numpy.float32)
+    prev = blk_peak[0]
+    blk_smooth[0] = prev
+    for i in range(1, k):
+        e = blk_peak[i]
+        alpha = alpha_a if e > prev else alpha_r
+        prev = alpha * e + (1 - alpha) * prev
+        blk_smooth[i] = prev
+
+    blk_centers = numpy.arange(k) * block + block / 2
+    smoothed = numpy.interp(numpy.arange(n), blk_centers,
+                            blk_smooth).astype(numpy.float32)
+
+    # 2. One gain curve, applied to both channels.
+    gain = numpy.ones(n, dtype=numpy.float32)
+    above = smoothed > threshold
+    if numpy.any(above):
+        over = smoothed[above] / threshold
+        reduced = threshold * (over ** (1.0 / ratio))
+        gain[above] = reduced / smoothed[above]
+    out = stereo * gain[:, None]
+
+    # 3. Linked makeup gain (same factor both sides), then soft limit.
+    peak = float(numpy.max(numpy.abs(out)))
+    if peak > 0:
+        out = out * min(0.95 / peak, 3.0)
+    return _soft_clip(out, knee=0.8, ceiling=ceiling)
+
+
 def _resolve_synth(name):
     """Map synth name string to wave function."""
     return _SYNTH_FUNCTIONS.get(name, sine_wave)
@@ -6463,9 +6544,9 @@ def render_score(score):
     # Drums: stereo panned (with effects already applied)
     stereo_buf += drum_stereo
 
-    # Master bus compressor/limiter (per channel)
-    stereo_buf[:, 0] = _master_compress(stereo_buf[:, 0])
-    stereo_buf[:, 1] = _master_compress(stereo_buf[:, 1])
+    # Stereo-linked master bus — glue compression + soft limiter, applied
+    # with one shared gain curve so the stereo image stays put.
+    stereo_buf = _master_bus(stereo_buf)
 
     return stereo_buf
 

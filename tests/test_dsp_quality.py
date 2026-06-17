@@ -24,6 +24,8 @@ from pytheory.play import (
     _generate_ir,
     _pan_to_stereo,
     _master_compress,
+    _master_bus,
+    _soft_clip,
     _GENERATED_IR_CACHE,
     _IR_DURATIONS,
 )
@@ -192,3 +194,40 @@ def test_master_compressor_tames_peaks_and_stays_finite():
     out = _master_compress(hot)
     assert np.all(np.isfinite(out))
     assert np.abs(out).max() <= 0.95          # limited below clipping
+
+
+def test_soft_clip_is_transparent_below_the_knee():
+    x = np.linspace(-0.7, 0.7, 101).astype(np.float32)   # all below knee=0.8
+    assert np.allclose(_soft_clip(x, knee=0.8, ceiling=0.98), x)
+
+
+def test_soft_clip_never_reaches_ceiling():
+    x = np.linspace(-5.0, 5.0, 1001).astype(np.float32)
+    out = _soft_clip(x, knee=0.8, ceiling=0.98)
+    assert np.abs(out).max() <= 0.98          # asymptotes to, never exceeds
+    assert np.all(np.isfinite(out))
+
+
+def test_master_bus_preserves_stereo_image():
+    # Regression guard: gain reduction must be stereo-linked. With R a fixed
+    # fraction of L, the L/R balance must survive a loud, compression-
+    # triggering burst — independent per-channel compression would shift it.
+    n = SAMPLE_RATE
+    t = np.arange(n) / SAMPLE_RATE
+    left = (0.4 * np.sin(2 * np.pi * 220 * t)).astype(np.float32)
+    left[20000:30000] *= 4.0
+    right = (0.5 * left).astype(np.float32)
+    stereo = np.stack([left, right], axis=1)
+
+    out = _master_bus(stereo.copy())
+    src_ratio = np.abs(right).sum() / np.abs(left).sum()
+    out_ratio = np.abs(out[:, 1]).sum() / np.abs(out[:, 0]).sum()
+    assert out_ratio == pytest.approx(src_ratio, rel=1e-3)
+
+
+def test_master_bus_soft_limits_and_stays_finite():
+    hot = np.random.uniform(-2.0, 2.0, (SAMPLE_RATE, 2)).astype(np.float32)
+    out = _master_bus(hot)
+    assert out.shape == hot.shape
+    assert np.all(np.isfinite(out))
+    assert np.abs(out).max() < 0.98           # soft-limited, never clips
