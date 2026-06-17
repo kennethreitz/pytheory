@@ -231,3 +231,27 @@ def test_master_bus_soft_limits_and_stays_finite():
     assert out.shape == hot.shape
     assert np.all(np.isfinite(out))
     assert np.abs(out).max() < 0.98           # soft-limited, never clips
+
+
+# ── Reproducibility ────────────────────────────────────────────────────
+
+def test_render_is_deterministic_without_humanize():
+    # Every synth is seeded by pitch, so a score with no humanisation must
+    # render bit-identically twice — reproducible mixes, and proof the
+    # waveform cache can't change the sound.
+    from pytheory import Score, Duration
+    from pytheory.play import render_score
+
+    def build():
+        s = Score("4/4", bpm=120)
+        pluck = s.part("pl", synth="pluck", envelope="pluck")
+        noise = s.part("nz", synth="noise", volume=0.2)
+        keys = s.part("keys", instrument="piano", reverb=0.3)
+        for _ in range(4):
+            for n in ("C5", "E5", "G5", "E5"):
+                pluck.add(n, Duration.QUARTER)
+            keys.add("C4", Duration.HALF).add("E4", Duration.HALF)
+            noise.add("C4", Duration.WHOLE)
+        return s
+
+    assert np.array_equal(render_score(build()), render_score(build()))

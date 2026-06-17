@@ -505,9 +505,15 @@ def test_noise_wave():
     from pytheory.play import noise_wave, SAMPLE_RATE
     wave = noise_wave(n_samples=SAMPLE_RATE)
     assert len(wave) == SAMPLE_RATE
-    # Noise should be random — two calls produce different results
-    wave2 = noise_wave(n_samples=SAMPLE_RATE)
-    assert not numpy.array_equal(wave, wave2)
+    # Still broadband noise: wide amplitude spread, near-zero mean.
+    assert wave.std() > 1000
+    assert abs(float(wave.mean())) < 200
+    # Now seeded by pitch: reproducible for a given hz...
+    assert numpy.array_equal(noise_wave(220, n_samples=SAMPLE_RATE),
+                             noise_wave(220, n_samples=SAMPLE_RATE))
+    # ...but a different note gives a different noise realisation.
+    assert not numpy.array_equal(noise_wave(220, n_samples=SAMPLE_RATE),
+                                 noise_wave(440, n_samples=SAMPLE_RATE))
 
 
 @needs_portaudio

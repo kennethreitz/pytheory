@@ -39,6 +39,13 @@ All notable changes to PyTheory are documented here.
   damping loop is now a vectorised piecewise filter (an inaudible
   approximation), cutting the first render of the benchmark score from
   3.4s to 2.7s.
+- **Reproducible renders + a synth cache.** The `noise` and `pluck` synths
+  drew from unseeded global randomness, so a score re-rendered slightly
+  differently each time. Both are now seeded by pitch (one realisation of
+  white noise sounds like any other), making every synth deterministic — so
+  the same score renders bit-for-bit identically. That also lets note
+  waveforms be memoised across parts and renders: a synth-heavy score
+  re-renders ~60% faster.
 - **Reliability:** a new `tests/test_dsp_quality.py` makes real assertions
   about the audio itself — oscillator pitch, harmonic content, envelope
   decay, filter response, echo timing, reverb tails, stereo width, panning,

@@ -199,11 +199,13 @@ def fm_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
 def noise_wave(hz=0, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     """Compute N samples of white noise.
 
-    Unpitched — the ``hz`` parameter is accepted for API compatibility
-    but ignored. Useful for percussion textures, wind effects, and
-    hi-hat-like sounds in melodic parts.
+    Unpitched — the ``hz`` parameter only seeds the noise so a given note
+    renders reproducibly (one realisation of white noise sounds like any
+    other). Useful for percussion textures, wind effects, and hi-hat-like
+    sounds in melodic parts.
     """
-    return (peak * numpy.random.uniform(-1, 1, n_samples)).astype(numpy.int16)
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    return (peak * rng.uniform(-1, 1, n_samples)).astype(numpy.int16)
 
 
 def supersaw_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE,
@@ -445,8 +447,10 @@ def pluck_wave(hz, peak=SAMPLE_PEAK, n_samples=SAMPLE_RATE):
     period = int(SAMPLE_RATE / hz)
     if period < 2:
         period = 2
-    # Initial noise burst — the "pluck"
-    buf = numpy.random.uniform(-1.0, 1.0, period).astype(numpy.float64)
+    # Initial noise burst — the "pluck" (seeded by pitch so a note is
+    # reproducible from one render to the next)
+    rng = numpy.random.default_rng(int(hz * 100) % 2**31)
+    buf = rng.uniform(-1.0, 1.0, period).astype(numpy.float64)
     out = _karplus_strong(buf, n_samples, 0.5, 0.5, 0.998)
     return (peak * out).astype(numpy.int16)
 
@@ -5766,6 +5770,31 @@ def _total_samples_from_tempo_map(total_beats, tempo_map):
     return _beat_to_sample(total_beats, tempo_map)
 
 
+# Persistent cache of synthesised note waveforms, keyed by
+# (synth_fn, hz, n_samples, sorted-kwargs). Synths are deterministic per
+# pitch, so an identical note is never resynthesised — across parts and
+# across repeated renders. Bounded with FIFO eviction so a long session
+# doesn't grow without limit.
+_SYNTH_WAVE_CACHE: dict[tuple, numpy.ndarray] = {}
+_SYNTH_WAVE_CACHE_MAX = 512
+
+
+def _synth_wave_cached(synth_fn, hz, n_samples, skw):
+    """Return a memoised synthesised note waveform.
+
+    The returned array is shared; callers treat it as read-only (the
+    envelope and gain stages already allocate new arrays).
+    """
+    key = (synth_fn, hz, n_samples, tuple(sorted(skw.items())))
+    wave = _SYNTH_WAVE_CACHE.get(key)
+    if wave is None:
+        wave = synth_fn(hz, n_samples=n_samples, **skw)
+        if len(_SYNTH_WAVE_CACHE) >= _SYNTH_WAVE_CACHE_MAX:
+            _SYNTH_WAVE_CACHE.pop(next(iter(_SYNTH_WAVE_CACHE)))  # evict oldest
+        _SYNTH_WAVE_CACHE[key] = wave
+    return wave
+
+
 def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                          synth_fn, envelope_tuple, volume, bpm,
                          swing=0.0, tempo_map=None, humanize=0.0,
@@ -5781,15 +5810,9 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
 
     a, d, s, r = envelope_tuple
     _skw = synth_kwargs or {}
-    _synth_cache = {}  # (hz, n_samples, kwargs) → waveform, avoids resynthesizing same note
 
     def _synth_cached(hz, n_samples, skw):
-        cache_key = (hz, n_samples, tuple(sorted(skw.items())))
-        w = _synth_cache.get(cache_key)
-        if w is None:
-            w = synth_fn(hz, n_samples=n_samples, **skw)
-            _synth_cache[cache_key] = w
-        return w
+        return _synth_wave_cached(synth_fn, hz, n_samples, skw)
     beat_pos = 0.0
     for note_index, note in enumerate(notes):
         if note.tone is not None:
