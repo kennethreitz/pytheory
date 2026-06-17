@@ -299,6 +299,40 @@ def test_analyze_progression():
     assert analyze_progression(prog, key="C") == ["I", "vi", "IV", "V"]
 
 
+def test_detect_cadence_types():
+    from pytheory import detect_cadence
+    C = Chord.from_name
+    # Authentic: a close root-position triad puts the 5th on top -> IAC.
+    assert detect_cadence(C("G"), C("C"), "C") == "imperfect authentic"
+    assert detect_cadence(C("Bdim"), C("C"), "C") == "imperfect authentic"
+    # PAC needs the tonic in the soprano (root position both chords).
+    pac = Chord.from_midi_message(48, 52, 55, 60)   # C3 E3 G3 C4
+    assert detect_cadence(C("G"), pac, "C") == "perfect authentic"
+    assert detect_cadence(C("G7"), pac, "C") == "perfect authentic"
+    # The rest
+    assert detect_cadence(C("F"), C("C"), "C") == "plagal"
+    assert detect_cadence(C("Dm"), C("G"), "C") == "half"
+    assert detect_cadence(C("G"), C("Am"), "C") == "deceptive"
+    assert detect_cadence(C("C"), C("F"), "C") is None
+
+
+def test_detect_cadence_minor_and_phrygian():
+    from pytheory import detect_cadence
+    C = Chord.from_name
+    assert detect_cadence(C("E"), C("Am"), "A", "minor") == "imperfect authentic"
+    assert detect_cadence(C("E"), C("F"), "A", "minor") == "deceptive"
+    # iv6 -> V in minor: Dm/F (bass F) into E.
+    iv6 = Chord.from_midi_message(53, 57, 62)        # F A D
+    assert detect_cadence(iv6, C("E"), "A", "minor") == "phrygian half"
+
+
+def test_find_cadences_scans_pairs():
+    from pytheory import find_cadences
+    prog = [Chord.from_name(n) for n in ("C", "F", "G", "Am")]
+    # C->F none, F->G half, G->Am deceptive
+    assert find_cadences(prog, "C") == [(2, "half"), (3, "deceptive")]
+
+
 def test_random_progression():
     prog = Key("C", "major").random_progression(4)
     assert len(prog) == 4

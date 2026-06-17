@@ -233,6 +233,56 @@ When you hear V7→I, you feel arrival.
    >>> c_major.tension['score']
    0.0
 
+Cadences
+~~~~~~~~
+
+A `cadence <https://en.wikipedia.org/wiki/Cadence>`_ is the harmonic
+punctuation that ends a phrase — the musical equivalent of a full stop,
+comma, or question mark. ``detect_cadence`` names the gesture from the last
+two chords and the key:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, detect_cadence
+
+   >>> detect_cadence(Chord.from_name("G"), Chord.from_name("C"), "C")
+   'imperfect authentic'
+   >>> detect_cadence(Chord.from_name("G"), Chord.from_name("Am"), "C")
+   'deceptive'
+   >>> detect_cadence(Chord.from_name("F"), Chord.from_name("C"), "C")
+   'plagal'
+   >>> detect_cadence(Chord.from_name("Dm"), Chord.from_name("G"), "C")
+   'half'
+
+The cadences, from most to least conclusive:
+
+- **Perfect authentic (PAC)** — V → I, both root position, with the tonic
+  in the top voice. The strongest ending; the sound of "the end."
+- **Imperfect authentic (IAC)** — also V → I (or vii° → I), but softened by
+  an inversion or a non-tonic soprano. A close root-position triad lands
+  its fifth on top, so it reads as imperfect — voice the tonic in the
+  soprano for a PAC.
+- **Half** — the phrase ends *on* the dominant (… → V): unfinished, a comma.
+- **Phrygian half** — in minor, iv⁶ → V, the bass falling a semitone.
+- **Deceptive** — V → vi instead of the expected tonic: the surprise.
+- **Plagal** — IV → I, the "Amen" cadence.
+
+.. code-block:: pycon
+
+   >>> tonic_top = Chord.from_midi_message(48, 52, 55, 60)   # C3 E3 G3 C4
+   >>> detect_cadence(Chord.from_name("G"), tonic_top, "C")
+   'perfect authentic'
+
+``find_cadences`` scans a whole progression and returns each cadential
+motion (by the index of its final chord):
+
+.. code-block:: pycon
+
+   >>> from pytheory import find_cadences
+   >>> prog = [Chord.from_name(n) for n in ("C", "F", "G", "Am")]
+   >>> find_cadences(prog, "C")
+   [(2, 'half'), (3, 'deceptive')]
+
 Rhythm and Meter
 ----------------
 

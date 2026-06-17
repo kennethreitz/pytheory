@@ -4,6 +4,13 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Cadence detection.** `detect_cadence(penultimate, final, key, mode)`
+  names the harmonic punctuation that ends a phrase — perfect/imperfect
+  authentic, half, Phrygian half, deceptive, or plagal — built on the
+  existing Roman-numeral analysis and chord voicing (PAC vs IAC depends on
+  root position and a tonic soprano). `find_cadences(progression, key)`
+  scans a whole progression for cadential motions. Covered in the theory
+  guide and the keys-and-harmony skill.
 - **Twelve-tone serialism — `ToneRow`.** A new top-level class for the
   twelve-tone technique: build a row from note names or pitch classes and
   get the four operations `P`/`I`/`R`/`RI` (each beginning on the pitch

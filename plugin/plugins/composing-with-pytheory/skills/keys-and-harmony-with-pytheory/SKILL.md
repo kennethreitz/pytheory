@@ -53,6 +53,27 @@ chords = [Chord.from_symbol(s) for s in ["C", "G", "Am", "F"]]
 analyze_progression(chords, key="C", mode="major")        # ['I', 'V', 'vi', 'IV']
 ```
 
+**Cadences** — the harmonic punctuation that ends a phrase. Pass the last
+two chords (and the key) to `detect_cadence`, or scan a whole progression
+with `find_cadences`:
+
+```python
+from pytheory import detect_cadence, find_cadences, Chord
+C = Chord.from_name
+
+detect_cadence(C("G"), C("C"), "C")            # 'imperfect authentic' (5th on top)
+detect_cadence(C("G"), C("Am"), "C")           # 'deceptive'  (V->vi surprise)
+detect_cadence(C("F"), C("C"), "C")            # 'plagal'     (the 'Amen')
+detect_cadence(C("Dm"), C("G"), "C")           # 'half'       (ends on V)
+detect_cadence(C("E"), C("Am"), "A", "minor")  # 'imperfect authentic'
+
+# Perfect authentic needs the tonic in the soprano (both root position):
+pac_I = Chord.from_midi_message(48, 52, 55, 60)   # C3 E3 G3 C4
+detect_cadence(C("G"), pac_I, "C")             # 'perfect authentic'
+
+find_cadences([C(n) for n in ("C","F","G","Am")], "C")   # [(2,'half'), (3,'deceptive')]
+```
+
 ## Harmonic color & motion
 
 ```python

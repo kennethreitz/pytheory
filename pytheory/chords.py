@@ -2430,3 +2430,125 @@ def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major"
         ['I', 'vi', 'IV', 'V']
     """
     return [c.analyze(key, mode) for c in chords]
+
+
+def _cadence_degree(roman: Optional[str]) -> Optional[str]:
+    """Reduce a Roman numeral to its bare scale-degree token.
+
+    Drops accidentals, sevenths, inversions, and quality suffixes, so
+    ``"V7"`` -> ``"V"``, ``"viidim"`` -> ``"vii"``, ``"bVI"`` -> ``"VI"``.
+    """
+    if not roman:
+        return None
+    stripped = roman.lstrip("b#♭♯")
+    i = 0
+    while i < len(stripped) and stripped[i] in "iIvV":
+        i += 1
+    return stripped[:i] or None
+
+
+def _pc(tone) -> int:
+    from ._statics import C_INDEX
+    return (tone._index - C_INDEX) % 12
+
+
+def _in_root_position(chord: Chord) -> bool:
+    root = chord.root
+    return root is not None and _pc(chord.tones[0]) == _pc(root)
+
+
+def detect_cadence(penultimate: Chord, final: Chord,
+                   key: str = "C", mode: str = "major") -> Optional[str]:
+    """Classify the cadential motion from ``penultimate`` to ``final``.
+
+    A cadence is the harmonic "punctuation" that ends a phrase. Given the
+    last two chords of a phrase (and the key), this names the gesture:
+
+    - ``"perfect authentic"`` — V → I, both root position, with the tonic
+      in the top voice. The strongest, most conclusive ending (PAC).
+    - ``"imperfect authentic"`` — also V → I (or vii° → I), but weakened by
+      an inversion or a non-tonic soprano (IAC).
+    - ``"half"`` — the phrase ends *on* the dominant (… → V). Sounds
+      unfinished, like a comma.
+    - ``"phrygian half"`` — in minor, iv⁶ → V, the bass falling a semitone
+      into the dominant.
+    - ``"deceptive"`` — V → vi instead of the expected tonic: the surprise.
+    - ``"plagal"`` — IV → I, the "Amen" cadence.
+    - ``None`` — the motion isn't a recognised cadence.
+
+    Note that perfect-authentic detection needs real voicing: a close
+    root-position triad puts the fifth on top, which is (correctly) an
+    *imperfect* authentic cadence. Voice the final chord with the tonic in
+    the soprano to get a PAC.
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> detect_cadence(Chord.from_name("G"), Chord.from_name("C"), "C")
+        'imperfect authentic'
+        >>> detect_cadence(Chord.from_name("G"), Chord.from_name("Am"), "C")
+        'deceptive'
+        >>> detect_cadence(Chord.from_name("F"), Chord.from_name("C"), "C")
+        'plagal'
+        >>> detect_cadence(Chord.from_name("Dm"), Chord.from_name("G"), "C")
+        'half'
+    """
+    from .tones import Tone
+
+    a = _cadence_degree(penultimate.analyze(key, mode))
+    b = _cadence_degree(final.analyze(key, mode))
+    if not a or not b:
+        return None
+    a_deg, b_deg = a.upper(), b.upper()
+
+    # Half cadence — the phrase ends on the dominant.
+    if b_deg == "V":
+        if mode == "minor" and a_deg == "IV" and not _in_root_position(penultimate):
+            return "phrygian half"      # iv6 -> V
+        return "half"
+
+    # Authentic — a dominant-function chord resolving to the tonic.
+    if b_deg == "I" and a_deg in ("V", "VII"):
+        tonic_pc = _pc(Tone.from_string(f"{key}4", system="western"))
+        soprano_on_tonic = _pc(final.tones[-1]) == tonic_pc
+        if (a_deg == "V"
+                and _in_root_position(penultimate)
+                and _in_root_position(final)
+                and soprano_on_tonic):
+            return "perfect authentic"
+        return "imperfect authentic"
+
+    # Deceptive — the dominant lands on the submediant instead.
+    if a_deg == "V" and b_deg == "VI":
+        return "deceptive"
+
+    # Plagal — the "Amen" cadence.
+    if a_deg == "IV" and b_deg == "I":
+        return "plagal"
+
+    return None
+
+
+def find_cadences(chords: list[Chord], key: str = "C",
+                  mode: str = "major") -> list[tuple]:
+    """Scan a progression for cadences.
+
+    Returns a list of ``(index, cadence_type)`` for every adjacent chord
+    pair that forms a cadence, where ``index`` is the position of the
+    *final* chord of the pair. Without phrase markings this reports every
+    cadential motion, so the most musically meaningful one is usually the
+    last.
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> prog = [Chord.from_name(n) for n in ("C", "F", "G", "C")]
+        >>> find_cadences(prog, "C")
+        [(1, 'plagal'), (3, 'imperfect authentic')]
+    """
+    found = []
+    for i in range(1, len(chords)):
+        cadence = detect_cadence(chords[i - 1], chords[i], key, mode)
+        if cadence:
+            found.append((i, cadence))
+    return found
