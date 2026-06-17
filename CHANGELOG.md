@@ -2,6 +2,18 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.54.1
+
+- **Correct Roman-numeral progressions in the published package.** The
+  case-sensitive `progression()` parser and the expanded `PROGRESSIONS`
+  set (14 → 34) from the 0.54.0 work are now on PyPI: lowercase numerals
+  build minor chords (so the Andalusian cadence keeps its minor v and the
+  Mixolydian vamp its major-ish vii), `"bVII"`/altered degrees transpose
+  to the correct borrowed triad, and secondary-dominant slash notation
+  (`"V7/V"`, `"vii°/ii"`) parses. These landed just after 0.54.0 was
+  uploaded, so `pip install -U pytheory` now matches the documented
+  0.54.0 behaviour.
+
 ## 0.54.0
 
 - **Roman-numeral progressions now mean what they say.** `progression()`
