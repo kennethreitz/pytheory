@@ -53,7 +53,10 @@ All notable changes to PyTheory are documented here.
   about the audio itself — oscillator pitch, harmonic content, envelope
   decay, filter response, echo timing, reverb tails, stereo width, panning,
   and the master limiter — so the synth/render core can be optimised without
-  silently changing the sound.
+  silently changing the sound. A companion `tests/test_render_integration.py`
+  locks down whole-mix behaviour: pan placement, volume balance, sidechain
+  ducking, that effects keep a part's onset time-aligned (the bus is
+  zero-latency), and that inert parts are no-ops.
 - **Internal:** convolution-reverb presets now have a single source of
   truth (`_IR_DURATIONS`) shared by IR generation, ring-out sizing, the
   reverb-type dispatch, and validation, so preset names and tail lengths
