@@ -4,6 +4,11 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **`pytheory analyze` CLI command.** Hand it a chord progression and it
+  prints the harmony: the auto-detected key (or pass `--key`/`--mode`),
+  each chord's Roman numeral with secondary dominants labelled, and the
+  cadences — surfacing the whole analysis layer from the terminal.
+  `pytheory analyze C D7 G7 C`.
 - **Secondary-dominant detection.** `detect_secondary_dominant(chord, key)`
   labels applied dominants — `D7` in C is `V7/V`, `E7` is `V7/vi` — the
   analytical inverse of the existing `Key.secondary_dominant(degree)`

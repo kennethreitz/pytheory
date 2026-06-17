@@ -585,6 +585,47 @@ def cmd_detect(args):
         print("  Could not detect key")
 
 
+def cmd_analyze(args):
+    from .chords import (Chord, analyze_progression, find_cadences,
+                         detect_secondary_dominant)
+    from .scales import Key
+
+    try:
+        chords = [Chord.from_symbol(s) for s in args.chords]
+    except Exception as e:
+        print(f"  Could not parse chords: {e}")
+        return
+
+    # Determine the key — given, or detected from all the notes.
+    if args.key:
+        tonic, mode, source = args.key, args.mode, "given"
+    else:
+        all_notes = [t.name for c in chords for t in c.tones]
+        detected = Key.detect(*all_notes)
+        if detected is None:
+            print("  Could not detect a key — pass --key.")
+            return
+        tonic, mode, source = detected.tonic_name, detected.mode, "detected"
+
+    romans = analyze_progression(chords, tonic, mode, secondary_dominants=True)
+    cadences = dict(find_cadences(chords, tonic, mode))
+
+    print(f"  Key: {tonic} {mode}  ({source})")
+    print()
+    for symbol, chord, roman in zip(args.chords, chords, romans):
+        name = chord.identify() or symbol
+        applied = detect_secondary_dominant(chord, tonic, mode)
+        note = "  (secondary dominant)" if applied else ""
+        print(f"    {symbol:8s} {(roman or '?'):8s} {name}{note}")
+    print()
+    if cadences:
+        print("  Cadences:")
+        for idx, cadence in cadences.items():
+            print(f"    {args.chords[idx - 1]} → {args.chords[idx]}: {cadence}")
+    else:
+        print("  No cadences detected.")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="pytheory",
@@ -624,6 +665,12 @@ def main():
     p.add_argument("tonic", help="Tonic note")
     p.add_argument("mode", help="Mode (e.g. major, minor)")
     p.add_argument("numerals", nargs="+", help="Roman numerals (e.g. I V vi IV)")
+
+    # analyze
+    p = sub.add_parser("analyze", help="Analyze a chord progression (e.g. pytheory analyze C D7 G7 C)")
+    p.add_argument("chords", nargs="+", help="Chord symbols (e.g. C D7 G7 C)")
+    p.add_argument("--key", help="Key tonic (e.g. C). Auto-detected if omitted.")
+    p.add_argument("--mode", default="major", help="major or minor (default: major)")
 
     # play
     p = sub.add_parser("play", help="Play notes or chords (e.g. pytheory play C E G)")
@@ -790,6 +837,7 @@ def main():
         "tune": cmd_tune,
         "studio": cmd_studio,
         "detect": cmd_detect,
+        "analyze": cmd_analyze,
         "modes": cmd_modes,
         "circle": cmd_circle,
         "progressions": cmd_progressions,

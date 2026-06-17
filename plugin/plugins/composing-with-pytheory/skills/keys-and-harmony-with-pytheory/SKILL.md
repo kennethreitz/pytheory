@@ -67,6 +67,10 @@ prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]
 analyze_progression(prog, "C", secondary_dominants=True)  # ['I', 'V7/V', 'V7', 'I']
 ```
 
+From the terminal, `pytheory analyze C D7 G7 C` prints the whole picture —
+detected key, Roman numerals (with secondary dominants), and cadences
+(add `--key`/`--mode` to fix the key).
+
 **Cadences** — the harmonic punctuation that ends a phrase. Pass the last
 two chords (and the key) to `detect_cadence`, or scan a whole progression
 with `find_cadences`:

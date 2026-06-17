@@ -30,6 +30,29 @@ def test_cli_detect_no_match(capsys):
     assert "Could not detect" in out
 
 
+def test_cli_analyze_detects_key_and_labels(capsys):
+    from pytheory.cli import cmd_analyze
+    import argparse
+    args = argparse.Namespace(chords=["C", "D7", "G7", "C"], key=None, mode="major")
+    cmd_analyze(args)
+    out = capsys.readouterr().out
+    assert "C major" in out and "detected" in out
+    assert "V7/V" in out                       # the secondary dominant
+    assert "secondary dominant" in out
+    assert "Cadences:" in out
+
+
+def test_cli_analyze_explicit_key(capsys):
+    from pytheory.cli import cmd_analyze
+    import argparse
+    args = argparse.Namespace(chords=["Am", "Dm", "E", "Am"], key="A", mode="minor")
+    cmd_analyze(args)
+    out = capsys.readouterr().out
+    assert "A minor" in out and "given" in out
+    assert "iv" in out                          # Dm is iv in A minor
+    assert "imperfect authentic" in out         # E -> Am
+
+
 def test_cli_main_no_args(capsys):
     from pytheory.cli import main
     import sys

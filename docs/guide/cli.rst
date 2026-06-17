@@ -131,6 +131,29 @@ Build progressions from Roman numerals::
         vi      E minor
         IV      C major
 
+Analyze a Progression
+---------------------
+
+Go the other way — hand it the chords and it works out the harmony. The key
+is auto-detected (or pass ``--key``/``--mode``), applied dominants are
+labelled, and cadences are flagged::
+
+    $ pytheory analyze C D7 G7 C
+      Key: C major  (detected)
+
+        C        I        C major
+        D7       V7/V     D dominant 7th  (secondary dominant)
+        G7       V7       G dominant 7th
+        C        I        C major
+
+      Cadences:
+        D7 → G7: half
+        G7 → C: imperfect authentic
+
+Use ``--key`` and ``--mode`` to analyze in a specific key::
+
+    $ pytheory analyze --key A --mode minor Am Dm E Am
+
 Key Detection
 -------------
 
