@@ -358,6 +358,142 @@ class Chord:
         result._identify_cache = None
         return result
 
+    # ── Neo-Riemannian transformations ────────────────────────────────
+    # The P/L/R operations turn one consonant triad into another by moving
+    # a single voice, flipping major <-> minor each time. Generated
+    # together they reach all 24 major/minor triads — the group behind the
+    # Tonnetz and a lot of chromatic / film-score harmony.
+
+    @staticmethod
+    def _triad(root_pc: int, quality: str) -> "Chord":
+        """Build a close-position major or minor triad on a pitch class."""
+        third = 4 if quality == "major" else 3
+        base = 60 + (root_pc % 12)
+        return Chord.from_midi_message(base, base + third, base + 7)
+
+    def _plr_state(self) -> tuple:
+        """This chord as a ``(root_pc, quality)`` pair, or raise if it isn't
+        a plain major/minor triad."""
+        from ._statics import C_INDEX
+        quality = self.quality
+        if quality not in ("major", "minor") or len(self.pitch_classes) != 3:
+            raise ValueError(
+                "Neo-Riemannian transformations require a major or minor triad."
+            )
+        root_pc = (self.root._index - C_INDEX) % 12
+        return root_pc, quality
+
+    def parallel(self) -> "Chord":
+        """**P** — the parallel transformation: swap major ↔ minor on the
+        same root (C major ↔ C minor). Moves the third by a semitone.
+
+        Example::
+
+            >>> Chord.from_name("C").parallel().identify()
+            'C minor'
+        """
+        root_pc, quality = self._plr_state()
+        return Chord._triad(root_pc, "minor" if quality == "major" else "major")
+
+    def relative(self) -> "Chord":
+        """**R** — the relative transformation: a triad to its relative
+        (C major ↔ A minor). Moves one voice by a whole tone.
+
+        Example::
+
+            >>> Chord.from_name("C").relative().identify()
+            'A minor'
+        """
+        root_pc, quality = self._plr_state()
+        if quality == "major":
+            return Chord._triad((root_pc + 9) % 12, "minor")
+        return Chord._triad((root_pc + 3) % 12, "major")
+
+    def leading_tone_exchange(self) -> "Chord":
+        """**L** — the *Leittonwechsel*: exchange a triad with the one a
+        major third away of opposite quality (C major → E minor, A minor →
+        F major). Moves one voice by a semitone.
+
+        Example::
+
+            >>> Chord.from_name("C").leading_tone_exchange().identify()
+            'E minor'
+        """
+        root_pc, quality = self._plr_state()
+        if quality == "major":
+            return Chord._triad((root_pc + 4) % 12, "minor")
+        return Chord._triad((root_pc + 8) % 12, "major")
+
+    def transform(self, sequence: str) -> "Chord":
+        """Apply a sequence of ``P``/``L``/``R`` transformations, left to right.
+
+        Args:
+            sequence: A string like ``"LPR"`` or ``"PLR"`` (spaces ignored,
+                case-insensitive).
+
+        Example::
+
+            >>> Chord.from_name("C").transform("LP").identify()
+            'E major'
+        """
+        ops = {
+            "P": Chord.parallel,
+            "L": Chord.leading_tone_exchange,
+            "R": Chord.relative,
+        }
+        chord = self
+        for ch in sequence.upper().replace(" ", ""):
+            if ch not in ops:
+                raise ValueError(
+                    f"Unknown transformation {ch!r}; use P, L, and R."
+                )
+            chord = ops[ch](chord)
+        return chord
+
+    def tonnetz_path(self, other: "Chord") -> str:
+        """Shortest sequence of P/L/R transformations turning this triad into
+        ``other`` — their distance on the Tonnetz.
+
+        Returns:
+            A string of ``P``/``L``/``R`` (empty if the triads are already
+            equal). Both chords must be major or minor triads.
+
+        Example::
+
+            >>> Chord.from_name("C").tonnetz_path(Chord.from_name("Am"))
+            'R'
+            >>> Chord.from_name("C").tonnetz_path(Chord.from_name("E"))
+            'LP'
+        """
+        from collections import deque
+
+        start, goal = self._plr_state(), other._plr_state()
+        if start == goal:
+            return ""
+
+        def neighbors(state):
+            root_pc, quality = state
+            if quality == "major":
+                yield "P", (root_pc, "minor")
+                yield "L", ((root_pc + 4) % 12, "minor")
+                yield "R", ((root_pc + 9) % 12, "minor")
+            else:
+                yield "P", (root_pc, "major")
+                yield "L", ((root_pc + 8) % 12, "major")
+                yield "R", ((root_pc + 3) % 12, "major")
+
+        queue = deque([(start, "")])
+        seen = {start}
+        while queue:
+            state, path = queue.popleft()
+            for op, nxt in neighbors(state):
+                if nxt == goal:
+                    return path + op
+                if nxt not in seen:
+                    seen.add(nxt)
+                    queue.append((nxt, path + op))
+        return ""  # unreachable: PLR connects all 24 triads
+
     def transpose(self, semitones: int) -> Chord:
         """Return a new Chord transposed by the given number of semitones.
 

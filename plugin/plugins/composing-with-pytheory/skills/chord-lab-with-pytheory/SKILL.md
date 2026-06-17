@@ -96,6 +96,23 @@ for frm, to, semis in Chord.from_symbol("Cmaj7").voice_leading(Chord.from_symbol
     print(frm, "->", to, f"({semis:+d} semitones)")
 ```
 
+### Neo-Riemannian (P/L/R) — chromatic triad moves
+
+The P/L/R transformations move a single voice to flip a major/minor triad
+into another — the engine behind Tonnetz harmony and a lot of film-score
+chromaticism. Each is its own inverse; together they reach all 24 triads.
+
+```python
+C = Chord.from_symbol("C")
+C.parallel().identify()              # 'C minor'  (P: same root, flip quality)
+C.relative().identify()              # 'A minor'  (R: relative)
+C.leading_tone_exchange().identify() # 'E minor'  (L: Leittonwechsel)
+
+C.transform("LP").identify()         # 'E major'  (apply a sequence)
+C.tonnetz_path(Chord.from_symbol("Am"))   # 'R'    — shortest P/L/R route between triads
+C.tonnetz_path(Chord.from_symbol("Abm"))  # 'PLP'  — the hexatonic pole of C major
+```
+
 ## Hear a chord
 
 ```python

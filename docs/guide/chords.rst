@@ -578,6 +578,49 @@ Combine with Roman numeral analysis using ``analyze_figured()``:
    >>> first_inv.analyze_figured("C")
    'I6'
 
+Neo-Riemannian Transformations
+------------------------------
+
+`Neo-Riemannian theory <https://en.wikipedia.org/wiki/Neo-Riemannian_theory>`_
+explains the smooth, chromatic triad-to-triad motion you hear in late
+Romantic music and film scores — progressions that traditional Roman
+numerals struggle to label. Its three basic operations each move a single
+voice and flip a triad between major and minor:
+
+- **P** (*parallel*) — same root, opposite quality: C major ↔ C minor.
+- **R** (*relative*) — a triad and its relative: C major ↔ A minor.
+- **L** (*Leittonwechsel*) — exchange a third away: C major ↔ E minor.
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+   >>> Chord.from_name("C").parallel().identify()
+   'C minor'
+   >>> Chord.from_name("C").relative().identify()
+   'A minor'
+   >>> Chord.from_name("C").leading_tone_exchange().identify()
+   'E minor'
+
+Each transformation is its own inverse, and applying them in sequence
+walks around the *Tonnetz* — the lattice of triads. Chain them with
+``transform()``:
+
+.. code-block:: pycon
+
+   >>> Chord.from_name("C").transform("LP").identify()
+   'E major'
+
+``tonnetz_path()`` finds the shortest sequence of P/L/R moves between any
+two triads — their distance on the Tonnetz. Together the three operations
+reach all 24 major and minor triads:
+
+.. code-block:: pycon
+
+   >>> Chord.from_name("C").tonnetz_path(Chord.from_name("Am"))
+   'R'
+   >>> Chord.from_name("C").tonnetz_path(Chord.from_name("Abm"))   # hexatonic pole
+   'PLP'
+
 Pitch Class Sets
 ----------------
 

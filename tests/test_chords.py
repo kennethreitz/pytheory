@@ -1278,6 +1278,47 @@ def test_literal_subset_superset():
     assert not seventh.is_subset_of(triad)
 
 
+# ── Neo-Riemannian transformations ─────────────────────────────────────
+
+def test_plr_basic_transformations():
+    c = Chord.from_name("C")
+    assert c.parallel().identify() == "C minor"             # P
+    assert c.relative().identify() == "A minor"             # R
+    assert c.leading_tone_exchange().identify() == "E minor"  # L
+    # And from a minor triad:
+    assert Chord.from_name("Am").relative().identify() == "C major"
+    assert Chord.from_name("Am").leading_tone_exchange().identify() == "F major"
+
+
+def test_plr_are_involutions():
+    c = Chord.from_name("C")
+    for op in ("parallel", "relative", "leading_tone_exchange"):
+        twice = getattr(getattr(c, op)(), op)()
+        assert twice.identify() == "C major"
+
+
+def test_transform_sequence():
+    assert Chord.from_name("C").transform("LP").identify() == "E major"
+    assert Chord.from_name("C").transform("R").identify() == "A minor"
+    with pytest.raises(ValueError, match="Unknown transformation"):
+        Chord.from_name("C").transform("X")
+
+
+def test_tonnetz_path_is_shortest_and_correct():
+    c = Chord.from_name("C")
+    assert c.tonnetz_path(c) == ""                       # identity
+    assert c.tonnetz_path(Chord.from_name("Am")) == "R"  # one step
+    # Whatever the path, applying it must reach the target.
+    for target in ("E", "Gm", "Db", "Ab"):
+        path = c.tonnetz_path(Chord.from_name(target))
+        assert c.transform(path).identify() == Chord.from_name(target).identify()
+
+
+def test_neo_riemannian_requires_a_triad():
+    with pytest.raises(ValueError, match="major or minor triad"):
+        Chord.from_symbol("C7").parallel()
+
+
 def test_from_symbol_slash_chord_inversion():
     c = Chord.from_symbol("C/E")
     assert [t.full_name for t in c.tones] == ["E4", "G4", "C5"]

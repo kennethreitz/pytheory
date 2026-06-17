@@ -4,6 +4,13 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Neo-Riemannian transformations.** `Chord` gains the P/L/R operations
+  that power Tonnetz harmony and chromatic/film-score writing:
+  `parallel()` (P, major↔minor on the same root), `relative()` (R), and
+  `leading_tone_exchange()` (L). Chain them with `transform("LP")`, and
+  `tonnetz_path(other)` returns the shortest P/L/R route between any two
+  triads (e.g. `C → Ab minor` is the hexatonic pole `"PLP"`). Together the
+  three reach all 24 major/minor triads.
 - **Pitch-class-set toolkit.** `Chord` grows a full post-tonal analysis kit
   on top of the existing `prime_form`/`forte_number`: `interval_vector` (the
   interval-class content `<ic1..ic6>`), `complement` (the rest of the
