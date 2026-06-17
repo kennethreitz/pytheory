@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 
@@ -1097,7 +1098,17 @@ def main():
         "circle": cmd_circle,
         "progressions": cmd_progressions,
     }
-    commands[args.command](args)
+    try:
+        commands[args.command](args)
+    except (KeyError, ValueError) as e:
+        # Bad user input (unknown raga/maqam/chord, malformed numeral, …):
+        # a friendly one-liner, not a raw traceback. Set PYTHEORY_DEBUG=1
+        # to re-raise and see the stack.
+        if os.environ.get("PYTHEORY_DEBUG"):
+            raise
+        msg = e.args[0] if e.args else str(e)
+        print(f"Error: {msg}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

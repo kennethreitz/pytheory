@@ -2924,6 +2924,13 @@ def _render(tone_or_chord, temperament="equal", synth=Synth.SINE, t=1_000,
     Returns:
         A NumPy int16 array of audio samples.
     """
+    from .rhythm import Score, Part, Section
+    if isinstance(tone_or_chord, (Score, Part, Section)):
+        raise TypeError(
+            f"play()/save() render a single Tone or Chord, not a "
+            f"{type(tone_or_chord).__name__}. Use play_score(), "
+            f"render_score(), or save_midi() for multi-part music.")
+
     n_samples = int(SAMPLE_RATE * t / 1_000)
 
     if isinstance(tone_or_chord, Tone):
@@ -5956,11 +5963,16 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                     # Render oscillators (cached per hz+n_samples)
                     waves = [_synth_cached(hz, n_samples, note_skw)
                              for hz in pitches]
-                # Sub-oscillator: octave-below sine
+                # Sub-oscillator: octave-below sine, appended right after the
+                # main oscillators. Record its slice so the mix below can find
+                # it even when detune appends more waves after it.
+                sub_slice = (0, 0)
                 if sub_osc > 0:
+                    sub_start = len(waves)
                     for hz in pitches:
                         sub = sine_wave(hz / 2, n_samples=n_samples)
                         waves.append(sub)
+                    sub_slice = (sub_start, len(waves))
                 # Detune: add oscillators shifted by ±cents
                 detune_up = None
                 detune_down = None
@@ -5982,14 +5994,13 @@ def _render_notes_to_buf(notes, buf, samples_per_beat, total_samples,
                 mixed = sum(w.astype(numpy.float32) for w in waves) / (SAMPLE_PEAK * max(1, n_osc))
                 # Mix sub-oscillator with appropriate gain
                 if sub_osc > 0:
-                    # Sub was already included in waves; scale the mix
-                    # Boost the sub contribution relative to main
-                    sub_count = len(pitches)
-                    main_count = n_osc - sub_count
-                    if main_count > 0:
-                        # Re-render: main only + sub at controlled level
-                        main_waves = waves[:n_osc - sub_count]
-                        sub_waves = waves[n_osc - sub_count:]
+                    # Sub was already included in waves; split it back out by
+                    # its recorded slice (everything else — mains and any
+                    # detune voices — is "main") and rebalance.
+                    s0, s1 = sub_slice
+                    sub_waves = waves[s0:s1]
+                    main_waves = waves[:s0] + waves[s1:]
+                    if main_waves:
                         main_mix = sum(w.astype(numpy.float32) for w in main_waves) / (SAMPLE_PEAK * max(1, len(main_waves)))
                         sub_mix = sum(w.astype(numpy.float32) for w in sub_waves) / (SAMPLE_PEAK * max(1, len(sub_waves)))
                         mixed = main_mix * (1.0 - sub_osc * 0.3) + sub_mix * sub_osc * 0.3
@@ -6273,12 +6284,14 @@ def render_score(score):
                         analog=part.analog)
 
                 # Now duplicate with per-player offsets (cheap buffer ops)
-                import random as _ens_rnd
+                import random as _random_mod
                 ref_buf = part_buf.copy()
                 part_buf *= 1.0 / n_ensemble  # scale down the reference voice
 
                 for _ens_i in range(1, n_ensemble):
-                    _ens_rnd.seed(42 + _ens_i * 7)
+                    # Per-voice RNG instance — never reseed the global
+                    # `random`, which other threads in render_scores() share.
+                    _ens_rnd = _random_mod.Random(42 + _ens_i * 7)
                     _player_tendency = _ens_rnd.gauss(0, 0.018)
                     shift_samples = int(_player_tendency * samples_per_beat)
 

@@ -49,6 +49,7 @@ _MAQAM_JI = {
     7: Fraction(27, 22),    # Mi↓       neutral 3rd  ← the Rast note
     8: Fraction(5, 4),      # Mi        major 3rd
     9: Fraction(4, 3),      # Fa        perfect 4th
+    10: Fraction(32, 25),   # Fab       diminished 4th  ← Saba's signature
     11: Fraction(45, 32),   # Fa#       augmented 4th
     13: Fraction(3, 2),     # Sol       perfect 5th
     15: Fraction(8, 5),     # Lab       minor 6th
@@ -63,7 +64,7 @@ _MAQAM_JI = {
 # Arabic note name for each layout position (Do = tonic).
 _MAQAM_NAME = {
     0: "Do", 2: "Reb", 3: "Re↓", 4: "Re", 6: "Mib", 7: "Mi↓", 8: "Mi",
-    9: "Fa", 11: "Fa#", 13: "Sol", 15: "Lab", 16: "La↓", 17: "La",
+    9: "Fa", 10: "Fab", 11: "Fa#", 13: "Sol", 15: "Lab", 16: "La↓", 17: "La",
     19: "Sib", 20: "Si↓", 21: "Si", 24: "Do'",
 }
 
@@ -195,11 +196,15 @@ class Maqam:
 
     @classmethod
     def get(cls, name: str) -> "Maqam":
-        key = name.lower().replace(" ", "").replace("-", "")
+        """Look up a maqam by name; an exact name beats any alias."""
+        def norm(s):
+            return s.lower().replace(" ", "").replace("-", "")
+        key = norm(name)
         for m in _MAQAMS.values():
-            cands = [m.name] + list(m.aka)
-            if any(key == c.lower().replace(" ", "").replace("-", "")
-                   for c in cands):
+            if key == norm(m.name):
+                return m
+        for m in _MAQAMS.values():
+            if any(key == norm(a) for a in m.aka):
                 return m
         raise KeyError(f"Unknown maqam: {name!r}. Try Maqam.names().")
 
@@ -264,7 +269,7 @@ _MAQAM_LIST = [
           seyir="symmetric double-Hijaz; descending tendency",
           mood="dramatic, ornate", aka=["Shahnaz", "Shedaraban relative"]),
     Maqam("Saba", family="Saba",
-          degrees=[0, 3, 6, 8, 13, 15, 19],
+          degrees=[0, 3, 6, 10, 13, 15, 19],
           ajnas="Jins Saba on Do (its diminished 4th is unmistakable)",
           seyir="from the tonic; the lowered 4th gives its grief",
           mood="sorrowful, aching, the maqam of lament"),

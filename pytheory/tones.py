@@ -82,7 +82,7 @@ class Tone:
             # Numeric pitch class names ("0", "11") are also left alone.
             if name and name[0].isalpha():
                 import re as _re
-                m = _re.search(r'(\d+)$', name)
+                m = _re.search(r'(-?\d+)$', name)
                 if m:
                     parsed_octave = int(m.group(1))
                     name = name[:m.start()]
@@ -409,7 +409,7 @@ class Tone:
         tone = s
         # Only parse trailing digits as octave
         if s and s[0].isalpha():
-            m = _re.search(r'(\d+)$', s)
+            m = _re.search(r'(-?\d+)$', s)
             if m:
                 octave = int(m.group(1))
                 tone = s[:m.start()]
@@ -470,10 +470,17 @@ class Tone:
         return klass.from_index(index, octave=octave, system=system)
 
     @classmethod
-    def from_midi(klass, note_number: int, system: Union[str, object] = "western") -> Tone:
+    def from_midi(klass, note_number: int, system: Union[str, object] = "western",
+                  *, prefer_flats: bool = False) -> Tone:
         """Create a Tone from a MIDI note number.
 
         MIDI note 60 = C4 (middle C), 69 = A4 (440 Hz).
+
+        Args:
+            note_number: The MIDI note number.
+            system: The tuning system (default ``"western"``).
+            prefer_flats: Spell black keys with flats (Eb) instead of
+                sharps (D#).
 
         Example::
 
@@ -495,7 +502,8 @@ class Tone:
         octave = adjusted // 12
         relative = adjusted % 12
         index = (relative + C_INDEX) % 12
-        return klass.from_index(index, octave=octave, system=system)
+        return klass.from_index(index, octave=octave, system=system,
+                                prefer_flats=prefer_flats)
 
     @classmethod
     def from_index(klass, i: int, *, octave: int, system: object, prefer_flats: bool = False) -> Tone:

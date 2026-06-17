@@ -2,6 +2,53 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.0
+
+A correctness pass — an adversarial audit of the theory engine found 23
+real bugs, and this release fixes all of them. The headline ones change
+output you may have seen before, so they're worth reading.
+
+- **Flat-key guitar chords are no longer broken.** The fretboard voicer
+  matched chord tones by spelled name, so a fretboard `D#` never matched
+  a chord's `Eb` — and roughly sixty flat-key chords (every Eb/Ab/Db/Gb
+  voicing, plus Fm/Cm) silently came out as broken two-string fragments
+  that didn't even contain all their notes. Matching is now by pitch
+  class, so `Fretboard.guitar().chord("Eb")` returns a real, complete
+  voicing.
+- **Maqam Saba has its diminished 4th back.** The module advertises Saba's
+  "unmistakable diminished 4th," then encoded a major 3rd in that exact
+  slot — a heptatonic scale with two adjacent thirds and no 4th degree.
+  Saba is now `Do Re↓ Mib Fab Sol Lab Sib`, with the `Fab` tuned to a
+  32/25 (≈427¢) just diminished fourth.
+- **Extreme keys spell correctly.** Gb major now reads `Gb Ab Bb Cb Db
+  Eb F` (not `…B…`), F# major uses `E#`, C# major uses `B#`, Cb major
+  uses `Fb` — one letter per degree, every time, with the right key
+  signature. Octave-transposed chord tones keep their spelling too (the
+  IV chord in Eb is `Ab C Eb`, not `Ab C D#`).
+- **Accidental Roman numerals are chromatic.** `bVII`/`bVI`/`bIII` are now
+  measured from the parallel major, so the Mixolydian/rock `bVII` is `Bb`
+  in C minor — not the doubly-flattened `A` you got before. Bare diatonic
+  numerals are unchanged.
+- **`from_symbol` no longer swallows what it doesn't understand.** `C7b9`
+  used to silently parse as a plain `C7`, and `Cmajgarbage` as `C major`.
+  Both now raise. Real suspended dominants (`E7sus4`, `C7sus2`) are
+  supported, 6th chords identify as themselves (`C6`, not `Am7`), and a
+  13th chord drops the avoid-note 11th so it voices cleanly.
+- **Threaded rendering is deterministic again.** The ensemble renderer
+  reseeded the *global* RNG mid-render, corrupting humanize/analog
+  determinism of every other part and breaking `render_scores()` under
+  threads. It now uses an isolated per-voice RNG. The sub-oscillator +
+  detune combination also no longer leaks the octave-below sub into the
+  main voice at full gain.
+- **Friendlier edges.** SVG diagrams no longer crash on chords that don't
+  identify; the CLI prints a one-line error instead of a traceback on bad
+  input (set `PYTHEORY_DEBUG=1` to see the stack); `play()`/`save()` point
+  you to `play_score()`/`save_midi()` when handed a `Score`; garbage Roman
+  numerals are rejected; Nashville `m` actually forces minor;
+  `negative_harmony` spells with flats to match its scale; `Tone.from_midi()`
+  round-trips through octave -1; and `Tone.from_midi(..., prefer_flats=True)`
+  is now available.
+
 ## 0.56.0
 
 - **Arabic maqamat — `pytheory.Maqam` and `pytheory maqam`.** What the

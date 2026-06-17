@@ -329,14 +329,16 @@ class NamedChord:
         if key in _possible_cache:
             return _possible_cache[key]
 
+        # Match chord tones by pitch class, not spelled name — the
+        # fretboard spells with sharps (D#) but a flat chord names its
+        # tones with flats (Eb), and those are the same note.
+        acceptable_pcs = {t._index % 12 for t in self.acceptable_tones}
+
         def find_fingerings(tone):
             fingerings = []
             for j in range(MAX_FRET):
-                fingered_tone = tone.add(j)
-                for acceptable_tone in self.acceptable_tones:
-                    if fingered_tone.name == acceptable_tone:
-                        fingerings.append(j)
-
+                if tone.add(j)._index % 12 in acceptable_pcs:
+                    fingerings.append(j)
             return tuple(fingerings)
 
         fingering = []
@@ -428,13 +430,12 @@ class NamedChord:
             else:
                 span = 0
 
-            # Check that all chord tones are present in the voicing
-            sounding_names = set()
-            for i, f in enumerate(fingering):
-                if f != -1:
-                    sounding_names.add(fretboard._tones[i].add(f).name)
-            required = set(t.name for t in self.acceptable_tones)
-            missing = required - sounding_names
+            # Check that all chord tones are present — by pitch class,
+            # so enharmonic spelling (D# vs Eb) doesn't hide a tone.
+            sounding_pcs = {fretboard._tones[i].add(f)._index % 12
+                            for i, f in enumerate(fingering) if f != -1}
+            required_pcs = {t._index % 12 for t in self.acceptable_tones}
+            missing = required_pcs - sounding_pcs
             score -= len(missing) * 5.0
 
             # Reward open strings
@@ -482,7 +483,7 @@ class NamedChord:
                 if f == -1:
                     continue
                 bass_tone = fretboard._tones[i].add(f)
-                if bass_tone.name == self.tone.name:
+                if bass_tone._index % 12 == self.tone._index % 12:
                     score += 4.0
                 else:
                     score -= 1.5

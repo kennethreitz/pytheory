@@ -114,6 +114,9 @@ class Chord:
         "m7b5": (3, 6, 10),
         "mMaj7": (3, 7, 11),
         "aug7": (4, 8, 10),
+        # Suspended dominants
+        "7sus4": (5, 7, 10),
+        "7sus2": (2, 7, 10),
         # Ninth chords
         "9": (4, 7, 10, 14),
         "maj9": (4, 7, 11, 14),
@@ -127,7 +130,9 @@ class Chord:
         "add11": (4, 7, 17),
         # Eleventh / thirteenth
         "11": (4, 7, 10, 14, 17),
-        "13": (4, 7, 10, 14, 17, 21),
+        # 13th drops the natural 11th — it's an avoid note against the
+        # major 3rd, and including it makes C13 unidentifiable/unvoiceable.
+        "13": (4, 7, 10, 14, 21),
     }
 
     # Root note names — try longest match first (e.g. "C#" before "C").
@@ -205,11 +210,17 @@ class Chord:
         if suffix == "" or suffix == "M":
             intervals = (4, 7)
         else:
-            # Try longest suffix match first
+            # Try longest suffix match first, and require the WHOLE suffix
+            # to be consumed — otherwise "C7b9" would silently degrade to a
+            # plain C7 and a typo like "Cmajgarbage" would parse as C major.
             intervals = None
             for length in range(len(suffix), 0, -1):
                 candidate = suffix[:length]
                 if candidate in cls._SYMBOL_INTERVALS:
+                    if length != len(suffix):
+                        raise ValueError(
+                            f"Unrecognized trailing quality "
+                            f"{suffix[length:]!r} in {symbol!r}")
                     intervals = cls._SYMBOL_INTERVALS[candidate]
                     break
 
@@ -324,7 +335,9 @@ class Chord:
             base = (m // 12) * 12 + refl_pc
             nearest = min((base - 12, base, base + 12),
                           key=lambda x: abs(x - m))
-            new_tones.append(Tone.from_midi(nearest))
+            # Negative harmony darkens toward minor, so flats (Eb, Ab) read
+            # more naturally than sharps and match the reflected scale.
+            new_tones.append(Tone.from_midi(nearest, prefer_flats=True))
 
         new_tones.sort(key=lambda t: t.midi if t.midi is not None else 0)
         result = Chord(tones=new_tones)
@@ -746,7 +759,7 @@ class Chord:
         Returns 0 for chords with fewer than 2 tones.
         """
         if len(self.tones) < 2:
-            return 0
+            return 0.0
 
         from fractions import Fraction
         score = 0.0
@@ -793,7 +806,7 @@ class Chord:
         Returns 0 for chords with fewer than 2 tones.
         """
         if len(self.tones) < 2:
-            return 0
+            return 0.0
 
         import math
         roughness = 0.0
@@ -870,11 +883,11 @@ class Chord:
         """
         beats = self.beat_frequencies
         if not beats:
-            return 0
+            return 0.0
         for _, _, hz in beats:
             if hz > 0:
                 return hz
-        return 0
+        return 0.0
 
     # ── Chord quality patterns (semitones from root) ──────────────────
     _CHORD_PATTERNS = {
@@ -895,6 +908,11 @@ class Chord:
         "dominant 9th": {0, 2, 4, 7, 10},
         "major 9th": {0, 2, 4, 7, 11},
         "minor 9th": {0, 2, 3, 7, 10},
+        # 6th chords share pitch classes with the relative 7th (C6 == Am7),
+        # so identify() resolves them by root order — tones[0] is tried
+        # first, naming a C-rooted {0,4,7,9} "C major 6th" not "A minor 7th".
+        "major 6th": {0, 4, 7, 9},
+        "minor 6th": {0, 3, 7, 9},
     }
 
     def identify(self) -> Optional[str]:
@@ -956,6 +974,8 @@ class Chord:
         "dominant 9th": "9",
         "major 9th": "maj9",
         "minor 9th": "m9",
+        "major 6th": "6",
+        "minor 6th": "m6",
     }
 
     @property
@@ -2321,6 +2341,15 @@ class Fretboard:
         return Fingering(positions, string_names, fretboard=self,
                          high_to_low=self.high_to_low)
 
+    # How costly it is to omit each chord tone, keyed by interval (semitones)
+    # above the root. The 3rd and 7th carry the chord's quality and must be
+    # kept; the upper tensions (9/11/13) are the first things a real
+    # guitarist drops on a crowded grip. The 5th stays as expensive as the
+    # default so triads never lose it.
+    _OMIT_COST = {0: 10.0, 3: 14.0, 4: 14.0, 10: 14.0, 11: 14.0,  # root/3rd/7th
+                  2: 6.0, 14: 6.0, 5: 6.0, 17: 6.0, 9: 6.0,       # 9th/11th/13th
+                  1: 6.0, 6: 6.0, 8: 6.0}
+
     def _score_voicing(self, fingering, target_pcs, root_pc) -> float:
         """Score a candidate voicing (canonical high-to-low, -1 = mute)."""
         canonical = self._tones
@@ -2335,7 +2364,10 @@ class Fretboard:
 
         sounding_pcs = {(canonical[i].midi + f) % 12
                         for i, f in enumerate(fingering) if f != -1}
-        score = -len(target_pcs - sounding_pcs) * 8.0       # missing chord tones
+        # Weight missing chord tones by importance — losing the 3rd or 7th
+        # is far worse than losing the 5th.
+        score = -sum(self._OMIT_COST.get((pc - root_pc) % 12, 8.0)
+                     for pc in (target_pcs - sounding_pcs))
         score += sum(1 for f in fingering if f == 0) * 2.0  # open strings
         score -= muted * 0.4
         score -= span * 2.0
@@ -2734,7 +2766,7 @@ def find_cadences(chords: list[Chord], key: str = "C",
         >>> from pytheory import Chord
         >>> prog = [Chord.from_name(n) for n in ("C", "F", "G", "C")]
         >>> find_cadences(prog, "C")
-        [(1, 'plagal'), (3, 'imperfect authentic')]
+        [(2, 'half'), (3, 'imperfect authentic')]
     """
     found = []
     for i in range(1, len(chords)):

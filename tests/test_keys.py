@@ -694,7 +694,8 @@ def test_negative_harmony_accepts_key_object():
 def test_negative_harmony_dominant_reflection():
     """G7 mirrors to the Fm6/Dm7b5 pitch set — the negative dominant."""
     neg = Chord.from_symbol("G7").negative_harmony("C")
-    assert {t.name for t in neg.tones} == {"D", "F", "G#", "C"}
+    # Spelled with flats — negative harmony darkens toward minor (Ab, not G#).
+    assert {t.name for t in neg.tones} == {"D", "F", "Ab", "C"}
 
 
 def test_key_negative_harmony_map():

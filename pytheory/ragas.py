@@ -336,12 +336,19 @@ class Raga:
 
     @classmethod
     def get(cls, name: str) -> "Raga":
-        """Look up a raga by name (case-insensitive, ignores spaces)."""
-        key = name.lower().replace(" ", "").replace("-", "")
-        for raga in _RAGAS.values():
-            cands = [raga.name] + list(raga.aka)
-            if any(key == c.lower().replace(" ", "").replace("-", "")
-                   for c in cands):
+        """Look up a raga by name (case-insensitive, ignores spaces).
+
+        An exact name match always wins over an alias, so a real raga is
+        never shadowed by another's alternative spelling.
+        """
+        def norm(s):
+            return s.lower().replace(" ", "").replace("-", "")
+        key = norm(name)
+        for raga in _RAGAS.values():            # names first
+            if key == norm(raga.name):
+                return raga
+        for raga in _RAGAS.values():            # then aliases
+            if any(key == norm(a) for a in raga.aka):
                 return raga
         raise KeyError(f"Unknown raga: {name!r}. "
                        f"Try Raga.names() for the list.")
@@ -472,7 +479,7 @@ _RAGA_LIST = [
     Raga("Hindol", thaat="kalyan",
          aroha="S G M D N S'", avaroha="S' N D M G S",
          pakad="S G, M D, N D, M G S", vadi="D", samvadi="G",
-         time="morning", rasa="joyful, spring", aka=["Hindolam"]),
+         time="morning", rasa="joyful, spring"),
     Raga("Ahir Bhairav", thaat="bhairav",
          aroha="S r G m P D n S'", avaroha="S' n D P m G r S",
          pakad="S r, G m, D n D, P", vadi="m", samvadi="S",

@@ -133,8 +133,18 @@ def chord_svg(fingering, name=None, *, path=None, fmt="svg",
 
     # Work out the root pitch class (to highlight) and each string's
     # sounding pitch class, when a fretboard is attached.
+    # Pull just the root note out of the label — a name like "Cadd9" or
+    # "F#m7b5" isn't a tone, so feeding the whole thing to _pc() would crash.
     ident = fingering.identify() or name
-    root_pc = _pc(ident.split()[0]) if ident and ident.split() else None
+    root_pc = None
+    if ident:
+        import re
+        m = re.match(r"\s*([A-Ga-g][#b]*)", ident)
+        if m:
+            try:
+                root_pc = _pc(m.group(1))
+            except ValueError:
+                root_pc = None
     string_pcs = [None] * n
     if fingering._fretboard is not None:
         opens = fingering._orient(fingering._fretboard._tones)

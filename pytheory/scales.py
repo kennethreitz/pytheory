@@ -178,7 +178,9 @@ class Scale:
             octaves_up = d // unique
             tone = self.tones[idx]
             if octaves_up > 0:
-                tone = tone.add(12 * octaves_up)
+                # Keep the scale tone's spelling across the octave jump —
+                # plain .add(12) would re-spell Eb as D#.
+                tone = tone.add(12 * octaves_up, prefer_flats="b" in tone.name)
             result.append(tone)
         return Chord(tones=result)
 
@@ -290,18 +292,28 @@ class Scale:
         elif low.endswith("maj"):
             quality, s = "maj", s[:-3]
 
+        # What's left must be a bare Roman numeral I–VII; reject garbage
+        # ("XYZ", "IIII", "") instead of silently producing a bogus chord.
+        if s.upper() not in ("I", "II", "III", "IV", "V", "VI", "VII"):
+            raise ValueError(f"Invalid Roman numeral: {numeral!r}")
+
         degree = roman2int(s.upper()) - 1
         is_major = s.isupper()
 
-        # Root = the scale degree, shifted by any accidental.
         unique = len(self.tones) - 1
-        root = self.tones[degree % unique]
-        if degree >= unique:
-            root = root.add(12 * (degree // unique))
         if offset:
-            # Spell a borrowed root with the accidental it was written with
-            # (bVII → Bb, not A#).
-            root = root.add(offset, prefer_flats=(offset < 0))
+            # An accidental makes the numeral chromatic: it's measured from
+            # the parallel major (bVI = Ab in any C-rooted key), not stacked
+            # on top of a scale degree that may already be altered — otherwise
+            # bVI in C minor would read Abb. Bare numerals stay diatonic.
+            _MAJOR_STEPS = (0, 2, 4, 5, 7, 9, 11)
+            semis = _MAJOR_STEPS[degree % 7] + 12 * (degree // 7) + offset
+            root = self.tones[0].add(semis, prefer_flats=(offset < 0))
+        else:
+            # Root = the scale degree.
+            root = self.tones[degree % unique]
+            if degree >= unique:
+                root = root.add(12 * (degree // unique))
 
         # Intervals above the root for the requested quality.
         if quality == "dim":
@@ -337,11 +349,29 @@ class Scale:
         from .chords import Chord
         chords = []
         for num in numbers:
-            s = str(num)
+            s = str(num).strip()
             is_seventh = s.endswith("7")
-            clean = s.rstrip("7m")
-            degree = int(clean) - 1
             if is_seventh:
+                s = s[:-1]
+            force_minor = s.endswith("m")
+            if force_minor:
+                s = s[:-1]
+            degree = int(s) - 1
+            if force_minor:
+                # Borrow a minor chord on this degree (4m = F minor in C).
+                # Start from the correctly-spelled diatonic triad and flatten
+                # the third by letter (A→Ab, not G#) so the spelling reads.
+                base = self.triad(degree).tones
+                root, third, fifth = base[0], base[1], base[2]
+                if (third._index - root._index) % 12 == 4:   # major 3rd
+                    third = third.add(-1, prefer_flats=True)
+                if (fifth._index - root._index) % 12 == 6:   # dim 5th (vii°)
+                    fifth = fifth.add(1)
+                tones = [root, third, fifth]
+                if is_seventh:
+                    tones.append(root.add(10, prefer_flats=True))  # minor 7th
+                chords.append(Chord(tones=tones))
+            elif is_seventh:
                 chords.append(self.seventh(degree))
             else:
                 chords.append(self.triad(degree))
@@ -1320,6 +1350,65 @@ class TonedScale:
         letters = [t.name[0] for t in unique_tones]
         return len(letters) != len(set(letters))
 
+    _LETTERS = "CDEFGAB"
+    _LETTER_PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+    @classmethod
+    def _name_pc(cls, name: str) -> int:
+        """Pitch class (C=0) of a spelled note name like ``"Cb"`` or ``"F#"``."""
+        pc = cls._LETTER_PC[name[0]]
+        for ch in name[1:]:
+            if ch == "#":
+                pc += 1
+            elif ch == "b":
+                pc -= 1
+        return pc % 12
+
+    @classmethod
+    def _spell_heptatonic(cls, tonic, reference_scale, system):
+        """Spell a 7-note scale so each letter A–G appears exactly once.
+
+        A single sharp-or-flat preference can't spell every key — Gb major
+        needs Cb (not B), F# major needs E# (not F). The diatonic rule is
+        instead one letter per degree, with whatever accidental the pitch
+        requires. Returns a list of Tones (tonic first), or ``None`` if the
+        scale isn't a clean one-letter-per-degree heptatonic — the caller
+        then falls back to the sharp/flat heuristic.
+        """
+        # Letter-per-degree spelling is specific to Western C–B note names;
+        # other systems (Arabic solfège, 53-tone makam, 22-shruti) keep the
+        # heuristic fallback.
+        if system is not SYSTEMS.get("western"):
+            return None
+        if len(reference_scale) != 7 or not tonic.name or tonic.name[0] not in cls._LETTERS:
+            return None
+        start = cls._LETTERS.index(tonic.name[0])
+        tonic_pc = cls._name_pc(tonic.name)
+        base_oct = tonic.octave if tonic.octave is not None else 0
+        # The constructor stores Cb/B# at the boundary-adjusted octave (Cb4
+        # is kept as octave 3). Recover the *notated* octave so the degrees
+        # above it are placed in the right register.
+        if tonic.octave is not None and len(tonic.name) > 1:
+            if tonic.name[0] == "C" and "b" in tonic.name[1:]:
+                base_oct += 1
+            elif tonic.name[0] == "B" and "#" in tonic.name[1:]:
+                base_oct -= 1
+        cum, semis = 0, [0]
+        for iv in reference_scale:
+            cum += iv
+            semis.append(cum)
+        tones = [tonic]
+        for d in range(1, len(semis)):
+            target_pc = (tonic_pc + semis[d]) % 12
+            letter = cls._LETTERS[(start + d) % 7]
+            acc = ((target_pc - cls._LETTER_PC[letter] + 6) % 12) - 6  # -6..5
+            if acc < -2 or acc > 2:
+                return None  # would need a triple accidental — bail out
+            acc_str = "#" * acc if acc > 0 else "b" * (-acc)
+            octave = base_oct + (start + d) // 7
+            tones.append(Tone(name=letter + acc_str, octave=octave, system=system))
+        return tones
+
     @property
     def _scales(self) -> dict[str, Scale]:
         """Lazily computed (and cached) mapping of scale names to Scale objects."""
@@ -1335,6 +1424,16 @@ class TonedScale:
             for scale in self.system.scales[scale_type]:
 
                 reference_scale = self.system.scales[scale_type][scale]["intervals"]
+
+                # Diatonic scales: spell one letter per degree, which is the
+                # only thing that gets Gb major (…Cb…) and F# major (…E#…)
+                # right. Falls back to the heuristic for non-heptatonic or
+                # exotic scales.
+                spelled = self._spell_heptatonic(self.tonic, reference_scale,
+                                                 self.system)
+                if spelled is not None:
+                    scales[scale] = Scale(tones=tuple(spelled))
+                    continue
 
                 # First pass: build with sharps (default)
                 working_scale = [self.tonic]
