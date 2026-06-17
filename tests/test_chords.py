@@ -1308,6 +1308,33 @@ def test_reharmonize_non_dominant_has_no_tritone_sub():
     assert any(s["technique"] == "negative harmony" for s in subs)
 
 
+def test_reharmonize_progression_secondary_dominants():
+    from pytheory import reharmonize_progression
+    prog = [Chord.from_symbol(s) for s in ("C", "Am", "Dm", "G7", "C")]
+    out = reharmonize_progression(prog, "C", technique="secondary_dominants")
+    syms = [c.symbol or c.identify() for c in out]
+    # V7/vi, V7/ii, V7/V inserted before Am, Dm, G7; tonics untouched.
+    assert syms == ["C", "E7", "Am", "A7", "Dm", "D7", "G7", "C"]
+
+
+def test_reharmonize_progression_tritone_and_diatonic():
+    from pytheory import reharmonize_progression
+    prog = [Chord.from_symbol(s) for s in ("C", "Am", "Dm", "G7", "C")]
+    # Tritone: only the dominant changes (G7 -> Db7), same length.
+    tt = reharmonize_progression(prog, "C", technique="tritone")
+    assert len(tt) == len(prog)
+    assert "dominant 7th" in tt[3].identify() and tt[3].root.name in ("Db", "C#")
+    # Diatonic: same length, each chord swapped for a relative.
+    dia = reharmonize_progression(prog, "C", technique="diatonic")
+    assert len(dia) == len(prog)
+
+
+def test_reharmonize_progression_bad_technique():
+    from pytheory import reharmonize_progression
+    with pytest.raises(ValueError, match="Unknown technique"):
+        reharmonize_progression([Chord.from_symbol("C")], "C", technique="nope")
+
+
 # ── Chord-scale theory ─────────────────────────────────────────────────
 
 def test_chord_scales_from_quality():

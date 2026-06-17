@@ -3014,3 +3014,61 @@ def reharmonize(chord: Chord, key: str = "C", mode: str = "major") -> list:
     })
 
     return suggestions
+
+
+def reharmonize_progression(chords: list, key: str = "C", mode: str = "major",
+                            technique: str = "secondary_dominants") -> list:
+    """Reharmonize a whole progression, returning a new list of chords.
+
+    Techniques:
+
+    - ``"secondary_dominants"`` — insert the applied dominant ``V7/x`` before
+      each diatonic, non-tonic chord, tonicising it (the progression gets
+      longer).
+    - ``"tritone"`` — replace every dominant-seventh chord with the dominant
+      a tritone away, for a chromatic descending bass (same length).
+    - ``"diatonic"`` — swap each chord for a diatonic chord that shares two
+      or more of its notes, where one exists (same length).
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> prog = [Chord.from_symbol(s) for s in ("C", "Am", "Dm", "G7")]
+        >>> rehar = reharmonize_progression(prog, "C", technique="tritone")
+        >>> [c.identify() for c in rehar]
+        ['C major', 'A minor', 'D minor', 'C# dominant 7th']
+    """
+    from .scales import Key
+
+    k = Key(key, mode)
+
+    if technique == "tritone":
+        return [c.tritone_sub() if (c.quality or "") == "dominant 7th" else c
+                for c in chords]
+
+    if technique == "diatonic":
+        result = []
+        for chord in chords:
+            subs = [s["chord"] for s in reharmonize(chord, key, mode)
+                    if s["technique"] == "diatonic substitution"]
+            result.append(subs[0] if subs else chord)
+        return result
+
+    if technique == "secondary_dominants":
+        diatonic = k.scale.harmonize()
+        roots = [_pc(t.root) for t in diatonic]
+        result = []
+        for chord in chords:
+            root_pc = _pc(chord.root) if chord.root is not None else None
+            if root_pc in roots:
+                degree = roots.index(root_pc) + 1
+                target = diatonic[degree - 1]
+                if degree != 1 and "diminished" not in (target.quality or ""):
+                    result.append(k.secondary_dominant(degree))
+            result.append(chord)
+        return result
+
+    raise ValueError(
+        f"Unknown technique {technique!r}; use 'secondary_dominants', "
+        f"'tritone', or 'diatonic'."
+    )

@@ -98,6 +98,12 @@ for s in reharmonize(Chord.from_symbol("G7"), "C"):
     print(s["technique"], "->", s["chord"].identify())
 # Or from the shell: pytheory reharmonize G7 --key C   (--json / --play too)
 
+# Reharmonize a whole progression (techniques: secondary_dominants/tritone/diatonic):
+from pytheory import reharmonize_progression
+prog = [Chord.from_symbol(s) for s in ("C","Am","Dm","G7","C")]
+[c.symbol for c in reharmonize_progression(prog, "C", technique="secondary_dominants")]
+# ['C','E7','Am','A7','Dm','D7','G7','C']  — the cycle-of-dominants reharm
+
 # Smoothest motion from one chord to the next, voice by voice:
 for frm, to, semis in Chord.from_symbol("Cmaj7").voice_leading(Chord.from_symbol("Fmaj7")):
     print(frm, "->", to, f"({semis:+d} semitones)")

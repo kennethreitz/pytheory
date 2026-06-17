@@ -8,8 +8,11 @@ All notable changes to PyTheory are documented here.
   ideas for a chord — tritone sub (for dominants), diatonic swaps sharing
   two or more notes, the secondary dominant that tonicises it, and its
   negative-harmony mirror — each with a technique name and description.
-  Also a `pytheory reharmonize G7 --key C` CLI command (with `--json` /
-  `--play`).
+  `reharmonize_progression(chords, key, technique=…)` reworks a whole
+  progression — `"secondary_dominants"` (the cycle-of-dominants insertion),
+  `"tritone"`, or `"diatonic"`. Both are reachable from
+  `pytheory reharmonize` (one chord → ideas, several → a reharmonized
+  progression), with `--json` / `--play`.
 - **`--json` and `--play` across the CLI.** The theory commands (`tone`,
   `scale`, `chord`, `key`, `progression`, `identify`, `analyze`, `detect`,
   `modes`, `circle`, `fingering`) gain `--json` for structured, pipeable

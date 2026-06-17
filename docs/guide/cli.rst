@@ -193,6 +193,16 @@ dominant, and the negative-harmony mirror::
 
 Add ``--play`` to hear the original followed by each option.
 
+Give it **several** chords and it reharmonizes the whole progression with a
+chosen ``--technique`` (``secondary_dominants``, ``tritone``, or
+``diatonic``)::
+
+    $ pytheory reharmonize C Am Dm G7 C --key C
+      Reharmonizing in C major (secondary_dominants):
+
+        original:      C → Am → Dm → G7 → C
+        reharmonized:  C → E7 → Am → A7 → Dm → D7 → G7 → C
+
 Key Detection
 -------------
 

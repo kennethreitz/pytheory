@@ -488,6 +488,23 @@ short ``description``:
 From the shell, ``pytheory reharmonize G7 --key C`` prints the same list
 (add ``--json`` to pipe it, or ``--play`` to hear each option).
 
+``reharmonize_progression`` reworks a *whole* progression at once. The
+``"secondary_dominants"`` technique inserts the applied dominant before each
+diatonic chord — the classic cycle-of-dominants reharmonization:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, reharmonize_progression
+
+   >>> prog = [Chord.from_symbol(s) for s in ("C", "Am", "Dm", "G7", "C")]
+   >>> out = reharmonize_progression(prog, "C", technique="secondary_dominants")
+   >>> [c.symbol for c in out]
+   ['C', 'E7', 'Am', 'A7', 'Dm', 'D7', 'G7', 'C']
+
+The ``"tritone"`` technique swaps dominants for their tritone subs (chromatic
+bass), and ``"diatonic"`` substitutes common-tone chords throughout. From
+the shell: ``pytheory reharmonize C Am Dm G7 C --technique tritone``.
+
 The Overtone Series
 -------------------
 

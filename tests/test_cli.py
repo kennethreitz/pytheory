@@ -77,13 +77,26 @@ def test_cli_json_output(capsys):
 def test_cli_reharmonize(capsys):
     import argparse, json
     from pytheory.cli import cmd_reharmonize
-    args = argparse.Namespace(chord="G7", key="C", mode="major", json=True, play=False)
+    args = argparse.Namespace(chords=["G7"], key="C", mode="major",
+                              technique="secondary_dominants", json=True, play=False)
     cmd_reharmonize(args)
     data = json.loads(capsys.readouterr().out)
     assert data["chord"] == "G dominant 7th"
     techniques = {s["technique"] for s in data["suggestions"]}
     assert "tritone substitution" in techniques
     assert "negative harmony" in techniques
+
+
+def test_cli_reharmonize_progression(capsys):
+    import argparse, json
+    from pytheory.cli import cmd_reharmonize
+    args = argparse.Namespace(chords=["C", "Am", "Dm", "G7", "C"], key="C",
+                              mode="major", technique="secondary_dominants",
+                              json=True, play=False)
+    cmd_reharmonize(args)
+    data = json.loads(capsys.readouterr().out)
+    assert data["original"] == ["C", "Am", "Dm", "G7", "C"]
+    assert data["reharmonized"] == ["C", "E7", "Am", "A7", "Dm", "D7", "G7", "C"]
 
 
 def test_cli_main_no_args(capsys):

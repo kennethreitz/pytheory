@@ -761,34 +761,57 @@ def cmd_analyze(args):
 
 
 def cmd_reharmonize(args):
-    from .chords import Chord, reharmonize
+    from .chords import Chord, reharmonize, reharmonize_progression
     try:
-        chord = Chord.from_symbol(args.chord)
+        chords = [Chord.from_symbol(s) for s in args.chords]
     except Exception as e:
-        print(f"  Could not parse chord: {e}")
+        print(f"  Could not parse chords: {e}")
         return
-    subs = reharmonize(chord, args.key, args.mode)
+
+    # One chord -> list substitution ideas. Several -> reharmonize the whole
+    # progression with the chosen technique.
+    if len(chords) == 1:
+        chord = chords[0]
+        subs = reharmonize(chord, args.key, args.mode)
+        if getattr(args, "json", False):
+            _emit_json({
+                "chord": chord.identify() or args.chords[0],
+                "key": f"{args.key} {args.mode}",
+                "suggestions": [
+                    {"technique": s["technique"],
+                     "chord": s["chord"].identify() or str(s["chord"]),
+                     "description": s["description"]}
+                    for s in subs
+                ],
+            })
+        else:
+            print(f"  Reharmonizing {chord.identify() or args.chords[0]} "
+                  f"in {args.key} {args.mode}:\n")
+            for s in subs:
+                print(f"    {s['technique']:22s} "
+                      f"{s['chord'].identify() or str(s['chord'])}")
+                print(f"      {s['description']}")
+        if getattr(args, "play", False):
+            _play_items([chord] + [s["chord"] for s in subs], t=1100)
+        return
+
+    new = reharmonize_progression(chords, args.key, args.mode, args.technique)
+
+    def labels(seq):
+        return [c.symbol or (c.identify() or str(c)) for c in seq]
 
     if getattr(args, "json", False):
         _emit_json({
-            "chord": chord.identify() or args.chord,
-            "key": f"{args.key} {args.mode}",
-            "suggestions": [
-                {"technique": s["technique"],
-                 "chord": s["chord"].identify() or str(s["chord"]),
-                 "description": s["description"]}
-                for s in subs
-            ],
+            "key": f"{args.key} {args.mode}", "technique": args.technique,
+            "original": labels(chords), "reharmonized": labels(new),
         })
     else:
-        print(f"  Reharmonizing {chord.identify() or args.chord} "
-              f"in {args.key} {args.mode}:\n")
-        for s in subs:
-            name = s["chord"].identify() or str(s["chord"])
-            print(f"    {s['technique']:22s} {name}")
-            print(f"      {s['description']}")
+        print(f"  Reharmonizing in {args.key} {args.mode} "
+              f"({args.technique}):\n")
+        print(f"    original:      {' → '.join(labels(chords))}")
+        print(f"    reharmonized:  {' → '.join(labels(new))}")
     if getattr(args, "play", False):
-        _play_items([chord] + [s["chord"] for s in subs], t=1100)
+        _play_items(new, t=900)
 
 
 def main():
@@ -844,10 +867,14 @@ def main():
 
     # reharmonize
     p = sub.add_parser("reharmonize", aliases=["reharm"], parents=[io],
-                       help="Suggest reharmonizations (e.g. pytheory reharmonize G7 --key C)")
-    p.add_argument("chord", help="Chord symbol (e.g. G7, Dm7)")
+                       help="Reharmonize a chord or progression (e.g. pytheory reharmonize G7 --key C)")
+    p.add_argument("chords", nargs="+",
+                   help="One chord for substitution ideas, or several to reharmonize the progression")
     p.add_argument("--key", default="C", help="Key tonic (default: C)")
     p.add_argument("--mode", default="major", help="major or minor (default: major)")
+    p.add_argument("--technique", default="secondary_dominants",
+                   choices=["secondary_dominants", "tritone", "diatonic"],
+                   help="Progression reharmonization technique (default: secondary_dominants)")
 
     # play
     p = sub.add_parser("play", help="Play notes or chords (e.g. pytheory play C E G)")
