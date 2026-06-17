@@ -321,16 +321,16 @@ A `secondary dominant <https://en.wikipedia.org/wiki/Secondary_chord>`_ is a
 chord that briefly acts as the dominant of some chord *other* than the
 tonic — borrowing a chromatic leading tone to point at it. In C major,
 ``D7`` (with its F♯) leans toward G, so it functions as ``V7/V``.
-``secondary_dominant`` spots one chord, and ``analyze_progression`` can
-label them in context:
+``detect_secondary_dominant`` spots one chord, and ``analyze_progression``
+can label them in context:
 
 .. code-block:: pycon
 
-   >>> from pytheory import Chord, secondary_dominant, analyze_progression
+   >>> from pytheory import Chord, detect_secondary_dominant, analyze_progression
 
-   >>> secondary_dominant(Chord.from_symbol("D7"), "C")
+   >>> detect_secondary_dominant(Chord.from_symbol("D7"), "C")
    'V7/V'
-   >>> secondary_dominant(Chord.from_symbol("E7"), "C")
+   >>> detect_secondary_dominant(Chord.from_symbol("E7"), "C")
    'V7/vi'
 
    >>> prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]

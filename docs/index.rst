@@ -197,6 +197,7 @@ every time::
    api/tones
    api/scales
    api/chords
+   api/serialism
    api/charts
    api/rhythm
    api/play

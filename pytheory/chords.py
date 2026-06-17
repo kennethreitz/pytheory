@@ -2424,7 +2424,7 @@ _MAJOR_ROMANS = ["I", "ii", "iii", "IV", "V", "vi", "vii°"]
 _MINOR_ROMANS = ["i", "ii°", "III", "iv", "v", "VI", "VII"]
 
 
-def secondary_dominant(chord: Chord, key: str = "C",
+def detect_secondary_dominant(chord: Chord, key: str = "C",
                        mode: str = "major") -> Optional[str]:
     """Identify a chord as a secondary (applied) dominant, e.g. ``"V7/V"``.
 
@@ -2441,11 +2441,11 @@ def secondary_dominant(chord: Chord, key: str = "C",
     Example::
 
         >>> from pytheory import Chord
-        >>> secondary_dominant(Chord.from_symbol("D7"), "C")
+        >>> detect_secondary_dominant(Chord.from_symbol("D7"), "C")
         'V7/V'
-        >>> secondary_dominant(Chord.from_symbol("E7"), "C")
+        >>> detect_secondary_dominant(Chord.from_symbol("E7"), "C")
         'V7/vi'
-        >>> secondary_dominant(Chord.from_symbol("G7"), "C") is None   # just V
+        >>> detect_secondary_dominant(Chord.from_symbol("G7"), "C") is None   # just V
         True
     """
     from .tones import Tone
@@ -2494,7 +2494,7 @@ def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major"
     labels = []
     for chord in chords:
         if secondary_dominants:
-            applied = secondary_dominant(chord, key, mode)
+            applied = detect_secondary_dominant(chord, key, mode)
             if applied:
                 labels.append(applied)
                 continue

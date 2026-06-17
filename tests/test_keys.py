@@ -300,18 +300,18 @@ def test_analyze_progression():
 
 
 def test_secondary_dominant_detection():
-    from pytheory.chords import secondary_dominant
+    from pytheory import detect_secondary_dominant
     S = Chord.from_symbol
-    assert secondary_dominant(S("D7"), "C") == "V7/V"
-    assert secondary_dominant(S("E7"), "C") == "V7/vi"
-    assert secondary_dominant(S("A7"), "C") == "V7/ii"
-    assert secondary_dominant(S("C7"), "C") == "V7/IV"
-    assert secondary_dominant(S("D"), "C") == "V/V"        # triad, no 7th
-    assert secondary_dominant(S("G7"), "C") is None        # the primary V
-    assert secondary_dominant(S("Dm"), "C") is None        # diatonic ii
-    assert secondary_dominant(S("F#7"), "C") is None       # would target vii°
+    assert detect_secondary_dominant(S("D7"), "C") == "V7/V"
+    assert detect_secondary_dominant(S("E7"), "C") == "V7/vi"
+    assert detect_secondary_dominant(S("A7"), "C") == "V7/ii"
+    assert detect_secondary_dominant(S("C7"), "C") == "V7/IV"
+    assert detect_secondary_dominant(S("D"), "C") == "V/V"     # triad, no 7th
+    assert detect_secondary_dominant(S("G7"), "C") is None     # the primary V
+    assert detect_secondary_dominant(S("Dm"), "C") is None     # diatonic ii
+    assert detect_secondary_dominant(S("F#7"), "C") is None    # would target vii°
     # Minor key
-    assert secondary_dominant(S("B7"), "A", "minor") == "V7/v"
+    assert detect_secondary_dominant(S("B7"), "A", "minor") == "V7/v"
 
 
 def test_analyze_progression_with_secondary_dominants():

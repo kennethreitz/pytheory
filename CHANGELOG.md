@@ -4,10 +4,11 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
-- **Secondary-dominant detection.** `secondary_dominant(chord, key)` labels
-  applied dominants — `D7` in C is `V7/V`, `E7` is `V7/vi` — and
-  `analyze_progression(..., secondary_dominants=True)` uses those labels in
-  context instead of the bare scale degree (`II7`).
+- **Secondary-dominant detection.** `detect_secondary_dominant(chord, key)`
+  labels applied dominants — `D7` in C is `V7/V`, `E7` is `V7/vi` — the
+  analytical inverse of the existing `Key.secondary_dominant(degree)`
+  builder. `analyze_progression(..., secondary_dominants=True)` uses those
+  labels in context instead of the bare scale degree (`II7`).
 - **Chord-scale theory.** `chord_scales(chord, key=None)` recommends scales
   to improvise with over a chord (best fit first — Mixolydian over a
   dominant 7th, Dorian over a minor 7th; with a key, the diatonic mode goes

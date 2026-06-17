@@ -54,14 +54,15 @@ analyze_progression(chords, key="C", mode="major")        # ['I', 'V', 'vi', 'IV
 ```
 
 **Secondary dominants** — applied dominants that tonicise a non-tonic
-degree. `secondary_dominant` identifies one chord; pass
+degree. `detect_secondary_dominant` *identifies* one chord (the analytical
+inverse of `Key.secondary_dominant(degree)`, which *builds* one); pass
 `secondary_dominants=True` to `analyze_progression` to label them in
 context (instead of the bare degree):
 
 ```python
-from pytheory import secondary_dominant, analyze_progression, Chord
-secondary_dominant(Chord.from_symbol("D7"), "C")          # 'V7/V'  (D7 -> G)
-secondary_dominant(Chord.from_symbol("E7"), "C")          # 'V7/vi' (E7 -> Am)
+from pytheory import detect_secondary_dominant, analyze_progression, Chord
+detect_secondary_dominant(Chord.from_symbol("D7"), "C")   # 'V7/V'  (D7 -> G)
+detect_secondary_dominant(Chord.from_symbol("E7"), "C")   # 'V7/vi' (E7 -> Am)
 prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]
 analyze_progression(prog, "C", secondary_dominants=True)  # ['I', 'V7/V', 'V7', 'I']
 ```
