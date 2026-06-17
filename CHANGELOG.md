@@ -2,6 +2,21 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.56.0
+
+- **Arabic maqamat — `pytheory.Maqam` and `pytheory maqam`.** What the
+  `Raga` class does for Hindustani music, this does for Arabic: ten of
+  the best-known maqamat (Rast, Bayati, Hijaz, Nahawand, Kurd, Ajam,
+  Hijazkar, Saba, Suznak, Nakriz) with their scale degrees, the **ajnas**
+  they're built from, their **seyir**, and — the whole point — their real
+  **quarter-tone (just) intonation**. The neutral 2nds, 3rds, 6ths and
+  7ths (the half-flats a piano can't play) render where they actually
+  sit: Rast's neutral third is a 27/22, ~45 cents under the tempered E.
+  `Maqam.get("rast")`, `Maqam.by_family("hijaz")`; `.degree_names()`,
+  `.note_names(tonic)` (nearest 12-TET), `.maqam_table(tonic)` (ratio +
+  cents off 12-TET), `.just_frequencies(tonic)`, and `.play(tonic)` (oud,
+  movable tonic). CLI: `pytheory maqam rast --tuning --play`.
+
 ## 0.55.0
 
 - **Chord diagrams for any chord.** `Fretboard.chord()` and

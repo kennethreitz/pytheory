@@ -428,6 +428,36 @@ def cmd_raga(args):
         raga.play(f"{sa}4", just=not args.equal, reverb=args.reverb)
 
 
+def cmd_maqam(args):
+    from .maqam import Maqam
+
+    if not args.name or args.list:
+        maqamat = Maqam.by_family(args.family) if args.family else Maqam.all()
+        print(f"  {len(maqamat)} maqamat:\n")
+        for m in maqamat:
+            print(f"    {m.name:<12} {m.family:<10} "
+                  f"{' '.join(m.degree_names()):<34} {m.mood}")
+        return
+
+    m = Maqam.get(args.name)
+    tonic = args.tonic
+    print(f"  Maqam {m.name}"
+          + (f"  (aka {', '.join(m.aka)})" if m.aka else ""))
+    print(f"  family {m.family} · {m.mood}")
+    print(f"  ajnas: {m.ajnas}")
+    print(f"  seyir: {m.seyir}")
+    print(f"  scale: {' '.join(m.degree_names())}")
+    print(f"  ≈ 12-TET (tonic={tonic}): {' '.join(m.note_names(tonic))}")
+    if args.tuning:
+        print("\n  quarter-tone intonation (just vs 12-TET):")
+        for row in m.maqam_table(tonic):
+            print(f"    {row['degree']:<4} {row['ratio']:>6}  ~{row['note']:<3} "
+                  f"{row['hz']:>8.2f} Hz  {row['cents_off']:+6.1f}¢")
+    if args.play:
+        print(f"\n  Playing {m.name} (just intonation, reverb {args.reverb:g})…")
+        m.play(f"{tonic}4", reverb=args.reverb)
+
+
 def cmd_metronome(args):
     from .metronome import Metronome
 
@@ -927,6 +957,20 @@ def main():
                    help="Filter the list by tradition (hindustani / carnatic)")
     p.add_argument("--time", default=None, help="Filter the list by time of day")
 
+    # maqam
+    p = sub.add_parser("maqam",
+                       help="Explore an Arabic maqam (e.g. pytheory maqam rast)")
+    p.add_argument("name", nargs="?", default=None,
+                   help="Maqam name (e.g. rast, bayati, hijaz, saba); omit to list all")
+    p.add_argument("--tonic", default="C", help="Tonic note (default: C)")
+    p.add_argument("--tuning", action="store_true",
+                   help="Show quarter-tone (just) intonation, cents off 12-TET")
+    p.add_argument("--play", action="store_true", help="Play the maqam ascending/descending")
+    p.add_argument("--reverb", type=float, default=0.3,
+                   help="Reverb wet mix 0..1 for --play (default: 0.3)")
+    p.add_argument("--list", action="store_true", help="List all maqamat")
+    p.add_argument("--family", default=None, help="Filter the list by family")
+
     # metronome
     p = sub.add_parser("metronome", aliases=["metro"],
                        help="Metronome, chord-practice click, and tempo trainer")
@@ -1034,6 +1078,7 @@ def main():
         "progression": cmd_progression,
         "play": cmd_play,
         "raga": cmd_raga,
+        "maqam": cmd_maqam,
         "metronome": cmd_metronome,
         "metro": cmd_metronome,
         "identify": cmd_identify,

@@ -1,11 +1,12 @@
 """PyTheory: Music Theory for Humans."""
 
-__version__ = "0.55.0"
+__version__ = "0.56.0"
 
 from .tones import Tone, Interval
 from .systems import System, SYSTEMS, TET
 from .scales import TonedScale, Key, PROGRESSIONS
 from .ragas import Raga
+from .maqam import Maqam
 from .chords import (Chord, Fretboard, analyze_progression,
                      detect_secondary_dominant, detect_cadence, find_cadences,
                      check_voice_leading,
@@ -26,7 +27,7 @@ Scale = TonedScale
 
 __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
-    "PROGRESSIONS", "Raga", "Chord", "Fretboard", "Fingering", "analyze_progression",
+    "PROGRESSIONS", "Raga", "Maqam", "Chord", "Fretboard", "Fingering", "analyze_progression",
     "detect_secondary_dominant", "detect_cadence", "find_cadences", "check_voice_leading",
     "analyze_non_chord_tones", "chord_scales", "chord_scale_notes",
     "avoid_notes", "reharmonize", "reharmonize_progression", "ToneRow",
