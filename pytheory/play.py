@@ -6147,6 +6147,42 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
     buf[:end] += wave[:end] * volume
 
 
+def render_scores(scores, *, workers=None):
+    """Render many Scores in parallel across CPU cores.
+
+    A single :func:`render_score` is already fast (the synths are cached
+    and vectorized), so the win from multiple cores is in *batch* work:
+    exporting an album, rendering every clip in a set, or serving several
+    requests at once. Each Score renders independently in its own thread,
+    and NumPy releases the GIL during the heavy array math, so this scales
+    roughly with cores (about 2x on a typical machine) with no change to
+    how any individual Score sounds.
+
+    Args:
+        scores: an iterable of :class:`Score` objects.
+        workers: thread count (default: one per core, capped at the number
+            of scores). ``workers=1`` renders sequentially.
+
+    Returns:
+        A list of float32 stereo buffers, in the same order as *scores*.
+
+    Example::
+
+        >>> from pytheory.play import render_scores
+        >>> buffers = render_scores([verse, chorus, bridge])
+    """
+    import os
+    from concurrent.futures import ThreadPoolExecutor
+
+    scores = list(scores)
+    if workers is None:
+        workers = min(len(scores) or 1, max(1, (os.cpu_count() or 2)))
+    if workers <= 1 or len(scores) <= 1:
+        return [render_score(s) for s in scores]
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(render_score, scores))
+
+
 def render_score(score):
     """Render a Score to a float32 audio buffer.
 

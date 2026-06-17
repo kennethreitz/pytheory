@@ -18,7 +18,7 @@ from .rhythm import Duration, TimeSignature, Rest, Score, Part, Section, DrumSou
 from .rhythm import Note as RhythmNote  # rhythm.Note (tone + duration pairing)
 
 from .play import (play, save, save_midi, play_progression, play_pattern,
-                   play_score, render_score, Synth, Envelope)
+                   play_score, render_score, render_scores, Synth, Envelope)
 
 # Aliases for discoverability.
 Note = Tone
@@ -32,7 +32,7 @@ __all__ = [
     "avoid_notes", "reharmonize", "reharmonize_progression", "ToneRow",
     "System", "SYSTEMS", "TET", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "play_pattern",
-    "play_score", "render_score", "Synth", "Envelope",
+    "play_score", "render_score", "render_scores", "Synth", "Envelope",
     "Duration", "TimeSignature", "RhythmNote", "Rest", "Score", "Part",
     "DrumSound", "Pattern", "Hit", "Section", "INSTRUMENTS",
 ]

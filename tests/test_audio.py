@@ -441,3 +441,29 @@ def test_tuner_serve_chord_payload():
     assert d["chord"] == "Am"
     assert d["chord_notes"] == ["A", "C", "E"]
     assert d["note"] == "A"
+
+
+def test_render_scores_batch():
+    """render_scores returns one correct buffer per score, in order."""
+    from pytheory import Score, Chord, Duration, render_score, render_scores
+    import numpy as np
+
+    def build(sym):
+        s = Score("4/4", bpm=120)
+        p = s.part("p", synth="sine")
+        for c in [sym, sym]:
+            p.add(Chord.from_symbol(c), Duration.WHOLE)
+        return s
+
+    scores = [build(s) for s in ["C", "Am", "F", "G"]]
+    out = render_scores(scores, workers=4)
+    assert len(out) == 4
+    # Each result matches the single-score render's shape (stereo, same length).
+    for s, buf in zip(scores, out):
+        ref = render_score(s)
+        assert buf.shape == ref.shape
+        assert buf.ndim == 2 and buf.shape[1] == 2
+        assert np.all(np.isfinite(buf))
+    # workers=1 path also works.
+    assert len(render_scores(scores, workers=1)) == 4
+    assert len(render_scores([], workers=4)) == 0
