@@ -249,6 +249,18 @@ Some of the most-used chord progressions in Western music:
   My Heart Will Go On)
 - **I–IV–vi–V** — axis of awesome (many, many pop songs)
 
+Those highlights are just the start — :data:`~pytheory.PROGRESSIONS` is a
+library of 32 named progressions spanning pop, blues (12-bar, quick-change,
+8-bar, minor), jazz (ii–V–I and turnarounds), classical (Pachelbel, the
+circle of fifths), flamenco, and a range of minor and modal loops. Look one
+up by name and feed it straight to ``progression()``:
+
+.. code-block:: pycon
+
+   >>> from pytheory import PROGRESSIONS, Key
+   >>> Key("C", "major").progression(*PROGRESSIONS["circle of fifths"])
+   [<Chord C major>, <Chord F major>, <Chord B diminished>, ...]
+
 The :class:`~pytheory.scales.Key` class makes working with progressions
 easy:
 

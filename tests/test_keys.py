@@ -264,7 +264,20 @@ def test_all_keys():
 
 def test_progressions_count():
     from pytheory.scales import PROGRESSIONS
-    assert len(PROGRESSIONS) >= 14
+    assert len(PROGRESSIONS) >= 30
+    # A sampling of the expanded library across genres.
+    for name in ("circle of fifths", "minor ii-V-i", "8-bar blues",
+                 "i-v-VI-IV", "Aeolian"):
+        assert name in PROGRESSIONS
+
+
+def test_every_progression_renders():
+    from pytheory.scales import PROGRESSIONS
+    # Each progression must build without error in both a major and a minor key.
+    for major, minor in [(Key("C", "major"), Key("A", "minor"))]:
+        for degrees in PROGRESSIONS.values():
+            assert major.progression(*degrees)
+            assert minor.progression(*degrees)
 
 
 def test_pachelbel_progression():

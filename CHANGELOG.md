@@ -4,6 +4,10 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **More built-in progressions (14 -> 32).** `PROGRESSIONS` gains 18 named
+  progressions across pop, blues (quick-change, 8-bar, minor 12-bar), jazz
+  (extended turnarounds, minor ii-V-i), classical (the circle of fifths,
+  Pachelbel variant), and a range of minor and modal loops.
 - **Reharmonization.** `reharmonize(chord, key)` suggests substitution
   ideas for a chord — tritone sub (for dominants), diatonic swaps sharing
   two or more notes, the secondary dominant that tonicises it, and its

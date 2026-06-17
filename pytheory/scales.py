@@ -470,24 +470,44 @@ class Scale:
 PROGRESSIONS = {
     # Rock / Pop / Folk
     "I-IV-V-I": ("I", "IV", "V", "I"),
-    "I-V-vi-IV": ("I", "V", "vi", "IV"),
-    "I-vi-IV-V": ("I", "vi", "IV", "V"),
+    "I-V-vi-IV": ("I", "V", "vi", "IV"),       # the "four-chord song"
+    "I-vi-IV-V": ("I", "vi", "IV", "V"),       # 50s doo-wop
     "I-IV-vi-V": ("I", "IV", "vi", "V"),
     "vi-IV-I-V": ("vi", "IV", "I", "V"),
+    "I-iii-IV-V": ("I", "iii", "IV", "V"),
+    "I-IV-I-V": ("I", "IV", "I", "V"),         # "La Bamba", "Twist and Shout"
+    "I-iii-vi-IV": ("I", "iii", "vi", "IV"),
+    "I-IV-V-vi": ("I", "IV", "V", "vi"),       # deceptive pop
+    "vi-V-IV-V": ("vi", "V", "IV", "V"),
     # Blues
     "12-bar blues": ("I", "I", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"),
+    "12-bar quick change": ("I", "IV", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"),
+    "8-bar blues": ("I", "I", "IV", "IV", "I", "V", "I", "V"),
+    "minor 12-bar blues": ("i", "i", "i", "i", "iv", "iv", "i", "i",
+                           "V7", "iv", "i", "V7"),
     # Jazz
     "ii-V-I": ("ii", "V7", "I"),
-    "I-vi-ii-V": ("I", "vi", "ii", "V"),  # rhythm changes A section
-    "iii-vi-ii-V": ("iii", "vi", "ii", "V"),  # jazz turnaround
+    "vi-ii-V-I": ("vi", "ii", "V7", "I"),      # extended turnaround
+    "I-vi-ii-V": ("I", "vi", "ii", "V"),       # rhythm changes A section
+    "iii-vi-ii-V": ("iii", "vi", "ii", "V"),   # jazz turnaround
+    "minor ii-V-i": ("ii", "V7", "i"),
     # Classical / Film
     "i-bVI-bIII-bVII": ("i", "VI", "III", "VII"),
     "Pachelbel": ("I", "V", "vi", "iii", "IV", "I", "IV", "V"),
+    "I-V-vi-iii-IV": ("I", "V", "vi", "iii", "IV"),
+    "circle of fifths": ("I", "IV", "vii", "iii", "vi", "ii", "V", "I"),
     # Flamenco / Spanish
     "Andalusian": ("i", "VII", "VI", "V"),
+    # Minor
+    "i-iv-v-i": ("i", "iv", "v", "i"),
+    "i-iv-VII-III": ("i", "iv", "VII", "III"),
+    "i-VI-VII-i": ("i", "VI", "VII", "i"),
+    "i-v-VI-IV": ("i", "v", "VI", "IV"),       # "epic" minor
+    "i-VII-i": ("i", "VII", "i"),
     # Modal
     "Dorian vamp": ("i", "IV"),
     "Mixolydian vamp": ("I", "VII"),
+    "Aeolian": ("i", "VI", "VII"),
 }
 """Common chord progressions as Roman numeral tuples.
 
