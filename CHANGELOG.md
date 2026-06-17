@@ -21,6 +21,18 @@ All notable changes to PyTheory are documented here.
 - **Typos in `reverb_type` now raise** instead of silently falling back to
   the algorithmic reverb — `part()`, `part.set()`, and `set_drum_effects()`
   validate the name and list the valid presets.
+- **Stereo reverb is now actually stereo.** The convolution reverb built its
+  left and right impulse responses from the same fixed random seed, so both
+  channels were identical and the "stereo" reverb had no width. Each channel
+  now uses a distinct seed, opening up a real stereo image.
+- **Faster iteration.** Convolution impulse responses are memoised per
+  `(preset, sample_rate, seed)` — they're deterministic, so they're built at
+  most once per process. Re-rendering a score with reverb is ~50% faster.
+- **Reliability:** a new `tests/test_dsp_quality.py` makes real assertions
+  about the audio itself — oscillator pitch, harmonic content, envelope
+  decay, filter response, echo timing, reverb tails, stereo width, panning,
+  and the master limiter — so the synth/render core can be optimised without
+  silently changing the sound.
 - **Internal:** convolution-reverb presets now have a single source of
   truth (`_IR_DURATIONS`) shared by IR generation, ring-out sizing, the
   reverb-type dispatch, and validation, so preset names and tail lengths

@@ -4621,12 +4621,21 @@ _IR_DURATIONS = {
     "canyon": 5.0,
 }
 
+# Memoised impulse responses, keyed by (preset, sample_rate, seed). IRs are
+# deterministic and expensive to build, so each is generated at most once.
+_GENERATED_IR_CACHE: dict[tuple, numpy.ndarray] = {}
 
-def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
+
+def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE, seed=42):
     """Generate a synthetic impulse response for convolution reverb.
 
     These model the acoustic properties of real spaces — early reflections
     pattern, decay envelope, frequency-dependent absorption, and diffusion.
+
+    ``seed`` controls the random diffuse tail; generating two IRs with
+    different seeds (one per channel) is what gives the stereo reverb its
+    width. Results are memoised per ``(preset, sample_rate, seed)`` — the IR
+    is deterministic, so it's only ever computed once per process.
 
     Available presets:
         taj_mahal: Massive marble dome — 12s decay, bright early reflections,
@@ -4642,6 +4651,10 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
         parking_garage: Concrete box — 3s, bright, flutter echoes.
         canyon: Open canyon — 5s, sparse discrete echoes then diffuse tail.
     """
+    cache_key = (preset, sample_rate, seed)
+    cached = _GENERATED_IR_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
     presets = {
         "taj_mahal": dict(
             early_delays=[0.018, 0.037, 0.052, 0.071, 0.089, 0.112, 0.134,
@@ -4739,7 +4752,7 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
             ir[idx] += gain
 
     # 2. Diffuse tail — shaped noise with exponential decay
-    rng = numpy.random.RandomState(42)  # deterministic for reproducibility
+    rng = numpy.random.RandomState(seed)  # deterministic per seed
     noise = rng.randn(n_samples).astype(numpy.float32)
 
     # Exponential decay envelope
@@ -4801,19 +4814,13 @@ def _generate_ir(preset="taj_mahal", sample_rate=SAMPLE_RATE):
     if peak > 0:
         ir /= peak
 
+    _GENERATED_IR_CACHE[cache_key] = ir
     return ir
 
 
-# IR cache — generate once, reuse
-_IR_CACHE: dict[str, numpy.ndarray] = {}
-
-
 def _get_ir(preset, sample_rate=SAMPLE_RATE):
-    """Get a cached impulse response."""
-    key = f"{preset}_{sample_rate}"
-    if key not in _IR_CACHE:
-        _IR_CACHE[key] = _generate_ir(preset, sample_rate)
-    return _IR_CACHE[key]
+    """Get a (memoised) impulse response for the mono reverb path."""
+    return _generate_ir(preset, sample_rate)
 
 
 def _apply_convolution_reverb(samples, preset="taj_mahal", mix=0.3,
@@ -4874,17 +4881,10 @@ def _apply_convolution_reverb_stereo(samples, preset="taj_mahal", mix=0.3,
         stereo[:, 1] = samples
         return stereo
 
-    # Generate two different IRs with different seeds
-    key_l = f"{preset}_{sample_rate}_L"
-    key_r = f"{preset}_{sample_rate}_R"
-    if key_l not in _IR_CACHE:
-        # Temporarily override numpy random state for different IRs
-        _IR_CACHE[key_l] = _generate_ir(preset, sample_rate)
-        # Generate second IR — different random noise = different tail
-        _IR_CACHE[key_r] = _generate_ir(preset, sample_rate)
-
-    ir_l = _IR_CACHE[key_l]
-    ir_r = _IR_CACHE[key_r]
+    # Two IRs with *different* seeds — different noise tails for L and R is
+    # what gives the reverb real stereo width. (Both are memoised.)
+    ir_l = _generate_ir(preset, sample_rate, seed=42)
+    ir_r = _generate_ir(preset, sample_rate, seed=4242)
 
     # Convolve separately
     wet_l = scipy.signal.fftconvolve(samples, ir_l, mode='full')[:n].astype(numpy.float32)
