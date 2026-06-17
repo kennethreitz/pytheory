@@ -9,14 +9,17 @@ All notable changes to PyTheory are documented here.
   key gives the harmonic-minor *major* dominant, and `"IV"` gives the
   Dorian major-IV), honours quality markers (`"°"`, `"ø"`, `"+"`, `"maj"`),
   and builds **flat/sharp degrees** as the correct borrowed chord (`"bVII"`
-  → a B♭ major triad, not a clipped diminished one). Previously it ignored
-  case and mis-transposed altered degrees, so modal/minor progressions
-  rendered wrong — the Andalusian cadence ended on a minor v, the Mixolydian
-  vamp on a diminished vii°, and minor ii–V–i got a minor v7. *(Behaviour
-  change: lowercase numerals now build minor chords even in a major key.)*
-- **More built-in progressions (14 -> 32).** `PROGRESSIONS` gains 18 named
+  → a B♭ major triad, not a clipped diminished one), and parses
+  **secondary dominants** with slash notation (`"V7/V"`, `"vii°/ii"`).
+  Previously it ignored case and mis-transposed altered degrees, so
+  modal/minor progressions rendered wrong — the Andalusian cadence ended on
+  a minor v, the Mixolydian vamp on a diminished vii°, and minor ii–V–i got
+  a minor v7. *(Behaviour change: lowercase numerals now build minor chords
+  even in a major key.)*
+- **More built-in progressions (14 -> 34).** `PROGRESSIONS` gains 20 named
   progressions across pop, blues (quick-change, 8-bar, minor 12-bar), jazz
-  (extended turnarounds, minor ii-V-i), classical (the circle of fifths,
+  (extended turnarounds, minor ii-V-i, ragtime and the rhythm-changes bridge
+  built from secondary dominants), classical (the circle of fifths,
   Pachelbel variant), and a range of minor and modal loops.
 - **Reharmonization.** `reharmonize(chord, key)` suggests substitution
   ideas for a chord — tritone sub (for dominants), diatonic swaps sharing

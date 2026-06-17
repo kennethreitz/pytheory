@@ -302,6 +302,17 @@ def test_progression_flat_degrees_are_borrowed_chords():
     assert c.progression("bII")[0].identify() == "Db major"    # Neapolitan
 
 
+def test_progression_secondary_dominants():
+    c = Key("C", "major")
+    assert c.progression("V/V")[0].identify() == "D major"
+    assert c.progression("V7/V")[0].identify() == "D dominant 7th"
+    assert c.progression("V7/ii")[0].identify() == "A dominant 7th"   # dominant of Dm
+    assert c.progression("vii°/V")[0].identify() == "F# diminished"
+    # The classic applied-dominant cadence.
+    chain = [ch.identify() for ch in c.progression("I", "V7/V", "V7", "I")]
+    assert chain == ["C major", "D dominant 7th", "G dominant 7th", "C major"]
+
+
 def test_progression_quality_markers():
     c = Key("C", "major")
     assert c.progression("vii°")[0].identify() == "B diminished"

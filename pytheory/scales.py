@@ -229,7 +229,11 @@ class Scale:
           ``"bVII"`` is a major triad on the lowered 7th degree (the
           Mixolydian/​rock ♭VII), ``"bII"`` the Neapolitan, and so on;
         - a trailing **``"7"``** makes it a seventh chord (dominant for an
-          uppercase numeral, minor for lowercase).
+          uppercase numeral, minor for lowercase);
+        - a **slash** marks a secondary/applied chord — ``"V7/V"`` is the
+          dominant of the dominant, ``"vii°/ii"`` the leading-tone chord of
+          ``ii`` (the part before the slash is read in a major key rooted on
+          the target).
 
         Example::
 
@@ -237,6 +241,8 @@ class Scale:
             [<Chord C major>, <Chord F major>, <Chord G dominant 7th>, <Chord C major>]
             >>> scale.progression("I", "bVII")           # Mixolydian vamp
             [<Chord C major>, <Chord Bb major>]
+            >>> scale.progression("I", "V7/V", "V7", "I")
+            [<Chord C major>, <Chord D dominant 7th>, <Chord G dominant 7th>, <Chord C major>]
         """
         return [self._chord_from_numeral(num) for num in numerals]
 
@@ -247,6 +253,14 @@ class Scale:
         from .chords import Chord
 
         s = numeral.strip()
+
+        # Secondary / applied chords: "V7/V", "V/ii", "vii°/V". The part
+        # after the slash names the target; the part before is interpreted
+        # in a major key rooted on that target's root.
+        if "/" in s:
+            applied, target = s.split("/", 1)
+            target_root = self._chord_from_numeral(target).tones[0]
+            return TonedScale(tonic=target_root)["major"]._chord_from_numeral(applied)
 
         # Accidental prefix — borrow from outside the key.
         offset = 0
@@ -548,6 +562,8 @@ PROGRESSIONS = {
     "I-vi-ii-V": ("I", "vi", "ii", "V"),       # rhythm changes A section
     "iii-vi-ii-V": ("iii", "vi", "ii", "V"),   # jazz turnaround
     "minor ii-V-i": ("ii°", "V7", "i"),
+    "ragtime": ("I", "V7/ii", "V7/V", "V7"),   # Sweet Georgia Brown
+    "rhythm changes bridge": ("V7/vi", "V7/ii", "V7/V", "V7"),
     # Classical / Film
     "i-bVI-bIII-bVII": ("i", "VI", "III", "VII"),
     "Pachelbel": ("I", "V", "vi", "iii", "IV", "I", "IV", "V"),

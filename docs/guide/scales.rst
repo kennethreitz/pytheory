@@ -290,6 +290,14 @@ prefix for **borrowed chords** work too:
    [<Chord A minor>, <Chord D minor>, <Chord E dominant 7th>, <Chord A minor>]
    >>> [c.identify() for c in Key("C", "major").progression("I", "bVII", "IV")]
    ['C major', 'Bb major', 'F major']
+
+Slash notation builds **secondary (applied) dominants** — ``"V7/V"`` is the
+dominant of the dominant:
+
+.. code-block:: pycon
+
+   >>> [c.identify() for c in Key("C", "major").progression("I", "V7/V", "V7", "I")]
+   ['C major', 'D dominant 7th', 'G dominant 7th', 'C major']
    >>> key.chords
    ['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
    >>> key.seventh_chords
