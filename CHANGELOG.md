@@ -2,6 +2,28 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.55.0
+
+- **Chord diagrams for any chord.** `Fretboard.chord()` and
+  `tab_image()` no longer stop at the ~144 charted voicings — any symbol
+  `Chord.from_symbol` can parse (`F#m7b5`, `Csus2`, `Gadd9`, `Aaug`,
+  `Cdim7`, …) now gets a voicing computed from its notes, by searching
+  the neck and scoring hand positions for completeness, span, open
+  strings, root-in-bass, and barre/finger economy. Charted chords keep
+  their curated shape. New `diagrams` extra (`cairosvg`) for PNG export.
+- **Carnatic ragas.** 18 of the best-known Carnatic ragas join the 36
+  Hindustani ones (36 → 54) — Shankarabharanam, Kalyani, Kharaharapriya,
+  Hanumatodi, Mayamalavagowla, Mohanam, Hindolam, Charukesi, Keeravani,
+  Kambhoji, Madhyamavati, and more — each with its parent melakarta. New
+  `Raga.tradition` attribute, `Raga.by_tradition()`, and `pytheory raga
+  --tradition hindustani|carnatic`.
+- **Parallel batch rendering — `render_scores()`.** A single
+  `render_score` is already fast, so the multicore win is in batch work:
+  exporting an album, rendering many clips, serving several requests.
+  `render_scores(scores, workers=)` renders each Score on its own thread
+  (NumPy releases the GIL during the math), about 2x on a typical
+  machine, with no change to how any individual Score sounds.
+
 ## 0.54.1
 
 - **Correct Roman-numeral progressions in the published package.** The
