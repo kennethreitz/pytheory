@@ -91,6 +91,13 @@ Chord.from_symbol("G7").negative_harmony("C")              # the negative domina
 # (Key("C","major").negative_harmony() gives the axis, hinge notes, and bridge
 #  chord — that's the keys-and-harmony skill.)
 
+# Reharmonization ideas for a chord in a key (tritone sub, diatonic subs,
+# secondary dominant, negative harmony) — one dict per suggestion:
+from pytheory import reharmonize
+for s in reharmonize(Chord.from_symbol("G7"), "C"):
+    print(s["technique"], "->", s["chord"].identify())
+# Or from the shell: pytheory reharmonize G7 --key C   (--json / --play too)
+
 # Smoothest motion from one chord to the next, voice by voice:
 for frm, to, semis in Chord.from_symbol("Cmaj7").voice_leading(Chord.from_symbol("Fmaj7")):
     print(frm, "->", to, f"({semis:+d} semitones)")

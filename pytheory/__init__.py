@@ -10,7 +10,7 @@ from .chords import (Chord, Fretboard, analyze_progression,
                      detect_secondary_dominant, detect_cadence, find_cadences,
                      check_voice_leading,
                      analyze_non_chord_tones, chord_scales, chord_scale_notes,
-                     avoid_notes)
+                     avoid_notes, reharmonize)
 from .charts import CHARTS, Fingering, charts_for_fretboard
 from .serialism import ToneRow
 
@@ -29,7 +29,7 @@ __all__ = [
     "PROGRESSIONS", "Raga", "Chord", "Fretboard", "Fingering", "analyze_progression",
     "detect_secondary_dominant", "detect_cadence", "find_cadences", "check_voice_leading",
     "analyze_non_chord_tones", "chord_scales", "chord_scale_notes",
-    "avoid_notes", "ToneRow",
+    "avoid_notes", "reharmonize", "ToneRow",
     "System", "SYSTEMS", "TET", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "play_pattern",
     "play_score", "render_score", "Synth", "Envelope",

@@ -2940,3 +2940,77 @@ def avoid_notes(chord: Chord, scale_name: str = None) -> list:
         if any((_pc(tone) - cpc) % 12 == 1 for cpc in chord_pcs):
             avoid.append(tone)
     return avoid
+
+
+def reharmonize(chord: Chord, key: str = "C", mode: str = "major") -> list:
+    """Suggest reharmonizations for a chord within a key.
+
+    Returns a ranked list of substitution ideas — each a dict with a
+    ``technique`` name, the suggested ``chord``, and a short
+    ``description`` — drawing on the staples of reharmonization:
+
+    - **tritone substitution** (for dominant sevenths),
+    - **diatonic substitution** (a diatonic chord sharing two or more notes),
+    - **secondary dominant** (approach the chord with its own V7),
+    - **negative harmony** (mirror across the key's tonic–dominant axis).
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> subs = reharmonize(Chord.from_symbol("G7"), "C")
+        >>> subs[0]["technique"], subs[0]["chord"].identify()
+        ('tritone substitution', 'C# dominant 7th')
+    """
+    from .scales import Key
+
+    k = Key(key, mode)
+    chord_pcs = chord.pitch_classes
+    quality = chord.quality or ""
+    root_pc = _pc(chord.root) if chord.root is not None else None
+    suggestions = []
+
+    # 1. Tritone substitution — the classic dominant swap.
+    if quality == "dominant 7th":
+        suggestions.append({
+            "technique": "tritone substitution",
+            "chord": chord.tritone_sub(),
+            "description": "The dominant a tritone away — same tritone, "
+                           "chromatic bass descent.",
+        })
+
+    # 2. Diatonic substitution — a *different-rooted* diatonic chord sharing
+    #    two or more notes (a same-root chord is just a simplification).
+    diatonic = k.scale.harmonize()
+    for triad in diatonic:
+        if triad.pitch_classes == chord_pcs:
+            continue
+        if root_pc is not None and _pc(triad.root) == root_pc:
+            continue
+        shared = len(chord_pcs & triad.pitch_classes)
+        if shared >= 2:
+            suggestions.append({
+                "technique": "diatonic substitution",
+                "chord": triad,
+                "description": f"Shares {shared} notes — a smooth diatonic swap.",
+            })
+
+    # 3. Secondary dominant — tonicise the chord by approaching it with its V7.
+    if root_pc is not None:
+        for degree, triad in enumerate(diatonic, start=1):
+            if (_pc(triad.root) == root_pc and degree != 1
+                    and "diminished" not in (triad.quality or "")):
+                suggestions.append({
+                    "technique": "secondary dominant",
+                    "chord": k.secondary_dominant(degree),
+                    "description": f"Approach with V7/{degree} to tonicise it.",
+                })
+                break
+
+    # 4. Negative harmony.
+    suggestions.append({
+        "technique": "negative harmony",
+        "chord": chord.negative_harmony(key),
+        "description": "Mirror across the key's tonic–dominant axis.",
+    })
+
+    return suggestions

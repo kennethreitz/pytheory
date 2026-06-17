@@ -74,6 +74,18 @@ def test_cli_json_output(capsys):
     assert data["cadences"][-1]["type"] == "imperfect authentic"
 
 
+def test_cli_reharmonize(capsys):
+    import argparse, json
+    from pytheory.cli import cmd_reharmonize
+    args = argparse.Namespace(chord="G7", key="C", mode="major", json=True, play=False)
+    cmd_reharmonize(args)
+    data = json.loads(capsys.readouterr().out)
+    assert data["chord"] == "G dominant 7th"
+    techniques = {s["technique"] for s in data["suggestions"]}
+    assert "tritone substitution" in techniques
+    assert "negative harmony" in techniques
+
+
 def test_cli_main_no_args(capsys):
     from pytheory.cli import main
     import sys

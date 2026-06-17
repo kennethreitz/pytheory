@@ -760,6 +760,37 @@ def cmd_analyze(args):
         _play_items(chords, t=900)
 
 
+def cmd_reharmonize(args):
+    from .chords import Chord, reharmonize
+    try:
+        chord = Chord.from_symbol(args.chord)
+    except Exception as e:
+        print(f"  Could not parse chord: {e}")
+        return
+    subs = reharmonize(chord, args.key, args.mode)
+
+    if getattr(args, "json", False):
+        _emit_json({
+            "chord": chord.identify() or args.chord,
+            "key": f"{args.key} {args.mode}",
+            "suggestions": [
+                {"technique": s["technique"],
+                 "chord": s["chord"].identify() or str(s["chord"]),
+                 "description": s["description"]}
+                for s in subs
+            ],
+        })
+    else:
+        print(f"  Reharmonizing {chord.identify() or args.chord} "
+              f"in {args.key} {args.mode}:\n")
+        for s in subs:
+            name = s["chord"].identify() or str(s["chord"])
+            print(f"    {s['technique']:22s} {name}")
+            print(f"      {s['description']}")
+    if getattr(args, "play", False):
+        _play_items([chord] + [s["chord"] for s in subs], t=1100)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="pytheory",
@@ -809,6 +840,13 @@ def main():
     p = sub.add_parser("analyze", parents=[io], help="Analyze a chord progression (e.g. pytheory analyze C D7 G7 C)")
     p.add_argument("chords", nargs="+", help="Chord symbols (e.g. C D7 G7 C)")
     p.add_argument("--key", help="Key tonic (e.g. C). Auto-detected if omitted.")
+    p.add_argument("--mode", default="major", help="major or minor (default: major)")
+
+    # reharmonize
+    p = sub.add_parser("reharmonize", aliases=["reharm"], parents=[io],
+                       help="Suggest reharmonizations (e.g. pytheory reharmonize G7 --key C)")
+    p.add_argument("chord", help="Chord symbol (e.g. G7, Dm7)")
+    p.add_argument("--key", default="C", help="Key tonic (default: C)")
     p.add_argument("--mode", default="major", help="major or minor (default: major)")
 
     # play
@@ -977,6 +1015,8 @@ def main():
         "studio": cmd_studio,
         "detect": cmd_detect,
         "analyze": cmd_analyze,
+        "reharmonize": cmd_reharmonize,
+        "reharm": cmd_reharmonize,
         "modes": cmd_modes,
         "circle": cmd_circle,
         "progressions": cmd_progressions,

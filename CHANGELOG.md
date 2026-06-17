@@ -4,6 +4,12 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Reharmonization.** `reharmonize(chord, key)` suggests substitution
+  ideas for a chord — tritone sub (for dominants), diatonic swaps sharing
+  two or more notes, the secondary dominant that tonicises it, and its
+  negative-harmony mirror — each with a technique name and description.
+  Also a `pytheory reharmonize G7 --key C` CLI command (with `--json` /
+  `--play`).
 - **`--json` and `--play` across the CLI.** The theory commands (`tone`,
   `scale`, `chord`, `key`, `progression`, `identify`, `analyze`, `detect`,
   `modes`, `circle`, `fingering`) gain `--json` for structured, pipeable

@@ -1278,6 +1278,36 @@ def test_literal_subset_superset():
     assert not seventh.is_subset_of(triad)
 
 
+# ── Reharmonization ────────────────────────────────────────────────────
+
+def test_reharmonize_techniques():
+    from pytheory import reharmonize
+    subs = reharmonize(Chord.from_symbol("G7"), "C")
+    techniques = {s["technique"] for s in subs}
+    assert "tritone substitution" in techniques
+    assert "diatonic substitution" in techniques
+    assert "negative harmony" in techniques
+    # The tritone sub of G7 is Db7 (= C# dominant 7th).
+    tts = next(s for s in subs if s["technique"] == "tritone substitution")
+    assert "dominant 7th" in tts["chord"].identify()
+
+
+def test_reharmonize_excludes_same_root_simplifications():
+    from pytheory import reharmonize
+    # G major (G7 minus the 7th) must not be offered as a "substitution".
+    subs = reharmonize(Chord.from_symbol("G7"), "C")
+    roots = {s["chord"].root.name for s in subs
+             if s["technique"] == "diatonic substitution"}
+    assert "G" not in roots
+
+
+def test_reharmonize_non_dominant_has_no_tritone_sub():
+    from pytheory import reharmonize
+    subs = reharmonize(Chord.from_symbol("C"), "C")   # tonic triad
+    assert all(s["technique"] != "tritone substitution" for s in subs)
+    assert any(s["technique"] == "negative harmony" for s in subs)
+
+
 # ── Chord-scale theory ─────────────────────────────────────────────────
 
 def test_chord_scales_from_quality():

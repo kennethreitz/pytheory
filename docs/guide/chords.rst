@@ -462,6 +462,32 @@ Common tritone subs: G7 <-> Db7, C7 <-> F#7, D7 <-> Ab7.
    >>> sub.identify()
    'C# dominant 7th'
 
+Reharmonization
+---------------
+
+Tritone substitution is one move in a larger toolkit. ``reharmonize``
+gathers several at once — for a chord in a key it suggests the tritone sub
+(for dominants), diatonic substitutes that share two or more notes, the
+secondary dominant that tonicises it, and its negative-harmony mirror. Each
+suggestion is a dict with a ``technique``, the substitute ``chord``, and a
+short ``description``:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, reharmonize
+
+   >>> for s in reharmonize(Chord.from_symbol("G7"), "C"):
+   ...     print(f"{s['technique']:22s} {s['chord'].identify()}")
+   tritone substitution   C# dominant 7th
+   diatonic substitution  D minor
+   diatonic substitution  E minor
+   diatonic substitution  B diminished
+   secondary dominant     D dominant 7th
+   negative harmony       D half-diminished 7th
+
+From the shell, ``pytheory reharmonize G7 --key C`` prints the same list
+(add ``--json`` to pipe it, or ``--play`` to hear each option).
+
 The Overtone Series
 -------------------
 

@@ -176,6 +176,23 @@ Use ``--key`` and ``--mode`` to analyze in a specific key::
 
     $ pytheory analyze --key A --mode minor Am Dm E Am
 
+Reharmonize a Chord
+-------------------
+
+Ask for substitution ideas — tritone subs, diatonic swaps, the secondary
+dominant, and the negative-harmony mirror::
+
+    $ pytheory reharmonize G7 --key C
+      Reharmonizing G dominant 7th in C major:
+
+        tritone substitution   C# dominant 7th
+          The dominant a tritone away — same tritone, chromatic bass descent.
+        diatonic substitution  E minor
+          Shares 2 notes — a smooth diatonic swap.
+        ...
+
+Add ``--play`` to hear the original followed by each option.
+
 Key Detection
 -------------
 
