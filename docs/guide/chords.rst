@@ -559,6 +559,38 @@ that don't clash with existing chord tones:
    >>> cm.extensions(scale=scale)
    [...]
 
+Chord-Scale Theory
+------------------
+
+Improvisers think in *chord-scales*: each chord implies a scale you can
+solo with. ``chord_scales`` recommends them, best fit first — from the
+chord quality alone, or with the diatonic mode preferred when you supply a
+key:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, chord_scales, chord_scale_notes, avoid_notes
+
+   >>> chord_scales(Chord.from_symbol("G7"))
+   ['mixolydian']
+   >>> chord_scales(Chord.from_symbol("Cm7"))
+   ['dorian', 'aeolian', 'phrygian']
+
+   >>> # In C major, an Em7 is the iii chord — its mode is Phrygian:
+   >>> chord_scales(Chord.from_symbol("Em7"), key="C")
+   ['phrygian', 'dorian', 'aeolian']
+
+``chord_scale_notes`` spells the scale on the chord's root, and
+``avoid_notes`` flags the scale tones that sit a half-step above a chord
+tone — the notes you pass through rather than land on:
+
+.. code-block:: pycon
+
+   >>> [t.name for t in chord_scale_notes(Chord.from_symbol("Cmaj7"))]
+   ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+   >>> [t.name for t in avoid_notes(Chord.from_symbol("Cmaj7"))]
+   ['F']
+
 Borrowed Chord Analysis
 -----------------------
 

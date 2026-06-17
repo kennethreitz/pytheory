@@ -4,6 +4,12 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Chord-scale theory.** `chord_scales(chord, key=None)` recommends scales
+  to improvise with over a chord (best fit first — Mixolydian over a
+  dominant 7th, Dorian over a minor 7th; with a key, the diatonic mode goes
+  first, so an `Em7` in C resolves to Phrygian). `chord_scale_notes` spells
+  the scale on the chord's root, and `avoid_notes` flags the scale tones a
+  half-step above a chord tone (the F over `Cmaj7`).
 - **Non-chord-tone analysis.** `analyze_non_chord_tones(melody, chords)`
   labels each melody note against the harmony beneath it — chord tone,
   passing, upper/lower neighbor, suspension, anticipation, appoggiatura, or

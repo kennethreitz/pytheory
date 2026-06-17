@@ -2759,3 +2759,114 @@ def _classify_nct(i, pitches, notes, chord_seq) -> str:
     if _is_step(approach) and _is_leap(departure):
         return "escape tone"
     return "non-chord tone"
+
+
+# Chord quality -> scales to improvise with, best fit first. Names match the
+# TonedScale catalog (the seven modes plus harmonic/natural minor).
+_CHORD_SCALES = {
+    "major": ["ionian", "lydian"],
+    "major 7th": ["ionian", "lydian"],
+    "major 6th": ["ionian", "lydian"],
+    "dominant 7th": ["mixolydian"],
+    "minor": ["dorian", "aeolian", "phrygian"],
+    "minor 7th": ["dorian", "aeolian", "phrygian"],
+    "minor 6th": ["dorian"],
+    "half-diminished 7th": ["locrian"],
+    "diminished": ["locrian", "harmonic minor"],
+    "diminished 7th": ["locrian", "harmonic minor"],
+    "augmented": ["ionian"],
+    "sus4": ["mixolydian"],
+    "sus2": ["mixolydian"],
+}
+
+_MAJOR_DEGREE_MODES = ["ionian", "dorian", "phrygian", "lydian",
+                       "mixolydian", "aeolian", "locrian"]
+_MINOR_DEGREE_MODES = ["aeolian", "locrian", "ionian", "dorian",
+                       "phrygian", "lydian", "mixolydian"]
+
+
+def _diatonic_mode(chord: Chord, key: str, mode: str):
+    """The church mode rooted on this chord within ``key`` (or None if the
+    chord's root isn't a diatonic scale degree)."""
+    from .tones import Tone
+    root = chord.root
+    if root is None:
+        return None
+    tonic_pc = _pc(Tone.from_string(f"{key}4", system="western"))
+    steps = (0, 2, 4, 5, 7, 9, 11) if mode == "major" else (0, 2, 3, 5, 7, 8, 10)
+    modes = _MAJOR_DEGREE_MODES if mode == "major" else _MINOR_DEGREE_MODES
+    scale_pcs = [(tonic_pc + s) % 12 for s in steps]
+    root_pc = _pc(root)
+    if root_pc in scale_pcs:
+        return modes[scale_pcs.index(root_pc)]
+    return None
+
+
+def chord_scales(chord: Chord, key: str = None, mode: str = "major") -> list:
+    """Recommend scales to improvise with over a chord (chord-scale theory).
+
+    Returns scale names best-fit first. With no key, the suggestions come
+    from the chord's quality alone (e.g. a dominant 7th → Mixolydian, a
+    minor 7th → Dorian / Aeolian / Phrygian). Pass a ``key`` and the
+    diatonic mode for the chord's scale degree is moved to the front, so in
+    C major an ``Em7`` resolves to **Phrygian** rather than the generic
+    minor options.
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> chord_scales(Chord.from_symbol("G7"))
+        ['mixolydian']
+        >>> chord_scales(Chord.from_symbol("Em7"), key="C")
+        ['phrygian', 'dorian', 'aeolian']
+    """
+    base = list(_CHORD_SCALES.get(chord.quality or "", ["ionian"]))
+    if key is not None:
+        diatonic = _diatonic_mode(chord, key, mode)
+        if diatonic:
+            if diatonic in base:
+                base.remove(diatonic)
+            base.insert(0, diatonic)
+    return base
+
+
+def chord_scale_notes(chord: Chord, scale_name: str = None) -> list:
+    """The notes of a chord-scale rooted on the chord's root.
+
+    Defaults to the best-fit scale from :func:`chord_scales`. Returns a list
+    of :class:`~pytheory.Tone` (one octave, without the repeated top note).
+    """
+    from .scales import TonedScale
+    if scale_name is None:
+        scale_name = chord_scales(chord)[0]
+    root = chord.root
+    if root is None:
+        return []
+    tones = list(TonedScale(tonic=root)[scale_name].tones)
+    # Drop the duplicated octave at the top.
+    if len(tones) > 1 and _pc(tones[-1]) == _pc(tones[0]):
+        tones = tones[:-1]
+    return tones
+
+
+def avoid_notes(chord: Chord, scale_name: str = None) -> list:
+    """The "avoid notes" of a chord-scale — scale tones a half-step above a
+    chord tone, which clash if you land on them.
+
+    The classic example: over ``Cmaj7`` in the major (Ionian) scale, F sits
+    a semitone above the third (E), so it's an avoid note.
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> [t.name for t in avoid_notes(Chord.from_symbol("Cmaj7"))]
+        ['F']
+    """
+    chord_pcs = chord.pitch_classes
+    avoid = []
+    for tone in chord_scale_notes(chord, scale_name):
+        if _pc(tone) in chord_pcs:
+            continue
+        if any((_pc(tone) - cpc) % 12 == 1 for cpc in chord_pcs):
+            avoid.append(tone)
+    return avoid

@@ -1278,6 +1278,39 @@ def test_literal_subset_superset():
     assert not seventh.is_subset_of(triad)
 
 
+# ── Chord-scale theory ─────────────────────────────────────────────────
+
+def test_chord_scales_from_quality():
+    from pytheory import chord_scales
+    assert chord_scales(Chord.from_symbol("G7")) == ["mixolydian"]
+    assert chord_scales(Chord.from_symbol("Cmaj7")) == ["ionian", "lydian"]
+    assert chord_scales(Chord.from_symbol("Cm7")) == ["dorian", "aeolian", "phrygian"]
+    assert chord_scales(Chord.from_symbol("Cm7b5")) == ["locrian"]
+
+
+def test_chord_scales_prefer_diatonic_mode_in_key():
+    from pytheory import chord_scales
+    # In C major, each diatonic seventh resolves to its church mode first.
+    assert chord_scales(Chord.from_symbol("Em7"), key="C")[0] == "phrygian"
+    assert chord_scales(Chord.from_symbol("Dm7"), key="C")[0] == "dorian"
+    assert chord_scales(Chord.from_symbol("Fmaj7"), key="C")[0] == "lydian"
+
+
+def test_avoid_notes():
+    from pytheory import avoid_notes
+    # The 4th is a half-step above the 3rd -> avoid note.
+    assert [t.name for t in avoid_notes(Chord.from_symbol("Cmaj7"))] == ["F"]
+    assert [t.name for t in avoid_notes(Chord.from_symbol("G7"))] == ["C"]
+    # Dorian over a minor 7th has no avoid note.
+    assert avoid_notes(Chord.from_symbol("Dm7")) == []
+
+
+def test_chord_scale_notes():
+    from pytheory import chord_scale_notes
+    notes = [t.name for t in chord_scale_notes(Chord.from_symbol("Cmaj7"))]
+    assert notes == ["C", "D", "E", "F", "G", "A", "B"]   # one octave, no repeat
+
+
 # ── Non-chord-tone analysis ────────────────────────────────────────────
 
 def _nct_types(melody, chords):

@@ -132,6 +132,22 @@ check_voice_leading([a, b])
 It catches **parallel fifths**, **parallel octaves**, and **voice
 crossing**; clean part-writing returns `[]`.
 
+### Chord-scale theory (what to solo with)
+
+```python
+from pytheory import Chord, chord_scales, chord_scale_notes, avoid_notes
+
+chord_scales(Chord.from_symbol("G7"))                 # ['mixolydian']
+chord_scales(Chord.from_symbol("Cm7"))                # ['dorian','aeolian','phrygian']
+chord_scales(Chord.from_symbol("Em7"), key="C")       # ['phrygian', …]  diatonic mode first
+[t.name for t in chord_scale_notes(Chord.from_symbol("Cmaj7"))]  # C D E F G A B
+[t.name for t in avoid_notes(Chord.from_symbol("Cmaj7"))]        # ['F']  (½-step above the 3rd)
+```
+
+`chord_scales` ranks scales by fit (quality alone, or the diatonic mode
+first when you pass a `key`); `avoid_notes` flags scale tones a half-step
+above a chord tone.
+
 ```python
 from pytheory.play import play, save
 from pytheory import Chord, Synth
