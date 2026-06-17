@@ -53,6 +53,19 @@ chords = [Chord.from_symbol(s) for s in ["C", "G", "Am", "F"]]
 analyze_progression(chords, key="C", mode="major")        # ['I', 'V', 'vi', 'IV']
 ```
 
+**Secondary dominants** — applied dominants that tonicise a non-tonic
+degree. `secondary_dominant` identifies one chord; pass
+`secondary_dominants=True` to `analyze_progression` to label them in
+context (instead of the bare degree):
+
+```python
+from pytheory import secondary_dominant, analyze_progression, Chord
+secondary_dominant(Chord.from_symbol("D7"), "C")          # 'V7/V'  (D7 -> G)
+secondary_dominant(Chord.from_symbol("E7"), "C")          # 'V7/vi' (E7 -> Am)
+prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]
+analyze_progression(prog, "C", secondary_dominants=True)  # ['I', 'V7/V', 'V7', 'I']
+```
+
 **Cadences** — the harmonic punctuation that ends a phrase. Pass the last
 two chords (and the key) to `detect_cadence`, or scan a whole progression
 with `find_cadences`:

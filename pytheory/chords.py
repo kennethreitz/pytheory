@@ -2420,16 +2420,86 @@ class Fretboard:
                          high_to_low=self.high_to_low)
 
 
-def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major") -> list[str | None]:
+_MAJOR_ROMANS = ["I", "ii", "iii", "IV", "V", "vi", "vii°"]
+_MINOR_ROMANS = ["i", "ii°", "III", "iv", "v", "VI", "VII"]
+
+
+def secondary_dominant(chord: Chord, key: str = "C",
+                       mode: str = "major") -> Optional[str]:
+    """Identify a chord as a secondary (applied) dominant, e.g. ``"V7/V"``.
+
+    A secondary dominant is a major triad or dominant-seventh chord that
+    acts as the dominant of some chord *other* than the tonic — borrowing a
+    chromatic leading tone to briefly tonicise it. In C major, ``D7`` (with
+    its F♯) pulls toward G, so it's ``V7/V``; ``E7`` pulls toward A minor,
+    so it's ``V7/vi``.
+
+    Returns the applied-dominant label, or ``None`` if the chord isn't a
+    secondary dominant in this key (it's diatonic, the wrong quality, or
+    resolves to the tonic / a diminished degree).
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> secondary_dominant(Chord.from_symbol("D7"), "C")
+        'V7/V'
+        >>> secondary_dominant(Chord.from_symbol("E7"), "C")
+        'V7/vi'
+        >>> secondary_dominant(Chord.from_symbol("G7"), "C") is None   # just V
+        True
+    """
+    from .tones import Tone
+
+    quality = chord.quality or ""
+    if quality not in ("major", "dominant 7th"):
+        return None
+    root = chord.root
+    if root is None:
+        return None
+
+    tonic_pc = _pc(Tone.from_string(f"{key}4", system="western"))
+    steps = (0, 2, 4, 5, 7, 9, 11) if mode == "major" else (0, 2, 3, 5, 7, 8, 10)
+    scale_pcs = [(tonic_pc + s) % 12 for s in steps]
+    romans = _MAJOR_ROMANS if mode == "major" else _MINOR_ROMANS
+
+    target_pc = (_pc(root) + 5) % 12          # a perfect fifth below the root
+    if target_pc not in scale_pcs:
+        return None
+    degree = scale_pcs.index(target_pc)
+    if degree == 0 or "°" in romans[degree]:  # tonic, or a diminished target
+        return None
+    if all(pc in scale_pcs for pc in chord.pitch_classes):
+        return None                           # fully diatonic: not applied
+
+    prefix = "V7" if quality == "dominant 7th" else "V"
+    return f"{prefix}/{romans[degree]}"
+
+
+def analyze_progression(chords: list[Chord], key: str = "C", mode: str = "major",
+                        secondary_dominants: bool = False) -> list[str | None]:
     """Analyze a list of chords and return their Roman numeral functions.
+
+    With ``secondary_dominants=True``, applied dominants are labelled as
+    such (``"V7/V"``) instead of by their bare scale degree (``"II7"``).
 
     Example::
 
         >>> chords = [Chord.from_name("C"), Chord.from_name("Am"), Chord.from_name("F"), Chord.from_name("G")]
         >>> analyze_progression(chords, key="C")
         ['I', 'vi', 'IV', 'V']
+        >>> prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]
+        >>> analyze_progression(prog, key="C", secondary_dominants=True)
+        ['I', 'V7/V', 'V7', 'I']
     """
-    return [c.analyze(key, mode) for c in chords]
+    labels = []
+    for chord in chords:
+        if secondary_dominants:
+            applied = secondary_dominant(chord, key, mode)
+            if applied:
+                labels.append(applied)
+                continue
+        labels.append(chord.analyze(key, mode))
+    return labels
 
 
 def _cadence_degree(roman: Optional[str]) -> Optional[str]:

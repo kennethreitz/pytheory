@@ -299,6 +299,30 @@ def test_analyze_progression():
     assert analyze_progression(prog, key="C") == ["I", "vi", "IV", "V"]
 
 
+def test_secondary_dominant_detection():
+    from pytheory.chords import secondary_dominant
+    S = Chord.from_symbol
+    assert secondary_dominant(S("D7"), "C") == "V7/V"
+    assert secondary_dominant(S("E7"), "C") == "V7/vi"
+    assert secondary_dominant(S("A7"), "C") == "V7/ii"
+    assert secondary_dominant(S("C7"), "C") == "V7/IV"
+    assert secondary_dominant(S("D"), "C") == "V/V"        # triad, no 7th
+    assert secondary_dominant(S("G7"), "C") is None        # the primary V
+    assert secondary_dominant(S("Dm"), "C") is None        # diatonic ii
+    assert secondary_dominant(S("F#7"), "C") is None       # would target vii°
+    # Minor key
+    assert secondary_dominant(S("B7"), "A", "minor") == "V7/v"
+
+
+def test_analyze_progression_with_secondary_dominants():
+    from pytheory import analyze_progression
+    prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]
+    assert analyze_progression(prog, "C", secondary_dominants=True) == \
+        ["I", "V7/V", "V7", "I"]
+    # Default behaviour is unchanged.
+    assert analyze_progression(prog, "C") == ["I", "II7", "V7", "I"]
+
+
 def test_detect_cadence_types():
     from pytheory import detect_cadence
     C = Chord.from_name
