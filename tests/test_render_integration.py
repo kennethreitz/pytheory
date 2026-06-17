@@ -120,3 +120,26 @@ def test_render_length_tracks_content():
     for _ in range(8):
         a.add("C4", Duration.QUARTER)               # 8 beats
     assert len(render_score(longer)) > len(render_score(short))
+
+
+# ── Convenience API: Score.render() / Score.to_wav() ───────────────────
+
+def test_score_render_matches_render_score():
+    s = Score("4/4", bpm=120)
+    _four_notes(s.part("a", synth="sine", reverb=0.2))
+    assert np.array_equal(s.render(), render_score(s))
+
+
+def test_score_to_wav_writes_a_valid_stereo_file(tmp_path):
+    import wave
+
+    s = Score("4/4", bpm=120)
+    _four_notes(s.part("a", synth="sine"))
+    path = tmp_path / "out.wav"
+    assert s.to_wav(path) == path
+
+    with wave.open(str(path), "rb") as f:
+        assert f.getnchannels() == 2
+        assert f.getframerate() == 44100
+        assert f.getsampwidth() == 2          # 16-bit
+        assert f.getnframes() == len(s.render())

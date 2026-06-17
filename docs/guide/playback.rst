@@ -101,16 +101,27 @@ Press **Ctrl+C** at any time during playback to stop — PyTheory catches
 
 See :doc:`sequencing` for how to build scores and parts.
 
-render_score() -- Headless Rendering
-------------------------------------
+score.render() / score.to_wav() -- Headless Rendering
+-----------------------------------------------------
 
-Returns a raw audio buffer (numpy float32 array) without playing it.
-Useful for saving to WAV or further processing:
+The easiest way to get audio out of a :class:`~pytheory.Score` is to
+render or export it directly — no need to reach into ``pytheory.play``:
+
+.. code-block:: python
+
+   buf = score.render()        # (n_samples, 2) float32 stereo array
+   score.to_wav("song.wav")    # render + save a 16-bit stereo WAV
+
+``render()`` returns the finished, mastered mix; ``to_wav()`` writes it to
+disk at 44.1 kHz. Both work headlessly, with no speakers or PortAudio.
+
+The underlying :func:`pytheory.play.render_score` is also available if you
+prefer the function form:
 
 .. code-block:: pycon
 
    >>> from pytheory.play import render_score
-   >>> buf = render_score(score)   # numpy float32 array
+   >>> buf = render_score(score)   # equivalent to score.render()
    >>> len(buf)
    604800
 

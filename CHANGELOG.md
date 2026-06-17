@@ -4,6 +4,11 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **`Score.render()` and `Score.to_wav()`.** Getting audio out of a score
+  no longer means importing internals from `pytheory.play` and hand-rolling
+  a WAV writer. `score.render()` returns the finished `(N, 2)` float32 mix
+  and `score.to_wav("song.wav")` saves a 16-bit stereo file — both headless,
+  no speakers or PortAudio required.
 - **`Score.ring_out()` — let reverb/delay tails breathe.** Rendering used
   to stop dead on the final beat, clipping the tail of any reverb or delay
   on the last hit (especially noticeable on drum tracks with a long

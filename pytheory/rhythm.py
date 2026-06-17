@@ -5431,6 +5431,51 @@ class Score:
 
         raise ValueError("No pitched parts with notes found in score")
 
+    def render(self):
+        """Render this score to audio.
+
+        Mixes every part and drum track, runs the master bus, and returns
+        the finished stereo audio. This is the headless equivalent of
+        ``play_score`` — handy for tests, export, or further processing.
+
+        Returns:
+            A float32 NumPy array of shape ``(n_samples, 2)`` at 44.1 kHz,
+            with samples in roughly ``[-1, 1]``.
+
+        Example::
+
+            buf = score.render()          # (N, 2) float32
+            score.to_wav("song.wav")      # or save straight to disk
+        """
+        from .play import render_score
+        return render_score(self)
+
+    def to_wav(self, path):
+        """Render this score and save it as a 16-bit stereo WAV file.
+
+        Args:
+            path: Output path, e.g. ``"song.wav"``.
+
+        Returns:
+            The path written (so calls can be chained or logged).
+
+        Example::
+
+            score.to_wav("demo.wav")
+        """
+        import wave as _wave
+        import numpy as _np
+        from .play import SAMPLE_RATE
+
+        buf = self.render()
+        data = (_np.clip(buf, -1.0, 1.0) * 32767).astype(_np.int16)
+        with _wave.open(str(path), "wb") as f:
+            f.setnchannels(2)
+            f.setsampwidth(2)
+            f.setframerate(SAMPLE_RATE)
+            f.writeframes(data.tobytes())
+        return path
+
     def save_midi(self, path, velocity=100):
         """Export to Standard MIDI File, measure-aware."""
         ticks_per_beat = 480

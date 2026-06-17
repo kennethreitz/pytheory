@@ -235,13 +235,12 @@ and historical-tuning work.
 ## Hearing it & exporting
 
 ```python
-from pytheory.play import play_score, render_score, SAMPLE_RATE
-import scipy.io.wavfile
+from pytheory.play import play_score
 
 play_score(score)                       # play through the speakers
 
-buf = render_score(score)               # float32 (N, 2) buffer, no audio device needed
-scipy.io.wavfile.write("song.wav", SAMPLE_RATE, buf)
+buf = score.render()                    # float32 (N, 2) buffer, no audio device needed
+score.to_wav("song.wav")                # render + save a 16-bit stereo WAV
 
 score.save_midi("song.mid")             # MIDI (drums on channel 10)
 open("song.abc", "w").write(score.to_abc(title="Song", key="G"))
@@ -250,8 +249,8 @@ open("song.ly",  "w").write(score.to_lilypond(title="Song", key="G"))
 print(score.to_tab("guitar_part"))      # ASCII tab for a part
 ```
 
-In a headless/CI context (no speakers), prefer `render_score` + WAV over
-`play_score`.
+In a headless/CI context (no speakers), prefer `score.render()` /
+`score.to_wav()` over `play_score`.
 
 ## Metronome, practice click & tempo trainer
 
