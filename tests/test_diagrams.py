@@ -143,3 +143,35 @@ def test_png_export_requires_cairosvg(tmp_path):
     out = tmp_path / "Am.png"
     Fretboard.guitar().tab_image("Am", str(out), fmt="png")
     assert out.exists()
+
+
+# ── arbitrary (uncharted) chord voicings ─────────────────────────────
+
+def test_uncharted_chord_voicing_covers_tones():
+    """Symbols outside the 144 charts get a computed voicing of their notes."""
+    fb = Fretboard.guitar()
+    for sym in ["F#m7b5", "Csus2", "Dsus4", "Aaug", "Gadd9", "Cdim7", "E7sus4"]:
+        fg = fb.chord(sym)
+        want = {t.midi % 12 for t in Chord.from_symbol(sym).tones}
+        got = {t.midi % 12 for t in fg.tones}
+        assert want.issubset(got), f"{sym}: missing tones {want - got}"
+        assert got.issubset(want), f"{sym}: foreign tones {got - want}"
+
+
+def test_uncharted_chord_image_is_valid_svg():
+    _valid(Fretboard.guitar().tab_image("F#m7b5"))
+    _valid(Fretboard.guitar().tab_image("Csus2"))
+
+
+def test_uncharted_voicing_is_playable():
+    """The computed shape fits a hand: <= 4-fret span, >= 2 sounding strings."""
+    fg = Fretboard.guitar().chord("Bbsus4")
+    fretted = [f for f in fg.positions if f not in (None, 0)]
+    assert sum(1 for f in fg.positions if f is not None) >= 2
+    if fretted:
+        assert max(fretted) - min(fretted) <= 4
+
+
+def test_unparseable_chord_still_raises():
+    with pytest.raises(ValueError):
+        Fretboard.guitar().tab_image("not-a-chord")

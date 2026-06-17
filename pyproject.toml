@@ -29,6 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 live = ["python-rtmidi"]
 link = ["LinkPython-extern"]
+diagrams = ["cairosvg"]   # PNG rasterization of SVG fretboard diagrams
 
 [project.urls]
 Homepage = "https://github.com/kennethreitz/pytheory"

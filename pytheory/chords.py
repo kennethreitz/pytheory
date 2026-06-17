@@ -2241,8 +2241,14 @@ class Fretboard:
     def chord(self, name: str, *, system: str = "western") -> "Fingering":
         """Look up a chord by name and return its best fingering.
 
+        Charted chords (the ~144 curated voicings) use the curated
+        shape; any other parseable symbol (``"F#m7b5"``, ``"Csus2"``,
+        ``"Gadd9"``, ``"Aaug"``) gets a voicing computed from its notes
+        by searching the neck for the most playable shape.
+
         Args:
-            name: Chord name like ``"G"``, ``"Am7"``, ``"Bb"``, ``"Dm"``.
+            name: Chord name like ``"G"``, ``"Am7"``, ``"Bb"``, ``"Dm"``,
+                ``"F#m7b5"``.
             system: Tonal system to use (default ``"western"``).
 
         Returns:
@@ -2255,7 +2261,121 @@ class Fretboard:
             Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
         """
         from .charts import CHARTS
-        return CHARTS[system][name].fingering(fretboard=self)
+        chart = CHARTS.get(system, {})
+        if name in chart:
+            return chart[name].fingering(fretboard=self)
+        # Not charted — voice the parsed chord's notes on the neck.
+        try:
+            chord = Chord.from_symbol(name)
+        except (ValueError, KeyError):
+            raise KeyError(name)
+        fingering = self._voice_chord(chord)
+        if fingering is None:
+            raise KeyError(name)
+        return fingering
+
+    def _voice_chord(self, chord, *, max_fret: int = 12) -> "Fingering":
+        """Compute a playable fingering for an arbitrary chord by search.
+
+        Searches each hand position on the neck, scoring candidate
+        voicings for completeness, span, open strings, root-in-bass, and
+        barre/finger economy, and returns the best :class:`Fingering`
+        (or ``None`` if the chord can't be voiced on this board).
+        """
+        import itertools
+        from .charts import Fingering
+        from .tones import Tone
+
+        canonical = self._tones                     # high → low
+        target = {t.midi % 12 for t in chord.tones}
+        ident = chord.identify()
+        if ident:
+            root_pc = Tone.from_string(
+                f"{ident.split()[0]}4", system="western").midi % 12
+        else:
+            root_pc = chord.tones[0].midi % 12
+        SPAN = 4
+
+        best, best_score = None, float("-inf")
+        for base in range(0, max(1, max_fret - SPAN + 1)):
+            per_string = []
+            for ot in canonical:
+                cands = []
+                if ot.midi % 12 in target:
+                    cands.append(0)                 # open string
+                for f in range(max(1, base), min(max_fret, base + SPAN) + 1):
+                    if (ot.midi + f) % 12 in target:
+                        cands.append(f)
+                cands = list(dict.fromkeys(cands))[:3]   # cap per-string fan-out
+                cands.append(-1)                    # muting is always an option
+                per_string.append(cands)
+            for combo in itertools.product(*per_string):
+                score = self._score_voicing(combo, target, root_pc)
+                if score > best_score:
+                    best_score, best = score, combo
+
+        if best is None or best_score < -50:
+            return None
+        positions = tuple(None if f == -1 else f for f in best)
+        string_names = tuple(t.name for t in canonical)
+        return Fingering(positions, string_names, fretboard=self,
+                         high_to_low=self.high_to_low)
+
+    def _score_voicing(self, fingering, target_pcs, root_pc) -> float:
+        """Score a candidate voicing (canonical high-to-low, -1 = mute)."""
+        canonical = self._tones
+        fretted = [f for f in fingering if f not in (0, -1)]
+        muted = sum(1 for f in fingering if f == -1)
+        sounding = len(fingering) - muted
+        if sounding < 2:
+            return -100.0
+        if fretted and max(fretted) - min(fretted) > 4:
+            return -100.0
+        span = max(fretted) - min(fretted) if fretted else 0
+
+        sounding_pcs = {(canonical[i].midi + f) % 12
+                        for i, f in enumerate(fingering) if f != -1}
+        score = -len(target_pcs - sounding_pcs) * 8.0       # missing chord tones
+        score += sum(1 for f in fingering if f == 0) * 2.0  # open strings
+        score -= muted * 0.4
+        score -= span * 2.0
+        if fretted:
+            score -= (sum(fretted) / len(fretted)) * 0.8     # prefer low positions
+
+        if fretted:
+            lo = min(fretted)
+            barre = [i for i, f in enumerate(fingering) if f == lo and f > 0]
+            if len(barre) >= 2:
+                fingers = len({f for f in fretted if f > lo}) + 1
+                score += (len(barre) - 1) * 0.5
+            else:
+                fingers = len(fretted)
+        else:
+            fingers = 0
+        score -= fingers * 0.3
+        if fingers > 4:
+            score -= (fingers - 4) * 5.0
+
+        for i in range(len(fingering) - 1, -1, -1):          # root in the bass
+            if fingering[i] == -1:
+                continue
+            score += 4.0 if (canonical[i].midi + fingering[i]) % 12 == root_pc else -1.5
+            break
+
+        mute_from_bass = 0                                   # contiguous muting
+        for i in range(len(fingering) - 1, -1, -1):
+            if fingering[i] == -1:
+                mute_from_bass += 1
+            else:
+                break
+        mute_from_treble = 0
+        for i in range(len(fingering)):
+            if fingering[i] == -1:
+                mute_from_treble += 1
+            else:
+                break
+        score -= (muted - mute_from_bass - mute_from_treble) * 0.6
+        return score
 
     def __getitem__(self, name: str) -> "Fingering":
         """Shorthand for :meth:`chord` — ``fb["G"]`` equals ``fb.chord("G")``.
@@ -2324,10 +2444,10 @@ class Fretboard:
             fingering = self.chord(name, system=system)
         except KeyError:
             raise ValueError(
-                f"No charted fingering for {name!r}. tab_image covers the "
-                "charted chords (major/minor/5/6/7/9/dim/m6/m7/m9/maj7/maj9 "
-                "on each root). For an uncharted voicing, build a Fingering "
-                "yourself and call .to_svg().")
+                f"Couldn't voice {name!r} on this fretboard. Charted chords "
+                "use their curated shape; any parseable symbol (Csus2, "
+                "F#m7b5, Gadd9, Aaug) is voiced from its notes. Check the "
+                "symbol, or build a Fingering yourself and call .to_svg().")
         return chord_svg(fingering, name, path=path, fmt=fmt, **kw)
 
     def scale_shapes(self, scale, **kw):
