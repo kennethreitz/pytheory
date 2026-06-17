@@ -1221,6 +1221,63 @@ def test_forte_number_diminished7():
     assert chord.forte_number == "4-28"
 
 
+# ── Pitch-class-set toolkit ────────────────────────────────────────────
+
+def test_interval_vector_major_and_minor_triad_match():
+    # Major and minor triads are inversions — identical interval content.
+    assert Chord.from_tones("C", "E", "G").interval_vector == (0, 0, 1, 1, 1, 0)
+    assert Chord.from_tones("A", "C", "E").interval_vector == (0, 0, 1, 1, 1, 0)
+
+
+def test_interval_vector_symmetrical_sets():
+    dim7 = Chord.from_midi_message(60, 63, 66, 69)   # fully-diminished 7th
+    aug = Chord.from_midi_message(60, 64, 68)        # augmented triad
+    assert dim7.interval_vector == (0, 0, 4, 0, 0, 2)
+    assert aug.interval_vector == (0, 0, 0, 3, 0, 0)
+
+
+def test_complement_fills_the_aggregate():
+    c = Chord.from_tones("C", "E", "G")
+    comp = c.complement
+    assert c.pitch_classes | comp.pitch_classes == set(range(12))
+    assert c.pitch_classes & comp.pitch_classes == set()
+
+
+def test_aggregate_has_no_complement():
+    aggregate = Chord.from_midi_message(*range(60, 72))
+    with pytest.raises(ValueError, match="aggregate"):
+        aggregate.complement
+
+
+def test_transposition_vs_inversion_equivalence():
+    cmaj = Chord.from_tones("C", "E", "G")
+    gmaj = Chord.from_tones("G", "B", "D")
+    cmin = Chord.from_tones("C", "Eb", "G")
+    # Major triads are transpositions of one another...
+    assert cmaj.is_transposition_of(gmaj)
+    # ...but major and minor are inversions, not transpositions.
+    assert not cmaj.is_transposition_of(cmin)
+    # Both relations live in the same set class (TnI / same Forte number).
+    assert cmaj.is_set_class_equivalent(cmin)
+    assert cmaj.is_set_class_equivalent(gmaj)
+
+
+def test_z_related_all_interval_tetrachords():
+    z15 = Chord.from_midi_message(60, 61, 64, 66)   # 0,1,4,6
+    z29 = Chord.from_midi_message(60, 61, 63, 67)   # 0,1,3,7
+    assert z15.interval_vector == z29.interval_vector == (1, 1, 1, 1, 1, 1)
+    assert z15.is_z_related(z29)
+    assert not z15.is_z_related(z15)                # same set class, not Z
+
+
+def test_literal_subset_superset():
+    triad = Chord.from_tones("C", "E", "G")
+    seventh = Chord.from_symbol("Cmaj7")
+    assert triad.is_subset_of(seventh)
+    assert seventh.is_superset_of(triad)
+    assert not seventh.is_subset_of(triad)
+
+
 def test_from_symbol_slash_chord_inversion():
     c = Chord.from_symbol("C/E")
     assert [t.full_name for t in c.tones] == ["E4", "G4", "C5"]

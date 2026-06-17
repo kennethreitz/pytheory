@@ -4,6 +4,14 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Pitch-class-set toolkit.** `Chord` grows a full post-tonal analysis kit
+  on top of the existing `prime_form`/`forte_number`: `interval_vector` (the
+  interval-class content `<ic1..ic6>`), `complement` (the rest of the
+  aggregate, as a playable chord), and set-class relations between two
+  chords — `is_transposition_of` (Tₙ), `is_set_class_equivalent` (TₙI / same
+  Forte class, e.g. major ↔ minor triad), `is_z_related` (same interval
+  vector, different set class — the all-interval tetrachords 4-z15/4-z29),
+  and literal `is_subset_of` / `is_superset_of`.
 - **`Score.render()` and `Score.to_wav()`.** Getting audio out of a score
   no longer means importing internals from `pytheory.play` and hand-rolling
   a WAV writer. `score.render()` returns the finished `(N, 2)` float32 mix

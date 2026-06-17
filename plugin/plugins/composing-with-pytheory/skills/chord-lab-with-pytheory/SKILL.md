@@ -61,6 +61,25 @@ c.dissonance           # 5.33  (a roughness number; higher = more dissonant)
 c.beat_frequencies     # [(Tone, Tone, hz), …]  beating between pairs in ET
 ```
 
+### Pitch-class-set toolkit
+
+```python
+c = Chord.from_symbol("Cmaj7")
+
+c.normal_form          # (11, 0, 4, 7)   most compact ordering
+c.prime_form           # (0, 1, 5, 8)    canonical set-class form
+c.interval_vector      # (1, 0, 1, 2, 2, 0)  interval-class content <ic1..ic6>
+c.complement           # Chord of the other 8 pitch classes
+
+# Set-class relationships between two chords:
+Chord.from_symbol("C").is_transposition_of(Chord.from_symbol("G"))   # True (Tn)
+Chord.from_symbol("C").is_set_class_equivalent(Chord.from_symbol("Cm"))  # True (TnI: maj/min)
+Chord.from_symbol("C").is_subset_of(Chord.from_symbol("Cmaj7"))      # True
+# Z-relation — same interval vector, different set class (e.g. 4-z15 / 4-z29):
+a, b = Chord.from_midi_message(0,1,4,6), Chord.from_midi_message(0,1,3,7)
+a.is_z_related(b)      # True
+```
+
 ## Reharmonization & voice leading
 
 ```python

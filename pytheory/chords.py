@@ -1404,6 +1404,113 @@ class Chord:
         pf = self.prime_form
         return self._FORTE_NUMBERS.get(pf, None)
 
+    @property
+    def interval_vector(self) -> tuple:
+        """Return the interval-class vector ``<ic1 ic2 ic3 ic4 ic5 ic6>``.
+
+        Each entry counts how many times an interval class (1–6 semitones,
+        folding 7–11 down to their complements) appears among all pairs of
+        pitch classes. It's a fingerprint of a set's sonority — e.g. the
+        major triad and its inversion the minor triad share ``(0,0,1,1,1,0)``,
+        which is why they sound related.
+
+        Example::
+
+            >>> Chord.from_name("C").interval_vector
+            (0, 0, 1, 1, 1, 0)
+            >>> Chord.from_name("Cdim7").interval_vector   # symmetrical
+            (0, 0, 4, 0, 0, 2)
+        """
+        pcs = sorted(self.pitch_classes)
+        vector = [0, 0, 0, 0, 0, 0]
+        for i in range(len(pcs)):
+            for j in range(i + 1, len(pcs)):
+                ic = (pcs[j] - pcs[i]) % 12
+                if ic > 6:
+                    ic = 12 - ic
+                if ic >= 1:
+                    vector[ic - 1] += 1
+        return tuple(vector)
+
+    @property
+    def complement(self) -> "Chord":
+        """Return the literal complement — a Chord of every pitch class
+        *not* in this one (voiced from C4 upward).
+
+        Together a set and its complement fill the twelve-note aggregate.
+        Complements have a close set-theoretic relationship (their interval
+        vectors differ by a fixed amount), which underlies a lot of
+        twelve-tone and atonal writing.
+
+        Raises:
+            ValueError: if this chord already contains all twelve pitch
+                classes (its complement is empty).
+
+        Example::
+
+            >>> Chord.from_name("C").complement.pitch_classes
+            {1, 2, 3, 5, 6, 8, 9, 10, 11}
+        """
+        present = self.pitch_classes
+        missing = sorted(pc for pc in range(12) if pc not in present)
+        if not missing:
+            raise ValueError("The aggregate (all 12 pitch classes) has no complement.")
+        return Chord.from_midi_message(*(60 + pc for pc in missing))
+
+    def _tn_type(self) -> tuple:
+        """Transpositional set type: normal form transposed to start on 0.
+
+        Two sets are transpositions of each other iff their Tn-types match.
+        Unlike :pyattr:`prime_form`, this does *not* fold in inversion.
+        """
+        nf = self.normal_form
+        if not nf:
+            return ()
+        t0 = nf[0]
+        return tuple((pc - t0) % 12 for pc in nf)
+
+    def is_transposition_of(self, other: "Chord") -> bool:
+        """Is this set a pure transposition (Tₙ) of ``other``?
+
+        Example::
+
+            >>> Chord.from_name("C").is_transposition_of(Chord.from_name("G"))
+            True
+            >>> Chord.from_name("C").is_transposition_of(Chord.from_name("Cm"))
+            False
+        """
+        return self._tn_type() == other._tn_type()
+
+    def is_set_class_equivalent(self, other: "Chord") -> bool:
+        """Are the two sets in the same set class — related by transposition
+        and/or inversion (TₙI)? Equivalent to sharing a prime form / Forte
+        number.
+
+        Example::
+
+            >>> # major and minor triads are inversions of one another
+            >>> Chord.from_name("C").is_set_class_equivalent(Chord.from_name("Cm"))
+            True
+        """
+        return self.prime_form == other.prime_form
+
+    def is_z_related(self, other: "Chord") -> bool:
+        """Are the two sets Z-related — same interval vector but *different*
+        set class? Z-related sets share an interval content yet can't be
+        mapped onto each other by transposition or inversion (the smallest
+        pair is Forte 4-z15 / 4-z29).
+        """
+        return (self.interval_vector == other.interval_vector
+                and self.prime_form != other.prime_form)
+
+    def is_subset_of(self, other: "Chord") -> bool:
+        """Are this chord's pitch classes a literal subset of ``other``'s?"""
+        return self.pitch_classes <= other.pitch_classes
+
+    def is_superset_of(self, other: "Chord") -> bool:
+        """Are this chord's pitch classes a literal superset of ``other``'s?"""
+        return self.pitch_classes >= other.pitch_classes
+
     def fingering(self, *positions: int) -> "Fingering":
         """Apply fret positions to each tone, returning a Fingering.
 
