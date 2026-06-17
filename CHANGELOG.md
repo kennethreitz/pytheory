@@ -4,6 +4,14 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Twelve-tone serialism — `ToneRow`.** A new top-level class for the
+  twelve-tone technique: build a row from note names or pitch classes and
+  get the four operations `P`/`I`/`R`/`RI` (each beginning on the pitch
+  class you ask for), any form by label (`row.form("RI7")`), all 48 forms,
+  and the printable 12×12 row matrix (`matrix_str()`). Plus
+  `is_all_interval` / `interval_succession`. There's a from-scratch guide
+  page (`docs/guide/serialism`) that teaches the technique and shows why
+  the matrix is self-verifying.
 - **Neo-Riemannian transformations.** `Chord` gains the P/L/R operations
   that power Tonnetz harmony and chromatic/film-score writing:
   `parallel()` (P, major↔minor on the same root), `relative()` (R), and

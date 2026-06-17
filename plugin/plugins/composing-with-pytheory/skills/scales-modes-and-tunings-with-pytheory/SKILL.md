@@ -68,6 +68,26 @@ Tone.from_string("A2").overtones(4)       # [110.0, 220.0, 330.0, 440.0]
 [str(t) for t in Tone.from_string("C4").circle_of_fifths()]  # ['C4','G4','D5','A5', …]
 ```
 
+## Twelve-tone rows (serialism)
+
+A `ToneRow` is an ordering of all 12 pitch classes, each once. From it come
+the 48 forms (P/R/I/RI × 12 transpositions) and the row matrix. The
+transposition number is the pitch class the form begins on.
+
+```python
+from pytheory import ToneRow
+
+row = ToneRow.from_names("C","C#","E","D","F","D#","F#","A","G#","G","B","A#")
+row.P(0); row.I(0); row.R(0); row.RI(0)   # the four operations, starting on C
+row.form("RI7")                            # any form by label
+row.all_forms()                            # all 48, {label: [pitch classes]}
+print(row.matrix_str())                    # the 12x12 matrix (P→ R← I↓ RI↑)
+row.is_all_interval                        # uses each interval 1–11 once?
+```
+
+Every row/column of the matrix is a permutation of 0–11 and the diagonal is
+all zeros — handy invariants if you ever need to sanity-check output.
+
 ## Tuning systems & temperaments
 
 ```python

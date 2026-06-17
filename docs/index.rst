@@ -178,6 +178,7 @@ every time::
    guide/tones
    guide/scales
    guide/chords
+   guide/serialism
    guide/systems
 
 .. toctree::
