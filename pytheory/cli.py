@@ -396,11 +396,13 @@ def cmd_raga(args):
             ragas = Raga.by_thaat(args.thaat)
         elif args.time:
             ragas = Raga.by_time(args.time)
+        elif args.tradition:
+            ragas = Raga.by_tradition(args.tradition)
         else:
             ragas = Raga.all()
         print(f"  {len(ragas)} ragas:\n")
         for r in ragas:
-            print(f"    {r.name:<16} {r.thaat:<9} {r.time:<13} {r.rasa}")
+            print(f"    {r.name:<20} {r.thaat:<28} {r.time:<13} {r.rasa}")
         return
 
     raga = Raga.get(args.name)
@@ -921,6 +923,8 @@ def main():
                    help="Play in 12-TET instead of just intonation")
     p.add_argument("--list", action="store_true", help="List all ragas")
     p.add_argument("--thaat", default=None, help="Filter the list by thaat")
+    p.add_argument("--tradition", default=None,
+                   help="Filter the list by tradition (hindustani / carnatic)")
     p.add_argument("--time", default=None, help="Filter the list by time of day")
 
     # metronome

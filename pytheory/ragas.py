@@ -122,9 +122,12 @@ class Raga:
     """
 
     def __init__(self, name, *, thaat, aroha, avaroha, vadi, samvadi,
-                 time, rasa, pakad=None, aka=None):
+                 time, rasa, pakad=None, aka=None, tradition="hindustani"):
         self.name = name
+        # The parent scale: a thaat for Hindustani ragas, a melakarta for
+        # Carnatic ones.
         self.thaat = thaat
+        self.tradition = tradition
         self.aroha = aroha
         self.avaroha = avaroha
         self.pakad = pakad
@@ -365,6 +368,12 @@ class Raga:
         p = period.lower()
         return [r for r in cls.all() if p in r.time.lower()]
 
+    @classmethod
+    def by_tradition(cls, tradition: str) -> list["Raga"]:
+        """Ragas of a tradition — ``"hindustani"`` or ``"carnatic"``."""
+        t = tradition.lower()
+        return [r for r in cls.all() if r.tradition.lower() == t]
+
     def __repr__(self) -> str:
         return f"<Raga {self.name} (thaat {self.thaat}, {self.time})>"
 
@@ -533,6 +542,78 @@ _RAGA_LIST = [
          aroha="S G P D N S'", avaroha="S' N D P G R S",
          pakad="G P, N S', N D P, G R S", vadi="G", samvadi="N",
          time="late night", rasa="majestic, heroic", aka=["Shankra"]),
+
+    # ── Carnatic ragas ────────────────────────────────────────────────
+    # Parent here is the melakarta (the 72-scale system), not a thaat.
+    # Carnatic practice doesn't bind ragas to a time of day the way
+    # Hindustani does, so `time` is "any".
+    Raga("Shankarabharanam", thaat="Dheerashankarabharanam (29)",
+         tradition="carnatic",
+         aroha="S R G m P D N S'", avaroha="S' N D P m G R S",
+         vadi="G", samvadi="N", time="any",
+         rasa="majestic, devotional", aka=["Sankarabharanam"]),
+    Raga("Kalyani", thaat="Mechakalyani (65)", tradition="carnatic",
+         aroha="S R G M P D N S'", avaroha="S' N D P M G R S",
+         vadi="G", samvadi="D", time="any",
+         rasa="auspicious, grand", aka=["Mechakalyani", "Kalyan"]),
+    Raga("Kharaharapriya", thaat="Kharaharapriya (22)", tradition="carnatic",
+         aroha="S R g m P D n S'", avaroha="S' n D P m g R S",
+         vadi="P", samvadi="S", time="any", rasa="pathos, longing"),
+    Raga("Hanumatodi", thaat="Hanumatodi (8)", tradition="carnatic",
+         aroha="S r g m P d n S'", avaroha="S' n d P m g r S",
+         vadi="d", samvadi="g", time="any", rasa="serious, devotional",
+         aka=["Todi (Carnatic)"]),
+    Raga("Mayamalavagowla", thaat="Mayamalavagowla (15)",
+         tradition="carnatic",
+         aroha="S r G m P d N S'", avaroha="S' N d P m G r S",
+         vadi="d", samvadi="r", time="any",
+         rasa="serious, devotional (the first scale taught)",
+         aka=["Malahari parent"]),
+    Raga("Mohanam", thaat="Harikambhoji (28)", tradition="carnatic",
+         aroha="S R G P D S'", avaroha="S' D P G R S",
+         vadi="G", samvadi="D", time="any", rasa="cheerful, devotional"),
+    Raga("Hindolam", thaat="Natabhairavi (20)", tradition="carnatic",
+         aroha="S g m d n S'", avaroha="S' n d m g S",
+         vadi="m", samvadi="S", time="any", rasa="meditative, profound"),
+    Raga("Abhogi", thaat="Kharaharapriya (22)", tradition="carnatic",
+         aroha="S R g m D S'", avaroha="S' D m g R S",
+         vadi="m", samvadi="S", time="any", rasa="pleasing, tender"),
+    Raga("Charukesi", thaat="Charukesi (26)", tradition="carnatic",
+         aroha="S R G m P d n S'", avaroha="S' n d P m G R S",
+         vadi="P", samvadi="S", time="any", rasa="bittersweet"),
+    Raga("Keeravani", thaat="Keeravani (21)", tradition="carnatic",
+         aroha="S R g m P d N S'", avaroha="S' N d P m g R S",
+         vadi="P", samvadi="S", time="any", rasa="romantic, plaintive",
+         aka=["Kirwani"]),
+    Raga("Natabhairavi", thaat="Natabhairavi (20)", tradition="carnatic",
+         aroha="S R g m P d n S'", avaroha="S' n d P m g R S",
+         vadi="m", samvadi="S", time="any", rasa="solemn",
+         aka=["Asavari equivalent"]),
+    Raga("Kambhoji", thaat="Harikambhoji (28)", tradition="carnatic",
+         aroha="S R G m P D S'", avaroha="S' n D P m G R S",
+         vadi="G", samvadi="P", time="any", rasa="majestic"),
+    Raga("Shanmukhapriya", thaat="Shanmukhapriya (56)", tradition="carnatic",
+         aroha="S R g M P d n S'", avaroha="S' n d P M g R S",
+         vadi="d", samvadi="g", time="any", rasa="intense, yearning"),
+    Raga("Simhendramadhyamam", thaat="Simhendramadhyamam (57)",
+         tradition="carnatic",
+         aroha="S R g M P d N S'", avaroha="S' N d P M g R S",
+         vadi="d", samvadi="g", time="any", rasa="grand, serious"),
+    Raga("Madhyamavati", thaat="Kharaharapriya (22)", tradition="carnatic",
+         aroha="S R m P n S'", avaroha="S' n P m R S",
+         vadi="R", samvadi="P", time="any",
+         rasa="auspicious (sung to close a concert)"),
+    Raga("Bilahari", thaat="Dheerashankarabharanam (29)",
+         tradition="carnatic",
+         aroha="S R G P D S'", avaroha="S' N D P m G R S",
+         vadi="R", samvadi="P", time="any", rasa="joyful, festive"),
+    Raga("Saveri", thaat="Mayamalavagowla (15)", tradition="carnatic",
+         aroha="S r m P d S'", avaroha="S' N d P m G r S",
+         vadi="d", samvadi="r", time="any", rasa="devotional, plaintive"),
+    Raga("Shuddha Saveri", thaat="Dheerashankarabharanam (29)",
+         tradition="carnatic",
+         aroha="S R m P D S'", avaroha="S' D P m R S",
+         vadi="m", samvadi="S", time="any", rasa="bright, austere"),
 ]
 
 _RAGAS = {r.name.lower(): r for r in _RAGA_LIST}

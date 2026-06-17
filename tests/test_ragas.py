@@ -34,7 +34,22 @@ def test_all_ragas_well_formed():
 
 
 def test_known_raga_count():
-    assert len(Raga.all()) >= 36
+    assert len(Raga.all()) >= 54
+
+
+def test_carnatic_ragas():
+    carnatic = Raga.by_tradition("carnatic")
+    assert len(carnatic) >= 18
+    assert all(r.tradition == "carnatic" for r in carnatic)
+    # Shankarabharanam is the Carnatic major scale.
+    assert Raga.get("Shankarabharanam").note_names("C") == [
+        "C", "D", "E", "F", "G", "A", "B"]
+    # Mohanam is the major pentatonic.
+    assert len(Raga.get("Mohanam").note_names("C")) == 5
+    # Kirwani is an alias for Keeravani.
+    assert Raga.get("Kirwani").name == "Keeravani"
+    # Hindustani ragas are still tagged hindustani.
+    assert Raga.get("Yaman").tradition == "hindustani"
 
 
 def test_new_ragas_present_and_correct():
