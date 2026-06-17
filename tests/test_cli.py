@@ -53,6 +53,27 @@ def test_cli_analyze_explicit_key(capsys):
     assert "imperfect authentic" in out         # E -> Am
 
 
+def test_cli_json_output(capsys):
+    import argparse, json
+    from pytheory.cli import cmd_tone, cmd_scale, cmd_analyze
+
+    cmd_tone(argparse.Namespace(note="C4", temperament="equal", json=True, play=False))
+    data = json.loads(capsys.readouterr().out)
+    assert data["note"] == "C4" and data["midi"] == 60
+
+    cmd_scale(argparse.Namespace(tonic="C", mode="major", system="western",
+                                 json=True, play=False))
+    data = json.loads(capsys.readouterr().out)
+    assert data["notes"][:3] == ["C", "D", "E"]
+
+    cmd_analyze(argparse.Namespace(chords=["C", "D7", "G7", "C"], key=None,
+                                   mode="major", json=True, play=False))
+    data = json.loads(capsys.readouterr().out)
+    assert data["key"] == "C major"
+    assert data["chords"][1]["secondary_dominant"] == "V7/V"
+    assert data["cadences"][-1]["type"] == "imperfect authentic"
+
+
 def test_cli_main_no_args(capsys):
     from pytheory.cli import main
     import sys

@@ -5,34 +5,70 @@ import argparse
 import sys
 
 
+def _emit_json(data):
+    """Print a result dict as indented JSON."""
+    import json
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _play_items(items, t=600):
+    """Play a list of Tone/Chord objects in sequence (best-effort)."""
+    try:
+        from .play import play
+        for item in items:
+            play(item, t=t)
+    except Exception as e:           # no audio backend, etc.
+        print(f"  (could not play: {e})")
+
+
 def cmd_tone(args):
     from .tones import Tone
     tone = Tone.from_string(args.note, system="western")
     freq = tone.pitch(temperament=args.temperament)
-    print(f"  Note:        {tone.full_name}")
-    print(f"  Frequency:   {freq:.2f} Hz ({args.temperament} temperament)")
-    if args.temperament != "equal":
-        import math
-        equal_freq = tone.pitch(temperament="equal")
-        diff_cents = 1200 * math.log2(freq / equal_freq) if freq > 0 else 0
-        print(f"  Equal temp:  {equal_freq:.2f} Hz (diff: {diff_cents:+.1f} cents)")
-    if tone.midi is not None:
-        print(f"  MIDI:        {tone.midi}")
-    if tone.enharmonic:
-        print(f"  Enharmonic:  {tone.enharmonic}")
-    print(f"  Overtones:   {', '.join(f'{h:.1f}' for h in tone.overtones(6))}")
+    if getattr(args, "json", False):
+        _emit_json({
+            "note": tone.full_name,
+            "frequency": round(freq, 2),
+            "temperament": args.temperament,
+            "midi": tone.midi,
+            "enharmonic": tone.enharmonic,
+            "overtones": [round(h, 2) for h in tone.overtones(6)],
+        })
+    else:
+        print(f"  Note:        {tone.full_name}")
+        print(f"  Frequency:   {freq:.2f} Hz ({args.temperament} temperament)")
+        if args.temperament != "equal":
+            import math
+            equal_freq = tone.pitch(temperament="equal")
+            diff_cents = 1200 * math.log2(freq / equal_freq) if freq > 0 else 0
+            print(f"  Equal temp:  {equal_freq:.2f} Hz (diff: {diff_cents:+.1f} cents)")
+        if tone.midi is not None:
+            print(f"  MIDI:        {tone.midi}")
+        if tone.enharmonic:
+            print(f"  Enharmonic:  {tone.enharmonic}")
+        print(f"  Overtones:   {', '.join(f'{h:.1f}' for h in tone.overtones(6))}")
+    if getattr(args, "play", False):
+        _play_items([tone], t=900)
 
 
 def cmd_scale(args):
     from .scales import TonedScale
     ts = TonedScale(tonic=f"{args.tonic}4", system=args.system)
     scale = ts[args.mode]
-    print(f"  {args.tonic} {args.mode}: {' '.join(scale.note_names)}")
-    print(f"  Intervals:  {scale.tones[0].full_name}", end="")
-    for i in range(1, len(scale.tones)):
-        semitones = abs(scale.tones[i] - scale.tones[i-1])
-        print(f" -{semitones}- {scale.tones[i].full_name}", end="")
-    print()
+    if getattr(args, "json", False):
+        _emit_json({
+            "tonic": args.tonic, "mode": args.mode,
+            "notes": list(scale.note_names),
+        })
+    else:
+        print(f"  {args.tonic} {args.mode}: {' '.join(scale.note_names)}")
+        print(f"  Intervals:  {scale.tones[0].full_name}", end="")
+        for i in range(1, len(scale.tones)):
+            semitones = abs(scale.tones[i] - scale.tones[i-1])
+            print(f" -{semitones}- {scale.tones[i].full_name}", end="")
+        print()
+    if getattr(args, "play", False):
+        _play_items(list(scale.tones), t=400)
 
 
 def cmd_chord(args):
@@ -41,32 +77,62 @@ def cmd_chord(args):
     tones = [Tone.from_string(f"{n}4", system="western") for n in args.notes]
     chord = Chord(tones=tones)
     name = chord.identify() or "Unknown"
-    print(f"  Chord:     {name}")
-    print(f"  Tones:     {' '.join(t.full_name for t in chord.tones)}")
-    print(f"  Intervals: {chord.intervals}")
-    print(f"  Harmony:   {chord.harmony:.4f}")
-    print(f"  Dissonance: {chord.dissonance:.4f}")
-    t = chord.tension
-    print(f"  Tension:   {t['score']:.2f} (tritones={t['tritones']})")
+    if getattr(args, "json", False):
+        t = chord.tension
+        _emit_json({
+            "chord": name,
+            "tones": [t.full_name for t in chord.tones],
+            "intervals": chord.intervals,
+            "harmony": round(chord.harmony, 4),
+            "dissonance": round(chord.dissonance, 4),
+            "tension": {"score": round(t["score"], 2), "tritones": t["tritones"]},
+        })
+    else:
+        print(f"  Chord:     {name}")
+        print(f"  Tones:     {' '.join(t.full_name for t in chord.tones)}")
+        print(f"  Intervals: {chord.intervals}")
+        print(f"  Harmony:   {chord.harmony:.4f}")
+        print(f"  Dissonance: {chord.dissonance:.4f}")
+        t = chord.tension
+        print(f"  Tension:   {t['score']:.2f} (tritones={t['tritones']})")
+    if getattr(args, "play", False):
+        _play_items([chord], t=1200)
+
 
 
 def cmd_key(args):
     from .scales import Key
     key = Key(args.tonic, args.mode)
     sig = key.signature
-    acc = ", ".join(sig["accidentals"]) if sig["accidentals"] else "none"
-    print(f"  Key: {key}")
-    print(f"  Signature: {sig['sharps']} sharps, {sig['flats']} flats ({acc})")
-    print(f"  Scale: {' '.join(key.note_names)}")
-    print(f"  Triads:")
-    for chord in key.scale.harmonize():
-        analysis = chord.analyze(args.tonic, args.mode) or "?"
-        print(f"    {analysis:6s}  {chord}")
-    print(f"  7th chords:")
-    for name in key.seventh_chords:
-        print(f"    {name}")
-    print(f"  Relative: {key.relative}")
-    print(f"  Parallel: {key.parallel}")
+    triads = key.scale.harmonize()
+    if getattr(args, "json", False):
+        _emit_json({
+            "key": str(key),
+            "signature": {"sharps": sig["sharps"], "flats": sig["flats"],
+                          "accidentals": list(sig["accidentals"])},
+            "scale": list(key.note_names),
+            "triads": [{"roman": c.analyze(args.tonic, args.mode) or "?",
+                        "chord": c.identify() or str(c)} for c in triads],
+            "seventh_chords": list(key.seventh_chords),
+            "relative": str(key.relative),
+            "parallel": str(key.parallel),
+        })
+    else:
+        acc = ", ".join(sig["accidentals"]) if sig["accidentals"] else "none"
+        print(f"  Key: {key}")
+        print(f"  Signature: {sig['sharps']} sharps, {sig['flats']} flats ({acc})")
+        print(f"  Scale: {' '.join(key.note_names)}")
+        print(f"  Triads:")
+        for chord in triads:
+            analysis = chord.analyze(args.tonic, args.mode) or "?"
+            print(f"    {analysis:6s}  {chord}")
+        print(f"  7th chords:")
+        for name in key.seventh_chords:
+            print(f"    {name}")
+        print(f"  Relative: {key.relative}")
+        print(f"  Parallel: {key.parallel}")
+    if getattr(args, "play", False):
+        _play_items(list(key.scale.tones), t=400)
 
 
 def cmd_fingering(args):
@@ -77,18 +143,39 @@ def cmd_fingering(args):
         print(f"  Unknown chord: {args.chord}")
         sys.exit(1)
     fb = Fretboard.guitar(capo=args.capo)
-    print(chart[args.chord].tab(fretboard=fb))
+    tab = chart[args.chord].tab(fretboard=fb)
+    if getattr(args, "json", False):
+        _emit_json({"chord": args.chord, "capo": args.capo, "tab": tab})
+    else:
+        print(tab)
+    if getattr(args, "play", False):
+        from .chords import Chord
+        try:
+            _play_items([Chord.from_name(args.chord)], t=1500)
+        except Exception:
+            pass
 
 
 def cmd_progression(args):
     from .scales import Key
     key = Key(args.tonic, args.mode)
     chords = key.progression(*args.numerals)
-    print(f"  Key: {key}")
-    print(f"  Progression: {' → '.join(args.numerals)}")
-    print()
-    for numeral, chord in zip(args.numerals, chords):
-        print(f"    {numeral:6s}  {chord}")
+    if getattr(args, "json", False):
+        _emit_json({
+            "key": str(key),
+            "progression": [
+                {"numeral": n, "chord": chord.identify() or str(chord)}
+                for n, chord in zip(args.numerals, chords)
+            ],
+        })
+    else:
+        print(f"  Key: {key}")
+        print(f"  Progression: {' → '.join(args.numerals)}")
+        print()
+        for numeral, chord in zip(args.numerals, chords):
+            print(f"    {numeral:6s}  {chord}")
+    if getattr(args, "play", False):
+        _play_items(chords, t=900)
 
 
 def cmd_play(args):
@@ -152,20 +239,30 @@ def cmd_identify(args):
     chord = Chord.from_symbol(args.symbol)
     name = chord.identify() or "Unknown"
     sym = chord.symbol or args.symbol
-    tones_str = " ".join(t.full_name for t in chord.tones)
-    intervals = chord.intervals
-    harmony = chord.harmony
-    dissonance = chord.dissonance
     tension = chord.tension
-
-    print(f"  Chord:      {name}")
-    print(f"  Symbol:     {sym}")
-    print(f"  Tones:      {tones_str}")
-    print(f"  Intervals:  {intervals}")
-    print(f"  Harmony:    {harmony:.4f}")
-    print(f"  Dissonance: {dissonance:.4f}")
-    print(f"  Tension:    score={tension['score']:.2f} tritones={tension['tritones']} "
-          f"minor_2nds={tension['minor_seconds']} dominant={tension['has_dominant_function']}")
+    if getattr(args, "json", False):
+        _emit_json({
+            "chord": name, "symbol": sym,
+            "tones": [t.full_name for t in chord.tones],
+            "intervals": chord.intervals,
+            "harmony": round(chord.harmony, 4),
+            "dissonance": round(chord.dissonance, 4),
+            "tension": {"score": round(tension["score"], 2),
+                        "tritones": tension["tritones"],
+                        "minor_2nds": tension["minor_seconds"],
+                        "dominant": tension["has_dominant_function"]},
+        })
+    else:
+        print(f"  Chord:      {name}")
+        print(f"  Symbol:     {sym}")
+        print(f"  Tones:      {' '.join(t.full_name for t in chord.tones)}")
+        print(f"  Intervals:  {chord.intervals}")
+        print(f"  Harmony:    {chord.harmony:.4f}")
+        print(f"  Dissonance: {chord.dissonance:.4f}")
+        print(f"  Tension:    score={tension['score']:.2f} tritones={tension['tritones']} "
+              f"minor_2nds={tension['minor_seconds']} dominant={tension['has_dominant_function']}")
+    if getattr(args, "play", False):
+        _play_items([chord], t=1200)
 
 
 def cmd_midi(args):
@@ -186,14 +283,21 @@ def cmd_modes(args):
     ts = TonedScale(tonic=f"{args.tonic}4", system=args.system)
     mode_names = ["ionian", "dorian", "phrygian", "lydian",
                   "mixolydian", "aeolian", "locrian"]
-    print(f"  Modes of {args.tonic}:\n")
+    modes = {}
     for mode in mode_names:
         try:
-            scale = ts[mode]
-            notes = " ".join(scale.note_names)
-            print(f"    {mode:<12s}  {notes}")
+            modes[mode] = list(ts[mode].note_names)
         except KeyError:
             continue
+    if getattr(args, "json", False):
+        _emit_json({"tonic": args.tonic, "modes": modes})
+    else:
+        print(f"  Modes of {args.tonic}:\n")
+        for mode, notes in modes.items():
+            print(f"    {mode:<12s}  {' '.join(notes)}")
+    if getattr(args, "play", False):
+        for mode in modes:
+            _play_items(list(ts[mode].tones), t=250)
 
 
 def cmd_circle(args):
@@ -201,12 +305,20 @@ def cmd_circle(args):
     tone = Tone.from_string(f"{args.tonic}4", system="western")
     fifths = tone.circle_of_fifths()
     fourths = tone.circle_of_fourths()
-
-    print(f"  Circle of fifths from {args.tonic}:")
-    print(f"    → {' → '.join(t.name for t in fifths)}")
-    print()
-    print(f"  Circle of fourths from {args.tonic}:")
-    print(f"    → {' → '.join(t.name for t in fourths)}")
+    if getattr(args, "json", False):
+        _emit_json({
+            "tonic": args.tonic,
+            "fifths": [t.name for t in fifths],
+            "fourths": [t.name for t in fourths],
+        })
+    else:
+        print(f"  Circle of fifths from {args.tonic}:")
+        print(f"    → {' → '.join(t.name for t in fifths)}")
+        print()
+        print(f"  Circle of fourths from {args.tonic}:")
+        print(f"    → {' → '.join(t.name for t in fourths)}")
+    if getattr(args, "play", False):
+        _play_items(list(fifths), t=350)
 
 
 def cmd_live(args):
@@ -578,11 +690,16 @@ def cmd_demo(args):
 def cmd_detect(args):
     from .scales import Key
     key = Key.detect(*args.notes)
-    if key:
+    if getattr(args, "json", False):
+        _emit_json({"key": str(key) if key else None,
+                    "scale": list(key.note_names) if key else None})
+    elif key:
         print(f"  Detected key: {key}")
         print(f"  Scale: {' '.join(key.note_names)}")
     else:
         print("  Could not detect key")
+    if key and getattr(args, "play", False):
+        _play_items(list(key.scale.tones), t=400)
 
 
 def cmd_analyze(args):
@@ -610,20 +727,37 @@ def cmd_analyze(args):
     romans = analyze_progression(chords, tonic, mode, secondary_dominants=True)
     cadences = dict(find_cadences(chords, tonic, mode))
 
-    print(f"  Key: {tonic} {mode}  ({source})")
-    print()
-    for symbol, chord, roman in zip(args.chords, chords, romans):
-        name = chord.identify() or symbol
-        applied = detect_secondary_dominant(chord, tonic, mode)
-        note = "  (secondary dominant)" if applied else ""
-        print(f"    {symbol:8s} {(roman or '?'):8s} {name}{note}")
-    print()
-    if cadences:
-        print("  Cadences:")
-        for idx, cadence in cadences.items():
-            print(f"    {args.chords[idx - 1]} → {args.chords[idx]}: {cadence}")
+    if getattr(args, "json", False):
+        _emit_json({
+            "key": f"{tonic} {mode}", "key_source": source,
+            "chords": [
+                {"symbol": sym, "roman": roman,
+                 "name": chord.identify() or sym,
+                 "secondary_dominant": detect_secondary_dominant(chord, tonic, mode)}
+                for sym, chord, roman in zip(args.chords, chords, romans)
+            ],
+            "cadences": [
+                {"from": args.chords[idx - 1], "to": args.chords[idx], "type": cad}
+                for idx, cad in cadences.items()
+            ],
+        })
     else:
-        print("  No cadences detected.")
+        print(f"  Key: {tonic} {mode}  ({source})")
+        print()
+        for symbol, chord, roman in zip(args.chords, chords, romans):
+            name = chord.identify() or symbol
+            applied = detect_secondary_dominant(chord, tonic, mode)
+            note = "  (secondary dominant)" if applied else ""
+            print(f"    {symbol:8s} {(roman or '?'):8s} {name}{note}")
+        print()
+        if cadences:
+            print("  Cadences:")
+            for idx, cadence in cadences.items():
+                print(f"    {args.chords[idx - 1]} → {args.chords[idx]}: {cadence}")
+        else:
+            print("  No cadences detected.")
+    if getattr(args, "play", False):
+        _play_items(chords, t=900)
 
 
 def main():
@@ -633,41 +767,46 @@ def main():
     )
     sub = parser.add_subparsers(dest="command")
 
+    # Shared flags for the theory/music commands.
+    io = argparse.ArgumentParser(add_help=False)
+    io.add_argument("--json", action="store_true", help="Output as JSON")
+    io.add_argument("--play", action="store_true", help="Play the result as audio")
+
     # tone
-    p = sub.add_parser("tone", help="Look up a tone (e.g. pytheory tone C4)")
+    p = sub.add_parser("tone", parents=[io], help="Look up a tone (e.g. pytheory tone C4)")
     p.add_argument("note", help="Note name with octave (e.g. C4, A#3)")
     p.add_argument("--temperament", "-t", default="equal",
                    choices=["equal", "pythagorean", "meantone"],
                    help="Tuning temperament (default: equal)")
 
     # scale
-    p = sub.add_parser("scale", help="Show a scale (e.g. pytheory scale C major)")
+    p = sub.add_parser("scale", parents=[io], help="Show a scale (e.g. pytheory scale C major)")
     p.add_argument("tonic", help="Tonic note (e.g. C, G, Sa)")
     p.add_argument("mode", help="Scale/mode name (e.g. major, minor, dorian)")
     p.add_argument("--system", default="western", help="Musical system (default: western)")
 
     # chord
-    p = sub.add_parser("chord", help="Identify a chord (e.g. pytheory chord C E G)")
+    p = sub.add_parser("chord", parents=[io], help="Identify a chord (e.g. pytheory chord C E G)")
     p.add_argument("notes", nargs="+", help="Note names (e.g. C E G)")
 
     # key
-    p = sub.add_parser("key", help="Explore a key (e.g. pytheory key C major)")
+    p = sub.add_parser("key", parents=[io], help="Explore a key (e.g. pytheory key C major)")
     p.add_argument("tonic", help="Tonic note (e.g. C, G)")
     p.add_argument("mode", nargs="?", default="major", help="Mode (default: major)")
 
     # fingering
-    p = sub.add_parser("fingering", help="Guitar fingering (e.g. pytheory fingering Am)")
+    p = sub.add_parser("fingering", parents=[io], help="Guitar fingering (e.g. pytheory fingering Am)")
     p.add_argument("chord", help="Chord name (e.g. C, Am, G7)")
     p.add_argument("--capo", type=int, default=0, help="Capo fret (default: 0)")
 
     # progression
-    p = sub.add_parser("progression", help="Build a progression (e.g. pytheory progression C major I V vi IV)")
+    p = sub.add_parser("progression", parents=[io], help="Build a progression (e.g. pytheory progression C major I V vi IV)")
     p.add_argument("tonic", help="Tonic note")
     p.add_argument("mode", help="Mode (e.g. major, minor)")
     p.add_argument("numerals", nargs="+", help="Roman numerals (e.g. I V vi IV)")
 
     # analyze
-    p = sub.add_parser("analyze", help="Analyze a chord progression (e.g. pytheory analyze C D7 G7 C)")
+    p = sub.add_parser("analyze", parents=[io], help="Analyze a chord progression (e.g. pytheory analyze C D7 G7 C)")
     p.add_argument("chords", nargs="+", help="Chord symbols (e.g. C D7 G7 C)")
     p.add_argument("--key", help="Key tonic (e.g. C). Auto-detected if omitted.")
     p.add_argument("--mode", default="major", help="major or minor (default: major)")
@@ -690,7 +829,7 @@ def main():
                    help="ADSR envelope preset (default: piano)")
 
     # identify
-    p = sub.add_parser("identify", help="Identify a chord symbol (e.g. pytheory identify Cmaj7)")
+    p = sub.add_parser("identify", parents=[io], help="Identify a chord symbol (e.g. pytheory identify Cmaj7)")
     p.add_argument("symbol", help="Chord symbol (e.g. Cmaj7, Am, F#m7b5)")
 
     # midi
@@ -795,16 +934,16 @@ def main():
     p.add_argument("--play", action="store_true", help="Play the transcription back")
 
     # detect
-    p = sub.add_parser("detect", help="Detect key from notes (e.g. pytheory detect C E G)")
+    p = sub.add_parser("detect", parents=[io], help="Detect key from notes (e.g. pytheory detect C E G)")
     p.add_argument("notes", nargs="+", help="Note names")
 
     # modes
-    p = sub.add_parser("modes", help="Show all modes of a note (e.g. pytheory modes C)")
+    p = sub.add_parser("modes", parents=[io], help="Show all modes of a note (e.g. pytheory modes C)")
     p.add_argument("tonic", help="Tonic note (e.g. C, G)")
     p.add_argument("--system", default="western", help="Musical system (default: western)")
 
     # circle
-    p = sub.add_parser("circle", help="Circle of fifths/fourths (e.g. pytheory circle C)")
+    p = sub.add_parser("circle", parents=[io], help="Circle of fifths/fourths (e.g. pytheory circle C)")
     p.add_argument("tonic", help="Starting note (e.g. C, G)")
 
     # progressions

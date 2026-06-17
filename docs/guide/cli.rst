@@ -4,8 +4,30 @@ Command-Line Interface
 Sometimes you don't want to open Python — you're mid-practice and just
 need to know what's in a B7 chord, or which key has those three sharps.
 The ``pytheory`` command answers theory questions, plays notes, and
-exports MIDI straight from your shell prompt — 19 commands, no session
-required.
+exports MIDI straight from your shell prompt — no session required.
+
+JSON and audio output
+---------------------
+
+The theory commands (``tone``, ``scale``, ``chord``, ``key``,
+``progression``, ``identify``, ``analyze``, ``detect``, ``modes``,
+``circle``, ``fingering``) all take two extra flags:
+
+- ``--json`` prints a structured result instead of the pretty table —
+  handy for piping into ``jq`` or another tool.
+- ``--play`` plays the result as audio (the note, chord, scale, or
+  progression).
+
+::
+
+    $ pytheory scale C dorian --json
+    {
+      "tonic": "C",
+      "mode": "dorian",
+      "notes": ["C", "D", "Eb", "F", "G", "A", "Bb", "C"]
+    }
+
+    $ pytheory progression C major I V vi IV --play     # hear the chords
 
 Interactive REPL
 ----------------

@@ -4,6 +4,10 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **`--json` and `--play` across the CLI.** The theory commands (`tone`,
+  `scale`, `chord`, `key`, `progression`, `identify`, `analyze`, `detect`,
+  `modes`, `circle`, `fingering`) gain `--json` for structured, pipeable
+  output and `--play` to hear the result (the note/chord/scale/progression).
 - **`pytheory analyze` CLI command.** Hand it a chord progression and it
   prints the harmony: the auto-detected key (or pass `--key`/`--mode`),
   each chord's Roman numeral with secondary dominants labelled, and the
