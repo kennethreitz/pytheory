@@ -31,7 +31,10 @@ All notable changes to PyTheory are documented here.
   reduction from the louder channel and applies one shared gain curve to
   both, keeping the image rock-steady. The old hard brick-wall clip is
   replaced by a soft-knee limiter, so peaks bend into the ceiling with a
-  touch of warmth instead of harsh clipping.
+  touch of warmth instead of harsh clipping. The bus also strips DC offset
+  (the mix sat ~2% off-centre from asymmetric kick/synth waveforms, wasting
+  headroom and risking start/stop clicks) with a ~3.5 Hz high-pass that
+  leaves the musical bass untouched.
 - **Faster rendering.** Convolution impulse responses are memoised per
   `(preset, sample_rate, seed)` — they're deterministic, so they're built at
   most once per process, making re-renders of a reverbed score ~50% faster.

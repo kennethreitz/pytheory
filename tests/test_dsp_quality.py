@@ -26,6 +26,7 @@ from pytheory.play import (
     _master_compress,
     _master_bus,
     _soft_clip,
+    _dc_block,
     _GENERATED_IR_CACHE,
     _IR_DURATIONS,
 )
@@ -231,6 +232,26 @@ def test_master_bus_soft_limits_and_stays_finite():
     assert out.shape == hot.shape
     assert np.all(np.isfinite(out))
     assert np.abs(out).max() < 0.98           # soft-limited, never clips
+
+
+def test_dc_block_removes_offset_but_keeps_bass():
+    t = np.arange(SAMPLE_RATE) / SAMPLE_RATE
+    bass = np.sin(2 * np.pi * 60 * t).astype(np.float32)   # 60 Hz musical bass
+    signal = bass + 0.3                                     # + heavy DC offset
+    out = _dc_block(signal)
+    assert abs(float(out.mean())) < 0.005                  # DC gone
+    assert _rms(out) == pytest.approx(_rms(bass), rel=0.05)  # bass preserved
+
+
+def test_master_bus_output_is_dc_free():
+    # An offset mix (asymmetric, like kick-heavy material) comes out centred.
+    # Measure steady state — the only residual is a few-ms startup transient
+    # inherent to any causal high-pass.
+    rng = np.random.default_rng(0)
+    biased = (rng.uniform(-0.5, 0.5, (SAMPLE_RATE, 2)) + 0.2).astype(np.float32)
+    out = _master_bus(biased)
+    assert abs(float(out[5000:, 0].mean())) < 0.005
+    assert abs(float(out[5000:, 1].mean())) < 0.005
 
 
 # ── Reproducibility ────────────────────────────────────────────────────

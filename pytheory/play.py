@@ -5668,9 +5668,29 @@ def _soft_clip(x, knee=0.8, ceiling=0.98):
     return out
 
 
+def _dc_block(x):
+    """Remove DC offset / subsonic rumble with a 1-pole high-pass.
+
+    ``H(z) = (1 - z⁻¹) / (1 - R·z⁻¹)`` has a zero at DC, so any constant
+    offset (left behind by asymmetric kick/synth waveforms) is removed
+    cleanly. ``R = 0.9995`` puts the corner near 3.5 Hz — well below the
+    lowest musical note, so the bass is untouched while wasted headroom and
+    start/stop clicks go away.
+
+    The filter state is pre-loaded from the first sample so the DC blocker
+    has no startup transient of its own.
+    """
+    if len(x) == 0:
+        return x
+    b, a = [1.0, -1.0], [1.0, -0.9995]
+    zi = scipy.signal.lfilter_zi(b, a) * x[0]
+    y, _ = scipy.signal.lfilter(b, a, x, zi=zi)
+    return y.astype(numpy.float32)
+
+
 def _master_bus(stereo, threshold=0.7, ratio=4.0, attack=0.002,
                 release=0.05, ceiling=0.98, sample_rate=SAMPLE_RATE):
-    """Stereo-linked master bus: glue compression + soft limiter.
+    """Stereo-linked master bus: DC block + glue compression + soft limiter.
 
     Gain reduction is detected once from the *louder* of the two channels
     and applied identically to both, so compression never pulls the stereo
@@ -5689,6 +5709,11 @@ def _master_bus(stereo, threshold=0.7, ratio=4.0, attack=0.002,
     n = stereo.shape[0]
     if n == 0:
         return stereo
+
+    # 0. Strip DC offset / subsonic rumble so it doesn't eat headroom or
+    #    skew the compressor's level detection.
+    stereo = numpy.stack([_dc_block(stereo[:, 0]), _dc_block(stereo[:, 1])],
+                         axis=1)
 
     # 1. Stereo-linked detector — the louder channel drives both.
     detector = numpy.maximum(numpy.abs(stereo[:, 0]), numpy.abs(stereo[:, 1]))
