@@ -280,6 +280,44 @@ def test_every_progression_renders():
             assert minor.progression(*degrees)
 
 
+def test_progression_case_sets_quality():
+    # Uppercase = major, lowercase = minor — independent of the diatonic scale.
+    am = Key("A", "minor")
+    assert am.progression("V")[0].identify() == "E major"   # harmonic-minor V
+    assert am.progression("v")[0].identify() == "E minor"   # natural minor v
+    assert am.progression("IV")[0].identify() == "D major"  # Dorian major-IV
+    assert am.progression("iv")[0].identify() == "D minor"
+
+
+def test_progression_harmonic_minor_dominant_seventh():
+    am = Key("A", "minor")
+    assert am.progression("V7")[0].identify() == "E dominant 7th"
+    assert am.progression("ii°", "V7", "i")[2].identify() == "A minor"
+
+
+def test_progression_flat_degrees_are_borrowed_chords():
+    c = Key("C", "major")
+    assert c.progression("bVII")[0].identify() == "Bb major"   # Mixolydian ♭VII
+    assert c.progression("bVI")[0].identify() == "Ab major"
+    assert c.progression("bII")[0].identify() == "Db major"    # Neapolitan
+
+
+def test_progression_quality_markers():
+    c = Key("C", "major")
+    assert c.progression("vii°")[0].identify() == "B diminished"
+    assert c.progression("I+")[0].identify() == "C augmented"
+    assert c.progression("iiø7")[0].identify() == "D half-diminished 7th"
+    assert c.progression("Imaj7")[0].identify() == "C major 7th"
+
+
+def test_progression_major_diatonic_unchanged():
+    # The common case is untouched: case already matches the diatonic quality.
+    c = Key("C", "major")
+    names = [ch.identify() for ch in c.progression("I", "ii", "iii", "IV", "V7", "vi")]
+    assert names == ["C major", "D minor", "E minor", "F major",
+                     "G dominant 7th", "A minor"]
+
+
 def test_pachelbel_progression():
     from pytheory.scales import PROGRESSIONS
     k = Key("C", "major")

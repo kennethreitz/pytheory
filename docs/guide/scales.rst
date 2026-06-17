@@ -277,6 +277,19 @@ easy:
    C major
    >>> key.nashville(1, 5, 6, 4)
    [<Chord G major>, <Chord D major>, <Chord E minor>, <Chord C major>]
+
+The numeral says exactly what you mean. **Case** sets the quality —
+uppercase is major, lowercase minor — so an uppercase ``"V"`` in a minor
+key gives the harmonic-minor dominant, and ``"IV"`` the Dorian major-IV.
+Quality markers (``"°"``, ``"ø"``, ``"+"``, ``"maj"``) and a flat/sharp
+prefix for **borrowed chords** work too:
+
+.. code-block:: pycon
+
+   >>> Key("A", "minor").progression("i", "iv", "V7", "i")   # harmonic-minor cadence
+   [<Chord A minor>, <Chord D minor>, <Chord E dominant 7th>, <Chord A minor>]
+   >>> [c.identify() for c in Key("C", "major").progression("I", "bVII", "IV")]
+   ['C major', 'Bb major', 'F major']
    >>> key.chords
    ['G major', 'A minor', 'B minor', 'C major', 'D major', 'E minor', 'F# diminished']
    >>> key.seventh_chords

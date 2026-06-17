@@ -216,37 +216,94 @@ class Scale:
     def progression(self, *numerals: str) -> list[Chord]:
         """Build a chord progression from Roman numeral strings.
 
-        Accepts Roman numerals like ``"I"``, ``"IV"``, ``"V"``,
-        ``"ii"``, ``"vi"``. Lowercase = minor triad, uppercase = major
-        triad. Add ``"7"`` suffix for seventh chords.
+        The chord's **quality follows the numeral**, not just the scale, so
+        the notation says exactly what you mean:
+
+        - **case** sets major vs minor — ``"V"`` is a major triad, ``"v"`` a
+          minor one (so an uppercase ``"V"`` in a minor key gives the
+          harmonic-minor dominant, and ``"IV"`` in minor gives the Dorian
+          major-IV);
+        - **quality markers** ``"°"``/``"o"`` (diminished), ``"ø"``
+          (half-diminished), ``"+"`` (augmented), ``"maj"`` (major 7th);
+        - a **flat/sharp prefix** borrows from outside the key —
+          ``"bVII"`` is a major triad on the lowered 7th degree (the
+          Mixolydian/​rock ♭VII), ``"bII"`` the Neapolitan, and so on;
+        - a trailing **``"7"``** makes it a seventh chord (dominant for an
+          uppercase numeral, minor for lowercase).
 
         Example::
 
-            >>> scale.progression("I", "IV", "V", "I")
-            [<Chord (C,E,G)>, <Chord (F,A,C)>, <Chord (G,B,D)>, <Chord (C,E,G)>]
+            >>> scale.progression("I", "IV", "V7", "I")
+            [<Chord C major>, <Chord F major>, <Chord G dominant 7th>, <Chord C major>]
+            >>> scale.progression("I", "bVII")           # Mixolydian vamp
+            [<Chord C major>, <Chord Bb major>]
         """
+        return [self._chord_from_numeral(num) for num in numerals]
+
+    def _chord_from_numeral(self, numeral: str) -> Chord:
+        """Resolve a single Roman-numeral string to a Chord (see
+        :meth:`progression`)."""
         from ._statics import roman2int
-        chords = []
-        for num in numerals:
-            is_seventh = num.endswith("7")
-            clean = num.rstrip("7")
-            # Handle flat-degree prefixes: bVI, bVII, bIII, etc.
-            flat_offset = 0
-            if clean.startswith("b") and len(clean) > 1:
-                clean = clean[1:]
-                flat_offset = -1  # one semitone down
-            elif clean.startswith("#") and len(clean) > 1:
-                clean = clean[1:]
-                flat_offset = 1  # one semitone up
-            degree = roman2int(clean.upper()) - 1
-            if is_seventh:
-                chord = self.seventh(degree)
-            else:
-                chord = self.triad(degree)
-            if flat_offset != 0:
-                chord = chord.transpose(flat_offset)
-            chords.append(chord)
-        return chords
+        from .chords import Chord
+
+        s = numeral.strip()
+
+        # Accidental prefix — borrow from outside the key.
+        offset = 0
+        if s[:1] in ("b", "♭"):
+            offset, s = -1, s[1:]
+        elif s[:1] in ("#", "♯"):
+            offset, s = 1, s[1:]
+
+        # Trailing seventh.
+        is_seventh = s.endswith("7")
+        if is_seventh:
+            s = s[:-1]
+
+        # Quality markers (stripped to leave the bare roman numeral).
+        quality = "case"
+        low = s.lower()
+        if s.endswith(("°", "o")):
+            quality, s = "dim", s[:-1]
+        elif low.endswith("dim"):
+            quality, s = "dim", s[:-3]
+        elif s.endswith("ø"):
+            quality, s = "halfdim", s[:-1]
+        elif s.endswith("+"):
+            quality, s = "aug", s[:-1]
+        elif low.endswith("aug"):
+            quality, s = "aug", s[:-3]
+        elif low.endswith("maj"):
+            quality, s = "maj", s[:-3]
+
+        degree = roman2int(s.upper()) - 1
+        is_major = s.isupper()
+
+        # Root = the scale degree, shifted by any accidental.
+        unique = len(self.tones) - 1
+        root = self.tones[degree % unique]
+        if degree >= unique:
+            root = root.add(12 * (degree // unique))
+        if offset:
+            # Spell a borrowed root with the accidental it was written with
+            # (bVII → Bb, not A#).
+            root = root.add(offset, prefer_flats=(offset < 0))
+
+        # Intervals above the root for the requested quality.
+        if quality == "dim":
+            intervals = [3, 6, 9] if is_seventh else [3, 6]
+        elif quality == "halfdim":
+            intervals = [3, 6, 10]
+        elif quality == "aug":
+            intervals = [4, 8, 10] if is_seventh else [4, 8]
+        elif quality == "maj":
+            intervals = [4, 7, 11] if is_seventh else [4, 7]
+        elif is_major:
+            intervals = [4, 7, 10] if is_seventh else [4, 7]   # dominant 7th
+        else:
+            intervals = [3, 7, 10] if is_seventh else [3, 7]   # minor 7th
+
+        return Chord(tones=[root] + [root.add(i) for i in intervals])
 
     def nashville(self, *numbers: Union[int, str]) -> list[Chord]:
         """Build a chord progression using Nashville number system.
@@ -490,12 +547,12 @@ PROGRESSIONS = {
     "vi-ii-V-I": ("vi", "ii", "V7", "I"),      # extended turnaround
     "I-vi-ii-V": ("I", "vi", "ii", "V"),       # rhythm changes A section
     "iii-vi-ii-V": ("iii", "vi", "ii", "V"),   # jazz turnaround
-    "minor ii-V-i": ("ii", "V7", "i"),
+    "minor ii-V-i": ("ii°", "V7", "i"),
     # Classical / Film
     "i-bVI-bIII-bVII": ("i", "VI", "III", "VII"),
     "Pachelbel": ("I", "V", "vi", "iii", "IV", "I", "IV", "V"),
     "I-V-vi-iii-IV": ("I", "V", "vi", "iii", "IV"),
-    "circle of fifths": ("I", "IV", "vii", "iii", "vi", "ii", "V", "I"),
+    "circle of fifths": ("I", "IV", "vii°", "iii", "vi", "ii", "V", "I"),
     # Flamenco / Spanish
     "Andalusian": ("i", "VII", "VI", "V"),
     # Minor
@@ -506,7 +563,7 @@ PROGRESSIONS = {
     "i-VII-i": ("i", "VII", "i"),
     # Modal
     "Dorian vamp": ("i", "IV"),
-    "Mixolydian vamp": ("I", "VII"),
+    "Mixolydian vamp": ("I", "bVII"),
     "Aeolian": ("i", "VI", "VII"),
 }
 """Common chord progressions as Roman numeral tuples.

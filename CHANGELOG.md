@@ -4,6 +4,16 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Roman-numeral progressions now mean what they say.** `progression()`
+  reads the numeral's **case** for quality (so an uppercase `"V"` in a minor
+  key gives the harmonic-minor *major* dominant, and `"IV"` gives the
+  Dorian major-IV), honours quality markers (`"°"`, `"ø"`, `"+"`, `"maj"`),
+  and builds **flat/sharp degrees** as the correct borrowed chord (`"bVII"`
+  → a B♭ major triad, not a clipped diminished one). Previously it ignored
+  case and mis-transposed altered degrees, so modal/minor progressions
+  rendered wrong — the Andalusian cadence ended on a minor v, the Mixolydian
+  vamp on a diminished vii°, and minor ii–V–i got a minor v7. *(Behaviour
+  change: lowercase numerals now build minor chords even in a major key.)*
 - **More built-in progressions (14 -> 32).** `PROGRESSIONS` gains 18 named
   progressions across pop, blues (quick-change, 8-bar, minor 12-bar), jazz
   (extended turnarounds, minor ii-V-i), classical (the circle of fifths,
