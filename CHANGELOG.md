@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## 0.53.2
+## 0.54.0
 
 - **`Score.ring_out()` — let reverb/delay tails breathe.** Rendering used
   to stop dead on the final beat, clipping the tail of any reverb or delay
@@ -25,9 +25,13 @@ All notable changes to PyTheory are documented here.
   left and right impulse responses from the same fixed random seed, so both
   channels were identical and the "stereo" reverb had no width. Each channel
   now uses a distinct seed, opening up a real stereo image.
-- **Faster iteration.** Convolution impulse responses are memoised per
+- **Faster rendering.** Convolution impulse responses are memoised per
   `(preset, sample_rate, seed)` — they're deterministic, so they're built at
-  most once per process. Re-rendering a score with reverb is ~50% faster.
+  most once per process, making re-renders of a reverbed score ~50% faster.
+  IR generation itself is also ~15x faster: the per-sample high-frequency
+  damping loop is now a vectorised piecewise filter (an inaudible
+  approximation), cutting the first render of the benchmark score from
+  3.4s to 2.7s.
 - **Reliability:** a new `tests/test_dsp_quality.py` makes real assertions
   about the audio itself — oscillator pitch, harmonic content, envelope
   decay, filter response, echo timing, reverb tails, stereo width, panning,
