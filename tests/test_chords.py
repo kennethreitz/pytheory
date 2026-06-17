@@ -1278,6 +1278,42 @@ def test_literal_subset_superset():
     assert not seventh.is_subset_of(triad)
 
 
+# ── Non-chord-tone analysis ────────────────────────────────────────────
+
+def _nct_types(melody, chords):
+    from pytheory import analyze_non_chord_tones, Tone
+    notes = [Tone.from_string(n) for n in melody]
+    return [r["type"] for r in analyze_non_chord_tones(notes, chords)]
+
+
+def test_passing_and_neighbor_tones():
+    C = Chord.from_name("C")
+    assert _nct_types(["C4", "D4", "E4"], C) == ["chord tone", "passing", "chord tone"]
+    assert _nct_types(["C4", "D4", "C4"], C) == ["chord tone", "upper neighbor", "chord tone"]
+    assert _nct_types(["E4", "D4", "E4"], C) == ["chord tone", "lower neighbor", "chord tone"]
+
+
+def test_appoggiatura_and_escape_tone():
+    C = Chord.from_name("C")
+    assert _nct_types(["C4", "F4", "E4"], C)[1] == "appoggiatura"   # leap in, step out
+    assert _nct_types(["C4", "D4", "G4"], C)[1] == "escape tone"    # step in, leap out
+
+
+def test_suspension_and_anticipation():
+    C, G = Chord.from_name("C"), Chord.from_name("G")
+    # C held from a C chord into a G chord, resolving down to B.
+    assert _nct_types(["C4", "C4", "B3"], [C, G, G])[1] == "suspension"
+    # B steps to C, anticipating the coming C chord.
+    assert _nct_types(["B3", "C4", "C4"], [G, G, C])[1] == "anticipation"
+
+
+def test_nct_requires_one_chord_per_note_or_single():
+    from pytheory import analyze_non_chord_tones, Tone
+    notes = [Tone.from_string(n) for n in ("C4", "D4")]
+    with pytest.raises(ValueError, match="one chord per"):
+        analyze_non_chord_tones(notes, [Chord.from_name("C")])  # wrong length
+
+
 # ── Voice-leading checker ──────────────────────────────────────────────
 
 def test_parallel_fifths_detected():

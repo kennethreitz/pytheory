@@ -74,6 +74,17 @@ detect_cadence(C("G"), pac_I, "C")             # 'perfect authentic'
 find_cadences([C(n) for n in ("C","F","G","Am")], "C")   # [(2,'half'), (3,'deceptive')]
 ```
 
+**Non-chord tones** — label the melody notes that *aren't* in the harmony
+(passing / neighbor / suspension / anticipation / appoggiatura / escape).
+Pass one chord for the whole line, or one chord per note:
+
+```python
+from pytheory import analyze_non_chord_tones, Chord, Tone
+mel = [Tone.from_string(n) for n in ("C4","D4","E4")]
+[r["type"] for r in analyze_non_chord_tones(mel, Chord.from_name("C"))]
+# ['chord tone', 'passing', 'chord tone']
+```
+
 ## Harmonic color & motion
 
 ```python

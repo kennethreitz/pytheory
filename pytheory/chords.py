@@ -2655,3 +2655,107 @@ def check_voice_leading(voicings: list) -> list:
                 })
 
     return issues
+
+
+def _is_step(interval: int) -> bool:
+    return abs(interval) in (1, 2)
+
+
+def _is_leap(interval: int) -> bool:
+    return abs(interval) >= 3
+
+
+def analyze_non_chord_tones(melody: list, chords) -> list:
+    """Label each melody note as a chord tone or a kind of non-chord tone.
+
+    A **non-chord tone** (NCT) is a melodic note that isn't part of the
+    harmony sounding underneath it — the passing notes, suspensions, and
+    neighbor tones that give a line its shape. Each note is classified from
+    its melodic context (how it's approached and left) and the chord
+    beneath it:
+
+    - **chord tone** — belongs to the harmony.
+    - **passing** — step in, step on in the *same* direction (fills a gap).
+    - **upper / lower neighbor** — step away from a chord tone and step back.
+    - **suspension** — a chord tone held into a new chord where it clashes,
+      then resolved down by step.
+    - **anticipation** — steps early to a note of the *next* chord.
+    - **appoggiatura** — leapt to, then resolved by step (an accented NCT).
+    - **escape tone** — stepped to, then left by leap.
+    - **non-chord tone** — dissonant but not a recognised figure (or at the
+      very start/end, where there's no context to judge).
+
+    Args:
+        melody: A list of :class:`~pytheory.Tone` (or pitched note-name
+            strings like ``"C4"`` — octaves are needed to judge steps).
+        chords: A single :class:`Chord` sounding under the whole melody, or
+            a list of chords with one per melody note.
+
+    Returns:
+        A list of dicts, one per note: ``tone``, ``is_chord_tone`` (bool),
+        and ``type`` (the label above).
+
+    Example::
+
+        >>> from pytheory import Chord, Tone
+        >>> melody = [Tone.from_string(n) for n in ("C4", "D4", "E4")]
+        >>> [r["type"] for r in analyze_non_chord_tones(melody, Chord.from_name("C"))]
+        ['chord tone', 'passing', 'chord tone']
+    """
+    from .tones import Tone
+
+    notes = [Tone.from_string(m, system="western") if isinstance(m, str) else m
+             for m in melody]
+    if isinstance(chords, Chord):
+        chord_seq = [chords] * len(notes)
+    else:
+        chord_seq = list(chords)
+        if len(chord_seq) != len(notes):
+            raise ValueError(
+                "Provide one chord per melody note, or a single Chord."
+            )
+
+    pitches = [_abs_pitch(n) for n in notes]
+    results = []
+    for i, note in enumerate(notes):
+        if _pc(note) in chord_seq[i].pitch_classes:
+            results.append({"tone": note, "is_chord_tone": True,
+                            "type": "chord tone"})
+            continue
+        results.append({"tone": note, "is_chord_tone": False,
+                        "type": _classify_nct(i, pitches, notes, chord_seq)})
+    return results
+
+
+def _classify_nct(i, pitches, notes, chord_seq) -> str:
+    """Classify the non-chord tone at index ``i`` from its melodic context."""
+    if i == 0 or i == len(pitches) - 1:
+        return "non-chord tone"          # no approach or departure to judge
+
+    this = pitches[i]
+    approach = this - pitches[i - 1]
+    departure = pitches[i + 1] - this
+
+    prev_is_ct = _pc(notes[i - 1]) in chord_seq[i - 1].pitch_classes
+    next_is_ct = _pc(notes[i + 1]) in chord_seq[i + 1].pitch_classes
+
+    # Suspension: same pitch held from a consonant note, resolving down a step.
+    if approach == 0 and prev_is_ct and departure in (-1, -2):
+        return "suspension"
+    # Anticipation: steps early to a note that belongs to the next chord.
+    if departure == 0 and next_is_ct and _is_step(approach):
+        return "anticipation"
+    # Passing: step then step in the same direction.
+    if _is_step(approach) and _is_step(departure) and \
+            (approach > 0) == (departure > 0):
+        return "passing"
+    # Neighbor: step away and step back to the same pitch.
+    if _is_step(approach) and pitches[i + 1] == pitches[i - 1]:
+        return "upper neighbor" if approach > 0 else "lower neighbor"
+    # Appoggiatura: leapt to, resolved by step.
+    if _is_leap(approach) and _is_step(departure):
+        return "appoggiatura"
+    # Escape tone: stepped to, left by leap.
+    if _is_step(approach) and _is_leap(departure):
+        return "escape tone"
+    return "non-chord tone"

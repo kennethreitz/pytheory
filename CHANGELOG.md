@@ -4,6 +4,11 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Non-chord-tone analysis.** `analyze_non_chord_tones(melody, chords)`
+  labels each melody note against the harmony beneath it — chord tone,
+  passing, upper/lower neighbor, suspension, anticipation, appoggiatura, or
+  escape tone — judged from how the note is approached and left. Takes a
+  single chord for the whole line or one chord per note.
 - **Part-writing checker.** `check_voice_leading(voicings)` scans a sequence
   of chord voicings for the classic common-practice errors — parallel
   fifths, parallel octaves, and voice crossing — returning a structured

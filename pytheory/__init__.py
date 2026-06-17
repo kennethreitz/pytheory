@@ -7,7 +7,7 @@ from .systems import System, SYSTEMS, TET
 from .scales import TonedScale, Key, PROGRESSIONS
 from .ragas import Raga
 from .chords import (Chord, Fretboard, analyze_progression, detect_cadence,
-                     find_cadences, check_voice_leading)
+                     find_cadences, check_voice_leading, analyze_non_chord_tones)
 from .charts import CHARTS, Fingering, charts_for_fretboard
 from .serialism import ToneRow
 
@@ -24,7 +24,8 @@ Scale = TonedScale
 __all__ = [
     "Tone", "Note", "Interval", "Scale", "TonedScale", "Key",
     "PROGRESSIONS", "Raga", "Chord", "Fretboard", "Fingering", "analyze_progression",
-    "detect_cadence", "find_cadences", "check_voice_leading", "ToneRow",
+    "detect_cadence", "find_cadences", "check_voice_leading",
+    "analyze_non_chord_tones", "ToneRow",
     "System", "SYSTEMS", "TET", "CHARTS", "charts_for_fretboard",
     "play", "save", "save_midi", "play_progression", "play_pattern",
     "play_score", "render_score", "Synth", "Envelope",

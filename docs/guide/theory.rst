@@ -283,6 +283,37 @@ motion (by the index of its final chord):
    >>> find_cadences(prog, "C")
    [(2, 'half'), (3, 'deceptive')]
 
+Non-Chord Tones
+~~~~~~~~~~~~~~~
+
+Not every melody note belongs to the chord underneath it. The notes that
+*don't* — `non-chord tones <https://en.wikipedia.org/wiki/Nonchord_tone>`_
+— are what give a line its shape: passing notes that fill a gap, neighbors
+that lean and return, suspensions that hang and resolve.
+``analyze_non_chord_tones`` labels each note from its melodic context and
+the harmony beneath it:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, Tone, analyze_non_chord_tones
+
+   >>> melody = [Tone.from_string(n) for n in ("C4", "D4", "E4")]
+   >>> [r["type"] for r in analyze_non_chord_tones(melody, Chord.from_name("C"))]
+   ['chord tone', 'passing', 'chord tone']
+
+Pass a single chord for the whole melody, or a list with one chord per note.
+The recognised figures are **passing**, **upper / lower neighbor**,
+**suspension**, **anticipation**, **appoggiatura**, and **escape tone** —
+for example a suspension, prepared on one chord and resolved down a step on
+the next:
+
+.. code-block:: pycon
+
+   >>> C, G = Chord.from_name("C"), Chord.from_name("G")
+   >>> notes = [Tone.from_string(n) for n in ("C4", "C4", "B3")]
+   >>> [r["type"] for r in analyze_non_chord_tones(notes, [C, G, G])]
+   ['chord tone', 'suspension', 'chord tone']
+
 Rhythm and Meter
 ----------------
 
