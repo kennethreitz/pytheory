@@ -631,4 +631,74 @@ for comparison. Use ``normal_form`` when you care about which notes,
    >>> Chord.from_tones("C", "E", "G#").forte_number
    '3-12'
 
+Interval vector
+~~~~~~~~~~~~~~~
+
+The **interval-class vector** ``<ic1 ic2 ic3 ic4 ic5 ic6>`` counts how
+many times each interval class (1–6 semitones) appears among all pairs of
+notes. It's a fingerprint of a set's sonority — two sets with the same
+vector have the same interval content, which is why they sound related:
+
+.. code-block:: pycon
+
+   >>> Chord.from_tones("C", "E", "G").interval_vector       # major triad
+   (0, 0, 1, 1, 1, 0)
+
+   >>> Chord.from_tones("A", "C", "E").interval_vector       # minor triad
+   (0, 0, 1, 1, 1, 0)
+
+   >>> Chord.from_tones("B", "D", "F", "Ab").interval_vector # diminished 7th
+   (0, 0, 4, 0, 0, 2)
+
+Symmetrical sets jump out: the diminished-7th chord is all minor-thirds
+(ic3) and tritones (ic6), which is why it's so slippery and rootless.
+
+Complement
+~~~~~~~~~~
+
+The **complement** is every pitch class *not* in the set. A set and its
+complement together fill the twelve-note aggregate, and they share a deep
+set-theoretic kinship used throughout twelve-tone writing:
+
+.. code-block:: pycon
+
+   >>> sorted(Chord.from_tones("C", "E", "G").complement.pitch_classes)
+   [1, 2, 3, 5, 6, 8, 9, 10, 11]
+
+``complement`` returns a playable :class:`Chord`, so you can hear it too.
+
+Set-class relationships
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Four predicates compare two chords as abstract sets:
+
+.. code-block:: pycon
+
+   >>> # Tn — a pure transposition?
+   >>> Chord.from_tones("C", "E", "G").is_transposition_of(Chord.from_tones("G", "B", "D"))
+   True
+
+   >>> # TnI / same set class — related by transposition *or* inversion?
+   >>> # (major and minor triads are inversions of one another)
+   >>> Chord.from_tones("C", "E", "G").is_set_class_equivalent(Chord.from_tones("C", "Eb", "G"))
+   True
+
+   >>> # Literal containment
+   >>> Chord.from_tones("C", "E", "G").is_subset_of(Chord.from_symbol("Cmaj7"))
+   True
+
+The **Z-relation** is the famous oddity: two sets with the *same* interval
+vector that are *not* in the same set class — they share an interval
+content yet can't be mapped onto each other. The smallest pair is the two
+all-interval tetrachords:
+
+.. code-block:: pycon
+
+   >>> a = Chord.from_midi_message(0, 1, 4, 6)   # 4-z15
+   >>> b = Chord.from_midi_message(0, 1, 3, 7)   # 4-z29
+   >>> a.interval_vector == b.interval_vector
+   True
+   >>> a.is_z_related(b)
+   True
+
 Chords are the vertical dimension of music -- melody tells you where you're going, but harmony tells you how it feels to be there. Between construction, identification, voice leading, tension analysis, and pitch class sets, you've got tools to look at any chord from every angle. Pick a song you love, grab its chords, and start asking questions.
