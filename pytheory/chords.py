@@ -2552,3 +2552,106 @@ def find_cadences(chords: list[Chord], key: str = "C",
         if cadence:
             found.append((i, cadence))
     return found
+
+
+def _abs_pitch(tone) -> int:
+    """Absolute semitone height of a Tone (MIDI-like; only used for
+    comparisons, so the exact origin doesn't matter)."""
+    from ._statics import C_INDEX
+    return (tone._index - C_INDEX) % 12 + 12 * tone.octave
+
+
+# Voice labels for a four-part (SATB) texture, low to high.
+_SATB = ("bass", "tenor", "alto", "soprano")
+
+
+def _voice_name(index: int, n_voices: int) -> str:
+    if n_voices == 4:
+        return _SATB[index]
+    return f"voice {index + 1}"
+
+
+def check_voice_leading(voicings: list) -> list:
+    """Check a sequence of chord voicings for common part-writing errors.
+
+    Each voicing is read as a stack of **voices in order** — lowest
+    (``tones[0]``) to highest — so a :class:`Chord` built with its tones in
+    voice order works directly (as do plain lists of :class:`~pytheory.Tone`
+    or MIDI numbers). The classic common-practice prohibitions are checked:
+
+    - **parallel fifths** — two voices a perfect fifth apart moving, in the
+      same direction, to another perfect fifth;
+    - **parallel octaves** — the same, an octave (or unison) apart;
+    - **voice crossing** — a lower voice ending up above a higher one.
+
+    Args:
+        voicings: A list of voicings (Chords, or lists of Tones / MIDI
+            numbers). Voicings may have any number of parts; pairs are
+            compared over the parts they share.
+
+    Returns:
+        A list of issue dicts, each with ``type``, ``chords`` (the indices
+        involved), ``voices`` (the voice indices involved), and a
+        human-readable ``description``. An empty list means clean
+        part-writing.
+
+    Example::
+
+        >>> from pytheory import Chord
+        >>> # Parallel fifths: C+G rising to D+A
+        >>> a = Chord.from_midi_message(48, 55)   # C3, G3
+        >>> b = Chord.from_midi_message(50, 57)   # D3, A3
+        >>> [i["type"] for i in check_voice_leading([a, b])]
+        ['parallel fifths']
+    """
+    from .tones import Tone
+
+    seqs = []
+    for v in voicings:
+        if isinstance(v, Chord):
+            seqs.append([_abs_pitch(t) for t in v.tones])
+        else:
+            seqs.append([_abs_pitch(t) if isinstance(t, Tone) else int(t)
+                         for t in v])
+
+    issues = []
+    for i in range(len(seqs) - 1):
+        a, b = seqs[i], seqs[i + 1]
+        n = min(len(a), len(b))
+
+        # Parallel perfect fifths / octaves between any pair of voices.
+        for x in range(n):
+            for y in range(x + 1, n):
+                if a[x] == b[x] or a[y] == b[y]:
+                    continue                       # a voice held = oblique
+                if (b[x] - a[x]) * (b[y] - a[y]) <= 0:
+                    continue                       # not similar motion
+                iv1, iv2 = (a[y] - a[x]) % 12, (b[y] - b[x]) % 12
+                if iv1 == 7 and iv2 == 7:
+                    kind = "parallel fifths"
+                elif iv1 == 0 and iv2 == 0:
+                    kind = "parallel octaves"
+                else:
+                    continue
+                vx, vy = _voice_name(x, n), _voice_name(y, n)
+                issues.append({
+                    "type": kind,
+                    "chords": (i, i + 1),
+                    "voices": (x, y),
+                    "description": f"{kind} between {vx} and {vy} "
+                                   f"(chords {i}→{i + 1})",
+                })
+
+        # Voice crossing — a lower-numbered voice ending above a higher one.
+        for x in range(n - 1):
+            if b[x] > b[x + 1]:
+                vx, vy = _voice_name(x, n), _voice_name(x + 1, n)
+                issues.append({
+                    "type": "voice crossing",
+                    "chords": (i + 1,),
+                    "voices": (x, x + 1),
+                    "description": f"voice crossing: {vx} is above {vy} "
+                                   f"in chord {i + 1}",
+                })
+
+    return issues

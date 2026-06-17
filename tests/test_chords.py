@@ -1278,6 +1278,51 @@ def test_literal_subset_superset():
     assert not seventh.is_subset_of(triad)
 
 
+# ── Voice-leading checker ──────────────────────────────────────────────
+
+def test_parallel_fifths_detected():
+    from pytheory import check_voice_leading
+    a = Chord.from_midi_message(48, 55)        # C3 + G3 (a fifth)
+    b = Chord.from_midi_message(50, 57)        # D3 + A3 (a fifth), both up
+    issues = check_voice_leading([a, b])
+    assert [i["type"] for i in issues] == ["parallel fifths"]
+    assert issues[0]["chords"] == (0, 1)
+    assert issues[0]["voices"] == (0, 1)
+
+
+def test_parallel_octaves_detected():
+    from pytheory import check_voice_leading
+    a = Chord.from_midi_message(48, 60)        # C3 + C4
+    b = Chord.from_midi_message(50, 62)        # D3 + D4
+    assert [i["type"] for i in check_voice_leading([a, b])] == ["parallel octaves"]
+
+
+def test_contrary_and_oblique_motion_is_clean():
+    from pytheory import check_voice_leading
+    # Contrary motion in the outer voices, inner voice held — textbook clean.
+    one = Chord.from_midi_message(48, 55, 64, 72)
+    two = Chord.from_midi_message(50, 55, 62, 71)
+    assert check_voice_leading([one, two]) == []
+
+
+def test_voice_crossing_detected():
+    from pytheory import check_voice_leading
+    a = Chord.from_midi_message(48, 52, 55)
+    b = Chord.from_midi_message(48, 60, 55)    # voice 1 (60) ends above voice 2 (55)
+    issues = check_voice_leading([a, b])
+    assert any(i["type"] == "voice crossing" and i["voices"] == (1, 2)
+               for i in issues)
+
+
+def test_satb_voice_labels():
+    from pytheory import check_voice_leading
+    a = Chord.from_midi_message(48, 55, 64, 72)   # 4 voices -> SATB names
+    b = Chord.from_midi_message(50, 57, 66, 74)
+    issues = check_voice_leading([a, b])
+    assert any("bass" in i["description"] and "tenor" in i["description"]
+               for i in issues)
+
+
 # ── Neo-Riemannian transformations ─────────────────────────────────────
 
 def test_plr_basic_transformations():

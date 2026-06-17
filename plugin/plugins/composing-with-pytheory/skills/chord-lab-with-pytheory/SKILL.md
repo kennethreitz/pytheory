@@ -113,7 +113,24 @@ C.tonnetz_path(Chord.from_symbol("Am"))   # 'R'    — shortest P/L/R route betw
 C.tonnetz_path(Chord.from_symbol("Abm"))  # 'PLP'  — the hexatonic pole of C major
 ```
 
-## Hear a chord
+### Part-writing checker (parallels / crossing)
+
+`check_voice_leading` flags the common-practice no-no's across a sequence of
+voicings. Each voicing's tones are read low-to-high as the voices (so a
+4-note chord gets bass/tenor/alto/soprano labels):
+
+```python
+from pytheory import Chord, check_voice_leading
+
+a = Chord.from_midi_message(48, 55)        # C3 + G3 (a fifth)
+b = Chord.from_midi_message(50, 57)        # D3 + A3 (a fifth) — both rise
+check_voice_leading([a, b])
+# [{'type': 'parallel fifths', 'chords': (0, 1), 'voices': (0, 1),
+#   'description': 'parallel fifths between voice 1 and voice 2 (chords 0→1)'}]
+```
+
+It catches **parallel fifths**, **parallel octaves**, and **voice
+crossing**; clean part-writing returns `[]`.
 
 ```python
 from pytheory.play import play, save

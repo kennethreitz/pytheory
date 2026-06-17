@@ -414,6 +414,34 @@ gold standard — every voice moves by step whenever possible.
    E4 -> F4  (+1 semitones)
    C4 -> C4  (+0 semitones)
 
+Checking part-writing
+~~~~~~~~~~~~~~~~~~~~~~
+
+Common-practice part-writing forbids a handful of moves, and
+``check_voice_leading`` flags them across a sequence of voicings. Each
+voicing's tones are read low-to-high as the voices, so a four-note chord is
+labelled bass / tenor / alto / soprano:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, check_voice_leading
+
+   >>> a = Chord.from_midi_message(48, 55)   # C3 + G3 — a perfect fifth
+   >>> b = Chord.from_midi_message(50, 57)   # D3 + A3 — a fifth, both rising
+   >>> [issue["type"] for issue in check_voice_leading([a, b])]
+   ['parallel fifths']
+
+It catches **parallel fifths**, **parallel octaves**, and **voice
+crossing** (a lower voice ending above a higher one). Smooth, contrary, or
+oblique motion comes back clean:
+
+.. code-block:: pycon
+
+   >>> one = Chord.from_midi_message(48, 55, 64, 72)
+   >>> two = Chord.from_midi_message(50, 55, 62, 71)   # contrary outer voices
+   >>> check_voice_leading([one, two])
+   []
+
 Tritone Substitution
 --------------------
 

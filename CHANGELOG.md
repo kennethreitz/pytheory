@@ -4,6 +4,11 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **Part-writing checker.** `check_voice_leading(voicings)` scans a sequence
+  of chord voicings for the classic common-practice errors — parallel
+  fifths, parallel octaves, and voice crossing — returning a structured
+  issue for each (with SATB voice labels for four-part textures). Clean
+  part-writing returns an empty list.
 - **Cadence detection.** `detect_cadence(penultimate, final, key, mode)`
   names the harmonic punctuation that ends a phrase — perfect/imperfect
   authentic, half, Phrygian half, deceptive, or plagal — built on the
