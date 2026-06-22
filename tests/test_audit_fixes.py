@@ -113,6 +113,30 @@ def test_nashville_m_forces_minor():
     assert [t.name for t in major.nashville("5m")[0].tones] == ["G", "Bb", "D"]
 
 
+# ── Nashville flat degrees (b7 used to crash on int("b")) ──
+
+def test_nashville_flat_degree_borrows():
+    major = _ts("C")
+    assert major.nashville("b7")[0].identify() == "Bb major"     # ♭VII
+    assert major.nashville("b3")[0].identify() == "Eb major"
+    assert major.nashville("b6")[0].identify() == "Ab major"
+    # The diatonic and 'm' cases still work alongside it.
+    assert major.nashville("57")[0].identify() == "G dominant 7th"
+    assert major.nashville("17")[0].identify() == "C major 7th"
+    assert major.nashville("4m")[0].identify() == "F minor"
+
+
+# ── analyze() can label secondary dominants (inverse of progression) ──
+
+def test_analyze_secondary_dominants():
+    assert Chord.from_symbol("D7").analyze("C") == "II7"          # default
+    assert Chord.from_symbol("D7").analyze("C", secondary_dominants=True) == "V7/V"
+    assert Chord.from_symbol("E7").analyze("C", secondary_dominants=True) == "V7/vi"
+    assert Chord.from_symbol("G7").analyze("C", secondary_dominants=True) == "V7"
+    ch = Key("C", "major").progression("V7/V")[0]
+    assert ch.analyze("C", secondary_dominants=True) == "V7/V"   # round-trip
+
+
 # ── #18: garbage Roman numerals are rejected ──
 
 @pytest.mark.parametrize("bad", ["XYZ", "", "IIII", "VIII", "foo"])

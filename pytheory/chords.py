@@ -1060,7 +1060,8 @@ class Chord:
             result.append((src[i], dst[j], movement))
         return sorted(result, key=lambda v: v[0].pitch(), reverse=True)
 
-    def analyze(self, key_tonic: Union[str, Tone], mode: str = "major") -> Optional[str]:
+    def analyze(self, key_tonic: Union[str, Tone], mode: str = "major",
+                secondary_dominants: bool = False) -> Optional[str]:
         """Roman numeral analysis of this chord relative to a key.
 
         In tonal music, every chord has a **function** determined by
@@ -1071,6 +1072,9 @@ class Chord:
         Args:
             key_tonic: The tonic note name (e.g. ``"C"``) or a Tone.
             mode: ``"major"`` or ``"minor"`` (default ``"major"``).
+            secondary_dominants: If True, label applied dominants as
+                ``"V7/V"`` etc. instead of by their bare scale degree —
+                the inverse of ``progression("V7/V")``.
 
         Returns:
             A string like ``"I"``, ``"IV"``, ``"V7"``, ``"ii"``,
@@ -1084,11 +1088,19 @@ class Chord:
             'V'
             >>> Chord([D4, F4, A4]).analyze("C")
             'ii'
+            >>> Chord.from_symbol("D7").analyze("C", secondary_dominants=True)
+            'V7/V'
         """
         from ._statics import int2roman
         from .scales import TonedScale
         from .systems import SYSTEMS
         from .tones import Tone
+
+        if secondary_dominants:
+            key_str = key_tonic if isinstance(key_tonic, str) else key_tonic.name
+            applied = detect_secondary_dominant(self, key_str, mode)
+            if applied:
+                return applied
 
         if isinstance(key_tonic, str):
             key_tonic_tone = Tone.from_string(key_tonic + "4", system="western")

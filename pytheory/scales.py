@@ -350,14 +350,29 @@ class Scale:
         chords = []
         for num in numbers:
             s = str(num).strip()
-            is_seventh = s.endswith("7")
+            # A leading accidental borrows a chord from outside the key. The
+            # degree is the first digit, so the "7" in "b7" is the degree
+            # (♭VII), not a seventh-chord marker.
+            offset = 0
+            if s[:1] in ("b", "♭"):
+                offset, s = -1, s[1:]
+            elif s[:1] in ("#", "♯"):
+                offset, s = 1, s[1:]
+            degree = int(s[0]) - 1
+            suffix = s[1:]
+            is_seventh = suffix.endswith("7")
             if is_seventh:
-                s = s[:-1]
-            force_minor = s.endswith("m")
-            if force_minor:
-                s = s[:-1]
-            degree = int(s) - 1
-            if force_minor:
+                suffix = suffix[:-1]
+            force_minor = suffix.endswith("m") or suffix == "-"
+            if offset != 0:
+                # Borrowed chord on the altered degree — major by default
+                # (b7 = Bb major), minor with the "m" modifier.
+                root = self.triad(degree).tones[0].add(
+                    offset, prefer_flats=(offset < 0))
+                ivs = ([3, 7, 10] if is_seventh else [3, 7]) if force_minor \
+                    else ([4, 7, 10] if is_seventh else [4, 7])
+                chords.append(Chord(tones=[root] + [root.add(i) for i in ivs]))
+            elif force_minor:
                 # Borrow a minor chord on this degree (4m = F minor in C).
                 # Start from the correctly-spelled diatonic triad and flatten
                 # the third by letter (A→Ab, not G#) so the spelling reads.

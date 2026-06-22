@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- **Two more audit follow-ups.** `nashville("b7")` (and other flat degrees)
+  used to crash trying to `int("b")` — it now reads a leading `b`/`#` as a
+  borrowed degree (`"b7"` → ♭VII = B♭ major), alongside the diatonic and
+  `"m"` cases. And `Chord.analyze()` gains `secondary_dominants=True`, which
+  labels applied dominants as `"V7/V"` instead of the bare `"II7"` — the
+  inverse of `progression("V7/V")`, so generate→analyze round-trips.
+
 ## 0.57.0
 
 A correctness pass — an adversarial audit of the theory engine found 23
