@@ -2,6 +2,17 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.6
+
+- **Lyrics now export to LilyPond and MusicXML.** A vocal line written
+  with `part.add(note, lyric="...")` carries its words into the score:
+  LilyPond gets a proper `\new Lyrics \lyricsto` context (one syllable
+  per sounding note, rests skipped, gaps left blank), and MusicXML gets
+  `<lyric><text>` elements. Output was validated by compiling it with
+  LilyPond 2.26 — including the combined case of lyrics + articulations +
+  held notes + chords. Lyric-free scores are byte-for-byte unchanged.
+  (ABC still omits lyrics — its `w:` alignment is the remaining gap.)
+
 ## 0.57.5
 
 - **MusicXML export preserves per-note velocity.** Each pitched note now

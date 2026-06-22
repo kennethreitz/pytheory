@@ -414,6 +414,45 @@ def test_notation_emits_articulations():
     assert "<staccato" in mxl and "<fermata" in mxl
 
 
+def test_lilypond_emits_lyrics():
+    """A vocal line's lyrics become a \\lyricsto context; the named voice it
+    attaches to is created, and lyric-free notes get a blank syllable."""
+    score = Score("4/4", bpm=120)
+    v = score.part("voice")
+    for w, n in [("Twin", "C4"), ("kle", "C4"), ("lit", "G4"), ("tle", "G4")]:
+        v.add(n, Duration.QUARTER, lyric=w)
+    v.add("G4", Duration.QUARTER)            # no lyric -> blank syllable
+
+    ly = score.to_lilypond()
+    assert '\\new Voice = "voice0"' in ly
+    assert '\\new Lyrics \\lyricsto "voice0"' in ly
+    assert "Twin kle lit tle _" in ly
+
+
+def test_lilypond_no_lyrics_is_unchanged():
+    """Scores without lyrics must not gain a Voice/Lyrics wrapper."""
+    score = Score("4/4", bpm=120)
+    p = score.part("lead")
+    for n in ("C4", "D4", "E4", "F4"):
+        p.add(n, Duration.QUARTER)
+    ly = score.to_lilypond()
+    assert "\\new Lyrics" not in ly and "\\new Voice" not in ly
+
+
+def test_musicxml_emits_lyrics():
+    """Lyrics export as <lyric><text> elements, one per sounding note."""
+    import xml.dom.minidom
+    import re
+    score = Score("4/4", bpm=120)
+    v = score.part("voice")
+    for w, n in [("Twin", "C4"), ("kle", "C4"), ("lit", "G4")]:
+        v.add(n, Duration.QUARTER, lyric=w)
+
+    mxl = score.to_musicxml()
+    xml.dom.minidom.parseString(mxl)         # must be well-formed
+    assert re.findall(r"<text>([^<]+)</text>", mxl) == ["Twin", "kle", "lit"]
+
+
 def test_musicxml_preserves_per_note_velocity():
     """Per-note velocity round-trips as the MusicXML 'dynamics' attribute
     (a percentage of velocity 90), invisible in the engraving."""

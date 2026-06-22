@@ -4965,18 +4965,28 @@ class Score:
             staves.append("  \\new ChordNames \\chordProg")
         if fretboards and chord_notes is not None:
             staves.append("  \\new FretBoards \\chordProg")
-        for vname, notes in voices:
+        for vi, (vname, notes) in enumerate(voices):
             clef = self._guess_clef(notes)
             body = self._notes_to_lilypond(notes, ts)
+            lyrics = self._lyrics_for(notes)
+            if lyrics:
+                # Name the voice so a Lyrics context can attach to it; the
+                # lyrics line becomes a sibling staff in the StaffGroup.
+                vid = f"voice{vi}"
+                music = f'\\new Voice = "{vid}" {{ {body} }}'
+            else:
+                music = body
             staves.append(
                 f'  \\new Staff \\with {{ instrumentName = "{vname}" }} {{\n'
                 f"    \\clef {clef}\n"
                 f"    \\key {ly_key} \\{mode}\n"
                 f"    \\time {ts.beats}/{ts.unit}\n"
                 f"    \\tempo 4 = {self.bpm}\n"
-                f"    {body}\n"
+                f"    {music}\n"
                 f"  }}"
             )
+            if lyrics:
+                staves.append(f'  \\new Lyrics \\lyricsto "{vid}" {{ {lyrics} }}')
         if tab and chord_notes is not None:
             staves.append("  \\new TabStaff \\chordProg")
 
@@ -5126,6 +5136,32 @@ class Score:
         closest = min(_MAP, key=lambda k: abs(k - beats))
         return _MAP[closest]
 
+    @staticmethod
+    def _ly_syllable(text):
+        """One LilyPond lyric token. Plain alphanumerics pass through;
+        anything with spaces/punctuation is quoted so it stays one syllable."""
+        if not text:
+            return "_"                       # blank: skip this note
+        if all(c.isalnum() for c in text):
+            return text
+        return '"' + text.replace("\\", "").replace('"', "") + '"'
+
+    def _lyrics_for(self, notes):
+        """Build a LilyPond ``\\lyricmode`` body for a voice, one syllable per
+        sounding note (rests are skipped by ``\\lyricsto``). Returns ``None``
+        when the voice carries no lyrics, so lyric-free scores are untouched.
+        """
+        syllables, has_any = [], False
+        for note in self._resolve_holds(notes):
+            tone = note.tone
+            if tone is None or not (hasattr(tone, "name") or hasattr(tone, "tones")):
+                continue                      # rest — lyricsto skips it
+            text = (note.lyric or "").strip()
+            if text:
+                has_any = True
+            syllables.append(self._ly_syllable(text))
+        return " ".join(syllables) if has_any else None
+
     def _notes_to_lilypond(self, notes, ts, bars_per_line=4):
         """Convert a list of Note objects to a LilyPond music body string."""
         beats_per_measure = ts.beats_per_measure
@@ -5248,8 +5284,10 @@ class Score:
                     needs_tie_start = (remaining - chunk) > 0.001
                     needs_tie_stop = not is_first
 
+                    # Lyric only on the first piece of a note (not tie tails).
                     yield (tone, chunk, needs_tie_start, needs_tie_stop,
-                           note.velocity, note.articulation)
+                           note.velocity, note.articulation,
+                           note.lyric if is_first else "")
 
                     remaining -= chunk
                     beat_in_measure += chunk
@@ -5290,7 +5328,8 @@ class Score:
                       "marcato": "strong-accent", "tenuto": "tenuto"}
 
         def _add_note_el(measure, tone, dur_beats, is_chord_continuation,
-                         tie_start, tie_stop, velocity, articulation=""):
+                         tie_start, tie_stop, velocity, articulation="",
+                         lyric=""):
             note_el = ET.SubElement(measure, "note")
 
             if is_chord_continuation:
@@ -5344,6 +5383,15 @@ class Score:
                 elif mark in _MXL_ARTIC:
                     arts = ET.SubElement(notations, "articulations")
                     ET.SubElement(arts, _MXL_ARTIC[mark])
+
+            # A lyric syllable attaches once per note — the first/primary
+            # tone of a chord, never a rest or a tied tail. <lyric> comes
+            # after <notations> in the MusicXML note ordering.
+            syl = "" if is_chord_continuation else (lyric or "").strip()
+            if syl:
+                lyric_el = ET.SubElement(note_el, "lyric")
+                ET.SubElement(lyric_el, "syllabic").text = "single"
+                ET.SubElement(lyric_el, "text").text = syl
 
         # ── Collect voices ──────────────────────────────────────────
         voices = []
@@ -5427,7 +5475,7 @@ class Score:
             pm.text = str(self.bpm)
 
             for (tone, dur_beats, tie_start, tie_stop,
-                 vel, artic) in chunks:
+                 vel, artic, lyric) in chunks:
 
                 if beat_in_measure >= beats_per_measure - 0.001:
                     measure_num += 1
@@ -5447,10 +5495,10 @@ class Score:
                         for ci, ct in enumerate(chord_tones):
                             _add_note_el(measure_el, ct, dur_beats,
                                          ci > 0, tie_start, tie_stop, vel,
-                                         artic)
+                                         artic, lyric)
                 else:
                     _add_note_el(measure_el, tone, dur_beats, False,
-                                 tie_start, tie_stop, vel, artic)
+                                 tie_start, tie_stop, vel, artic, lyric)
 
                 beat_in_measure += dur_beats
 
