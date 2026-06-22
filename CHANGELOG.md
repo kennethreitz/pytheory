@@ -2,14 +2,34 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.57.1
 
+A quality/DX polish sweep — robustness fixes and friendlier errors, no
+behavior changes to correct output.
+
+- **`Key.secondary_dominant()` no longer crashes on out-of-range
+  degrees.** Degrees past the octave now wrap (V/9 == V/2) and a
+  non-positive degree raises a clear `ValueError` instead of an
+  `IndexError`.
+- **Malformed MIDI is handled.** `Score.from_midi()` guarded against a
+  zero tempo (would divide-by-zero; now falls back to 120 BPM) and a
+  zero/negative `ticks_per_beat` (now raises a clear error).
+- **Friendlier errors.** `Fretboard.chord()` raises a descriptive
+  `ValueError` (not a bare `KeyError`) when a symbol can't be parsed or
+  voiced; `Scale[...]` and the scale registry explain what was expected
+  and list what's available; `TimeSignature.from_string()` explains the
+  expected `'beats/unit'` format.
+- **`TimeSignature` is hashable again.** It defined `__eq__` without
+  `__hash__`, making it unusable as a dict key or set member; added
+  `__hash__`.
 - **Two more audit follow-ups.** `nashville("b7")` (and other flat degrees)
   used to crash trying to `int("b")` — it now reads a leading `b`/`#` as a
   borrowed degree (`"b7"` → ♭VII = B♭ major), alongside the diatonic and
   `"m"` cases. And `Chord.analyze()` gains `secondary_dominants=True`, which
   labels applied dominants as `"V7/V"` instead of the bare `"II7"` — the
   inverse of `progression("V7/V")`, so generate→analyze round-trips.
+- **Docs & types.** Added docstrings to `Tone.pitch()` and
+  `Scale.degree()`, and a type hint to `Chord.negative_harmony(key=...)`.
 
 ## 0.57.0
 

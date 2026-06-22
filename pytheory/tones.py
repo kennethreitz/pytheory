@@ -808,6 +808,36 @@ class Tone:
         symbolic: bool = False,
         precision: Optional[int] = None,
     ) -> float:
+        """Compute this tone's frequency in hertz.
+
+        Requires an associated tone system (the tone must know how many
+        steps are in its octave and where it sits).
+
+        Args:
+            reference_pitch: Frequency of the reference A (A4), in Hz.
+                Defaults to ``REFERENCE_A`` (440.0). Set to 432.0, etc.
+            temperament: Tuning system used to space the notes — ``"equal"``
+                (the default), ``"just"``, ``"pythagorean"``, ``"meantone"``.
+                Ignored when the system defines custom ``ratios`` (e.g. shruti
+                just intonation).
+            symbolic: When ``True``, return the exact (possibly rational)
+                value without coercing to ``float`` — useful for just-intonation
+                ratios. When ``False`` (default), return a plain ``float``.
+            precision: If given, round the result to this many decimal places.
+
+        Returns:
+            The pitch in hertz.
+
+        Raises:
+            ValueError: If the tone has no associated tone system.
+
+        Example::
+
+            >>> Tone.from_string("A4").pitch()
+            440.0
+            >>> Tone.from_string("A4").pitch(reference_pitch=432.0)
+            432.0
+        """
         try:
             tones = len(self.system.tone_names)
         except AttributeError:

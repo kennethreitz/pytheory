@@ -536,8 +536,14 @@ class TimeSignature:
     @classmethod
     def from_string(cls, s: str) -> "TimeSignature":
         """Parse '4/4', '3/4', '6/8' etc."""
-        top, bottom = s.split("/")
-        return cls(beats=int(top), unit=int(bottom))
+        try:
+            top, bottom = s.split("/")
+            return cls(beats=int(top), unit=int(bottom))
+        except (ValueError, AttributeError):
+            raise ValueError(
+                f"Invalid time signature {s!r}. Expected 'beats/unit', "
+                f"e.g. '4/4', '3/4', or '6/8'."
+            )
 
     @property
     def beats_per_measure(self) -> float:
@@ -551,6 +557,9 @@ class TimeSignature:
         if isinstance(other, TimeSignature):
             return self.beats == other.beats and self.unit == other.unit
         return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash((self.beats, self.unit))
 
 
 @dataclass
@@ -5633,8 +5642,10 @@ class Score:
         """
         midi = _parse_midi(path)
 
-        # Compute BPM from tempo (microseconds per beat)
-        bpm = round(60_000_000 / midi["tempo"])
+        # Compute BPM from tempo (microseconds per beat). Guard against a
+        # malformed file declaring a zero tempo (would divide-by-zero).
+        tempo_us = midi["tempo"] or 500000  # 500000 = 120 BPM, the MIDI default
+        bpm = round(60_000_000 / tempo_us)
 
         # Build time signature string
         ts_num, ts_den = midi["time_sig"]
@@ -5642,6 +5653,10 @@ class Score:
 
         score = cls(time_signature=ts_str, bpm=bpm)
         tpb = midi["ticks_per_beat"]
+        if tpb <= 0:
+            raise ValueError(
+                f"Malformed MIDI: ticks_per_beat must be positive, got {tpb}."
+            )
 
         # Build reverse DrumSound lookup: MIDI note number -> DrumSound
         _drum_by_note = {}

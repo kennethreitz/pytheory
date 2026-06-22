@@ -539,6 +539,22 @@ class Scale:
         return result
 
     def degree(self, item: Union[str, int, slice], major: Optional[bool] = None, minor: bool = False) -> Optional[Union[Tone, tuple[Tone, ...]]]:
+        """Look up the tone(s) at a scale degree.
+
+        Args:
+            item: The degree to retrieve. May be an integer index
+                (0-indexed), a slice, a Roman numeral (``"IV"``), or a
+                degree/mode name (``"dominant"``, ``"dorian"``).
+            major / minor: Mutually exclusive hints used when resolving an
+                ambiguous degree reference. Pass at most one.
+
+        Returns:
+            A single :class:`Tone`, a tuple of Tones (for a slice), or
+            ``None`` if the degree could not be resolved.
+
+        Raises:
+            ValueError: If both *major* and *minor* are truthy.
+        """
 
         # Ensure that both major and minor aren't passed.
         if all((major, minor)):
@@ -579,7 +595,10 @@ class Scale:
         """
         result = self.degree(item)
         if result is None:
-            raise KeyError(item)
+            raise KeyError(
+                f"No scale degree {item!r}. Use an integer (1-indexed), a "
+                f"Roman numeral (e.g. 'IV'), or a degree name (e.g. 'dominant')."
+            )
         return result
 
 
@@ -797,7 +816,9 @@ class Key:
 
         Args:
             degree: Scale degree to target (1-indexed). ``5`` means
-                "build the V of the 5th degree."
+                "build the V of the 5th degree." Degrees past the octave
+                wrap (``9`` targets the 2nd degree); a non-positive degree
+                raises ``ValueError``.
 
         Returns:
             A dominant 7th Chord that resolves to the given degree.
@@ -807,7 +828,16 @@ class Key:
             >>> Key("C", "major").secondary_dominant(5)  # V/V = D7
             <Chord D dominant 7th>
         """
-        target = self._scale.tones[degree - 1]
+        if not isinstance(degree, int) or degree < 1:
+            raise ValueError(
+                f"secondary_dominant degree must be a positive integer "
+                f"(1-indexed scale degree), got {degree!r}"
+            )
+        # Wrap degrees past the octave so e.g. V/9 == V/2 rather than crashing.
+        # tones[] ends with the octave repeat of the tonic, so wrap over the
+        # distinct degrees (len - 1) to treat degree 8 as degree 1.
+        n_degrees = len(self._scale.tones) - 1
+        target = self._scale.tones[(degree - 1) % n_degrees]
         # Build a dominant 7th a perfect 5th above the target
         from .chords import Chord
         root = target.add(7)
@@ -1336,7 +1366,11 @@ class TonedScale:
         """
         result = self.get(scale)
         if result is None:
-            raise KeyError(scale)
+            available = ", ".join(self.scales)
+            raise KeyError(
+                f"No scale named {scale!r} for this tone system. "
+                f"Available: {available}"
+            )
         return result
 
     def get(self, scale: str) -> Optional[Scale]:

@@ -284,7 +284,7 @@ class Chord:
         """
         return self.transpose(6)
 
-    def negative_harmony(self, key="C") -> Chord:
+    def negative_harmony(self, key: Union[str, "Tone", "Key"] = "C") -> Chord:
         """Reflect this chord across the negative-harmony axis of a key.
 
         Negative harmony (Ernst Levy, popularized by Jacob Collier)
@@ -2300,10 +2300,16 @@ class Fretboard:
         try:
             chord = Chord.from_symbol(name)
         except (ValueError, KeyError):
-            raise KeyError(name)
+            raise ValueError(
+                f"Could not parse {name!r} as a chord symbol "
+                f"(e.g. 'Am', 'G7', 'F#m7b5')."
+            )
         fingering = self._voice_chord(chord)
         if fingering is None:
-            raise KeyError(name)
+            raise ValueError(
+                f"Could not voice {name!r} on this {len(self._tones)}-string "
+                f"fretboard within reach."
+            )
         return fingering
 
     def _voice_chord(self, chord, *, max_fret: int = 12) -> "Fingering":
