@@ -378,6 +378,50 @@ def test_save_midi_includes_all_parts(tmp_path):
     assert sum(1 for t in sounding if isinstance(t, Chord)) == 2
 
 
+def test_render_hybrid_part_keeps_melodic_notes():
+    """A part with both notes and drum hits must still render its notes."""
+    import numpy
+    from pytheory import Score, Duration, DrumSound
+    from pytheory.play import render_score
+
+    def rms(buf):
+        return float(numpy.sqrt(numpy.mean(buf.astype(numpy.float64) ** 2)))
+
+    # Notes-only part (not classified as drums).
+    a = Score("4/4", bpm=120)
+    pa = a.part("lead", synth="saw")
+    pa.add("C4", Duration.WHOLE)
+    notes_only = rms(render_score(a))
+
+    # Same notes plus a drum hit -> is_drums becomes True.
+    b = Score("4/4", bpm=120)
+    pb = b.part("lead", synth="saw")
+    pb.add("C4", Duration.WHOLE)
+    pb.hit(DrumSound.KICK, Duration.QUARTER)
+    hybrid = rms(render_score(b))
+
+    # Before the fix the notes were silently dropped, leaving only a brief
+    # kick -> hybrid RMS would collapse far below the sustained note.
+    assert hybrid >= notes_only * 0.8
+
+
+def test_save_midi_drums_survive_split(tmp_path):
+    """drums(split=True) moves hits into group parts; export must find them."""
+    from pytheory import Score, Pattern
+
+    score = Score("4/4", bpm=120)
+    score.add_pattern(Pattern.preset("rock"), repeats=2)
+    score._split_drums()                       # hits now live in kick/snare/hats
+    assert len(score._drum_hits) == 0          # the proxy 'drums' part is empty
+
+    midi_path = str(tmp_path / "split.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    # Before the fix this round-tripped to zero drums.
+    assert len(imported._drum_hits) > 0
+
+
 def test_from_midi_single_notes_stay_single(tmp_path):
     """A sequential melody must not be mis-grouped into chords."""
     from pytheory import Score, Duration, Tone

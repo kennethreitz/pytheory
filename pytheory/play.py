@@ -6232,8 +6232,8 @@ def render_score(score):
     # Named parts — each rendered to own buffer for per-part effects
     _pending_sidechain = []
     for part in score.parts.values():
-        if part.is_drums:
-            continue  # drums are rendered separately via _drum_hits
+        if part.is_drums and not part.notes:
+            continue  # purely-drum parts are rendered separately via _drum_hits
         if part.notes:
             part_buf = numpy.zeros(total_samples, dtype=numpy.float32)
             synth_fn = _resolve_synth(part.synth)

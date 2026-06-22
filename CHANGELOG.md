@@ -2,6 +2,22 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.3
+
+Two more silent-data-loss holes of the same kind as 0.57.2, found by
+auditing the export/render surface.
+
+- **Drums no longer vanish from exported MIDI after `drums(split=True)`.**
+  Splitting moves drum hits out of the `drums` part into per-instrument
+  group parts (`kick`/`snare`/`hats`); `save_midi()` was reading only the
+  now-empty default proxy, so a split score exported with no drums at all
+  (while `render_score()` still played them — a render-vs-export
+  asymmetry). Export now gathers hits from every part.
+- **A part with both melodic notes and drum hits no longer loses its
+  notes.** A part counts as "drums" if it has any hits, and the renderer
+  skipped such parts entirely — silently dropping the melodic notes from
+  the audio. Only purely-percussion parts are skipped now.
+
 ## 0.57.2
 
 MIDI round-trip correctness, a new analysis command, and more polish.

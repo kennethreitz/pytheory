@@ -5534,12 +5534,18 @@ class Score:
             _emit_sequence(part.notes, melodic_channels[i % len(melodic_channels)])
 
         # ── Drum hits (channel 10 = 0x99/0x89) ────────────────────────
-        for hit in self._drum_hits:
-            hit_tick = int(hit.position * ticks_per_beat)
-            off_tick = hit_tick + int(0.1 * ticks_per_beat)  # short percussion
-            timed.append((hit_tick, 1, 0x99, hit.sound.value & 0x7F,
-                          hit.velocity & 0x7F))
-            timed.append((off_tick, 0, 0x89, hit.sound.value & 0x7F, 0))
+        # Collect from every part that holds hits — the default 'drums'
+        # part and the split-out kick/snare/… group parts alike — so drums
+        # survive export even after drums(split=True). Matches how
+        # render_score finds them; reading score._drum_hits alone would miss
+        # the split-out groups and silently drop all drums.
+        for part in self.parts.values():
+            for hit in part._drum_hits:
+                hit_tick = int(hit.position * ticks_per_beat)
+                off_tick = hit_tick + int(0.1 * ticks_per_beat)  # short perc.
+                timed.append((hit_tick, 1, 0x99, hit.sound.value & 0x7F,
+                              hit.velocity & 0x7F))
+                timed.append((off_tick, 0, 0x89, hit.sound.value & 0x7F, 0))
 
         # Merge all voices into one track as delta-time events.
         timed.sort(key=lambda e: (e[0], e[1]))
