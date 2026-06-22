@@ -328,6 +328,75 @@ def test_from_midi_note_durations(tmp_path):
     assert abs(sounding[1].beats - 2.0) < 0.01
 
 
+def test_from_midi_preserves_polyphony(tmp_path):
+    """Simultaneous notes import as a Chord, not a flattened sequence."""
+    from pytheory import Score, Tone
+    from pytheory.rhythm import Note, _RawDuration
+    from pytheory.chords import Chord
+
+    score = Score("4/4", bpm=120)
+    score.notes.append(Note(tone=Chord.from_symbol("C"), duration=_RawDuration(2.0)))
+    score.notes.append(Note(tone=Chord.from_symbol("G7"), duration=_RawDuration(2.0)))
+
+    midi_path = str(tmp_path / "poly.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    chords = [
+        n.tone for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    ]
+    assert len(chords) == 2
+    # Both come back as multi-note chords, correctly identified.
+    assert all(isinstance(c, Chord) for c in chords)
+    assert chords[0].identify() == "C major"
+    assert chords[1].identify() == "G dominant 7th"
+
+
+def test_save_midi_includes_all_parts(tmp_path):
+    """Multi-part scores must export every part, not just the default one."""
+    from pytheory import Score, Tone
+    from pytheory.chords import Chord
+
+    score = Score("4/4", bpm=120)
+    piano = score.part("piano")
+    bass = score.part("bass")
+    for sym, root in (("C", "C2"), ("G", "G2")):
+        piano.add(Chord.from_symbol(sym), 4)
+        bass.add(Tone.from_string(root), 4)
+
+    midi_path = str(tmp_path / "multi.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    sounding = [
+        n.tone for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    ]
+    # 2 piano chords + 2 bass notes — none dropped on export.
+    assert len(sounding) == 4
+    assert sum(1 for t in sounding if isinstance(t, Chord)) == 2
+
+
+def test_from_midi_single_notes_stay_single(tmp_path):
+    """A sequential melody must not be mis-grouped into chords."""
+    from pytheory import Score, Duration, Tone
+    score = Score("4/4", bpm=120)
+    for name in ("C4", "D4", "E4", "F4"):
+        score.add(Tone.from_string(name), Duration.QUARTER)
+
+    midi_path = str(tmp_path / "melody.mid")
+    score.save_midi(midi_path)
+
+    imported = Score.from_midi(midi_path)
+    sounding = [
+        n.tone for p in imported.parts.values()
+        for n in p.notes if n.tone is not None
+    ]
+    assert len(sounding) == 4
+    assert all(isinstance(t, Tone) for t in sounding)
+
+
 def test_to_lilypond_default_has_no_chord_contexts():
     # Default output: plain notation staves, no chord contexts/diagrams.
     out = _progression_score().to_lilypond()

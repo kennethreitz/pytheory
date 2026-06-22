@@ -2,7 +2,7 @@
 
 import math
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Optional
 
@@ -4573,14 +4573,10 @@ class Score:
             for pname, notes in sec._part_notes.items():
                 if pname in self.parts:
                     for note in notes:
-                        self.parts[pname].notes.append(
-                            Note(tone=note.tone, duration=note.duration,
-                                 velocity=note.velocity))
+                        self.parts[pname].notes.append(replace(note))
             # Copy default notes
             for note in sec._default_notes:
-                self.notes.append(
-                    Note(tone=note.tone, duration=note.duration,
-                         velocity=note.velocity))
+                self.notes.append(replace(note))
             # Copy drum hits with offset
             if sec._drum_hits:
                 offset = self._drum_pattern_beats - sec._drum_beat_start
@@ -5504,60 +5500,57 @@ class Score:
         events += b"\xFF\x58\x04"
         events += bytes([ts.beats, dd, 24, 8])
 
-        accumulated_delta = 0
+        # Collect every voice as absolute-tick events so a multi-part score
+        # exports fully — not just the default part. Each tuple is
+        # (abs_tick, order, status, data1, data2); order 0 = note-off,
+        # 1 = note-on, so a note-off at a tick is written before a note-on
+        # at the same tick (no stuck notes on back-to-back pitches).
+        timed = []
 
-        for note in self.notes:
-            duration_ticks = int(note.beats * ticks_per_beat)
+        def _emit_sequence(notes, channel):
+            on_status, off_status = 0x90 | channel, 0x80 | channel
+            cursor = 0
+            for note in notes:
+                duration_ticks = int(note.beats * ticks_per_beat)
+                tone = note.tone
+                if tone is None:
+                    cursor += duration_ticks
+                    continue
+                if hasattr(tone, "tones"):       # Chord-like object
+                    midi_notes = [t.midi for t in tone.tones if t.midi is not None]
+                else:
+                    midi_notes = [tone.midi] if tone.midi is not None else []
+                for mn in midi_notes:
+                    timed.append((cursor, 1, on_status, mn & 0x7F, velocity & 0x7F))
+                    timed.append((cursor + duration_ticks, 0, off_status, mn & 0x7F, 0))
+                cursor += duration_ticks
 
-            if note.tone is None:
-                accumulated_delta += duration_ticks
-                continue
-
-            # Resolve MIDI note numbers
-            if hasattr(note.tone, "tones"):
-                # Chord-like object
-                midi_notes = [
-                    t.midi for t in note.tone.tones if t.midi is not None
-                ]
-            else:
-                midi_val = note.tone.midi
-                midi_notes = [midi_val] if midi_val is not None else []
-
-            if not midi_notes:
-                accumulated_delta += duration_ticks
-                continue
-
-            # Note On events
-            for i, mn in enumerate(midi_notes):
-                delta = accumulated_delta if i == 0 else 0
-                events += _vlq(delta)
-                events += bytes([0x90, mn & 0x7F, velocity & 0x7F])
-            accumulated_delta = 0
-
-            # Note Off events
-            for i, mn in enumerate(midi_notes):
-                delta = duration_ticks if i == 0 else 0
-                events += _vlq(delta)
-                events += bytes([0x80, mn & 0x7F, 0])
+        # Default part on channel 0; named parts on the remaining melodic
+        # channels (skipping 9, the GM drum channel), wrapping if there are
+        # more parts than channels.
+        _emit_sequence(self.notes, 0)
+        melodic_channels = [c for c in range(16) if c not in (0, 9)]
+        for i, part in enumerate(self.parts.values()):
+            _emit_sequence(part.notes, melodic_channels[i % len(melodic_channels)])
 
         # ── Drum hits (channel 10 = 0x99/0x89) ────────────────────────
-        if self._drum_hits:
-            # Sort by position, render as absolute-time events
-            sorted_hits = sorted(self._drum_hits, key=lambda h: h.position)
-            current_tick = 0
-            for hit in sorted_hits:
-                hit_tick = int(hit.position * ticks_per_beat)
-                delta = max(0, hit_tick - current_tick)
-                events += _vlq(delta)
-                events += bytes([0x99, hit.sound.value & 0x7F,
-                                 hit.velocity & 0x7F])
-                # Immediate note-off (very short duration for percussion)
-                events += _vlq(int(0.1 * ticks_per_beat))
-                events += bytes([0x89, hit.sound.value & 0x7F, 0])
-                current_tick = hit_tick + int(0.1 * ticks_per_beat)
+        for hit in self._drum_hits:
+            hit_tick = int(hit.position * ticks_per_beat)
+            off_tick = hit_tick + int(0.1 * ticks_per_beat)  # short percussion
+            timed.append((hit_tick, 1, 0x99, hit.sound.value & 0x7F,
+                          hit.velocity & 0x7F))
+            timed.append((off_tick, 0, 0x89, hit.sound.value & 0x7F, 0))
 
-        # End of track (flush any trailing rest delta)
-        events += _vlq(accumulated_delta)
+        # Merge all voices into one track as delta-time events.
+        timed.sort(key=lambda e: (e[0], e[1]))
+        current_tick = 0
+        for abs_tick, _order, status, d1, d2 in timed:
+            events += _vlq(max(0, abs_tick - current_tick))
+            events += bytes([status, d1, d2])
+            current_tick = abs_tick
+
+        # End of track.
+        events += _vlq(0)
         events += b"\xFF\x2F\x00"
 
         with open(path, "wb") as f:
@@ -5723,18 +5716,40 @@ class Score:
                 part_name = f"ch{ch + 1}"
                 part = score.part(part_name, synth=synth, envelope=envelope)
 
-                # Walk through notes, inserting rests for gaps
-                cursor = 0.0  # current beat position
+                from .tones import Tone
+                from .chords import Chord
+
+                # Group notes that start together (within a small tolerance)
+                # so polyphony survives import as a Chord instead of being
+                # flattened into a sequence of single notes. `completed` is
+                # already sorted by (onset, pitch).
+                ONSET_TOL = 0.02  # beats
+                groups = []  # list of (onset, [(pitch, velocity, dur_beats), ...])
                 for beat_pos, pitch, velocity, dur_beats in completed:
-                    gap = beat_pos - cursor
+                    if groups and abs(beat_pos - groups[-1][0]) <= ONSET_TOL:
+                        groups[-1][1].append((pitch, velocity, dur_beats))
+                    else:
+                        groups.append((beat_pos, [(pitch, velocity, dur_beats)]))
+
+                # Walk through groups, inserting rests for gaps.
+                cursor = 0.0  # current beat position
+                for onset, members in groups:
+                    gap = onset - cursor
                     if gap > 0.001:  # tolerance for floating point
                         part.notes.append(Rest(_RawDuration(gap)))
-                    from .tones import Tone
-                    tone = Tone.from_midi(pitch)
+                    # Shortest member duration keeps the cursor from
+                    # overrunning the next onset; loudest velocity wins.
+                    dur_beats = min(m[2] for m in members)
+                    velocity = max(m[1] for m in members)
+                    pitches = sorted(m[0] for m in members)
+                    if len(pitches) == 1:
+                        tone = Tone.from_midi(pitches[0])
+                    else:
+                        tone = Chord(tones=[Tone.from_midi(p) for p in pitches])
                     part.notes.append(
                         Note(tone=tone, duration=_RawDuration(dur_beats),
                              velocity=velocity))
-                    cursor = beat_pos + dur_beats
+                    cursor = onset + dur_beats
 
         return score
 

@@ -735,7 +735,139 @@ def cmd_detect(args):
         _play_items(list(key.scale.tones), t=400)
 
 
+def _midi_chord_segments(path):
+    """Segment a MIDI file into vertical chords over time.
+
+    Reads raw note events (via the low-level parser, so simultaneity is
+    preserved — unlike Score.from_midi, which flattens polyphony) and
+    slices them at each onset into the set of notes sounding then.
+
+    Returns ``(segments, note_names, bpm, time_sig)`` where *segments* is
+    a list of ``(beat, Chord, [midi_pitches])`` with consecutive
+    duplicates collapsed, and *note_names* is every sounded note name
+    (for key detection).
+    """
+    from .chords import Chord
+    from .tones import Tone
+    from .rhythm import _parse_midi
+
+    midi = _parse_midi(path)
+    tpb = midi["ticks_per_beat"]
+    if tpb <= 0:
+        raise ValueError(f"Malformed MIDI: ticks_per_beat must be positive, got {tpb}.")
+    bpm = round(60_000_000 / (midi["tempo"] or 500000))
+    time_sig = "{}/{}".format(*midi["time_sig"])
+
+    # Merge all tracks, pair note-on/off per (channel, pitch). Skip the
+    # drum channel (9) — drums have no harmonic content to analyze.
+    events = sorted((ev for tr in midi["tracks"] for ev in tr), key=lambda e: e[0])
+    active: dict[tuple, int] = {}
+    notes = []  # (onset_beat, end_beat, pitch)
+    for abs_tick, etype, channel, data in events:
+        if etype not in ("note_on", "note_off") or channel == 9:
+            continue
+        pitch = data["pitch"]
+        if etype == "note_on" and data["velocity"] > 0:
+            active[(channel, pitch)] = abs_tick
+        elif (channel, pitch) in active:
+            on_tick = active.pop((channel, pitch))
+            if abs_tick - on_tick > 0:
+                notes.append((on_tick / tpb, abs_tick / tpb, pitch))
+
+    note_names = [Tone.from_midi(p).name for _, _, p in notes]
+
+    # Slice at every onset into the chord sounding at that instant.
+    eps = 1e-6
+    onsets = sorted({round(on, 6) for on, _, _ in notes})
+    raw = []
+    for t in onsets:
+        sounding = sorted({p for on, end, p in notes if on <= t + eps < end})
+        if sounding:
+            raw.append((t, Chord.from_midi_message(*sounding), sounding))
+
+    # Collapse runs of the same harmony (same pitch-class set).
+    segments = []
+    prev_sig = None
+    for beat, chord, pitches in raw:
+        sig = frozenset(p % 12 for p in pitches)
+        if sig != prev_sig:
+            segments.append((beat, chord, pitches))
+            prev_sig = sig
+    return segments, note_names, bpm, time_sig
+
+
+def _analyze_midi(args, path):
+    """Analyze a MIDI file: detected key, tempo, and a chord timeline
+    with Roman-numeral analysis. Backs ``pytheory analyze song.mid``."""
+    from .chords import analyze_progression, detect_secondary_dominant
+    from .scales import Key
+
+    if not os.path.exists(path):
+        print(f"  No such file: {path}")
+        return
+
+    segments, note_names, bpm, time_sig = _midi_chord_segments(path)
+    if not segments:
+        print(f"  No pitched notes found in {path} (drums-only or empty?).")
+        return
+
+    # Key: given, or detected from every sounded note.
+    if args.key:
+        tonic, mode, source = args.key, args.mode, "given"
+    else:
+        detected = Key.detect(*note_names)
+        if detected is None:
+            tonic, mode, source = None, None, None
+        else:
+            tonic, mode, source = detected.tonic_name, detected.mode, "detected"
+
+    chords = [c for _, c, _ in segments]
+    if tonic:
+        romans = analyze_progression(chords, tonic, mode, secondary_dominants=True)
+    else:
+        romans = [None] * len(chords)
+
+    LIMIT = 200
+    shown = segments[:LIMIT]
+
+    def label(chord, pitches):
+        return chord.identify() or " ".join(t.name for t in chord.tones)
+
+    if getattr(args, "json", False):
+        _emit_json({
+            "file": path,
+            "key": f"{tonic} {mode}" if tonic else None,
+            "key_source": source,
+            "bpm": bpm,
+            "time_signature": time_sig,
+            "segment_count": len(segments),
+            "chords": [
+                {"beat": round(beat, 3), "name": label(chord, pitches),
+                 "roman": roman,
+                 "notes": [t.name for t in chord.tones]}
+                for (beat, chord, pitches), roman in zip(shown, romans)
+            ],
+        })
+    else:
+        key_str = f"{tonic} {mode}  ({source})" if tonic else "could not detect — pass --key"
+        print(f"  File: {path}")
+        print(f"  Key: {key_str}")
+        print(f"  Tempo: {bpm} BPM    Time: {time_sig}")
+        print(f"  {len(segments)} chord change(s)\n")
+        for (beat, chord, pitches), roman in zip(shown, romans):
+            print(f"    beat {beat:<7.2f} {(roman or '·'):8s} {label(chord, pitches)}")
+        if len(segments) > LIMIT:
+            print(f"\n  … {len(segments) - LIMIT} more (showing first {LIMIT}).")
+    if getattr(args, "play", False):
+        _play_items(chords[:LIMIT], t=700)
+
+
 def cmd_analyze(args):
+    # A lone .mid/.midi path means "analyze this MIDI file"; otherwise the
+    # positional arguments are chord symbols to analyze as a progression.
+    if len(args.chords) == 1 and args.chords[0].lower().endswith((".mid", ".midi")):
+        return _analyze_midi(args, args.chords[0])
+
     from .chords import (Chord, analyze_progression, find_cadences,
                          detect_secondary_dominant)
     from .scales import Key
@@ -893,8 +1025,8 @@ def main():
     p.add_argument("numerals", nargs="+", help="Roman numerals (e.g. I V vi IV)")
 
     # analyze
-    p = sub.add_parser("analyze", parents=[io], help="Analyze a chord progression (e.g. pytheory analyze C D7 G7 C)")
-    p.add_argument("chords", nargs="+", help="Chord symbols (e.g. C D7 G7 C)")
+    p = sub.add_parser("analyze", parents=[io], help="Analyze a chord progression or a MIDI file (e.g. pytheory analyze C D7 G7 C  |  pytheory analyze song.mid)")
+    p.add_argument("chords", nargs="+", help="Chord symbols (e.g. C D7 G7 C), or a single .mid/.midi file path")
     p.add_argument("--key", help="Key tonic (e.g. C). Auto-detected if omitted.")
     p.add_argument("--mode", default="major", help="major or minor (default: major)")
 

@@ -157,6 +157,22 @@ class Tone:
             self._system = SYSTEMS[self.system_name]
             return self.system
 
+    def _require_system(self, action: str) -> object:
+        """Return this tone's associated system, or raise a clear error.
+
+        Used by the methods that need a tuning system to do their work
+        (index lookup, interval math, pitch) so they fail with a helpful
+        message instead of an ``AttributeError`` on ``None``.
+        """
+        system = self.system
+        if system is None:
+            raise ValueError(
+                f"{action} requires an associated tone system; this tone "
+                f"({self.full_name}) has none. Build it via a Scale/Key or "
+                f"pass system= to Tone.from_string()."
+            )
+        return system
+
     @property
     def full_name(self) -> str:
         """The tone name with octave appended, e.g. ``'C4'`` or ``'C'``."""
@@ -399,7 +415,11 @@ class Tone:
 
         Args:
             s: A note string, optionally including an octave number.
-            system: The tuning system to associate with the tone.
+            system: The tuning system to associate with the tone. When
+                given, the name is validated against that system. When
+                omitted (``None``), the tone is created *without*
+                validation — there is no tone table to check against, so
+                pitch/interval math will raise until a system is attached.
 
         Returns:
             A new ``Tone`` instance.
@@ -553,21 +573,19 @@ class Tone:
             ValueError: If no system is associated with this tone or
                 the name is not found.
         """
-        try:
-            canonical = self.system.resolve_name(self.name)
-            if canonical is None:
-                raise ValueError(f"Tone {self.name!r} not found in system")
-            # Use _name_to_index for direct lookup (avoids creating Tone objects)
-            idx = self.system._name_to_index(canonical)
-            if idx is not None:
-                return idx
-            # Fallback: linear search through tone_names
-            for i, names in enumerate(self.system.tone_names):
-                if canonical in names:
-                    return i
+        system = self._require_system("Tone index lookup")
+        canonical = system.resolve_name(self.name)
+        if canonical is None:
             raise ValueError(f"Tone {self.name!r} not found in system")
-        except AttributeError:
-            raise ValueError("Tone index cannot be referenced without a system!")
+        # Use _name_to_index for direct lookup (avoids creating Tone objects)
+        idx = system._name_to_index(canonical)
+        if idx is not None:
+            return idx
+        # Fallback: linear search through tone_names
+        for i, names in enumerate(system.tone_names):
+            if canonical in names:
+                return i
+        raise ValueError(f"Tone {self.name!r} not found in system")
 
     def _math(self, interval: int) -> tuple[int, int]:
         """Returns (new index, new octave).
@@ -578,14 +596,9 @@ class Tone:
 
         octave = self.octave or 0
 
-        try:
-            mod = len(self.system.tone_names)
-        except AttributeError:
-            raise ValueError(
-                "Tone math can only be computed with an associated system!"
-            )
-
-        c_idx = getattr(self.system, 'c_index', C_INDEX)
+        system = self._require_system("Tone interval math")
+        mod = len(system.tone_names)
+        c_idx = getattr(system, 'c_index', C_INDEX)
 
         # Convert to absolute steps from C0
         note_from_c0 = ((self._index - c_idx) % mod) + (octave * mod)
@@ -838,18 +851,16 @@ class Tone:
             >>> Tone.from_string("A4").pitch(reference_pitch=432.0)
             432.0
         """
-        try:
-            tones = len(self.system.tone_names)
-        except AttributeError:
-            raise ValueError("Pitches can only be computed with an associated system!")
+        system = self._require_system("Computing a pitch")
+        tones = len(system.tone_names)
 
         # Period ratio: 2.0 for standard octave-based systems,
         # 3.0 for Bohlen-Pierce (tritave), configurable per system.
-        period = getattr(self.system, 'period', 2.0)
-        c_idx = getattr(self.system, 'c_index', C_INDEX)
+        period = getattr(system, 'period', 2.0)
+        c_idx = getattr(system, 'c_index', C_INDEX)
 
         # Custom ratios override temperament (e.g. shruti just ratios)
-        custom_ratios = getattr(self.system, 'ratios', None)
+        custom_ratios = getattr(system, 'ratios', None)
         if custom_ratios is not None:
             pitch_scale = list(custom_ratios) + [period]
         elif period != 2.0 and temperament == "equal":

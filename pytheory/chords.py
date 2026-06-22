@@ -272,6 +272,22 @@ class Chord:
             return Chord(tones=list(self.tones) + list(other.tones))
         return NotImplemented
 
+    def _key(self) -> tuple:
+        """The voicing identity used for equality and hashing — the
+        ordered (name, octave) of every tone."""
+        return tuple((t.name, t.octave) for t in self.tones)
+
+    def __eq__(self, other: object) -> bool:
+        """Two chords are equal when they hold the same tones in the same
+        order and octave — i.e. the same voicing. Different voicings or
+        inversions of the same notes compare unequal."""
+        if not isinstance(other, Chord):
+            return NotImplemented
+        return self._key() == other._key()
+
+    def __hash__(self) -> int:
+        return hash(self._key())
+
     def tritone_sub(self) -> Chord:
         """Return the tritone substitution of this chord.
 

@@ -56,7 +56,7 @@ def test_pitch_without_system_raises():
     t = Tone(name="C", octave=4)
     t._system = None
     t.system_name = None
-    with pytest.raises(ValueError, match="Pitches"):
+    with pytest.raises(ValueError, match="associated tone system"):
         t.pitch()
 
 

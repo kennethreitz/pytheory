@@ -53,6 +53,35 @@ def test_cli_analyze_explicit_key(capsys):
     assert "imperfect authentic" in out         # E -> Am
 
 
+def test_cli_analyze_midi_file(capsys, tmp_path):
+    from pytheory.cli import cmd_analyze
+    from pytheory.rhythm import Note as RNote, _RawDuration
+    import argparse
+
+    # A I-IV-V-I in C as block chords on the default part.
+    score = Score("4/4", bpm=120)
+    for sym in ("C", "F", "G", "C"):
+        score.notes.append(RNote(tone=Chord.from_symbol(sym), duration=_RawDuration(4.0)))
+    midi_path = str(tmp_path / "prog.mid")
+    score.save_midi(midi_path)
+
+    # Text mode
+    cmd_analyze(argparse.Namespace(chords=[midi_path], key=None, mode="major",
+                                   json=False, play=False))
+    out = capsys.readouterr().out
+    assert "C major" in out
+    assert "I" in out and "IV" in out and "V" in out
+
+    # JSON mode reads back the chord timeline and key.
+    cmd_analyze(argparse.Namespace(chords=[midi_path], key=None, mode="major",
+                                   json=True, play=False))
+    import json
+    data = json.loads(capsys.readouterr().out)
+    assert data["key"] == "C major"
+    assert [c["roman"] for c in data["chords"]] == ["I", "IV", "V", "I"]
+    assert data["chords"][0]["name"] == "C major"
+
+
 def test_cli_json_output(capsys):
     import argparse, json
     from pytheory.cli import cmd_tone, cmd_scale, cmd_analyze

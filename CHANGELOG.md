@@ -2,6 +2,35 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.2
+
+MIDI round-trip correctness, a new analysis command, and more polish.
+
+- **MIDI round-trip actually works now.** Two coupled bugs are fixed:
+  `save_midi()` only ever wrote the default part (plus drums), so a
+  multi-part score — the normal way to compose — exported nearly empty;
+  it now merges every part onto its own MIDI channel into one track. And
+  `from_midi()` flattened simultaneous notes into a sequence, turning
+  imported chords into arpeggios; it now groups same-onset notes into
+  `Chord`s, so a C triad imports as a chord. Sequential melodies are left
+  alone.
+- **`pytheory analyze song.mid`.** The `analyze` command now accepts a
+  MIDI file (a lone `.mid`/`.midi` argument): it detects the key and
+  prints a chord timeline with Roman-numeral analysis, text or `--json`.
+  It reads raw MIDI events, so it sees true vertical harmony regardless
+  of the import grouping above.
+- **`Score.repeat()` keeps every note property.** Repeating a section
+  used to silently drop pitch bends, articulations, lyrics, and hold
+  flags — it now copies the whole note.
+- **Chords are comparable and hashable.** `Chord` gains `__eq__`/`__hash__`
+  (by voicing), so chords work in sets and as dict keys, and `c1 == c2`
+  compares notes instead of identity.
+- **Clearer "needs a system" errors.** The three tone methods that need a
+  tuning system (index, interval math, pitch) now share one explicit
+  guard with a helpful message instead of catching a bare
+  ``AttributeError`` — and ``Tone.from_string(system=None)`` documents
+  that it skips validation.
+
 ## 0.57.1
 
 A quality/DX polish sweep — robustness fixes and friendlier errors, no
