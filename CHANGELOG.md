@@ -2,6 +2,16 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.5
+
+- **MusicXML export preserves per-note velocity.** Each pitched note now
+  carries a `dynamics` attribute (the velocity as a percentage of MIDI
+  90, per the MusicXML spec), so the dynamics set via `Part.dynamics()`,
+  `crescendo()`, etc. survive into a DAW or score editor. It's a playback
+  attribute — invisible in the printed engraving, no dynamic mark clutter.
+  (LilyPond/ABC are left alone: per-note dynamics there would mean a
+  visible marking under every note.)
+
 ## 0.57.4
 
 Notation export fidelity — the held-note and articulation gaps surfaced

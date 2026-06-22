@@ -5302,6 +5302,12 @@ class Score:
                 ET.SubElement(note_el, "rest")
             else:
                 note_el.append(_tone_to_pitch_el(tone))
+                # Preserve per-note MIDI velocity for playback — invisible in
+                # the engraving. MusicXML's 'dynamics' is a percentage of the
+                # standard velocity 90, so a reader plays this note at the
+                # original velocity.
+                if velocity:
+                    note_el.set("dynamics", f"{velocity / 90 * 100:.2f}")
 
             dur_el = ET.SubElement(note_el, "duration")
             dur_el.text = str(_beats_to_divisions(dur_beats))

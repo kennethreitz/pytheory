@@ -414,6 +414,23 @@ def test_notation_emits_articulations():
     assert "<staccato" in mxl and "<fermata" in mxl
 
 
+def test_musicxml_preserves_per_note_velocity():
+    """Per-note velocity round-trips as the MusicXML 'dynamics' attribute
+    (a percentage of velocity 90), invisible in the engraving."""
+    import re
+    score = Score("4/4", bpm=120)
+    p = score.part("test")
+    p.dynamics(["C4", "D4", "E4"], Duration.QUARTER, velocities=[50, 100, 75])
+
+    mxl = score.to_musicxml()
+    dyns = [float(v) for v in re.findall(r'dynamics="([0-9.]+)"', mxl)]
+    assert dyns == [
+        round(50 / 90 * 100, 2),
+        round(100 / 90 * 100, 2),
+        round(75 / 90 * 100, 2),
+    ]
+
+
 def test_render_hybrid_part_keeps_melodic_notes():
     """A part with both notes and drum hits must still render its notes."""
     import numpy
