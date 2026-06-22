@@ -622,3 +622,43 @@ def test_estimate_tempo_full_mix():
     assert bpm is not None
     # Accept the true tempo or a metrical multiple
     assert any(abs(bpm - 110 * m) <= 4 for m in (0.5, 1, 2))
+
+
+def _rms_diff(a, b):
+    n = min(len(a), len(b))
+    return float(numpy.sqrt(numpy.mean((a[:n] - b[:n]) ** 2)))
+
+
+def test_cabinet_applies_to_drum_parts():
+    """A drum part's cabinet setting must reach the render (it was missing
+    from the drum has_drum_fx check)."""
+    from pytheory.play import render_score
+    from pytheory import Pattern
+
+    def render(cab):
+        s = Score("4/4", bpm=120)
+        s.add_pattern(Pattern.preset("rock"), repeats=1)
+        s._split_drums()
+        for p in s.parts.values():
+            if p._drum_hits:
+                p.cabinet = cab
+        return render_score(s).astype(numpy.float64)
+
+    assert _rms_diff(render(0.0), render(1.0)) > 1e-6
+
+
+def test_cabinet_applies_with_automation():
+    """Cabinet must apply even when a part has automation points (it was
+    missing from the automation has_fx check)."""
+    from pytheory.play import render_score
+
+    def render(cab):
+        s = Score("4/4", bpm=120)
+        p = s.part("gtr", synth="saw")
+        for n in ("C3", "E3", "G3", "C4"):
+            p.add(n, Duration.QUARTER)
+        p.cabinet = cab
+        p.ramp(volume=1.0, over=4.0)            # creates automation points
+        return render_score(s).astype(numpy.float64)
+
+    assert _rms_diff(render(0.0), render(1.0)) > 1e-6

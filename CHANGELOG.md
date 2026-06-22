@@ -2,6 +2,24 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.8
+
+Audio/live-engine holes of the same "a setting or path handles only part
+of the structure" kind.
+
+- **`LiveEngine.export_recording()` no longer crashes.** It referenced an
+  undefined `NOTE_NAMES`, so every export of a recorded session raised
+  `NameError`. Recorded sessions now export to a Score/MIDI correctly.
+- **The cabinet (amp) effect is no longer silently dropped.** It was
+  applied for plain melodic parts but skipped in two paths: parts with
+  automation (the automation effect-check omitted it) and drum parts (the
+  drum effect-check omitted it). Both now apply cabinet.
+
+Known gap (noted, not yet fixed): a `legato=True` part ignores several
+synth settings (humanize, detune, sub_osc, noise, filter modulation,
+analog) that non-legato parts honor — its render path doesn't thread
+them through.
+
 ## 0.57.7
 
 - **ABC export now carries lyrics too.** A vocal line emits a standard

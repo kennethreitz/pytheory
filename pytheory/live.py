@@ -49,6 +49,11 @@ from .play import (
 )
 from .rhythm import INSTRUMENTS, DrumSound
 
+# Chromatic note names (sharps), indexed by MIDI pitch class — used when
+# exporting a recorded session back to a Score.
+NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F",
+              "F#", "G", "G#", "A", "A#", "B"]
+
 
 # Parameters baked into pre-rendered wavetables — changing one of these
 # requires clearing the channel's cache. Everything else streams on the

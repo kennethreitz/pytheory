@@ -6358,9 +6358,9 @@ def render_score(score):
                     segment = part_buf[seg_start:seg_end].copy()
                     has_fx = any(params.get(k, 0) > 0 for k in
                                 ["saturation", "tremolo_depth",
-                                 "distortion_mix", "chorus_mix", "phaser_mix",
-                                 "highpass", "lowpass", "delay_mix",
-                                 "reverb_mix"])
+                                 "distortion_mix", "cabinet", "chorus_mix",
+                                 "phaser_mix", "highpass", "lowpass",
+                                 "delay_mix", "reverb_mix"])
                     if has_fx:
                         segment = _apply_effects_with_params(segment, params)
                     # Apply volume automation
@@ -6620,6 +6620,7 @@ def render_score(score):
                           or drum_part.highpass > 0 or drum_part.lowpass > 0
                           or drum_part.delay_mix > 0
                        or drum_part.reverb_mix > 0 or drum_part.distortion_mix > 0
+                       or drum_part.cabinet > 0
                        or drum_part.chorus_mix > 0)
         if has_drum_fx:
             for ch in range(2):

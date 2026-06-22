@@ -104,3 +104,22 @@ def test_live_engine_link_stopped_transport_is_silent():
         assert hits == []
     finally:
         e.stop()
+
+
+def test_export_recording_does_not_crash():
+    """export_recording() must convert MIDI numbers to note names without a
+    NameError (NOTE_NAMES was undefined in live.py)."""
+    from pytheory.live import LiveEngine
+
+    e = LiveEngine()
+    # (timestamp, channel, midi_note, velocity, is_on)
+    e._record_events = [
+        (0.0, 1, 60, 100, True), (0.5, 1, 60, 0, False),   # C4
+        (0.5, 1, 64, 90, True), (1.0, 1, 64, 0, False),    # E4
+        (1.0, 1, 67, 80, True), (1.5, 1, 67, 0, False),    # G4
+    ]
+    e._bpm = 120
+    score = e.export_recording()                # no filename -> returns Score
+    names = [t.name for p in score.parts.values()
+             for n in p.notes if n.tone is not None for t in [n.tone]]
+    assert names == ["C", "E", "G"]
