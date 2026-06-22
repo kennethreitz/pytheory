@@ -4813,43 +4813,69 @@ class Score:
         _flush()
         return out
 
+    @staticmethod
+    def _abc_syllable(text):
+        """One ABC ``w:`` token. Empty text → ``*`` (a note with no
+        syllable). The ``w:`` field has its own special characters
+        (``- _ * | ~``); escape/strip them so *text* stays one syllable."""
+        if not text:
+            return "*"
+        out = (text.replace("\\", "")
+                   .replace("-", r"\-")    # literal hyphen, not a syllable break
+                   .replace("_", "")       # _ is the melisma extender
+                   .replace("*", "")       # * is a blank-note marker
+                   .replace("|", "")       # | is a barline
+                   .replace(" ", "~"))     # ~ is a hard space within a syllable
+        return out or "*"
+
     def _notes_to_abc(self, notes, default_unit, ts,
                       bars_per_line=4):
-        """Convert a list of Note objects to an ABC body string."""
+        """Convert a list of Note objects to an ABC body string.
+
+        When any note carries a lyric, a ``w:`` line is emitted after each
+        line of music — one syllable per sounding note, rests skipped, tie
+        continuations extended with ``_``, and lyric-less notes blanked
+        with ``*``.
+        """
         beats_per_measure = ts.beats_per_measure
-        tokens = []
+        unit_beats = 4.0 / default_unit  # beats per L unit
+        resolved = self._resolve_holds(notes)
+        has_lyric = any((n.lyric or "").strip()
+                        for n in resolved if n.tone is not None)
+
+        # Build music and lyric tokens line-by-line so each w: line sits
+        # directly under the music it belongs to.
+        music_lines, lyric_lines = [[]], [[]]
         beat_in_measure = 0.0
         measure_count = 0
 
-        for note in self._resolve_holds(notes):
+        for note in resolved:
             total_beats = note.duration.value
-            unit_beats = 4.0 / default_unit  # beats per L unit
-
-            if note.tone is None:
+            is_rest = note.tone is None
+            if is_rest:
                 abc_note = "z"
             elif hasattr(note.tone, "tones"):
-                chord_notes = [
+                abc_note = "[" + "".join(
                     self._tone_to_abc(t, default_unit)
-                    for t in note.tone.tones
-                ]
-                abc_note = "[" + "".join(chord_notes) + "]"
+                    for t in note.tone.tones) + "]"
             else:
                 abc_note = self._tone_to_abc(note.tone, default_unit)
+            syllable = self._abc_syllable((note.lyric or "").strip())
 
-            # Split notes longer than one measure into tied pieces
+            # Split notes longer than one measure into tied pieces.
             remaining = total_beats
             first_chunk = True
             while remaining > 0.001:
-                # How much room left in this measure?
                 room = beats_per_measure - beat_in_measure
                 chunk = min(remaining, room) if remaining > room + 0.001 else remaining
                 needs_tie = remaining - chunk > 0.001
 
-                multiplier = chunk / unit_beats
-                dur_str = self._format_dur(multiplier)
-
-                tie_str = "-" if needs_tie and abc_note != "z" else ""
-                tokens.append(f"{abc_note}{dur_str}{tie_str}")
+                dur_str = self._format_dur(chunk / unit_beats)
+                tie_str = "-" if needs_tie and not is_rest else ""
+                music_lines[-1].append(f"{abc_note}{dur_str}{tie_str}")
+                if not is_rest:
+                    # First piece carries the syllable; tie tails hold it (_).
+                    lyric_lines[-1].append(syllable if first_chunk else "_")
 
                 remaining -= chunk
                 beat_in_measure += chunk
@@ -4857,18 +4883,25 @@ class Score:
 
                 if beat_in_measure >= beats_per_measure - 0.001:
                     measure_count += 1
-                    if measure_count % bars_per_line == 0:
-                        tokens.append("|\n")
-                    else:
-                        tokens.append("|")
+                    music_lines[-1].append("|")
+                    lyric_lines[-1].append("|")
                     beat_in_measure -= beats_per_measure
+                    if measure_count % bars_per_line == 0:
+                        music_lines.append([])
+                        lyric_lines.append([])
 
-        body = " ".join(tokens)
-        # Clean up trailing/double barlines
-        body = body.replace("| |", "|").rstrip("| \n").rstrip()
-        if not body.endswith("|"):
-            body += " |"
-        return body
+        out = []
+        for m, w in zip(music_lines, lyric_lines):
+            mline = " ".join(m).replace("| |", "|").rstrip("| ").rstrip()
+            if not mline:
+                continue
+            if not mline.endswith("|"):
+                mline += " |"
+            out.append(mline)
+            if has_lyric:
+                wline = " ".join(w).replace("| |", "|").rstrip("| ").rstrip()
+                out.append("w: " + wline)
+        return "\n".join(out)
 
     # ── LilyPond notation export ─────────────────────────────────────
 

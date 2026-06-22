@@ -2,6 +2,15 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.7
+
+- **ABC export now carries lyrics too.** A vocal line emits a standard
+  `w:` lyric line under each line of music — one syllable per sounding
+  note, rests skipped, tie continuations extended with `_`, lyric-less
+  notes blanked with `*`, and barlines aligned. This closes the last
+  notation-export gap: lyrics now reach all three formats (LilyPond,
+  MusicXML, ABC). Lyric-free ABC output is unchanged.
+
 ## 0.57.6
 
 - **Lyrics now export to LilyPond and MusicXML.** A vocal line written

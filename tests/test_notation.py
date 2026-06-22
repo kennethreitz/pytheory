@@ -414,6 +414,30 @@ def test_notation_emits_articulations():
     assert "<staccato" in mxl and "<fermata" in mxl
 
 
+def test_abc_emits_lyrics():
+    """Lyrics become a w: line under the music, one syllable per note,
+    with * for lyric-less notes; lyric-free scores get no w: line."""
+    score = Score("4/4", bpm=120)
+    v = score.part("voice")
+    for w, n in [("Twin", "C4"), ("kle", "C4"), ("lit", "G4"), ("tle", "G4")]:
+        v.add(n, Duration.QUARTER, lyric=w)
+    v.add("G4", Duration.QUARTER)            # no lyric -> *
+
+    abc = score.to_abc()
+    w_lines = [l for l in abc.splitlines() if l.startswith("w:")]
+    assert w_lines, "expected a w: lyric line"
+    assert "Twin kle lit tle" in w_lines[0]
+    assert "*" in w_lines[0]                  # the lyric-less note
+
+
+def test_abc_no_lyrics_has_no_w_line():
+    score = Score("4/4", bpm=120)
+    p = score.part("lead")
+    for n in ("C4", "D4", "E4", "F4"):
+        p.add(n, Duration.QUARTER)
+    assert "w:" not in score.to_abc()
+
+
 def test_lilypond_emits_lyrics():
     """A vocal line's lyrics become a \\lyricsto context; the named voice it
     attaches to is created, and lyric-free notes get a blank syllable."""
