@@ -481,6 +481,33 @@ def test_nashville_on_scale():
     assert prog[1].identify() == "G major"
 
 
+def test_nashville_minor_modifier():
+    k = Key("C", "major")
+    # The "m" must force minor (it was silently ignored before).
+    assert k.nashville("4m")[0].identify() == "F minor"
+    assert k.nashville("1m")[0].identify() == "C minor"
+    # A bare number keeps the diatonic quality.
+    assert k.nashville("2")[0].identify() == "D minor"
+    assert k.nashville("4")[0].identify() == "F major"
+
+
+def test_nashville_flat_degrees():
+    k = Key("C", "major")
+    # "b7" used to crash; the 7 is the degree, not a seventh chord.
+    assert k.nashville("b7")[0].identify() == "Bb major"     # ♭VII
+    assert k.nashville("b3")[0].identify() == "Eb major"
+    assert k.nashville("b6")[0].identify() == "Ab major"
+
+
+def test_nashville_sevenths_and_qualities():
+    k = Key("C", "major")
+    assert k.nashville("57")[0].identify() == "G dominant 7th"
+    assert k.nashville("17")[0].identify() == "C major 7th"   # diatonic, not C7
+    assert k.nashville("27")[0].identify() == "D minor 7th"
+    assert k.nashville("7°")[0].identify() == "B diminished"
+    assert k.nashville("1+")[0].identify() == "C augmented"
+
+
 def test_guitar_capo():
     fb = Fretboard.guitar(capo=2)
     assert fb.tones[0].name == "F#"

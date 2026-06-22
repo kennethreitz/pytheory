@@ -4,6 +4,17 @@ All notable changes to PyTheory are documented here.
 
 ## 0.54.0
 
+- **`nashville()` honours its modifiers (bug fix).** The number system
+  parser stripped the ``"m"`` and then ignored it (so ``"4m"`` gave F
+  *major*), and a flat like ``"b7"`` crashed. It now forces minor on
+  ``"m"``/``"-"``, supports ``"°"``/``"+"``/``"maj"``, and reads a leading
+  ``"b"``/``"#"`` as a borrowed degree (``"b7"`` → ♭VII = B♭ major) — while
+  bare numbers still give the diatonic chord (and ``"17"`` stays I​maj7, not
+  a dominant). Shares the corrected logic with ``progression()``.
+- **`analyze()` can label secondary dominants.** Passing
+  ``secondary_dominants=True`` returns ``"V7/V"`` instead of the bare
+  ``"II7"`` — the inverse of ``progression("V7/V")``, so generate→analyze
+  round-trips.
 - **Roman-numeral progressions now mean what they say.** `progression()`
   reads the numeral's **case** for quality (so an uppercase `"V"` in a minor
   key gives the harmonic-minor *major* dominant, and `"IV"` gives the

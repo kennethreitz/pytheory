@@ -376,6 +376,17 @@ def test_secondary_dominant_detection():
     assert detect_secondary_dominant(S("B7"), "A", "minor") == "V7/v"
 
 
+def test_analyze_chord_with_secondary_dominants():
+    # analyze() can label applied dominants, the inverse of progression("V7/V").
+    assert Chord.from_symbol("D7").analyze("C") == "II7"            # default
+    assert Chord.from_symbol("D7").analyze("C", secondary_dominants=True) == "V7/V"
+    assert Chord.from_symbol("E7").analyze("C", secondary_dominants=True) == "V7/vi"
+    assert Chord.from_symbol("G7").analyze("C", secondary_dominants=True) == "V7"
+    # Round-trip: build it from the numeral, analyze it back.
+    ch = Key("C", "major").progression("V7/V")[0]
+    assert ch.analyze("C", secondary_dominants=True) == "V7/V"
+
+
 def test_analyze_progression_with_secondary_dominants():
     from pytheory import analyze_progression
     prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]

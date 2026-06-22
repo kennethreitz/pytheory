@@ -320,32 +320,86 @@ class Scale:
         return Chord(tones=[root] + [root.add(i) for i in intervals])
 
     def nashville(self, *numbers: Union[int, str]) -> list[Chord]:
-        """Build a chord progression using Nashville number system.
+        """Build a chord progression using the Nashville number system.
 
         The `Nashville number system <https://en.wikipedia.org/wiki/Nashville_Number_System>`_
-        uses Arabic numerals instead of Roman numerals.
-        It's the standard chart system in Nashville recording studios.
+        uses Arabic numerals instead of Roman numerals — the standard chart
+        system in Nashville studios.
 
-        Numbers 1-7 build diatonic triads. Suffix ``"7"`` for seventh
-        chords, ``"m"`` to force minor.
+        A bare number ``1``–``7`` builds the **diatonic** chord on that
+        degree. Suffixes refine it: ``"7"`` for a seventh chord, ``"m"``
+        (or ``"-"``) to force minor, ``"°"`` diminished, ``"+"`` augmented,
+        ``"maj"`` for a major seventh. A leading ``"b"`` or ``"#"`` borrows
+        a chord from outside the key (``"b7"`` is the ♭VII).
 
         Example::
 
-            >>> scale.nashville(1, 4, 5, 1)
+            >>> scale.nashville(1, 4, "5", 1)
             [<Chord C major>, <Chord F major>, <Chord G major>, <Chord C major>]
+            >>> scale.nashville("2m", "57", "1")          # ii  V7  I
+            [<Chord D minor>, <Chord G dominant 7th>, <Chord C major>]
+            >>> scale.nashville("1", "b7")                # I  ♭VII
+            [<Chord C major>, <Chord Bb major>]
         """
+        return [self._chord_from_nashville(str(n)) for n in numbers]
+
+    def _chord_from_nashville(self, token: str) -> Chord:
+        """Resolve a single Nashville token to a Chord (see :meth:`nashville`)."""
         from .chords import Chord
-        chords = []
-        for num in numbers:
-            s = str(num)
-            is_seventh = s.endswith("7")
-            clean = s.rstrip("7m")
-            degree = int(clean) - 1
-            if is_seventh:
-                chords.append(self.seventh(degree))
-            else:
-                chords.append(self.triad(degree))
-        return chords
+
+        s = token.strip()
+
+        # Leading accidental borrows from outside the key.
+        offset = 0
+        if s[:1] in ("b", "♭"):
+            offset, s = -1, s[1:]
+        elif s[:1] in ("#", "♯"):
+            offset, s = 1, s[1:]
+
+        # The degree is the first digit; everything after is suffix.
+        degree = int(s[0]) - 1
+        suffix = s[1:]
+
+        is_seventh = suffix.endswith("7")
+        if is_seventh:
+            suffix = suffix[:-1]
+
+        low = suffix.lower()
+        if suffix in ("°", "o") or low == "dim":
+            quality = "dim"
+        elif suffix == "+" or low == "aug":
+            quality = "aug"
+        elif low == "maj":
+            quality = "maj"
+        elif suffix in ("m", "-") or low == "min":
+            quality = "minor"
+        else:
+            quality = None
+
+        # A bare diatonic number (no accidental, no quality override) is just
+        # the scale's own chord — preserving diatonic seventh qualities.
+        if quality is None and offset == 0:
+            return self.seventh(degree) if is_seventh else self.triad(degree)
+
+        unique = len(self.tones) - 1
+        root = self.tones[degree % unique]
+        if degree >= unique:
+            root = root.add(12 * (degree // unique))
+        if offset:
+            root = root.add(offset, prefer_flats=(offset < 0))
+
+        if quality == "dim":
+            intervals = [3, 6, 9] if is_seventh else [3, 6]
+        elif quality == "aug":
+            intervals = [4, 8, 10] if is_seventh else [4, 8]
+        elif quality == "maj":
+            intervals = [4, 7, 11] if is_seventh else [4, 7]
+        elif quality == "minor":
+            intervals = [3, 7, 10] if is_seventh else [3, 7]
+        else:                                     # borrowed, no explicit quality
+            intervals = [4, 7, 10] if is_seventh else [4, 7]
+
+        return Chord(tones=[root] + [root.add(i) for i in intervals])
 
     @staticmethod
     def detect(*note_names: str) -> Optional[tuple[str, str, int]]:

@@ -79,6 +79,15 @@ charts:
    >>> [c.identify() for c in key.nashville("17", "47", "57")]
    ['C major 7th', 'F major 7th', 'G dominant 7th']
 
+A bare number gives the diatonic chord, and suffixes refine it: ``"m"``
+(or ``"-"``) forces minor, ``"°"`` diminished, ``"+"`` augmented, and a
+leading ``"b"``/``"#"`` borrows a chord from outside the key:
+
+.. code-block:: pycon
+
+   >>> [c.identify() for c in key.nashville("1", "4m", "b7", "5")]
+   ['C major', 'F minor', 'Bb major', 'G major']
+
 Nashville vs. Roman Numerals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
