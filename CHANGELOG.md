@@ -2,6 +2,25 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.4
+
+Notation export fidelity — the held-note and articulation gaps surfaced
+in 0.57.3.
+
+- **`Part.hold()` notes no longer corrupt bar lengths in notation.** A
+  held (overlapping) note was emitted at full duration *and* advanced the
+  bar counter, so every following barline drifted out of place in ABC,
+  LilyPond, and MusicXML. Held notes are now folded into the next sounding
+  note as a chord — the pitch is kept and bars stay aligned. (Single-voice
+  notation can't show the exact sustain; use MIDI export for that.)
+- **Articulations now reach the page.** `staccato`, `accent`, `marcato`,
+  `tenuto`, and `fermata` are emitted as LilyPond marks (`-.`, `->`, `-^`,
+  `--`, `\fermata`) and MusicXML `<articulations>`/`<fermata>` elements.
+  MusicXML had been extracting the articulation and then discarding it.
+
+Still not represented in notation export (a single-voice limitation, not
+a regression): lyrics and per-note velocity.
+
 ## 0.57.3
 
 Two more silent-data-loss holes of the same kind as 0.57.2, found by

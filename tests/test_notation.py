@@ -378,6 +378,42 @@ def test_save_midi_includes_all_parts(tmp_path):
     assert sum(1 for t in sounding if isinstance(t, Chord)) == 2
 
 
+def test_notation_hold_keeps_bars_aligned():
+    """Part.hold() (overlap) notes must not push barlines out of place;
+    the held pitch is folded into the next note as a chord."""
+    score = Score("4/4", bpm=120)
+    p = score.part("piano")
+    p.hold("C3", Duration.WHOLE)     # 4-beat held bass under the melody
+    p.add("E4", Duration.HALF)
+    p.add("G4", Duration.HALF)
+
+    # The held note merges into the next sounding note as a chord, so the
+    # bar still totals 4 beats (chord 2 + G4 2), exactly one measure.
+    abc_body = [l for l in score.to_abc().splitlines()
+                if l and l[1:2] != ":"][-1]
+    assert abc_body.count("|") == 1          # one barline → one measure
+    assert "[" in abc_body                    # the held note became a chord
+
+    ly = score.to_lilypond()
+    assert "<c" in ly                         # chord present in LilyPond too
+
+
+def test_notation_emits_articulations():
+    """Staccato/accent/fermata reach LilyPond and MusicXML."""
+    score = Score("4/4", bpm=120)
+    p = score.part("lead")
+    p.notes.append(RhythmNote(tone=Tone.from_string("C4"),
+                              duration=Duration.QUARTER, articulation="staccato"))
+    p.notes.append(RhythmNote(tone=Tone.from_string("E4"),
+                              duration=Duration.HALF, articulation="fermata"))
+
+    ly = score.to_lilypond()
+    assert "-." in ly and "\\fermata" in ly
+
+    mxl = score.to_musicxml()
+    assert "<staccato" in mxl and "<fermata" in mxl
+
+
 def test_render_hybrid_part_keeps_melodic_notes():
     """A part with both notes and drum hits must still render its notes."""
     import numpy

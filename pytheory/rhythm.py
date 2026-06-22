@@ -4769,6 +4769,50 @@ class Score:
             frac = Fraction(multiplier).limit_denominator(16)
             return f"{frac.numerator}/{frac.denominator}"
 
+    @staticmethod
+    def _resolve_holds(notes):
+        """Resolve ``Part.hold()`` notes for single-voice notation export.
+
+        A held note (``_hold=True``) keeps sounding while later notes play
+        over it — true polyphony a single sequential voice can't show. If
+        such a note were emitted normally it would advance the bar counter
+        and push every following barline out of place. To keep bars correct
+        *without* silently dropping the held pitch, fold each held note's
+        pitches into the next sounding note as a chord. Held notes with
+        nothing to merge into (e.g. at the end) are emitted on their own.
+
+        Returns a new list of plain (non-hold) Notes; the input is unchanged.
+        Notation is single-voice, so a held note's exact sustain isn't shown
+        — use MIDI export for full polyphonic fidelity.
+        """
+        from .chords import Chord
+
+        def _tones(tone):
+            return list(tone.tones) if hasattr(tone, "tones") else [tone]
+
+        out, pending = [], []
+
+        def _flush():
+            for h in pending:
+                out.append(replace(h, _hold=False))
+            pending.clear()
+
+        for note in notes:
+            if note._hold:
+                pending.append(note)
+                continue
+            if pending and note.tone is not None:
+                extra = [t for h in pending if h.tone is not None
+                         for t in _tones(h.tone)]
+                merged = Chord(tones=extra + _tones(note.tone)) if extra else note.tone
+                out.append(replace(note, tone=merged))
+                pending.clear()
+            else:
+                _flush()           # current note is a rest — emit holds first
+                out.append(note)
+        _flush()
+        return out
+
     def _notes_to_abc(self, notes, default_unit, ts,
                       bars_per_line=4):
         """Convert a list of Note objects to an ABC body string."""
@@ -4777,7 +4821,7 @@ class Score:
         beat_in_measure = 0.0
         measure_count = 0
 
-        for note in notes:
+        for note in self._resolve_holds(notes):
             total_beats = note.duration.value
             unit_beats = 4.0 / default_unit  # beats per L unit
 
@@ -4956,6 +5000,12 @@ class Score:
             f"}}\n"
         )
 
+    # articulation field -> LilyPond post-event mark
+    _LY_ARTICULATIONS = {
+        "staccato": "-.", "accent": "->", "marcato": "-^",
+        "tenuto": "--", "fermata": "\\fermata",
+    }
+
     # quality string (Chord.quality) -> LilyPond chordmode modifier
     _QUALITY_TO_CHORDMODE = {
         "major": "", "minor": ":m",
@@ -5083,8 +5133,9 @@ class Score:
         beat_in_measure = 0.0
         measure_count = 0
 
-        for note in notes:
+        for note in self._resolve_holds(notes):
             total_beats = note.duration.value
+            artic = self._LY_ARTICULATIONS.get(note.articulation, "")
 
             if note.tone is None:
                 pitch = None
@@ -5111,6 +5162,7 @@ class Score:
                     is_rest = True
 
             remaining = total_beats
+            first_chunk = True
             while remaining > 0.001:
                 room = beats_per_measure - beat_in_measure
                 chunk = min(remaining, room) if remaining > room + 0.001 else remaining
@@ -5121,11 +5173,14 @@ class Score:
                 if is_rest or pitch is None:
                     tokens.append(f"r{dur_str}")
                 else:
+                    # Articulation marks attach to the first note of a tie.
+                    artic_str = artic if first_chunk else ""
                     tie_str = "~" if needs_tie else ""
-                    tokens.append(f"{pitch}{dur_str}{tie_str}")
+                    tokens.append(f"{pitch}{dur_str}{artic_str}{tie_str}")
 
                 remaining -= chunk
                 beat_in_measure += chunk
+                first_chunk = False
 
                 if beat_in_measure >= beats_per_measure - 0.001:
                     measure_count += 1
@@ -5231,8 +5286,11 @@ class Score:
 
             return pitch
 
+        _MXL_ARTIC = {"staccato": "staccato", "accent": "accent",
+                      "marcato": "strong-accent", "tenuto": "tenuto"}
+
         def _add_note_el(measure, tone, dur_beats, is_chord_continuation,
-                         tie_start, tie_stop, velocity):
+                         tie_start, tie_stop, velocity, articulation=""):
             note_el = ET.SubElement(measure, "note")
 
             if is_chord_continuation:
@@ -5262,7 +5320,12 @@ class Score:
                 if dur_info[1]:
                     ET.SubElement(note_el, "dot")
 
-            if tie_start or tie_stop:
+            # Articulations attach to the first note of a chord and the first
+            # piece of a tie — never to a rest, chord continuation, or the
+            # tied tail of the same note.
+            mark = "" if (is_chord_continuation or tie_stop) else articulation
+            want_artic = mark in _MXL_ARTIC or mark == "fermata"
+            if tie_start or tie_stop or want_artic:
                 notations = ET.SubElement(note_el, "notations")
                 if tie_stop:
                     tied = ET.SubElement(notations, "tied")
@@ -5270,6 +5333,11 @@ class Score:
                 if tie_start:
                     tied = ET.SubElement(notations, "tied")
                     tied.set("type", "start")
+                if mark == "fermata":
+                    ET.SubElement(notations, "fermata")
+                elif mark in _MXL_ARTIC:
+                    arts = ET.SubElement(notations, "articulations")
+                    ET.SubElement(arts, _MXL_ARTIC[mark])
 
         # ── Collect voices ──────────────────────────────────────────
         voices = []
@@ -5318,7 +5386,8 @@ class Score:
 
             clef_type = self._guess_clef(notes)
 
-            chunks = list(_split_into_measures(notes, beats_per_measure))
+            chunks = list(_split_into_measures(
+                self._resolve_holds(notes), beats_per_measure))
 
             beat_in_measure = 0.0
             measure_num = 1
@@ -5371,10 +5440,11 @@ class Score:
                     else:
                         for ci, ct in enumerate(chord_tones):
                             _add_note_el(measure_el, ct, dur_beats,
-                                         ci > 0, tie_start, tie_stop, vel)
+                                         ci > 0, tie_start, tie_stop, vel,
+                                         artic)
                 else:
                     _add_note_el(measure_el, tone, dur_beats, False,
-                                 tie_start, tie_stop, vel)
+                                 tie_start, tie_stop, vel, artic)
 
                 beat_in_measure += dur_beats
 
