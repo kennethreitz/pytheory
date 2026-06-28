@@ -30,16 +30,25 @@ virtualenv ceremony.
 
 Or skip installing entirely and run it in your browser.
 
-.. button-ref:: guide/quickstart
-   :ref-type: doc
-   :color: primary
+.. grid:: 2
+   :gutter: 3
 
-   Get started
+   .. grid-item::
 
-.. button-link:: https://playground.pytheory.org
-   :color: secondary
+      .. button-ref:: guide/quickstart
+         :ref-type: doc
+         :color: primary
+         :expand:
 
-   Try the playground
+         Get started
+
+   .. grid-item::
+
+      .. button-link:: https://playground.pytheory.org
+         :color: secondary
+         :expand:
+
+         Try the playground
 
 Why would I want this?
 ----------------------
