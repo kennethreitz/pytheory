@@ -10,8 +10,8 @@ JSON and audio output
 ---------------------
 
 The theory commands (``tone``, ``scale``, ``chord``, ``key``,
-``progression``, ``identify``, ``analyze``, ``detect``, ``modes``,
-``circle``, ``fingering``) all take two extra flags:
+``progression``, ``analyze``, ``reharmonize``, ``identify``, ``detect``,
+``modes``, ``circle``, ``fingering``) all take two extra flags:
 
 - ``--json`` prints a structured result instead of the pretty table —
   handy for piping into ``jq`` or another tool.
@@ -24,7 +24,16 @@ The theory commands (``tone``, ``scale``, ``chord``, ``key``,
     {
       "tonic": "C",
       "mode": "dorian",
-      "notes": ["C", "D", "Eb", "F", "G", "A", "Bb", "C"]
+      "notes": [
+        "C",
+        "D",
+        "Eb",
+        "F",
+        "G",
+        "A",
+        "Bb",
+        "C"
+      ]
     }
 
     $ pytheory progression C major I V vi IV --play     # hear the chords
@@ -45,9 +54,9 @@ random multi-part track — different every time::
 
     $ pytheory demo
       ♫  Jazz Club
-         Bb major | 105 bpm
+         Bb major | 108 bpm
          Bb → Gm → Cm → F
-         jazz drums | saw lead | fm pad
+         jazz | triangle lead | fm pad | plate reverb
 
 Tone Lookup
 -----------
@@ -65,8 +74,10 @@ Compare temperaments with ``--temperament``::
 
     $ pytheory tone C5 --temperament pythagorean
       Note:        C5
-      Frequency:   521.48 Hz (pythagorean temperament)
-      Equal temp:  523.25 Hz (diff: -5.9 cents)
+      Frequency:   528.60 Hz (pythagorean temperament)
+      Equal temp:  523.25 Hz (diff: +17.6 cents)
+      MIDI:        72
+      Overtones:   523.3, 1046.5, 1569.8, 2093.0, 2616.3, 3139.5
 
 Scale Display
 -------------
@@ -80,6 +91,92 @@ Show any scale in any system::
     $ pytheory scale C dorian
     $ pytheory scale Sa bhairav --system indian
 
+Ragas
+-----
+
+Hindustani and Carnatic ragas, with their ascending and descending lines,
+the signature ``pakad`` phrase, and the just-intonation *shruti* tuning a
+fixed-pitch instrument can only approximate. The theory lives in
+:doc:`systems` — here you just ask::
+
+    $ pytheory raga yaman
+      Raga Yaman  (aka Kalyan)
+      thaat kalyan · shadav-sampurna · evening · serene, romantic
+      vadi G  samvadi N
+      aroha  : N. R G M D N S'
+      avaroha: S' N D P M G R S
+      pakad  : N. R G, R, P M G R S
+      scale (Sa=C): C D E F# G A B
+
+Set the tonic with ``--sa``, and add ``--shruti`` to see each swara's just
+ratio and how far it lands from equal temperament::
+
+    $ pytheory raga yaman --shruti
+      ...
+      shruti intonation (just vs 12-TET):
+        S     1/1  C     261.63 Hz    +0.0¢
+        R     9/8  D     294.33 Hz    +3.9¢
+        G     5/4  E     327.03 Hz   -13.7¢
+        M   45/32  F#    367.91 Hz    -9.8¢
+        P     3/2  G     392.44 Hz    +2.0¢
+        D     5/3  A     436.04 Hz   -15.6¢
+        N    15/8  B     490.55 Hz   -11.7¢
+
+Bare ``pytheory raga`` (or ``--list``) lists all 54 ragas; narrow it with
+``--thaat``, ``--time``, or ``--tradition hindustani|carnatic``::
+
+    $ pytheory raga --tradition carnatic
+      18 ragas:
+
+        Abhogi               Kharaharapriya (22)          any           pleasing, tender
+        Bilahari             Dheerashankarabharanam (29)  any           joyful, festive
+        Charukesi            Charukesi (26)               any           bittersweet
+        ...
+
+Add ``--play`` to hear the aroha and avaroha — just intonation by default,
+``--equal`` for 12-TET, ``--reverb`` to set the wet mix.
+
+Maqamat
+-------
+
+Arabic maqamat use true quarter tones — the half-flats (marked ``↓``) that
+a piano simply doesn't have. ``maqam`` shows the ajnas, the *seyir* melodic
+path, and the nearest 12-TET spelling; :doc:`systems` covers the theory::
+
+    $ pytheory maqam rast
+      Maqam Rast
+      family Rast · dignified, sober, the 'mother' maqam
+      ajnas: Jins Rast on Do + Jins Rast on Sol
+      seyir: ascending from the tonic; rests on Sol and the neutral 3rd
+      scale: Do Re Mi↓ Fa Sol La Si↓
+      ≈ 12-TET (tonic=C): C D E F G A Bb
+
+``--tuning`` prints each degree's just ratio against equal temperament —
+watch Rast's neutral third sit 45.5 cents below E::
+
+    $ pytheory maqam rast --tuning
+      ...
+      quarter-tone intonation (just vs 12-TET):
+        Do      1/1  ~C     261.63 Hz    +0.0¢
+        Re      9/8  ~D     294.33 Hz    +3.9¢
+        Mi↓   27/22  ~E     321.09 Hz   -45.5¢
+        Fa      4/3  ~F     348.83 Hz    -2.0¢
+        Sol     3/2  ~G     392.44 Hz    +2.0¢
+        La      5/3  ~A     436.04 Hz   -15.6¢
+        Si↓    11/6  ~Bb    479.65 Hz   +49.4¢
+
+Bare ``pytheory maqam`` (or ``--list``) lists all ten; ``--family`` filters
+them, ``--tonic`` sets the root, and ``--play`` (with ``--reverb``) plays
+the maqam ascending and descending::
+
+    $ pytheory maqam --list
+      10 maqamat:
+
+        Ajam         Ajam       Do Re Mi Fa Sol La Si              bright, celebratory
+        Bayati       Bayati     Do Re↓ Mib Fa Sol Lab Sib          tender, intimate, the everyday maqam
+        Hijaz        Hijaz      Do Reb Mi Fa Sol Lab Sib           yearning, devotional, desert-evening
+        ...
+
 Chord Identification
 --------------------
 
@@ -89,8 +186,8 @@ Identify a chord from its notes::
       Chord:     C major
       Tones:     C4 E4 G4
       Intervals: [4, 3]
-      Harmony:   0.5833
-      Dissonance: 0.0712
+      Harmony:   0.2381
+      Dissonance: 2.7786
       Tension:   0.00 (tritones=0)
 
     $ pytheory chord G B D F
@@ -105,7 +202,7 @@ seventh chords, relative and parallel keys::
     $ pytheory key G major
       Key: G major
       Signature: 1 sharps, 0 flats (F#)
-      Scale: G A B C D E F#
+      Scale: G A B C D E F# G
       Triads:
         I       G major
         ii      A minor
@@ -113,31 +210,40 @@ seventh chords, relative and parallel keys::
         IV      C major
         V       D major
         vi      E minor
-        vii°    F# diminished
+        viidim  F# diminished
       7th chords:
         G major 7th
         A minor 7th
-        ...
-      Relative: <Key E minor>
-      Parallel: <Key G minor>
+        B minor 7th
+        C major 7th
+        D dominant 7th
+        E minor 7th
+        F# half-diminished 7th
+      Relative: E minor
+      Parallel: G minor
 
 Guitar Fingerings
 -----------------
 
-Get tablature for any of the 144 built-in chords::
+Get tablature for any of the 144 built-in chords (low string at the top,
+``x`` for a muted string)::
 
     $ pytheory fingering Am
     Am
-    E|--0--
-    B|--1--
-    G|--2--
-    D|--2--
+    E|--x--
     A|--0--
-    E|--0--
+    D|--2--
+    G|--2--
+    B|--1--
+    e|--0--
 
 Use ``--capo`` to see fingerings with a capo::
 
     $ pytheory fingering G --capo 2
+
+The CLI looks chords up in the built-in chart. To voice *any* parseable
+symbol — and to export SVG/PNG chord boxes or scale shapes — reach for the
+:class:`~pytheory.chords.Fretboard` API in :doc:`fretboard`.
 
 Chord Progressions
 ------------------
@@ -176,18 +282,34 @@ Use ``--key`` and ``--mode`` to analyze in a specific key::
 
     $ pytheory analyze --key A --mode minor Am Dm E Am
 
+Hand it a ``.mid`` (or ``.midi``) file instead of chord symbols and it
+reads the harmony straight off the notes — detected key, tempo, time
+signature, and a beat-by-beat chord timeline. ``--key``/``--mode`` and
+``--json`` work here too::
+
+    $ pytheory analyze song.mid
+      File: song.mid
+      Key: C major  (detected)
+      Tempo: 120 BPM    Time: 4/4
+      4 chord change(s)
+
+        beat 0.00    I        C major
+        beat 1.00    V        G major
+        beat 2.00    vi       A minor
+        beat 3.00    IV       F major
+
 Reharmonize a Chord
 -------------------
 
 Ask for substitution ideas — tritone subs, diatonic swaps, the secondary
-dominant, and the negative-harmony mirror::
+dominant, and the negative-harmony mirror (aliased ``reharm``)::
 
     $ pytheory reharmonize G7 --key C
       Reharmonizing G dominant 7th in C major:
 
         tritone substitution   C# dominant 7th
           The dominant a tritone away — same tritone, chromatic bass descent.
-        diatonic substitution  E minor
+        diatonic substitution  D minor
           Shares 2 notes — a smooth diatonic swap.
         ...
 
@@ -236,9 +358,9 @@ Parse any chord symbol and get a full analysis::
       Symbol:     Cmaj7
       Tones:      C4 E4 G4 B4
       Intervals:  [4, 3, 4]
-      Harmony:    0.5833
-      Dissonance: 1.2345
-      Tension:    score=0.00 tritones=0 minor_2nds=0 dominant=False
+      Harmony:    0.4930
+      Dissonance: 5.3347
+      Tension:    score=0.15 tritones=0 minor_2nds=1 dominant=False
 
     $ pytheory identify F#m7b5
 
@@ -294,9 +416,44 @@ Show all named progressions realized in a key::
 
         I-IV-V-I              C → F → G → C
         I-V-vi-IV             C → G → Am → F
-        12-bar blues          C → C → C → C → F → F → C → C → G → F → C → G
-        ii-V-I                Dm → G7 → C
+        I-vi-IV-V             C → Am → F → G
+        I-IV-vi-V             C → F → Am → G
+        vi-IV-I-V             Am → F → C → G
         ...
+
+The full list runs to dozens of forms — pop turnarounds, jazz ``ii-V-I``
+families, and 8-, 12-, and minor-blues structures among them.
+
+Metronome & Tempo Trainer
+-------------------------
+
+A practice metronome that lives in your terminal. Give it a tempo and a bar
+length with ``--beats``; ``--subdivide`` adds eighths (``2``), triplets
+(``3``), or sixteenths (``4``), and ``--no-accent`` flattens the downbeat.
+The command is aliased ``metro``::
+
+    $ pytheory metronome 90 --chords C major I V vi IV
+      Metronome: 90.0 BPM  (4/4)
+      Cycling: C | G | Am | F
+      Press Ctrl-C to stop.
+
+      bar   1      90 BPM  C
+      bar   2      90 BPM  G
+      ...
+
+``--chords`` cycles a chord under the click so you can drill changes —
+either literal symbols (``Am F C G``) or a key plus Roman numerals
+(``C major I V vi IV``, as above).
+
+To build speed, point ``--to`` at a target tempo and it ramps there,
+nudging up ``--step`` BPM every ``--every`` beats — then holds the target
+unless you pass ``--no-hold``::
+
+    $ pytheory metronome 80 --to 120
+      Tempo trainer: 80.0 → 120.0 BPM, +5 every 8 beats  (4/4)
+      Press Ctrl-C to stop.
+
+      bar   1      80 BPM
 
 Performance & Audio Tools
 -------------------------
@@ -304,7 +461,8 @@ Performance & Audio Tools
 Four more commands open whole apps rather than answering a lookup.
 Each has its own guide::
 
-    $ pytheory tune --instrument guitar    # real-time strobe tuner
+    $ pytheory tune --instrument guitar    # real-time terminal tuner
+    $ pytheory tune --serve                # browser strobe tuner + JS pitch stream
     $ pytheory studio                      # browser: recording → sheet music
     $ pytheory transcribe hum.m4a hum.mid  # recording → notes/MIDI
     $ pytheory live --link                 # MIDI synth rig in the terminal

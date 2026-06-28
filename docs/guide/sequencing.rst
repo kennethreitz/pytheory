@@ -208,7 +208,10 @@ is independent: different synth, different envelope, different effects.
 
 The ``Part`` class lets you layer multiple instrument voices -- each with
 its own synth waveform, ADSR envelope, and volume level. Create parts
-with ``Score.part()``:
+with ``Score.part()``, which also accepts the full effects rack as
+keyword arguments. The examples below show the common ones (reverb,
+delay, lowpass, distortion, chorus, glide); see :doc:`effects` for every
+effect plus the ``lfo()`` / ``set()`` automation system.
 
 .. code-block:: python
 
@@ -247,6 +250,19 @@ Chords and Tone objects work the same way:
 
    for note in ["A2", "C3", "E3", "A2", "D2", "F2", "A2", "D2"]:
        bass.add(note, Duration.QUARTER)
+
+For vocal parts, notes can carry a ``lyric`` syllable. The text rides
+along with the note and is emitted when you export to LilyPond,
+MusicXML, or ABC -- one syllable per sounding note:
+
+.. code-block:: python
+
+   choir = score.part("choir", instrument="choir")
+   choir.add("C4", Duration.WHOLE, lyric="ah")
+   choir.add("E4", Duration.WHOLE, lyric="men")
+
+See :doc:`synths` for the vocal synth and its ``ah>oo`` vowel-morph
+syntax.
 
 Polyphonic Hold
 ---------------
@@ -413,7 +429,13 @@ lead, and filtered bass:
    for n in ["G2", "G2", "D2", "D2", "E2", "E2", "C2", "C2"] * 2:
        bass.add(n, Duration.HALF)
 
+   score.ring_out()   # let the reverb and delay tails decay
    play_score(score)
+
+``Score.ring_out(seconds=None)`` appends trailing silence so reverb and
+delay tails ring out instead of being clipped at the final beat. Called
+with no argument, it sizes the silence automatically from the longest
+tail across all parts. Call it once, just before playing or exporting.
 
 .. raw:: html
 
@@ -712,9 +734,12 @@ Four interpolation curves:
 Set ``resolution=0.125`` for smoother curves (every 32nd note), or
 ``resolution=1.0`` for lighter automation (every beat).
 
-Combine with ``lfo()`` for cyclic modulation and ``ramp()`` for
-one-shot sweeps — together they cover the full range of parameter
-automation.
+``ramp()`` is for one-shot sweeps. For cyclic modulation, ``Part.lfo()``
+oscillates a parameter between ``min`` and ``max`` over a number of
+``bars`` (filter wobble, auto-wah, tremolo), and ``Part.set(**params)``
+snaps effect values at the current beat (open a filter at the chorus,
+kick in distortion). Together with ``ramp()`` they cover the full range
+of parameter automation — :doc:`effects` documents all three.
 
 Humanize
 --------
@@ -924,3 +949,32 @@ Custom equal temperaments via the ``TET()`` factory:
 
    edo19 = TET(19)  # 19-tone equal temperament
    score = Score("4/4", bpm=100, system=edo19)
+
+Exporting and Importing
+-----------------------
+
+A finished Score is not just for playback -- you can hand it to other
+tools. Every Score exports to a Standard MIDI File and to three notation
+formats, and can be built *from* an existing recording or MIDI file:
+
+.. code-block:: python
+
+   # Export
+   score.save_midi("song.mid")                       # MIDI for any DAW
+   abc = score.to_abc(title="My Tune", key="C")      # ABC notation
+   ly = score.to_lilypond(title="My Tune", key="C", mode="major")
+   xml = score.to_musicxml(title="My Tune")          # MusicXML
+
+   # Import
+   hum = Score.from_wav("hum.m4a", quantize=0.25)    # transcribe audio
+   midi = Score.from_midi("song.mid")                # round-trip MIDI
+
+Lyrics added with ``part.add(note, lyric="...")`` and articulations both
+travel through to the notation exports. The notation formats are covered
+in depth in :doc:`playback` (MIDI, ABC, LilyPond, MusicXML), and audio
+transcription with ``from_wav()`` in :doc:`listening`.
+
+.. note::
+
+   To drive a Score live -- triggering sections on the fly and syncing to
+   other gear over Ableton Link -- see :doc:`live`.

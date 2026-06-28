@@ -66,7 +66,7 @@ Set a key and explore it::
 
    pytheory> chords
      i       A minor
-     ii°     B diminished
+     iidim   B diminished
      III     C major
      iv      D minor
      v       E minor
@@ -85,10 +85,12 @@ Set a key and explore it::
      harmonic minor        A B C D E F G# A
      ...
 
-Build progressions::
+Build progressions. Roman numerals are **case-sensitive** — an uppercase
+numeral is a major triad on that scale degree, a lowercase one is minor — so
+the same numerals give you different chords depending on case::
 
    pytheory> prog I V vi IV
-     Am → Em → F → Dm
+     A → E → Fm → D
 
    pytheory> progression i iv V i
      Am → Dm → E → Am
@@ -115,36 +117,76 @@ Circle of fifths::
      fifths:  A → E → B → F# → C# → G# → D# → A# → F → C → G → D
      fourths: A → D → G → C → F → A# → D# → G# → C# → F# → B → E
 
-Other musical systems::
+Other musical systems — Indian, Arabic, Japanese, blues, gamelan — each with
+their own scales and note names. The third line shows the notes of the first
+scale listed::
 
    pytheory> system indian
      system: indian
      scales: chromatic, bilawal, khamaj, kafi, ...
+     chromatic: Sa komal Re Re komal Ga Ga Ma tivra Ma Pa komal Dha Dha komal Ni Ni Sa
 
    pytheory> system arabic
      system: arabic
      scales: chromatic, ajam, nahawand, kurd, hijaz, ...
+     chromatic: Do Reb Re Mib Mi Fa Fa# Sol Solb La Sib Si Do
+
+These are 12-TET approximations. For true quarter-tone maqamat and
+shruti-based ragas, see :doc:`systems`.
 
 Guitar::
 
    pytheory> fingering Am
      Am
-     E|--0--
-     B|--1--
-     G|--2--
-     D|--2--
-     A|--0--
      E|--x--
+     A|--0--
+     D|--2--
+     G|--2--
+     B|--1--
+     e|--0--
 
    pytheory> diagram minor 5
        0   1   2   3   4   5
    E| E | F | - | G | - | A |
    ...
 
+Tuning
+------
+
+By default the REPL is 12-tone equal temperament tuned to A4 = 440 Hz. Change
+either with ``temperament`` and ``reference``::
+
+   pytheory> temperament just
+     temperament=just
+
+   pytheory> reference 432
+     reference=432.0 Hz
+
+   pytheory> temperament
+     temperament=just  reference=432.0 Hz
+     available: equal, pythagorean, meantone, just
+
+The temperaments are ``equal``, ``pythagorean``, ``meantone``, and ``just``.
+Both settings show up in ``status`` and carry through to playback and export.
+
 Composition Commands
 --------------------
 
-When you're ready to make sound, add drums and parts.
+When you're ready to make sound, set the groove, then add drums and parts.
+
+Tempo, meter, and feel::
+
+   pytheory> bpm 140
+     bpm=140
+
+   pytheory> time 3/4
+     time=3/4
+
+   pytheory> swing 0.5
+     swing=0.5
+
+``time`` rebuilds the score around the new signature; ``swing`` (0–1) pushes
+the off-beats into a shuffle.
 
 Drums::
 
@@ -154,7 +196,8 @@ Drums::
    pytheory> drums
      (lists all 100 presets)
 
-Parts — each with its own synth and envelope::
+Parts — each with its own voice. Build one from a raw synth waveform plus an
+envelope, or from a ready-made instrument preset::
 
    pytheory> part lead saw pluck
      score.part("lead", synth="saw", envelope="pluck")
@@ -165,24 +208,41 @@ Parts — each with its own synth and envelope::
    pytheory> part bass sine pluck
      score.part("bass", synth="sine", envelope="pluck")
 
+   pytheory> part keys piano
+     score.part("keys", instrument="piano")
+
+   pytheory> part strings instrument violin
+     score.part("strings", instrument="violin")
+
+A bare instrument name (``part keys piano``) and the explicit ``instrument``
+keyword do the same thing. List every preset with ``instruments``::
+
+   pytheory> instruments
+     piano                 electric_piano        organ
+     harpsichord           celesta               music_box
+     violin                viola                 cello
+     ...
+
+List the parts you've made — the arrow (``←``) marks the active one, and you
+switch with ``part <name>``::
+
    pytheory> part
      lead: synth=saw envelope=pluck vol=0.5 ←
      chords: synth=fm envelope=pad vol=0.5
      bass: synth=sine envelope=pluck vol=0.5
 
-The arrow (``←``) shows which part is active. Switch with
-``part <name>``.
+See :doc:`synths` for what each preset sounds like.
 
-Add notes, chords, arpeggios::
+Add notes, chords, and arpeggios to the active part::
 
-   pytheory> add C5 1
-     .add("C5", 1.0)
+   pytheory> add C4 1
+     .add("C4", 1.0)
 
    pytheory> add Am 4
      .add(Chord.from_symbol("Am"), 4.0)
 
-   pytheory> add E5 0.67 110
-     .add("E5", 0.67, velocity=110)
+   pytheory> add E4 0.67 110
+     .add("E4", 0.67, velocity=110)
 
    pytheory> rest 2
      .rest(2.0)
@@ -192,6 +252,38 @@ Add notes, chords, arpeggios::
 
    pytheory> prog i iv V i
      Am → Dm → E → Am
+
+``add`` reads its first argument as a chord symbol before falling back to a
+single note, so a few octave numbers collide with chord qualities — ``add C5``
+makes a C power chord, not the note C5. Stick to octaves like 3 and 4 (or
+spell the chord out, e.g. ``add Cmaj7 4``) and you'll never trip on it.
+
+Expressive performance — rolls and pitch bends::
+
+   pytheory> roll C3 4
+     .roll("C3", 4.0, velocity_start=40, velocity_end=100)
+
+   pytheory> roll C3 4 30 110
+     .roll("C3", 4.0, velocity_start=30, velocity_end=110)
+
+   pytheory> bend C5 1 2
+     .add("C5", 1.0, bend=2.0, bend_type="smooth")
+
+   pytheory> bend C5 1 -1
+     .add("C5", 1.0, bend=-1.0, bend_type="smooth")
+
+``roll`` repeats a note with a velocity ramp — perfect for timpani swells or
+tremolo. ``bend`` adds a note that slides ``<semitones>`` up (positive) or
+down (negative), with an optional ``smooth``, ``linear``, or ``late`` curve.
+
+There's also a ``strum`` command, but it needs a part with a fretboard
+attached, which today you set up in Python via ``score.part(..., fretboard=...)``.
+On a plain synth or instrument part it just reminds you::
+
+   pytheory> strum Am 2 down
+     error: Cannot strum without a fretboard. Set fretboard= when creating the part.
+
+See :doc:`fretboard` for fretboard-driven strumming and tab.
 
 Effects
 -------
@@ -212,12 +304,12 @@ Set effects on the active part — mirrors the Python API::
 Automation — change effects mid-song::
 
    pytheory> set lowpass 3000
-     .set(lowpass=3000)
+     .set(lowpass=3000.0)
 
 LFO modulation::
 
    pytheory> lfo lowpass 0.5 400 3000 8 sine
-     .lfo("lowpass", rate=0.5, min=400, max=3000, bars=8, shape="sine")
+     .lfo("lowpass", rate=0.5, min=400.0, max=3000.0, bars=8.0, shape="sine")
 
 Playback and Export
 -------------------
@@ -248,10 +340,28 @@ Session management::
 
    pytheory> status
      key=A minor  bpm=140  swing=0.0
+     temperament=equal  reference=440.0 Hz
      drums=bossa nova  parts=[lead, chords, bass]  active=lead
 
    pytheory> clear
      cleared (C major, 120 bpm)
+
+Where the REPL Stops
+--------------------
+
+The REPL is a sketchpad — it covers the commands above and nothing more.
+Several of PyTheory's bigger features have no REPL command and live in the
+Python API and CLI instead:
+
+- Notation export to LilyPond, MusicXML, and ABC — see :doc:`playback`.
+- Harmonic analysis (Roman numerals, cadences, reharmonization) — see :doc:`theory`.
+- Lyrics and the full effects rack — see :doc:`sequencing` and :doc:`effects`.
+- Quarter-tone maqamat and shruti-based ragas — see :doc:`systems`.
+- Audio transcription with ``Score.from_wav`` — see :doc:`listening`.
+- Live performance and Ableton Link — see :doc:`live`.
+
+From the REPL itself you can render audio (``render``) and save MIDI
+(``save_midi``); reach for a script when you need the rest.
 
 Complete Example
 ----------------

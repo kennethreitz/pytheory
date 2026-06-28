@@ -10,14 +10,13 @@ Use **speakers** for immediate feedback while you're sketching and
 experimenting. Use **WAV export** when you want to share actual audio
 -- post it, send it, drop it into a video. Use **MIDI export** when you
 want to bring your sketch into a real DAW and finish it with
-professional instruments, mixing, and mastering. Use **ABC notation
-export** when you want sheet music -- rendered in the browser or shared
-as plain text. Each output serves a different stage of the creative
-process.
+professional instruments, mixing, and mastering. Use **notation
+export** when you want sheet music -- as ABC, LilyPond, or MusicXML,
+rendered in the browser or handed to an engraver. Each output serves a
+different stage of the creative process.
 
-PyTheory can play audio through your speakers, save to WAV, export to
-MIDI, or generate sheet music as ABC notation. Everything is synthesized
-from waveforms -- no samples or external audio files needed.
+Everything is synthesized from waveforms -- no samples or external
+audio files needed.
 
 .. note::
 
@@ -68,9 +67,9 @@ play_score() -- Full Arrangements
 Plays a ``Score`` with all its parts and drums mixed together.
 Output is **stereo** — each part is panned according to its ``pan``
 setting, drums are stereo-panned like a real kit, and reverb tails
-have natural stereo width. A **master bus compressor/limiter** (4:1
-ratio, brick-wall at 0.95) is applied to prevent clipping and make
-the mix louder and punchier:
+have natural stereo width. A **master bus** -- a stereo-linked glue
+compressor (4:1) followed by a soft limiter with a 0.98 ceiling -- is
+applied to prevent clipping and make the mix louder and punchier:
 
 .. code-block:: python
 
@@ -124,6 +123,26 @@ prefer the function form:
    >>> buf = render_score(score)   # equivalent to score.render()
    >>> len(buf)
    604800
+
+Batch rendering with ``render_scores()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A single :func:`~pytheory.play.render_score` is already fast, so the win
+from multiple cores is in *batch* work -- exporting an album, rendering
+every clip in a set, or serving several requests at once.
+:func:`~pytheory.play.render_scores` renders many scores in parallel
+across CPU threads (NumPy releases the GIL during the array math, so it
+scales roughly with cores -- about 2x on a typical machine):
+
+.. code-block:: python
+
+   from pytheory.play import render_scores
+
+   buffers = render_scores([verse, chorus, bridge])
+
+It returns a list of float32 ``(n_samples, 2)`` buffers in the same order
+as the input. ``workers`` defaults to one thread per core (capped at the
+number of scores); ``workers=1`` renders sequentially.
 
 save() -- WAV Export
 --------------------
@@ -239,6 +258,28 @@ instrument appears on its own staff. Bass parts (average note below C4)
 get bass clef automatically. Drum-only parts are skipped. Notes longer
 than one measure are split into tied notes across barlines.
 
+A part written with lyrics -- ``part.add(note, lyric="Twin")`` -- exports
+a ``w:`` lyric line aligned under each line of music, one syllable per
+sounding note (rests are skipped, ties extend with ``_``):
+
+.. code-block:: pycon
+
+   >>> song = Score("4/4", bpm=120)
+   >>> vocal = song.part("vocal")
+   >>> vocal.add("C4", Duration.QUARTER, lyric="Twin")
+   >>> vocal.add("C4", Duration.QUARTER, lyric="kle")
+   >>> vocal.add("G4", Duration.QUARTER, lyric="twin")
+   >>> vocal.add("G4", Duration.QUARTER, lyric="kle")
+   >>> print(song.to_abc(title="Star", key="C"))
+   X:1
+   T:Star
+   M:4/4
+   Q:1/4=120
+   L:1/8
+   K:C
+   C2 C2 G2 G2 |
+   w: Twin kle twin kle
+
 Parameters:
 
 - **title** -- Tune title for the ``T:`` header (default ``"Untitled"``).
@@ -269,6 +310,12 @@ complete LilyPond source files that you can compile to PDF:
 Then compile with ``lilypond score.ly`` to get a PDF. Multi-part scores
 get separate staves in a ``StaffGroup``, bass clef is auto-detected,
 and long notes are split with ties across barlines.
+
+Lyrics and articulations carry into the engraving too. A part written
+with ``lyric=`` gets a ``\new Lyrics \lyricsto`` context, and
+``articulation="staccato"`` (or ``accent``, ``marcato``, ``tenuto``,
+``fermata``) renders the matching mark -- ``-.``, ``->``, ``-^``, ``--``,
+``\fermata``.
 
 Parameters:
 
@@ -330,6 +377,15 @@ The output is a complete MusicXML 4.0 partwise document with proper
 time signatures, tempo markings, clef detection, tied notes across
 barlines, and chord notation. No external dependencies needed.
 
+Lyrics, articulations, and per-note dynamics all survive the round trip:
+``lyric=`` becomes ``<lyric><text>`` elements, ``articulation=`` becomes
+``<articulations>`` / ``<fermata>`` elements, and every pitched note
+carries a ``dynamics`` attribute (its velocity as a percentage of MIDI
+90), so dynamics set with :meth:`~pytheory.Part.dynamics` or
+:meth:`~pytheory.Part.crescendo` reach your DAW or score editor. That
+``dynamics`` value is a playback hint -- invisible in the printed
+engraving, which is why ABC and LilyPond omit it.
+
 to_tab() -- Guitar/Bass Tablature
 -----------------------------------
 
@@ -347,12 +403,12 @@ Generate ASCII tablature from any Part or Score:
 
 Output::
 
-   e|---0---------|
-   B|------0------|
-   G|---------0---|
-   D|------------0|
-   A|-------------|
-   E|-------------|
+   e|-0----------||
+   B|----0-------||
+   G|-------0----||
+   D|----------0-||
+   A|------------||
+   E|------------||
 
 Works on Score too -- it picks the first melodic part automatically:
 
@@ -428,11 +484,18 @@ PyTheory's synth engine with effects, or analyze the theory:
    play_score(score)
 
 Each MIDI channel becomes a named Part (``ch1``, ``ch2``, etc.).
-Channel 10 (drums) becomes drum hits. Tempo, time signature,
-note durations, and velocities are all preserved.
+Channel 10 (drums) becomes drum hits. Tempo, time signature, note
+durations, and velocities are all preserved, and notes that share an
+onset are grouped back into :class:`~pytheory.Chord` objects rather than
+flattened into an arpeggio -- so an imported triad returns as a chord
+while a melody stays a melody.
 
 Download any MIDI file from the internet, load it, play it through
 the synth engine with reverb and delay. That's the whole idea.
+
+See :doc:`effects` for the full per-part effects rack (reverb, delay,
+chorus, distortion, cabinet, and more) and :doc:`live` for real-time
+playback and Ableton Link sync.
 
 Audio Import — WAV → Score
 --------------------------

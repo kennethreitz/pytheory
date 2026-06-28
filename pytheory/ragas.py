@@ -117,7 +117,6 @@ class Raga:
         samvadi: the second-most important (consonant) swara.
         time: the time of day (or season) the raga belongs to.
         rasa: its emotional flavour.
-        jati: how many distinct swaras ascend / descend.
         aka: alternative names.
     """
 

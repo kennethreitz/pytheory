@@ -74,6 +74,8 @@ Properties
    4
    >>> c4.full_name
    'C4'
+   >>> c4.scientific      # alias of full_name
+   'C4'
    >>> c4.letter
    'C'
    >>> c4.midi
@@ -124,6 +126,14 @@ same note name:
   in closely related keys but "wolf intervals" make distant keys
   unusable.
 
+- `Just intonation <https://en.wikipedia.org/wiki/Just_intonation>`_: Tunes
+  every interval to a small whole-number frequency ratio — a pure 5:4 major
+  third, a pure 3:2 fifth. Maximally consonant in a single key, but
+  unplayable in distant ones without retuning. It's the tuning behind the
+  Indian ragas and Arabic maqamat (see :doc:`systems`).
+
+The reference A is fixed, so every temperament agrees on it:
+
 .. code-block:: pycon
 
    >>> a4.pitch(temperament="equal")
@@ -131,49 +141,45 @@ same note name:
    >>> a4.pitch(temperament="pythagorean")
    440.0
 
+The differences show up on the other notes:
+
+.. code-block:: pycon
+
    >>> c5 = Tone.from_string("C5", system="western")
    >>> c5.pitch(temperament="equal")
    523.2511306011972
+   >>> c5.pitch(temperament="just")
+   528.0
    >>> c5.pitch(temperament="pythagorean")
-   521.4814814814815
+   528.59619140625
+   >>> c5.pitch(temperament="meantone")
+   514.0261435447944
 
-Symbolic Pitch
-~~~~~~~~~~~~~~
+Reference Pitch and Precision
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pass ``symbolic=True`` to get exact pitch ratios as
-`SymPy <https://en.wikipedia.org/wiki/SymPy>`_ expressions instead of
-floating-point approximations. This is useful for mathematical analysis,
-proving tuning relationships, or comparing temperaments with exact
-arithmetic.
+``pitch()`` defaults to the modern concert standard of A4 = 440 Hz, but
+you can tune to any reference with ``reference_pitch`` — for example the
+"Verdi" A of 432 Hz that some musicians prefer. Pass ``precision`` to round
+the result to a fixed number of decimal places:
 
 .. code-block:: pycon
 
    >>> a4 = Tone.from_string("A4", system="western")
+   >>> a4.pitch(reference_pitch=432.0)
+   432.0
 
-   >>> a4.pitch(symbolic=True)
-   440
-   >>> Tone.from_string("C5", system="western").pitch(symbolic=True)
-   440*2**(1/4)
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> c4.pitch(precision=2)
+   261.63
+   >>> c4.pitch(reference_pitch=432.0, precision=2)
+   256.87
 
-   >>> Tone.from_string("G4", system="western").pitch(
-   ...     temperament="pythagorean", symbolic=True)
-   391.111111111111
-
-   >>> e4 = Tone.from_string("E4", system="western")
-   >>> e4.pitch(temperament="equal", symbolic=True)
-   220.0*2**(7/12)
-   >>> e4.pitch(temperament="pythagorean", symbolic=True)
-   330.000000000000
-   >>> e4.pitch(temperament="meantone", symbolic=True)
-   220.0*5**(1/4)
-
-   >>> e4.pitch(symbolic=True).evalf(50)
-   329.62755691286992973584176104655507518647334182098
-
-The symbolic output reveals *why* temperaments differ: equal temperament
-uses irrational numbers (roots of 2), Pythagorean uses powers of 3/2
-(rational but accumulating error), and meantone tunes thirds to the
-pure 5/4 ratio (sacrificing fifths).
+For tuning systems built on exact rational ratios — like the shruti just
+intonation behind the ragas — ``pitch(symbolic=True)`` returns the value
+without coercing it to a ``float``. In equal temperament the two are the
+same; the difference only matters once a system defines its own ratios
+(see :doc:`systems`).
 
 Intervals and Arithmetic
 -------------------------
@@ -211,6 +217,18 @@ Tones support ``+`` and ``-`` operators for semitone math:
    <Tone G4>
    >>> c4 + 12
    <Tone C5>
+
+If counting semitones by hand feels error-prone, the
+:class:`~pytheory.tones.Interval` class exports named constants
+(``UNISON`` through ``OCTAVE``) that read more musically:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Interval
+   >>> c4 + Interval.PERFECT_FIFTH
+   <Tone G4>
+   >>> c4 + Interval.MAJOR_THIRD
+   <Tone E4>
 
 Subtracting two tones gives the semitone distance:
 
@@ -273,6 +291,16 @@ digital instruments:
 
    >>> Tone.from_midi(60).midi
    60
+
+Black keys come back spelled with sharps by default; pass
+``prefer_flats=True`` for the flat spelling instead:
+
+.. code-block:: pycon
+
+   >>> Tone.from_midi(61)
+   <Tone C#4>
+   >>> Tone.from_midi(61, prefer_flats=True)
+   <Tone Db4>
 
 Comparison and Sorting
 ----------------------
@@ -357,6 +385,18 @@ every tone knows its enharmonic spelling:
    >>> Tone.from_string("C4", system="western").enharmonic is None
    True
 
+When you build tones from numbers rather than names — interval math via
+``add``, or :func:`~pytheory.tones.Tone.from_midi` above — pass
+``prefer_flats=True`` to get flat spellings instead of the default sharps:
+
+.. code-block:: pycon
+
+   >>> c4 = Tone.from_string("C4", system="western")
+   >>> c4.add(1)
+   <Tone C#4>
+   >>> c4.add(1, prefer_flats=True)
+   <Tone Db4>
+
 Accidental Properties
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -398,29 +438,45 @@ music theory:
 
 .. code-block:: pycon
 
-   >>> Tone.from_string("Cb4")   # resolves to B3 (octave boundary fix)
-   <Tone B3>
-   >>> Tone.from_string("B#4")   # resolves to C5 (octave boundary fix)
-   <Tone C5>
-   >>> Tone.from_string("E#4")   # resolves to F4
-   <Tone F4>
-   >>> Tone.from_string("Fb4")   # resolves to E4
-   <Tone E4>
+   >>> Tone.from_string("E#4", system="western")
+   <Tone E#4>
+   >>> Tone.from_string("Fb4", system="western")
+   <Tone Fb4>
+   >>> Tone.from_string("Cb4", system="western")
+   <Tone Cb3>
+   >>> Tone.from_string("B#4", system="western")
+   <Tone B#5>
 
-The octave boundary is correctly handled: B# crosses up to the next
-octave (B#4 = C5), and Cb crosses down (Cb4 = B3), matching standard
-scientific pitch notation where the octave number increments at C.
+PyTheory keeps the spelling you wrote — ``E#`` stays ``E#`` rather than
+collapsing to ``F`` — so your enharmonic intent survives into chords,
+scales, and exported notation. The one adjustment happens at the B/C octave
+boundary: because scientific pitch notation rolls the octave number over at
+C, ``Cb4`` sits just *below* C4 and becomes ``Cb3``, while ``B#`` sits just
+*above* B and crosses up an octave.
 
 Tone Validation
 ~~~~~~~~~~~~~~~
 
-Tones are validated on construction — if a tone name is not recognized
-in its system, a ``ValueError`` is raised:
+Validation only happens when a tone is attached to a system — that's the
+tone table its name is checked against. ``from_string`` without a system
+skips the check, so it accepts any spelling (handy for parsing first and
+attaching a system later), but pitch and interval math will raise until a
+system is attached:
 
 .. code-block:: pycon
 
-   >>> Tone.from_string("X4")   # not a valid tone name
-   ValueError: ...
+   >>> Tone.from_string("X4")
+   <Tone X4>
+
+Pass ``system="western"`` (or any system) to validate on construction — an
+unrecognized name raises a ``ValueError``:
+
+.. code-block:: pycon
+
+   >>> Tone.from_string("X4", system="western")
+   Traceback (most recent call last):
+       ...
+   ValueError: Unknown tone name: 'X'. Not found in the 'western' system.
 
 The Circle of Fifths
 --------------------

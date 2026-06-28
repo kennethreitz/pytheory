@@ -73,6 +73,62 @@ poorvi, marwa, todi
 - ``komal`` prefix = flat: komal Re, komal Ga, komal Dha, komal Ni
 - ``tivra`` prefix = sharp: tivra Ma
 
+.. _ragas:
+
+Ragas: the melodic forms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A thaat is a *parent scale*; a raga is what a musician actually plays.
+PyTheory ships **54 ragas** — 36 Hindustani plus 18 Carnatic — and each
+one carries far more than a row of notes. A raga has an ascending line
+(*aroha*) and a descending line (*avaroha*) that often differ, an
+identifying catch-phrase (*pakad*), its two most important swaras
+(*vadi* and *samvadi*), the time of day it belongs to, and an emotional
+flavour (*rasa*).
+
+.. code-block:: pycon
+
+   >>> from pytheory import Raga
+
+   >>> yaman = Raga.get("yaman")
+   >>> yaman.aroha_swaras()        # ascending line (Yaman skips Pa going up)
+   ['N.', 'R', 'G', 'M', 'D', 'N', "S'"]
+   >>> yaman.avaroha_swaras()      # descending line
+   ["S'", 'N', 'D', 'P', 'M', 'G', 'R', 'S']
+   >>> yaman.note_names(sa="C")    # its distinct swaras, as note names
+   ['C', 'D', 'E', 'F#', 'G', 'A', 'B']
+   >>> yaman.vadi, yaman.samvadi   # the two most important swaras
+   ('G', 'N')
+   >>> yaman.time, yaman.rasa
+   ('evening', 'serene, romantic')
+
+Browse the catalogue by thaat, by time of day, or by tradition:
+
+.. code-block:: pycon
+
+   >>> len(Raga.names())
+   54
+   >>> [r.name for r in Raga.by_time("evening")]
+   ['Bhupali', 'Hamsadhwani', 'Puriya', 'Yaman']
+   >>> [r.name for r in Raga.by_thaat("kalyan")]
+   ['Bhupali', 'Hindol', 'Yaman']
+
+Unlike the 12-TET ``TonedScale`` above, a raga is voiced in its true
+**shruti** just intonation — the 5-limit ratios it is meant to be sung
+in. ``shruti_table()`` shows how far each swara really sits from the
+tempered piano, and ``play()`` voices the run on a sitar:
+
+.. code-block:: pycon
+
+   >>> yaman.shruti_table("C")[2]   # Ga, the just major 3rd
+   {'swara': 'G', 'ratio': '5/4', 'note': 'E', 'hz': 327.03, 'cents_off': -13.7}
+
+   >>> yaman.play(sa="C4", synth="sitar")   # sitar, in just intonation
+
+The same shruti grid backs the :ref:`Shruti microtonal system
+<shruti-system>` below. See :doc:`synths` for the voices and
+:doc:`playback` for rendering to audio or notation.
+
 Arabic Maqam
 ------------
 
@@ -91,9 +147,11 @@ and organizes scales into **maqamat** (plural of `maqam <https://en.wikipedia.or
 
 .. note::
 
-   True maqam music uses quarter-tones that cannot be represented in
-   12-tone equal temperament. These scales are the closest 12-TET
-   approximations.
+   The ``TonedScale(system="arabic")`` scales below round every
+   quarter-tone to the nearest piano key — they are the closest 12-TET
+   approximations. For the real intonation, reach for the
+   :ref:`Maqam class <maqamat>` (just-intoned half-flats) or the
+   ``maqam`` 24-tone system further down.
 
 .. code-block:: pycon
 
@@ -112,6 +170,48 @@ and organizes scales into **maqamat** (plural of `maqam <https://en.wikipedia.or
 
 **Maqamat:** ajam, nahawand, kurd, hijaz, nikriz, bayati, rast, saba,
 sikah, jiharkah
+
+.. _maqamat:
+
+Maqamat: true quarter tones
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``TonedScale`` above snaps each maqam onto the 12 keys of a piano,
+but the heart of the tradition is the **half-flat** — the neutral 2nds,
+3rds, 6ths and 7ths that sit a *quarter-tone* off the tempered grid. The
+``Maqam`` class voices those notes where they actually live, in real
+just intonation.
+
+.. code-block:: pycon
+
+   >>> from pytheory import Maqam
+
+   >>> rast = Maqam.get("rast")
+   >>> rast.degree_names()           # the arrow marks a quarter-flat
+   ['Do', 'Re', 'Mi↓', 'Fa', 'Sol', 'La', 'Si↓']
+   >>> rast.note_names(tonic="C")    # nearest piano keys (the bend is lost)
+   ['C', 'D', 'E', 'F', 'G', 'A', 'Bb']
+
+Rast's signature is its neutral 3rd — a 27/22 ratio that lands a full
+45 cents below the equal-tempered E, in the crack between Eb and E.
+``maqam_table()`` spells the tuning out degree by degree:
+
+.. code-block:: pycon
+
+   >>> rast.maqam_table(tonic="C")[2]   # the neutral 3rd
+   {'degree': 'Mi↓', 'ratio': '27/22', 'note': 'E', 'hz': 321.09, 'cents_off': -45.5}
+
+Ten maqamat are bundled, grouped into families. ``play()`` sounds the
+ascending-then-descending run on an oud, quarter-tones intact:
+
+.. code-block:: pycon
+
+   >>> Maqam.names()
+   ['Ajam', 'Bayati', 'Hijaz', 'Hijazkar', 'Kurd', 'Nahawand', 'Nakriz', 'Rast', 'Saba', 'Suznak']
+   >>> [m.name for m in Maqam.by_family("hijaz")]
+   ['Hijaz', 'Hijazkar']
+
+   >>> rast.play(tonic="C4", synth="oud")   # quarter-tone accurate
 
 Japanese
 --------
@@ -248,8 +348,8 @@ intervals, typically performed using 5-note subsets called *pathet*.
 Cross-System Comparison
 -----------------------
 
-Since all systems use 12-tone equal temperament, equivalent scales
-produce the same pitches:
+Since the six core systems all use 12-tone equal temperament,
+equivalent scales produce identical pitches — only the names change:
 
 .. code-block:: pycon
 
@@ -279,6 +379,17 @@ Beyond the six 12-TET core systems, PyTheory includes 10 microtonal
 systems that use their own native tunings — more notes per octave,
 just intonation ratios, or entirely alien pitch structures.
 
+Each one plugs into the same machinery as the core systems: pass its
+name (or a ``System`` instance) as ``system=`` to a ``Score``,
+``TonedScale``, or ``Tone``. The snippets below assume ``Score`` has
+been imported once:
+
+.. code-block:: python
+
+   from pytheory import Score
+
+.. _shruti-system:
+
 Shruti (22 tones per octave)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -291,6 +402,9 @@ that fall "between the cracks" of the piano.
 
    score = Score("4/4", bpm=75, system="shruti")
 
+To actually *hear* shruti tuning, play a raga — it is voiced in exactly
+these ratios (see :ref:`Ragas <ragas>` above).
+
 Maqam (24 tones per octave)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -302,6 +416,9 @@ are the soul of maqam music.
 .. code-block:: python
 
    score = Score("4/4", bpm=90, system="maqam")
+
+For the named maqamat in this tuning, reach for the
+:ref:`Maqam class <maqamat>`.
 
 Slendro (5-TET)
 ~~~~~~~~~~~~~~~~
@@ -336,6 +453,19 @@ South Indian Carnatic music theory describes 72 melakarta ragas.
 The 72-TET system provides enough resolution to represent all the
 microtonal inflections of Carnatic practice.
 
+PyTheory ships 18 of those Carnatic ragas, each tagged with its parent
+melakarta. They live alongside the Hindustani ones in the
+:ref:`Raga catalogue <ragas>`:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Raga
+
+   >>> [r.name for r in Raga.by_tradition("carnatic")][:4]
+   ['Abhogi', 'Bilahari', 'Charukesi', 'Hanumatodi']
+   >>> Raga.get("kalyani").thaat    # its parent melakarta, not a thaat
+   'Mechakalyani (65)'
+
 19-TET and 31-TET
 ~~~~~~~~~~~~~~~~~~
 
@@ -365,13 +495,15 @@ Create any equal temperament on the fly with the ``TET()`` factory:
 
 .. code-block:: python
 
-   from pytheory import TET
+   from pytheory import TET, Score
 
    edo19 = TET(19)   # 19-tone equal temperament
    edo31 = TET(31)   # 31-tone equal temperament
    score = Score("4/4", bpm=100, system=edo19)
 
-Tone names in custom TET systems are integers (0, 1, 2, ..., n-1).
+Tones in a custom TET system are numbered ``0`` to ``n-1`` (the names
+are stored as strings, but ``System.tone()`` accepts the step as either
+an ``int`` or a ``str``).
 
 System.tone() Method
 ~~~~~~~~~~~~~~~~~~~~

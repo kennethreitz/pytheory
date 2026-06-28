@@ -458,7 +458,7 @@ Dedicated Instrument Synths
 ---------------------------
 
 Beyond the classic and physical modeling waveforms, PyTheory includes
-36 dedicated instrument synths. Each one uses tailored synthesis
+39 dedicated instrument synths. Each one uses tailored synthesis
 techniques -- additive harmonics, formant shaping, body resonance
 modeling, and specialized envelopes -- to capture the character of a
 specific acoustic instrument. These are the waveforms that bring the
@@ -613,6 +613,26 @@ then the vocal tract reshapes into the next one:
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_choir.wav" type="audio/wav"></audio>
+
+Vocal Synth
+~~~~~~~~~~~
+
+A single human voice instead of a section. It uses the same formant
+model as the choir -- an LF glottal pulse shaped by five resonant
+formant filters, with natural jitter, shimmer, and a touch of breath
+-- but renders one soloist rather than an ensemble. Use ``lyric=`` to
+choose the vowel, exactly as with the `Choir Synth`_ above (same vowel
+names and ``>`` transitions).
+
+**Use for:** lead vocal lines, exposed "ah" melodies, solo vowel hooks.
+
+.. code-block:: python
+
+   voice = score.part("voice", instrument="vocal")  # strings envelope + hall reverb
+   voice.add("C4", Duration.WHOLE, lyric="ah")
+
+   # Or address the synth directly
+   solo = score.part("solo", synth="vocal_synth")
 
 Bass Guitar Synth
 ~~~~~~~~~~~~~~~~~
@@ -894,6 +914,21 @@ create natural beating. Bellows pressure swell modulates amplitude.
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.3em 0 0.5em"><source src="../_static/audio/synth_accordion.wav" type="audio/wav"></audio>
+
+Harmonium Synth
+~~~~~~~~~~~~~~~
+
+The Indian pump organ. Unlike the accordion's doubled musette reeds,
+the harmonium has a single free reed per note -- so there's no
+beating, just a pure, nasal, reedy drone. Constant bellows pressure
+with a gentle swell and a midrange boost give it that devotional
+warmth. The sound of kirtan, qawwali, and bhajan.
+
+.. code-block:: python
+
+   harmonium = score.part("harmonium", instrument="harmonium")
+   # Or address the synth directly
+   harm = score.part("harm", synth="harmonium_synth")
 
 Didgeridoo Synth
 ~~~~~~~~~~~~~~~~
@@ -1219,7 +1254,7 @@ in the stereo field rather than sitting dead center.
 Analog Drift
 ~~~~~~~~~~~~
 
-Every waveform synth also takes ``analog_drift`` — slow random pitch
+Every waveform synth also takes ``analog`` — slow random pitch
 variation per oscillator, modeling vintage voltage instability
 (``0.05–0.1`` subtle, ``0.15–0.25`` vintage, ``0.3+`` wobbly). It's
 covered with the other per-note parameters in :doc:`effects`; for a
@@ -1230,7 +1265,7 @@ Instrument Presets
 ------------------
 
 Instead of choosing synth + envelope + effects manually, use an
-instrument preset — 60+ predefined combinations that approximate real
+instrument preset — 80+ predefined combinations that approximate real
 instruments:
 
 .. code-block:: python
@@ -1243,8 +1278,8 @@ instruments:
 
 Available instruments:
 
-**Keys**: piano, electric_piano, organ, harpsichord, celesta, music_box,
-accordion
+**Keys**: piano, electric_piano, wurlitzer, organ, pipe_organ, harmonium,
+harpsichord, celesta, music_box, accordion
 
 **Strings**: violin, viola, cello, contrabass, string_ensemble
 

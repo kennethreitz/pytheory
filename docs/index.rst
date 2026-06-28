@@ -1,6 +1,20 @@
 PyTheory: Music Theory for Humans
 =================================
 
+.. |pypi| image:: https://img.shields.io/pypi/v/pytheory.svg
+   :target: https://pypi.org/project/pytheory/
+   :alt: PyPI version
+
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/pytheory.svg
+   :target: https://pypi.org/project/pytheory/
+   :alt: Supported Python versions
+
+.. |license| image:: https://img.shields.io/pypi/l/pytheory.svg
+   :target: https://github.com/kennethreitz/pytheory
+   :alt: License
+
+|pypi| |pyversions| |license|
+
 **PyTheory** is a Python library for exploring music theory, composing
 multi-part arrangements, and exporting them to MIDI, sheet music, or
 audio — with nothing to install but Python packages. No DAW, no
@@ -10,43 +24,83 @@ New to `uv <https://docs.astral.sh/uv/getting-started/installation/>`_?
 It's the fast Python package manager — one command to install, no
 virtualenv ceremony.
 
-::
+.. code-block:: console
 
    $ uv add pytheory
 
-Or skip installing entirely and try PyTheory in your browser at the
-`playground <https://playground.pytheory.org>`_.
+Or skip installing entirely and run it in your browser.
+
+.. button-ref:: guide/quickstart
+   :ref-type: doc
+   :color: primary
+
+   Get started
+
+.. button-link:: https://playground.pytheory.org
+   :color: secondary
+
+   Try the playground
 
 Why would I want this?
 ----------------------
 
-Different people come to PyTheory for different reasons. You might be:
+Different people come to PyTheory for different reasons — pick the path
+that sounds like you:
 
-- **Learning theory** — you want to *see* what's inside a chord, why a
-  progression works, or what makes Dorian sound different from minor.
-  PyTheory answers in code you can poke at. Start with
-  :doc:`guide/quickstart`, then :doc:`guide/theory`.
-- **Playing guitar** — you want chord fingerings, scale diagrams,
-  Nashville number charts, or tablature without opening a browser full
-  of ads. Start with :doc:`guide/fretboard`.
-- **Sketching songs** — you want to hear an idea *now*: four chords, a
-  drum groove, a bass line, through your speakers in a dozen lines of
-  Python. Export MIDI when it's good and finish in your DAW. Start
-  with :doc:`guide/sequencing`.
-- **Playing live** — you have a MIDI keyboard and want a synth rig in
-  the terminal, with recording — or a session to join over Ableton
-  Link. Start with :doc:`guide/live`.
-- **Capturing ideas** — you hummed a melody into your phone and want
-  it as notes, MIDI, or sheet music. ``Score.from_wav("hum.m4a")``
-  transcribes it — or run ``pytheory studio`` and just drop the file
-  in your browser. Start with :doc:`guide/listening`.
-- **Tuning up** — ``pytheory tune --instrument guitar`` is a
-  real-time strobe tuner that locks to your open strings. Also in
-  :doc:`guide/listening`.
-- **Composing with AI** — Claude Code can drive PyTheory from natural
-  language: "write me a bossa nova in G minor" becomes a Score you can
-  hear, edit, and export. Install the official plugin and just talk to
-  it — see :doc:`guide/claude`.
+.. grid:: 1 2 2 2
+   :gutter: 3
+
+   .. grid-item-card:: Learning theory
+      :link: guide/quickstart
+      :link-type: doc
+
+      *See* what's inside a chord, why a progression works, or what
+      makes Dorian sound different from minor — answered in code you
+      can poke at.
+
+   .. grid-item-card:: Playing guitar
+      :link: guide/fretboard
+      :link-type: doc
+
+      Chord fingerings, scale diagrams, Nashville number charts, and
+      tablature — without opening a browser full of ads.
+
+   .. grid-item-card:: Sketching songs
+      :link: guide/sequencing
+      :link-type: doc
+
+      Hear an idea *now*: four chords, a drum groove, a bass line,
+      through your speakers in a dozen lines. Export MIDI when it's
+      good and finish in your DAW.
+
+   .. grid-item-card:: Playing live
+      :link: guide/live
+      :link-type: doc
+
+      A MIDI keyboard and a synth rig in the terminal, with recording
+      — or a session to join over Ableton Link.
+
+   .. grid-item-card:: Capturing ideas
+      :link: guide/listening
+      :link-type: doc
+
+      You hummed a melody into your phone. ``Score.from_wav("hum.m4a")``
+      turns it into notes, MIDI, or sheet music.
+
+   .. grid-item-card:: Tuning up
+      :link: guide/listening
+      :link-type: doc
+
+      ``pytheory tune --instrument guitar`` is a real-time strobe tuner
+      that locks to your open strings.
+
+   .. grid-item-card:: Composing with AI
+      :link: guide/claude
+      :link-type: doc
+
+      Claude Code drives PyTheory from natural language: "write me a
+      bossa nova in G minor" becomes a Score you can hear, edit, and
+      export.
 
 Theory
 ------
@@ -67,11 +121,15 @@ Tones, scales, chords, keys, intervals, harmony, 16 musical systems:
    >>> Tone.from_string("C4").interval_to(Tone.from_string("G4"))
    'perfect 5th'
 
+Dig deeper in :doc:`guide/theory`, or travel further afield: Indian
+ragas in true shruti tuning, Arabic maqams with real quarter tones, and
+a dozen more tunings all live in :doc:`guide/systems`.
+
 Guitar
 ------
 
 Chord fingerings, identification, scale diagrams, and tablature —
-for guitar and 24 other stringed instruments, in any tuning:
+for guitar and 24 other fretted and stringed instruments, in any tuning:
 
 .. code-block:: pycon
 
@@ -138,10 +196,14 @@ Everything you hear is synthesized from math — 56 waveforms, 83
 instrument presets, 100 drum patterns, and a full effects rack
 (reverb, delay, chorus, distortion, sidechain, automation). When it
 sounds right, take it anywhere: WAV, MIDI, ABC notation, MusicXML,
-LilyPond, or guitar tab.
+LilyPond, or guitar tab. :doc:`guide/synths` and :doc:`guide/effects`
+cover the sound design; :doc:`guide/playback` covers every export
+format.
 
 Or hear a randomly generated track from the command line — different
-every time::
+every time:
+
+.. code-block:: console
 
    $ uv run pytheory demo
 
@@ -205,6 +267,8 @@ every time::
    api/tuner
    api/live
    api/systems
+   api/ragas
+   api/maqam
 
 .. toctree::
    :maxdepth: 1

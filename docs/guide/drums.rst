@@ -47,6 +47,10 @@ Or use the shorthand:
 
    score.set_drum_effects(reverb=0.2, reverb_type="plate", lowpass=8000)
 
+Every effect a melodic voice supports works on drums too -- see
+:doc:`effects` for the full set of reverb types, delays, and filters,
+and :doc:`sequencing` for everything else a Part can do.
+
 Split Drums
 ~~~~~~~~~~~
 
@@ -91,7 +95,7 @@ The ``DrumSound`` enum maps to General MIDI percussion note numbers:
    >>> DrumSound.CLOSED_HAT.value
    42
 
-All 51 sounds, organized by type:
+All 74 sounds, organized by type:
 
 **Kicks:** KICK (36)
 
@@ -103,10 +107,10 @@ All 51 sounds, organized by type:
 
 **Cymbals:** CRASH (49), RIDE (51), RIDE_BELL (53)
 
-**Percussion:** COWBELL (56), CLAVE (75), SHAKER (70), TAMBOURINE (54),
-CONGA_HIGH (63), CONGA_LOW (64), BONGO_HIGH (60), BONGO_LOW (61),
-TIMBALE_HIGH (65), TIMBALE_LOW (66), AGOGO_HIGH (67), AGOGO_LOW (68),
-GUIRO (73)
+**Percussion:** COWBELL (56), CLAVE (75), SHAKER (70, also MARACAS),
+TAMBOURINE (54), CONGA_HIGH (63), CONGA_LOW (64), BONGO_HIGH (60),
+BONGO_LOW (61), TIMBALE_HIGH (65), TIMBALE_LOW (66), AGOGO_HIGH (67),
+AGOGO_LOW (68), GUIRO (73)
 
 **Tabla:** TABLA_NA (86), TABLA_TIN (87), TABLA_GE (88), TABLA_DHA (89),
 TABLA_TIT (90), TABLA_KE (91), TABLA_GE_BEND (108 -- bayan with upward
@@ -121,7 +125,10 @@ MRIDANGAM_THA (101)
 
 **Djembe:** DJEMBE_BASS (102), DJEMBE_TONE (103), DJEMBE_SLAP (104)
 
-**Cajón:** CAJON_BASS (108), CAJON_SLAP (109), CAJON_TAP (110)
+**Doumbek:** DOUMBEK_DUM (112), DOUMBEK_TEK (113), DOUMBEK_KA (114)
+
+**Cajón:** CAJON_BASS (108, shares its note with the tabla bayan-bend),
+CAJON_SLAP (109), CAJON_TAP (110), CAJON_SLAP_SNARE (111)
 
 **Metal Kit:** METAL_KICK (105), METAL_SNARE (106), METAL_HAT (107)
 
@@ -132,6 +139,9 @@ QUAD_SPOCK (123)
 
 **Marching Bass:** BASS_1 (124), BASS_2 (125), BASS_3 (126), BASS_4 (127),
 BASS_5 (80)
+
+**Texture / Hand:** RAINSTICK (81), RAINSTICK_SLOW (128), OCEAN_DRUM (82),
+CABASA (83), WIND_CHIMES (84), FINGER_CYMBAL (85)
 
 Drum Synthesis
 --------------
@@ -177,8 +187,10 @@ world percussion. Load them with ``Pattern.preset()``:
 
    >>> from pytheory import Pattern
 
-   >>> Pattern.list_presets()
-   ['12/8 blues', '6/8 afro-cuban', 'afrobeat', 'baiao', 'bebop', ...]
+   >>> len(Pattern.list_presets())
+   100
+   >>> Pattern.list_presets()[:6]
+   ['12/8 blues', '6/8 afro-cuban', 'adi talam', 'afrobeat', 'ayoub', 'baiao']
 
    >>> rock = Pattern.preset("rock")
    >>> rock
@@ -241,8 +253,7 @@ Playing Patterns
 
 .. code-block:: python
 
-   from pytheory import Pattern
-   from pytheory.play import play_pattern
+   from pytheory import Pattern, play_pattern
 
    play_pattern(Pattern.preset("rock"), repeats=4, bpm=120)
    play_pattern(Pattern.preset("bossa nova"), repeats=4, bpm=140)
@@ -271,18 +282,21 @@ transitions between sections. 37 fill presets are available:
 
 .. code-block:: pycon
 
+   >>> len(Pattern.list_fills())
+   37
    >>> Pattern.list_fills()
-   ['afrobeat', 'blast', 'bossa nova', 'breakdown', 'buildup',
-    'cajon breakdown', 'cajon flam', 'cajon rumble',
+   ['afrobeat', 'bayan', 'blast', 'bossa nova', 'breakdown', 'buildup',
+    'cajon breakdown', 'cajon flam', 'cajon rumble', 'chakkardar',
     'cumbia', 'disco', 'djembe break', 'djembe call', 'djembe roll',
-    'funk', 'highlife', 'hip hop', 'house',
-    'jazz', 'jazz brush', 'metal', 'metal blast', 'metal cascade',
-    'metal triplet', 'reggae', 'rock', 'rock crash',
-    'salsa', 'samba', 'second line', 'trap']
+    'doumbek accent', 'doumbek roll', 'funk', 'highlife', 'hip hop',
+    'house', 'jazz', 'jazz brush', 'metal', 'metal blast',
+    'metal cascade', 'metal triplet', 'reggae', 'rock', 'rock crash',
+    'salsa', 'samba', 'second line', 'tabla call', 'tihai',
+    'tiri kita', 'trap']
 
    >>> fill = Pattern.fill("rock")
    >>> fill
-   <Pattern 'rock fill' 4/4 4.0 beats ...>
+   <Pattern 'rock fill' 4/4 4.0 beats 8 hits>
 
 Score Integration
 -----------------
@@ -322,12 +336,12 @@ Layering Patterns
 -----------------
 
 Combine drum patterns with melodic parts for full arrangements. The
-drum pattern and all named parts are mixed together by ``play_score()``:
+drum pattern and all named parts are mixed together by ``play_score()``
+(see :doc:`playback`):
 
 .. code-block:: python
 
-   from pytheory import Score, Key, Duration, Chord
-   from pytheory.play import play_score
+   from pytheory import Score, Key, Duration, play_score
 
    score = Score("4/4", bpm=180)
    score.drums("salsa", repeats=4, fill="salsa", fill_every=4)
@@ -369,15 +383,14 @@ most expressive percussion instruments ever created. A single tabla
 player can produce an astonishing range of tones by varying finger
 placement, pressure, and striking technique.
 
-**7 sounds** -- covering the primary tabla strokes (na, tin, tun, ge,
-dha, ke, tit) plus a bayan pitch bend sound (TABLA_GE_BEND) that
-models the technique of pressing the palm into the bayan head to bend
-the pitch upward.
+**7 sounds** -- the primary tabla strokes (na, tin, ge, dha, tit, ke)
+plus a bayan pitch-bend sound (TABLA_GE_BEND) that models the technique
+of pressing the palm into the bayan head to bend the pitch upward.
 
-**7 patterns:** teental (16 beats, the most common taal), jhaptaal
+**8 patterns:** teental (16 beats, the most common taal), jhaptaal
 (10 beats), rupak (7 beats), dadra (6 beats), keherwa (8 beats, folk
-and light classical), tabla solo, and tiri kita (fast ornamental
-pattern).
+and light classical), tabla solo, tiri kita (fast ornamental pattern),
+and chakradar (a 16-beat composed cadence).
 
 **5 fills:** tihai (3x crescendo landing on sam), chakkardar (32nd
 triplet cascade into slam), tiri kita (rapid 16th-note dayan burst),
@@ -526,8 +539,10 @@ The cajón is a box-shaped percussion instrument from Peru, now
 ubiquitous in acoustic and unplugged settings worldwide. Players sit
 on the box and strike the front face with their hands.
 
-**3 sounds** -- bass (deep center thump), slap (sharp, snare-like edge
-hit with wire buzz), and tap (light finger tap).
+**4 sounds** -- bass (deep center thump), slap (sharp wood crack on the
+top edge, no snare wires), tap (light finger tap), and CAJON_SLAP_SNARE
+-- the same edge slap with the internal snare wires engaged for an
+extra buzz.
 
 **3 patterns:** cajon (basic groove), cajon rumba (flamenco-style rumba),
 and cajon folk (folk/acoustic pattern).
@@ -544,6 +559,31 @@ bass-slap groove).
 .. raw:: html
 
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/cajon.wav" type="audio/wav"></audio>
+
+Doumbek (Darbuka)
+~~~~~~~~~~~~~~~~~~
+
+The doumbek -- also called the darbuka -- is a goblet-shaped hand drum
+heard across the Middle East and North Africa. A crisp, ringing *tek*
+on the rim played against a deep *dum* in the center gives it the
+snappy, conversational voice at the heart of Arabic and belly-dance
+rhythm.
+
+**3 sounds** -- dum (deep center bass), tek (sharp ringing rim hit),
+and ka (muted edge slap, often the left hand answering a right-hand
+tek).
+
+**4 patterns:** maqsoum (the most common Arabic rhythm), baladi (heavy
+and earthy, the belly-dance staple), saidi (Upper Egyptian, strong and
+driving), and ayoub (a hypnotic 2/4 trance groove).
+
+**2 fills:** doumbek roll (rapid teks building into a dum) and doumbek
+accent (a syncopated dum-tek-ka flourish).
+
+.. code-block:: python
+
+   score = Score("4/4", bpm=100)
+   score.drums("maqsoum", repeats=8, fill="doumbek accent", fill_every=4)
 
 Texture and Hand Percussion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -625,7 +665,7 @@ tenors) plus QUAD_SPOCK (rim click on the shell).
 **Bass drums** -- 5 pitched drums: BASS_1 (highest/smallest) through
 BASS_5 (lowest/biggest), each with a prominent felt-beater thwack.
 
-**6 patterns:** march (basic 4/4), cadence (8-beat street beat),
+**9 patterns:** march (basic 4/4), cadence (8-beat street beat),
 march paradiddle, march roll (buzz crescendo), quad sweep (run across
 all 4 drums), quad groove, bass split (cascading across the line),
 bass unison (all 5 hit together), drumline (snare + quads + bass).

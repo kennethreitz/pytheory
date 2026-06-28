@@ -69,6 +69,26 @@ divisions; Indian classical music theoretically has 22
 Arabic `maqam <https://en.wikipedia.org/wiki/Maqam>`_ uses
 `quarter-tones <https://en.wikipedia.org/wiki/Quarter_tone>`_.
 
+These aren't just footnotes — PyTheory ships them as real tuning systems
+(``SYSTEMS["slendro"]``, ``SYSTEMS["pelog"]``, ``SYSTEMS["shruti"]``,
+``SYSTEMS["maqam"]``, and more), plus equal-temperament experiments like
+``TET(19)``, ``TET(31)``, and ``bohlen-pierce``. There are also two
+dedicated melodic-tradition classes: ``Raga`` (54 ragas, both Hindustani
+and Carnatic) and ``Maqam`` (true Arabic quarter-tones a piano can't
+play). The :doc:`systems` guide goes deep on all of them.
+
+.. code-block:: pycon
+
+   >>> from pytheory import Raga, Maqam
+
+   >>> Raga.get("yaman").note_names(sa="C")
+   ['C', 'D', 'E', 'F#', 'G', 'A', 'B']
+   >>> Maqam.get("rast").degree_names()
+   ['Do', 'Re', 'Mi↓', 'Fa', 'Sol', 'La', 'Si↓']
+
+The ``↓`` marks a quarter-flat — the half-flat third that gives a maqam
+its colour and that twelve equal notes simply can't reach.
+
 Intervals: The Atoms of Music
 ------------------------------
 
@@ -102,6 +122,27 @@ Medieval theorists called it *diabolus in musica* ("the devil in music")
 because of its extreme instability. Today it's the foundation of
 `dominant harmony <https://en.wikipedia.org/wiki/Dominant_(music)>`_
 and the `blues <https://en.wikipedia.org/wiki/Blue_note>`_.
+
+PyTheory gives every interval a name. ``Interval`` holds the semitone
+constants, ``Tone.interval_to`` names the gap between two tones (compound
+forms and all), and ``cents_difference`` measures it to the
+`cent <https://en.wikipedia.org/wiki/Cent_(music)>`_ — one hundred per
+semitone:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Tone, Interval
+
+   >>> Interval.PERFECT_FIFTH, Interval.MAJOR_THIRD, Interval.TRITONE
+   (7, 4, 6)
+
+   >>> C4 = Tone.from_string("C4", system="western")
+   >>> C4.interval_to(C4 + Interval.PERFECT_FIFTH)
+   'perfect 5th'
+   >>> C4.interval_to(C4 + Interval.OCTAVE)
+   'octave'
+   >>> round(C4.cents_difference(C4 + 1), 1)  # one semitone
+   100.0
 
 Keys and Key Signatures
 -----------------------
@@ -340,6 +381,30 @@ can label them in context:
 Without the flag those same chords read as the plainer ``II7`` and ``V7``;
 turning it on reveals the brief tonicisation of G.
 
+Voice Leading and Beyond
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Naming chords is only half the craft; the other half is *connecting* them.
+Good `voice leading <https://en.wikipedia.org/wiki/Voice_leading>`_ moves
+each voice as little as possible. ``Chord.voice_leading`` finds the
+smoothest path between two chords — each voice paired with its destination
+and the signed number of semitones it travels:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord
+
+   >>> [(a.name, b.name, semis)
+   ...  for a, b, semis in Chord.from_name("C").voice_leading(Chord.from_name("G"))]
+   [('G', 'B', 4), ('E', 'G', 3), ('C', 'D', 2)]
+
+That's the entry point to a larger analysis toolkit that lives in the
+:doc:`chords` guide: ``check_voice_leading`` flags parallel fifths,
+parallel octaves, and voice crossings across a progression;
+``chord_scales`` and ``avoid_notes`` answer "what can I play over this
+chord?"; and ``reharmonize`` / ``negative_harmony`` suggest fresh chords
+for an old tune.
+
 Rhythm and Meter
 ----------------
 
@@ -430,10 +495,16 @@ From Theory to Composition
 
 Everything on this page — tones, intervals, chords, scales, keys — is
 the foundation. But PyTheory goes further: you can use these building
-blocks to compose and play actual music. See the :doc:`sequencing`
-guide to learn how to arrange multi-part scores with melodies, chord
-pads, bass lines, drum patterns, and audio effects — all driven by the
-theory concepts you've just learned.
+blocks to compose and play actual music. The :doc:`sequencing` guide
+shows how to arrange multi-part scores with melodies, chord pads, bass
+lines, drum patterns, and audio effects — then export them to LilyPond,
+MusicXML, or ABC notation (articulations and lyrics included).
+
+The flow runs both ways. The :doc:`cli` guide's ``pytheory analyze
+song.mid`` detects the key and prints a Roman-numeral chord timeline for
+any MIDI file, and the :doc:`listening` guide covers transcription —
+``Score.from_midi`` and ``Score.from_wav`` turn recordings back into
+scores you can analyze with the very tools above.
 
 Further Reading
 ---------------

@@ -173,6 +173,19 @@ Several convenience constructors make chord creation concise:
    >>> "C" in Chord.from_name("C")
    True
 
+Chords also compare and hash by their voicing, so they slot into sets and
+dictionary keys, and ``==`` compares the notes rather than object
+identity. Two chords are equal when they hold the same tones in the same
+octaves and order, so different inversions of the same notes compare
+unequal:
+
+.. code-block:: pycon
+
+   >>> Chord.from_name("C") == Chord.from_tones("C", "E", "G")
+   True
+   >>> len({Chord.from_name("C"), Chord.from_name("C"), Chord.from_name("Am")})
+   2
+
 Intervals
 ---------
 
@@ -305,7 +318,7 @@ Chord Identification
 
 Give PyTheory any set of tones and it will tell you what chord it is.
 It tries every tone as a potential root and matches the interval pattern
-against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
+against 19 known chord types (triads, 6ths, 7ths, 9ths, sus, power chords).
 
 .. code-block:: pycon
 
@@ -323,12 +336,14 @@ against 17 known chord types (triads, 7ths, 9ths, sus, power chords).
    'Bb major'
 
 Enharmonic spellings are fully supported — Cb, Fb, E#, B#, double
-sharps/flats, and unicode symbols (see :doc:`tones` for details):
+sharps/flats, and unicode symbols (see :doc:`tones` for details).
+``identify()`` keeps the root spelling you gave it, so a Cb major triad
+comes back as ``"Cb major"`` rather than being normalized to B:
 
 .. code-block:: pycon
 
    >>> Chord.from_tones("Cb", "Eb", "Gb").identify()
-   'B minor'
+   'Cb major'
 
 You can also access the root and quality separately:
 
@@ -364,6 +379,113 @@ key — "I-IV-V" means the same thing in C major (C-F-G) as in G major
    'V'
    >>> Chord([G4, G4+4, G4+7, G4+10]).analyze("C")
    'V7'
+
+Analyzing a progression
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``analyze`` works one chord at a time; ``analyze_progression`` labels a
+whole list at once — which is how you usually read a tune:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, analyze_progression
+
+   >>> prog = [Chord.from_name(x) for x in ("C", "Am", "F", "G")]
+   >>> analyze_progression(prog, key="C")
+   ['I', 'vi', 'IV', 'V']
+
+Secondary dominants
+~~~~~~~~~~~~~~~~~~~~
+
+A secondary (applied) dominant is a chord that briefly acts as the
+dominant of some chord *other* than the tonic, borrowing a chromatic
+leading tone to tonicise it. In C major, ``D7`` (with its F#) pulls toward
+G, so it's ``V7/V``. Pass ``secondary_dominants=True`` to label these
+instead of spelling them as a bare chromatic degree:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, analyze_progression, detect_secondary_dominant
+
+   >>> Chord.from_symbol("D7").analyze("C", secondary_dominants=True)
+   'V7/V'
+
+   >>> prog = [Chord.from_symbol(s) for s in ("C", "D7", "G7", "C")]
+   >>> analyze_progression(prog, key="C", secondary_dominants=True)
+   ['I', 'V7/V', 'V7', 'I']
+
+``detect_secondary_dominant`` answers the question for a single chord,
+returning the applied-dominant label or ``None`` when the chord is just a
+plain diatonic dominant:
+
+.. code-block:: pycon
+
+   >>> detect_secondary_dominant(Chord.from_symbol("D7"), "C")
+   'V7/V'
+   >>> detect_secondary_dominant(Chord.from_symbol("E7"), "C")
+   'V7/vi'
+   >>> detect_secondary_dominant(Chord.from_symbol("G7"), "C") is None
+   True
+
+Cadences
+~~~~~~~~
+
+A `cadence <https://en.wikipedia.org/wiki/Cadence>`_ is the harmonic
+punctuation that ends a phrase. ``detect_cadence`` classifies the motion
+between a phrase's last two chords:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, detect_cadence, find_cadences
+
+   >>> detect_cadence(Chord.from_name("G"), Chord.from_name("C"), "C")
+   'imperfect authentic'
+   >>> detect_cadence(Chord.from_name("G"), Chord.from_name("Am"), "C")
+   'deceptive'
+   >>> detect_cadence(Chord.from_name("F"), Chord.from_name("C"), "C")
+   'plagal'
+   >>> detect_cadence(Chord.from_name("Dm"), Chord.from_name("G"), "C")
+   'half'
+
+It recognizes perfect and imperfect authentic, half, phrygian half,
+deceptive, and plagal cadences (and ``None`` when the motion isn't
+cadential). A *perfect* authentic cadence needs real voicing — a close
+root-position triad puts the fifth on top, which reads as *imperfect* — so
+voice the tonic into the soprano to earn a PAC.
+
+``find_cadences`` scans a whole progression, returning ``(index, type)``
+for every cadential pair, where the index is the position of the pair's
+final chord:
+
+.. code-block:: pycon
+
+   >>> prog = [Chord.from_name(n) for n in ("C", "F", "G", "C")]
+   >>> find_cadences(prog, "C")
+   [(2, 'half'), (3, 'imperfect authentic')]
+
+Non-chord tones
+~~~~~~~~~~~~~~~~
+
+A **non-chord tone** is a melody note that isn't part of the harmony
+underneath it — the passing notes, neighbors, and suspensions that give a
+line its shape. ``analyze_non_chord_tones`` labels each note from its
+melodic context and the chord beneath it. Pass one chord for the whole
+melody, or a list with one chord per note:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Chord, Tone, analyze_non_chord_tones
+
+   >>> melody = [Tone.from_string(n) for n in ("C4", "D4", "E4")]
+   >>> [r["type"] for r in analyze_non_chord_tones(melody, Chord.from_name("C"))]
+   ['chord tone', 'passing', 'chord tone']
+
+Each result is a dict with the ``tone``, an ``is_chord_tone`` flag, and a
+``type`` — ``"chord tone"``, ``"passing"``, ``"upper neighbor"`` or
+``"lower neighbor"``, ``"suspension"``, ``"anticipation"``,
+``"appoggiatura"``, ``"escape tone"``, or ``"non-chord tone"``. Octaves
+matter, since the classifier judges each note by how it's stepped into and
+left.
 
 Tension and Resolution
 ----------------------
@@ -606,9 +728,9 @@ Chord-Scale Theory
 ------------------
 
 Improvisers think in *chord-scales*: each chord implies a scale you can
-solo with. ``chord_scales`` recommends them, best fit first — from the
-chord quality alone, or with the diatonic mode preferred when you supply a
-key:
+solo with (the modes themselves live in :doc:`scales`). ``chord_scales``
+recommends them, best fit first — from the chord quality alone, or with the
+diatonic mode preferred when you supply a key:
 
 .. code-block:: pycon
 

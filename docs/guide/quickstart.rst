@@ -61,7 +61,7 @@ Explore Music Theory
 
 The theory layer is where most people start. No audio setup needed —
 this works everywhere Python runs. Every concept in Western music
-theory (and five other systems) has a clean Python API.
+theory — and fifteen other tuning systems — has a clean Python API.
 
 Tones and intervals:
 
@@ -115,7 +115,7 @@ Harmonic analysis and modulation:
 .. code-block:: pycon
 
    >>> Key("C", "major").pivot_chords(Key("G", "major"))
-   ['A minor', 'B minor', 'C major', 'D major', 'E minor', 'G major']
+   ['A minor', 'C major', 'E minor', 'G major']
 
    >>> Key("C", "major").relative
    <Key A minor>
@@ -123,7 +123,7 @@ Harmonic analysis and modulation:
    >>> key.suggest_next(key.triad(4))  # what follows V?
    [<Chord C major>, <Chord A minor>, <Chord F major>]
 
-Scales across 6 musical systems:
+Scales across 16 tuning systems:
 
 .. code-block:: pycon
 
@@ -136,7 +136,22 @@ Scales across 6 musical systems:
    ['Do', 'Reb', 'Mi', 'Fa', 'Sol', 'Solb', 'Sib', 'Do']
 
    >>> TonedScale(tonic="C4", system="japanese")["hirajoshi"].note_names
-   ['C', 'D', 'D#', 'G', 'G#', 'C']
+   ['C', 'D', 'Eb', 'G', 'Ab', 'C']
+
+Those ``TonedScale`` spellings are 12-tone-equal-tempered
+approximations. For the real thing — just-intonation Indian *ragas*
+and quarter-tone Arabic *maqamat* with their authentic tunings — reach
+for the dedicated ``Raga`` and ``Maqam`` classes (see :doc:`systems`):
+
+.. code-block:: pycon
+
+   >>> from pytheory import Raga, Maqam
+
+   >>> Raga.get("yaman").note_names(sa="C")
+   ['C', 'D', 'E', 'F#', 'G', 'A', 'B']
+
+   >>> Maqam.get("rast").degree_names()  # the down arrow marks a quarter-flat
+   ['Do', 'Re', 'Mi↓', 'Fa', 'Sol', 'La', 'Si↓']
 
 Guitar fingerings:
 
@@ -159,8 +174,7 @@ chords, melody, bass, each with their own synth and effects:
 
 .. code-block:: python
 
-   from pytheory import Score, Key, Duration
-   from pytheory.play import play_score
+   from pytheory import Score, Key, Duration, play_score
 
    score = Score("4/4", bpm=120)
    score.drums("rock", repeats=8, fill="rock", fill_every=4)
@@ -203,25 +217,40 @@ You can also save rendered audio:
 
 .. code-block:: python
 
-   from pytheory import save
+   from pytheory import save, Chord
    save(Chord.from_symbol("Am7"), "am7.wav", t=2_000)
+
+Prefer sheet music? Export the same arrangement to notation — ABC,
+LilyPond, or MusicXML — and open it in MuseScore, Frescobaldi, or any
+engraver:
+
+.. code-block:: python
+
+   with open("my_sketch.musicxml", "w") as f:
+       f.write(score.to_musicxml(title="My Sketch"))
+
+See :doc:`playback` for the full export story, and :doc:`listening` to
+go the other way — transcribe a recording straight back into a ``Score``.
 
 What's in the Box
 -----------------
 
-**Theory** — tones, scales (40+ across 6 musical systems), chords
-(17 types, Roman numeral analysis, figured bass, tension scoring,
-voice leading, pitch class sets with Forte numbers), keys (detection,
-signatures, modulation paths, borrowed chords), scale recommendation.
+**Theory** — tones, scales (40+ across 16 tuning systems, including
+just-intonation Indian ragas and quarter-tone Arabic maqamat), chords
+(19 types, Roman numeral analysis with secondary dominants, figured
+bass, tension scoring, voice leading, pitch class sets with Forte
+numbers), keys (detection, signatures, modulation paths, borrowed
+chords), cadence detection, reharmonization, and scale recommendation.
 
 **Sequencing** — Score, Part, Duration, TimeSignature. Arpeggiator
 with 5 patterns. Legato with pitch glide. Per-note velocity. Swing.
 Tempo changes. Fade in/out. Song sections with repeat. Humanize.
 
-**Synthesis** — 56 waveforms: the 10 classics (sine, saw, triangle,
-square, pulse, FM, noise, supersaw, PWM slow, PWM fast) plus 46
-modeled instruments. 10 ADSR envelopes. Detune.
-Stereo pan and spread.
+**Synthesis** — 56 waveforms, from the classic four (sine, saw,
+square, triangle) through FM, supersaw, pulse, and wavefolding to 39
+dedicated instrument synths modeled from scratch — plus 83 ready-to-play
+instrument presets that bundle a synth, envelope, and effects. 10 ADSR
+envelopes. Detune. Stereo pan and spread.
 
 **Effects** — distortion, chorus, lowpass filter (with resonance),
 delay, reverb (algorithmic + 7 stereo convolution presets including
@@ -232,15 +261,19 @@ LFO modulation. Sidechain compression. Master bus compressor/limiter.
 afrobeat, house, trap, and 90+ more). 37 fill presets. 74 synthesized
 drum voices with stereo panning.
 
-**Instruments** — 83 presets (guitar with 8 tunings, bass, ukulele,
-mandolin family, violin family, banjo, harp, oud, sitar, erhu, and
-more) with chord fingering generation and scale diagrams.
+**Instruments** — 25 fretted and bowed string instruments (guitar
+with 8 tunings, bass, ukulele, mandolin family, violin family, banjo,
+harp, oud, sitar, erhu, and more) with chord-fingering generation,
+ASCII tab, and SVG/PNG fretboard diagrams.
 
-**Output** — stereo playback, WAV export, MIDI import/export.
+**Output** — stereo playback, WAV export, MIDI import/export, and
+notation export to ABC, LilyPond, and MusicXML. Plus audio-to-score
+transcription: drop in a recording and get the notes back.
 
-**Interface** — REPL with tab completion (``pytheory repl``), CLI with
-15 commands. ``pytheory demo``, ``pytheory key``, ``pytheory chord``,
-``pytheory identify``, ``pytheory midi``, ``pytheory play``, and more.
+**Interface** — REPL with tab completion (``pytheory repl``) and a CLI
+with 24 commands: ``pytheory demo``, ``pytheory key``, ``pytheory
+chord``, ``pytheory identify``, ``pytheory midi``, ``pytheory play``,
+``pytheory raga``, ``pytheory maqam``, ``pytheory tune``, and more.
 
 Where to Go Next
 -----------------
@@ -248,7 +281,9 @@ Where to Go Next
 - :doc:`theory` — music theory fundamentals
 - :doc:`tones` — working with individual notes
 - :doc:`scales` — scales, modes, and keys
+- :doc:`systems` — world tunings: ragas, maqamat, gamelan, and microtonal grids
 - :doc:`chords` — chord construction, analysis, and progressions
+- :doc:`fretboard` — guitar, bass, and string-instrument fingerings and tabs
 - :doc:`sequencing` — composing multi-part arrangements
 - :doc:`synths` — the 56 waveforms and 10 envelopes
 - :doc:`effects` — reverb, delay, distortion, chorus, lowpass, automation

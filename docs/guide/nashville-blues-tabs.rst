@@ -100,7 +100,8 @@ six-note scale built from the minor pentatonic plus one chromatic
 passing tone — the **blue note** (flat 5th). That single added note
 gives the blues its tension and character.
 
-The blues system in PyTheory includes several related scales:
+The blues system in PyTheory bundles several related scales (plus a full
+``chromatic`` scale for passing runs):
 
 ====================  =====  ==================================
 Scale                 Notes  Character
@@ -116,7 +117,9 @@ minor                 7      Dorian-like — minor with natural 6th
 Building Blues Scales
 ~~~~~~~~~~~~~~~~~~~~~
 
-Use ``system="blues"`` when creating a :class:`~pytheory.scales.TonedScale`:
+Use ``system="blues"`` when creating a :class:`~pytheory.scales.TonedScale`.
+The system's ``scales`` attribute lists everything it offers, and each scale
+is available by name:
 
 .. code-block:: pycon
 
@@ -124,8 +127,11 @@ Use ``system="blues"`` when creating a :class:`~pytheory.scales.TonedScale`:
 
    >>> c = TonedScale(tonic="C4", system="blues")
 
+   >>> c.scales
+   ('chromatic', 'major pentatonic', 'minor pentatonic', 'blues', 'major blues', 'dominant', 'minor')
+
    >>> c["minor pentatonic"].note_names
-   ['C', 'Eb', 'F', 'G', 'Bb', 'C']
+   ['C', 'D#', 'F', 'G', 'A#', 'C']
 
    >>> c["blues"].note_names
    ['C', 'Eb', 'F', 'Gb', 'G', 'Bb', 'C']
@@ -135,6 +141,14 @@ Use ``system="blues"`` when creating a :class:`~pytheory.scales.TonedScale`:
 
    >>> c["major blues"].note_names
    ['C', 'D', 'Eb', 'E', 'G', 'A', 'C']
+
+.. note::
+
+   PyTheory prints whichever enharmonic spelling each scale definition
+   carries, so the same pitch can read ``D#`` in the minor pentatonic and
+   ``Eb`` in the blues scale above. They're one note spelled two ways — see
+   :doc:`tones` for more on enharmonics, and :doc:`scales` for the full
+   catalogue of systems and scales.
 
 The Anatomy of a Blues Scale
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -280,6 +294,10 @@ Works with any instrument:
    E|--0--
    A|--3--
 
+``fb.tab`` accepts any chord symbol PyTheory can parse — see :doc:`chords`
+for the full vocabulary, and :doc:`fretboard` for chord charts, voicings,
+and the complete list of instruments.
+
 Reading Tab Notation
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -303,28 +321,37 @@ Reading Tab Notation
 Part Tablature
 ~~~~~~~~~~~~~~~
 
-Generate tab from a composed part using ``to_tab()``:
+Generate tab from a composed part with
+:meth:`~pytheory.rhythm.Part.to_tab`:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   from pytheory import Score, Key, Duration
+   >>> from pytheory import Score, Duration
 
-   score = Score("4/4", bpm=120)
-   lead = score.part("lead", synth="saw")
+   >>> score = Score("4/4", bpm=120)
+   >>> lead = score.part("lead", synth="saw")
 
-   # A simple blues lick
-   for note in ["A4", "C5", "D5", "Eb5", "E5", "G5", "A5"]:
-       lead.add(note, Duration.QUARTER)
+   >>> # The A blues scale, ascending
+   >>> for note in ["A4", "C5", "D5", "Eb5", "E5", "G5", "A5"]:
+   ...     lead.add(note, Duration.QUARTER)
 
-   print(lead.to_tab())
+   >>> print(lead.to_tab())
+   e|-5--8--10-11|-12-15-17|
+   B|------------|---------|
+   G|------------|---------|
+   D|------------|---------|
+   A|------------|---------|
+   E|------------|---------|
 
-This outputs standard ASCII tab with measure lines, mapping each note
-to the most playable string and fret position.
+Each note is mapped to the most playable string and fret, with ``|``
+marking measure boundaries — here all seven notes sit on the high E
+string. See :doc:`sequencing` for building parts and scores in depth.
 
 Tuning Options
 ~~~~~~~~~~~~~~
 
-The ``to_tab()`` method supports multiple tunings:
+``to_tab()`` takes a ``tuning`` keyword — one of the built-in strings, any
+``Fretboard`` object, or a list of MIDI note numbers:
 
 .. code-block:: python
 
@@ -337,7 +364,7 @@ The ``to_tab()`` method supports multiple tunings:
    # Drop D guitar
    lead.to_tab(tuning="drop_d")
 
-   # Any Fretboard object — use any of the 25+ instrument presets
+   # Any Fretboard object — pick from the 25 instrument presets
    from pytheory import Fretboard
    lead.to_tab(tuning=Fretboard.mandolin())
    lead.to_tab(tuning=Fretboard.banjo())
@@ -345,28 +372,88 @@ The ``to_tab()`` method supports multiple tunings:
    # Custom tuning as MIDI note numbers (low string first)
    lead.to_tab(tuning=[40, 45, 50, 55, 59, 64])
 
+Notes outside an instrument's range simply don't appear, so a high lead
+line tabbed for ``bass`` may come up empty. See :doc:`fretboard` for the
+full instrument list.
+
 Score Tablature
 ~~~~~~~~~~~~~~~~
 
-Extract tab from a multi-part score:
+Extract tab for any part of a multi-part score with
+:meth:`~pytheory.rhythm.Score.to_tab`:
 
-.. code-block:: python
+.. code-block:: pycon
 
-   score = Score("4/4", bpm=120)
-   rhythm = score.part("rhythm", synth="saw")
-   lead = score.part("lead", synth="triangle")
-   bass = score.part("bass", synth="sine")
+   >>> from pytheory import Score, Key, TonedScale, Duration
 
-   # ... compose parts ...
+   >>> score = Score("4/4", bpm=120)
+   >>> rhythm = score.part("rhythm", synth="saw")
+   >>> lead = score.part("lead", synth="triangle")
 
-   # Tab the lead part
-   print(score.to_tab("lead"))
+   >>> for chord in Key("E", "major").nashville("17", "47", "17", "57"):
+   ...     rhythm.add(chord, Duration.WHOLE)
 
-   # Tab the first non-drum part (if no name given)
-   print(score.to_tab())
+   >>> for tone in TonedScale(tonic="E4", system="blues")["minor pentatonic"].tones:
+   ...     lead.add(tone, Duration.QUARTER)
 
-   # Bass tab
-   print(score.to_tab("bass", tuning="bass"))
+   >>> # Tab a named part — the single-note melody
+   >>> print(score.to_tab("lead"))
+   e|-0--3--5--7-|-10-12|
+   B|------------|------|
+   G|------------|------|
+   D|------------|------|
+   A|------------|------|
+   E|------------|------|
+
+   >>> # With no name, the first non-drum part is tabbed — here the rhythm chords
+   >>> print(score.to_tab())
+   e|-0-|-5-|-0-|-7-||
+   B|-9-|-14|-9-|-16||
+   G|-16|-21|-16|-23||
+   D|---|---|---|---||
+   A|---|---|---|---||
+   E|---|---|---|---||
+
+Any :meth:`~pytheory.rhythm.Part.to_tab` keyword passes straight through,
+so ``score.to_tab("bass", tuning="bass")`` tabs a bass part in bass
+tuning.
+
+Scalable Diagrams (SVG and PNG)
+-------------------------------
+
+ASCII tab is perfect for the terminal, but for slides, worksheets, or
+video you'll want crisp vector graphics. Every ASCII view has a scalable
+counterpart that renders to SVG (no dependencies) or PNG (install the
+``diagrams`` extra: ``pip install pytheory[diagrams]``). Each method
+returns the image as a string, or writes the file you name and returns
+its path:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard, TonedScale
+
+   >>> fb = Fretboard.guitar()
+
+   >>> # A chord box — the graphical counterpart of fb.tab("Am")
+   >>> fb.tab_image("Am", "Am.svg")
+   'Am.svg'
+
+   >>> # The five positional boxes of a pentatonic scale
+   >>> scale = TonedScale(tonic="A4", system="blues")["minor pentatonic"]
+   >>> shapes = fb.scale_shapes(scale)
+   >>> len(shapes)
+   5
+   >>> shapes[0].to_svg(path="A_pent_pos1.svg")
+   'A_pent_pos1.svg'
+
+   >>> # Where a chord's tones fall across the neck, labelled R/3/5/7
+   >>> fb.arpeggio_diagram("Am", "Am_arp.svg")
+   'Am_arp.svg'
+
+These mirror the ASCII :meth:`~pytheory.Fretboard.tab` and
+:meth:`~pytheory.Fretboard.scale_diagram` you've already seen, in a format
+you can drop straight into a document. See :doc:`fretboard` for the full
+diagram toolkit.
 
 Putting It All Together
 -----------------------
@@ -394,8 +481,8 @@ tab export to see the fingering:
    for chord in chords:
        rhythm.add(chord, Duration.WHOLE)
 
-   for note_name in blues.note_names[:-1]:  # walk up the scale
-       lead.add(f"{note_name}4", Duration.HALF)
+   for tone in blues.tones[:-1]:  # walk up one octave of the blues scale
+       lead.add(tone, Duration.HALF)
 
    # 4. See it as tablature
    print(lead.to_tab())

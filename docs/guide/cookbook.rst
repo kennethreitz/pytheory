@@ -2,8 +2,9 @@ Cookbook
 ========
 
 You know what you want to do; you just want the code. Each recipe
-below is self-contained and ready to paste into a Python session —
-grab one, run it, and adapt it.
+below is ready to paste into a Python session — grab one, run it, and
+adapt it. The composition recipes build on a shared set of imports,
+shown at the top of that section.
 
 .. contents:: On this page
    :local:
@@ -213,7 +214,9 @@ Relative and Parallel Keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Every major key has a **relative minor** (same notes, different root)
-and a **parallel minor** (same root, different notes):
+and a **parallel minor** (same root, different notes). Both come back
+as :class:`~pytheory.scales.Key` objects, so you can keep working with
+them:
 
 .. code-block:: pycon
 
@@ -221,9 +224,12 @@ and a **parallel minor** (same root, different notes):
 
    >>> c = Key("C", "major")
    >>> c.relative
-   'A minor'
+   <Key A minor>
    >>> c.parallel
-   'C minor'
+   <Key C minor>
+
+   >>> c.relative.chords[:4]
+   ['A minor', 'B diminished', 'C major', 'D minor']
 
 World Scales
 ~~~~~~~~~~~~
@@ -245,6 +251,33 @@ Explore scales from Indian, Arabic, and Japanese traditions:
    >>> japanese = TonedScale(tonic="C4", system="japanese")
    >>> japanese["hirajoshi"].note_names
    ['C', 'D', 'Eb', 'G', 'Ab', 'C']
+
+Those are 12-TET approximations — what a piano can play. For the real
+thing, reach for the dedicated :class:`~pytheory.maqam.Maqam` (Arabic,
+true quarter tones) and :class:`~pytheory.ragas.Raga` (Indian, shruti
+just intonation) classes:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Maqam, Raga
+
+   >>> rast = Maqam.get("rast")
+   >>> rast.degree_names()           # ↓ marks the quarter-flat notes
+   ['Do', 'Re', 'Mi↓', 'Fa', 'Sol', 'La', 'Si↓']
+   >>> rast.note_names("C")          # nearest 12-TET names
+   ['C', 'D', 'E', 'F', 'G', 'A', 'Bb']
+
+   >>> bhairav = Raga.get("bhairav")
+   >>> bhairav.note_names("C")
+   ['C', 'C#', 'E', 'F', 'G', 'G#', 'B']
+   >>> bhairav.aroha_swaras()        # ascending line
+   ['S', 'r', 'G', 'm', 'P', 'd', 'N', "S'"]
+
+Both classes carry the real tuning: ``rast.maqam_table("C")`` lists each
+degree's just ratio and how many cents it sits off the piano, and
+``rast.play(tonic="C4")`` / ``bhairav.play(sa="C4")`` sound them out with
+the quarter tones and shrutis intact. See :doc:`systems` for the full
+catalogue of maqamat, ragas, and tuning systems.
 
 Guitar
 ------
@@ -290,10 +323,10 @@ the most-played scale in rock:
    >>> print(fb.scale_diagram(pent, frets=12))
        0   1   2   3   4   5   6   7   8   9  10  11  12
    E| E | - | - | G | - | A | - | B | - | - | D | - | E |
-   B| B | - | - | D | - | E | - | - | G | - | A | - | B |
-   G| G | - | A | - | B | - | - | D | - | E | - | - | G |
-   D| D | - | E | - | - | G | - | A | - | B | - | - | D |
    A| A | - | B | - | - | D | - | E | - | - | G | - | A |
+   D| D | - | E | - | - | G | - | A | - | B | - | - | D |
+   G| G | - | A | - | B | - | - | D | - | E | - | - | G |
+   B| B | - | - | D | - | E | - | - | G | - | A | - | B |
    E| E | - | - | G | - | A | - | B | - | - | D | - | E |
 
 Tones and Physics
@@ -385,7 +418,13 @@ Find the alternate name for any sharp or flat:
 Composition Recipes
 -------------------
 
-These recipes go beyond theory into actual music-making.
+These recipes go beyond theory into actual music-making. They all share
+the same handful of imports:
+
+.. code-block:: python
+
+   from pytheory import Score, Pattern, Duration, Chord, Key
+   from pytheory.play import play_score
 
 Acid House Track
 ~~~~~~~~~~~~~~~~
@@ -393,9 +432,6 @@ Acid House Track
 303-style acid with sidechain pump:
 
 .. code-block:: python
-
-   from pytheory import Score, Pattern, Duration, Chord
-   from pytheory.play import play_score
 
    score = Score("4/4", bpm=132)
    score.drums("house", repeats=8, fill="house", fill_every=8)
@@ -546,6 +582,52 @@ Define once, arrange freely:
 
    <audio controls style="width:100%;margin:0.5em 0 1.5em"><source src="../_static/audio/song_sections.wav" type="audio/wav"></audio>
 
+Lead Sheet with Lyrics
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Attach words to a vocal line with the ``lyric=`` argument — one syllable
+per sounding note — and they flow straight into the notation. Here a
+melody becomes an ABC lead sheet you can paste into any ABC viewer:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Score, Duration
+
+   >>> score = Score("4/4", bpm=120)
+   >>> vox = score.part("vocal", synth="sine", envelope="pad")
+   >>> words = [("Hap-", "C5"), ("py", "C5"), ("birth-", "D5"),
+   ...          ("day", "C5"), ("to", "F5"), ("you", "E5")]
+   >>> for syllable, note in words:
+   ...     vox.add(note, Duration.QUARTER, lyric=syllable)
+
+   >>> print(score.to_abc(title="Birthday", key="C"))
+   X:1
+   T:Birthday
+   M:4/4
+   Q:1/4=120
+   L:1/8
+   K:C
+   c2 c2 d2 c2 | f2 e2 |
+   w: Hap\- py birth\- day | to you
+
+The same lyrics render to LilyPond (``score.to_lilypond(...)``) and
+MusicXML (``score.to_musicxml(...)``) too, so you can open the lead
+sheet in MuseScore, Sibelius, or Finale.
+
+Shape the *performance* with ``articulation=`` — ``"staccato"``,
+``"accent"``, ``"marcato"``, ``"tenuto"``, or ``"fermata"``. Each one
+changes how the note is played *and* prints the matching mark in the
+score:
+
+.. code-block:: python
+
+   lead = score.part("lead", synth="triangle")
+   lead.add("C5", Duration.QUARTER, articulation="staccato")
+   lead.add("E5", Duration.QUARTER, articulation="tenuto")
+   lead.add("G5", Duration.HALF, articulation="fermata")
+
+See :doc:`playback` and :doc:`effects` for the full performance toolkit.
+
 Export Everything to MIDI
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -560,6 +642,18 @@ The whole point — sketch fast, finish in your DAW:
    from pytheory import save_midi
    chords = Key("C", "major").progression("I", "V", "vi", "IV")
    save_midi(chords, "pop.mid", t=500, bpm=120)
+
+   # ...and read MIDI back in — same-onset notes regroup into chords
+   from pytheory import Score
+   sketch = Score.from_midi("track.mid", synth="sine", envelope="pluck")
+
+Already have a MIDI file you want to understand? The CLI detects the key
+and prints a Roman-numeral chord timeline (add ``--json`` to pipe it
+elsewhere):
+
+.. code-block:: console
+
+   $ pytheory analyze song.mid
 
 Listening Recipes
 -----------------
@@ -590,9 +684,13 @@ whole pipeline — recording to engraved PDF:
    for n in score.parts["melody"].notes:
        print(n.tone or "rest", n.beats)
 
-   # 3. Engrave it
-   with open("hum.ly", "w") as f:
+   # 3. Engrave it — three formats, pick the tool you live in
+   with open("hum.ly", "w") as f:        # LilyPond → engraved PDF
        f.write(score.to_lilypond(title="My Hum", key="G", mode="major"))
+   with open("hum.musicxml", "w") as f:  # opens in MuseScore/Sibelius/Finale
+       f.write(score.to_musicxml(title="My Hum"))
+   with open("hum.abc", "w") as f:       # plain-text, easy to paste and share
+       f.write(score.to_abc(title="My Hum", key="G"))
 
    # ...and keep the MIDI for your DAW while you're at it
    score.save_midi("hum.mid")

@@ -49,7 +49,7 @@ strings, except between G and B which is a major 3rd (4 semitones).
    >>> bass    = Fretboard.bass()                  # Standard 4-string EADG
    >>> bass5   = Fretboard.bass(five_string=True)  # 5-string with low B
 
-**Alternate tunings** — 8 built-in presets:
+**Alternate tunings** — 7 built-in presets (plus ``standard``):
 
 .. code-block:: pycon
 
@@ -57,7 +57,7 @@ strings, except between G and B which is a major 3rd (4 semitones).
    >>> Fretboard.guitar("open g")          # DGDGBD — slide guitar, Keith Richards
    >>> Fretboard.guitar("open d")          # DADF#AD — slide, folk
    >>> Fretboard.guitar("open e")          # EBEG#BE — slide blues
-   >>> Fretboard.guitar("open a")          # EAC#EAE
+   >>> Fretboard.guitar("open a")          # EAEAC#E — slide
    >>> Fretboard.guitar("dadgad")          # DADGAD — Celtic, fingerstyle
    >>> Fretboard.guitar("half step down")  # Eb standard — Hendrix, SRV
 
@@ -126,10 +126,11 @@ Plucked Strings
 
 .. code-block:: pycon
 
-   >>> Fretboard.ukulele()      # A4 E4 C4 G4  — re-entrant tuning
-   >>> Fretboard.banjo()        # Open G (bluegrass, 5th string is high drone)
-   >>> Fretboard.banjo("open d")  # Open D (clawhammer, old-time)
-   >>> Fretboard.harp()         # 47 strings, C1 to G7 (concert pedal harp)
+   >>> Fretboard.ukulele()         # A4 E4 C4 G4  — re-entrant tuning
+   >>> Fretboard.banjo()           # open G (bluegrass) — 5th string is a high drone
+   >>> Fretboard.banjo("open d")   # open D (clawhammer, old-time)
+   >>> Fretboard.banjo("double c") # G C G C D (old-time)
+   >>> Fretboard.harp()            # 47 strings, C1 to G7 (concert pedal harp)
 
 The `banjo <https://en.wikipedia.org/wiki/Banjo>`_'s short 5th string
 is a high drone — a defining feature of the instrument's sound.
@@ -187,8 +188,11 @@ widest range of any standard acoustic instrument.
 Getting Fingerings
 ------------------
 
-The fingering algorithm finds the most playable voicing for any chord
-on any instrument. It scores each possibility by:
+Common chords come from a library of curated voicings, so ``fb.chord("C")``
+returns the open shape a guitarist actually plays. Anything not in that
+library — any symbol :func:`~pytheory.Chord.from_symbol` can parse, such
+as ``"F#m7b5"`` or ``"Csus2"`` — is voiced automatically: PyTheory searches
+the neck for its notes and scores each candidate hand position by
 
 1. Preferring **open strings** (fret 0) — they ring freely
 2. Preferring **ascending** fret patterns — easier hand position
@@ -203,9 +207,9 @@ on any instrument. It scores each possibility by:
    >>> f
    Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
 
-   >>> f['A']
+   >>> f["A"]            # index by string name
    3
-   >>> f[1]
+   >>> f[1]              # ...or by position (low to high)
    3
 
    >>> f.identify()
@@ -214,6 +218,29 @@ on any instrument. It scores each possibility by:
    >>> chord = f.to_chord()
    >>> chord.identify()
    'C major'
+
+Subscripting the fretboard itself is shorthand for :meth:`~pytheory.Fretboard.chord`:
+
+.. code-block:: pycon
+
+   >>> fb["G"]
+   Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
+
+Because uncharted symbols are voiced on the fly, you are not limited to
+the common chords — any symbol that parses gets a computed shape:
+
+.. code-block:: pycon
+
+   >>> fb.chord("F#m7b5")
+   Fingering(E=2, A=0, D=2, G=2, B=1, e=0)
+   >>> fb.chord("Csus2")
+   Fingering(E=x, A=3, D=0, G=0, B=3, e=3)
+   >>> fb.chord("Gadd9")
+   Fingering(E=3, A=0, D=0, G=0, B=0, e=3)
+   >>> fb.chord("Cdim7")
+   Fingering(E=8, A=0, D=7, G=8, B=7, e=8)
+
+See :doc:`chords` for the chord vocabulary PyTheory understands.
 
 You can also go from fret positions to chord identification:
 
@@ -280,21 +307,131 @@ Scale Diagrams with Chord Highlighting
 ---------------------------------------
 
 The ``scale_diagram()`` method renders an ASCII fretboard showing where
-scale notes fall on each string. Pass an optional ``chord`` argument to
-highlight chord tones in UPPERCASE while scale-only tones appear in
-lowercase — a quick way to visualize target notes for soloing:
+scale notes fall on each string:
 
 .. code-block:: pycon
 
    >>> from pytheory import Fretboard, TonedScale, Chord
 
    >>> fb = Fretboard.guitar()
-   >>> pentatonic = TonedScale(tonic="A4")["minor pentatonic"]
+   >>> pentatonic = TonedScale(tonic="A4", system="blues")["minor pentatonic"]
    >>> print(fb.scale_diagram(pentatonic, frets=5))
+       0   1   2   3   4   5
+   E| E | - | - | G | - | A |
+   A| A | - | - | C | - | D |
+   D| D | - | E | - | - | G |
+   G| G | - | A | - | - | C |
+   B| - | C | - | D | - | E |
+   E| E | - | - | G | - | A |
 
-   >>> # Highlight Am chord tones within the scale:
+.. note::
+
+   Pentatonic and blues scales live in the ``blues`` system, not the
+   default ``western`` one — hence ``system="blues"`` above. See
+   :doc:`scales` for the full catalogue.
+
+Pass an optional ``chord`` argument to highlight chord tones in UPPERCASE
+while scale-only tones appear in lowercase — a quick way to see your
+target notes for soloing:
+
+.. code-block:: pycon
+
    >>> am = Chord.from_symbol("Am")
    >>> print(fb.scale_diagram(pentatonic, frets=5, chord=am))
+       0   1   2   3   4   5
+   E| E | - | - | g | - | A |
+   A| A | - | - | C | - | d |
+   D| d | - | E | - | - | g |
+   G| g | - | A | - | - | C |
+   B| - | C | - | d | - | E |
+   E| E | - | - | g | - | A |
+
+Scalable Diagrams (SVG and PNG)
+-------------------------------
+
+ASCII tab is perfect in a terminal, but you can't drop it into a video, a
+slide, or a worksheet. PyTheory renders the same fretboard data as clean,
+scalable **SVG** — no extra dependencies. For PNG, install the optional
+extra (``pip install pytheory[diagrams]``, which pulls in ``cairosvg``)
+and pass ``fmt="png"`` or a ``.png`` path.
+
+Every diagram method returns the SVG markup as a string, or — when you
+give it a ``path`` — writes the file and returns the path.
+
+Chord boxes
+~~~~~~~~~~~
+
+``tab_image()`` is the graphical counterpart of
+:meth:`~pytheory.Fretboard.tab`: a vertical chord box like the ones in
+songbooks, with open/muted markers, automatic barre detection, and the
+root highlighted in red.
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard
+
+   >>> fb = Fretboard.guitar()
+
+   >>> # Write a chord box to a file...
+   >>> fb.tab_image("Am", "Am.svg")
+   'Am.svg'
+
+   >>> # ...or get the SVG markup back as a string
+   >>> svg = fb.tab_image("Am")
+   >>> svg[:39]
+   '<svg xmlns="http://www.w3.org/2000/svg"'
+
+A :class:`~pytheory.charts.Fingering` can render itself the same way with
+``to_svg()`` — handy when you built the voicing by hand. The barre in an
+F major shape is detected automatically:
+
+.. code-block:: pycon
+
+   >>> fb.chord("F").to_svg(path="F.svg")
+   'F.svg'
+
+Scale shapes
+~~~~~~~~~~~~
+
+``scale_shapes()`` splits a scale into the positional boxes a player moves
+between — for a pentatonic scale, the familiar five positions. Each is a
+``ScaleShape`` you can render on its own:
+
+.. code-block:: pycon
+
+   >>> from pytheory import Fretboard, TonedScale
+
+   >>> fb = Fretboard.guitar()
+   >>> pentatonic = TonedScale(tonic="A4", system="blues")["minor pentatonic"]
+
+   >>> shapes = fb.scale_shapes(pentatonic)
+   >>> len(shapes)
+   5
+   >>> shapes[0]
+   <ScaleShape A pos 1 frets 0-3>
+
+   >>> shapes[0].to_svg(path="A_pent_pos1.svg")
+   'A_pent_pos1.svg'
+
+``scale_shape_image()`` is a shortcut for a single position (1-based):
+
+.. code-block:: pycon
+
+   >>> fb.scale_shape_image(pentatonic, 2, "A_pent_pos2.svg")
+   'A_pent_pos2.svg'
+
+Arpeggio maps
+~~~~~~~~~~~~~
+
+``arpeggio_diagram()`` maps every chord tone across the whole neck,
+labelled by its role (``R``, ``3``, ``5``, ``7``…) with roots in red — for
+practising where a chord's notes live. The chord can be a
+:class:`~pytheory.Chord` or just a symbol string:
+
+.. code-block:: pycon
+
+   >>> Fretboard.guitar().arpeggio_diagram("Am", "Am_arp.svg")
+   'Am_arp.svg'
 
 Non-String Instruments
 ----------------------

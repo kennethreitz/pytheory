@@ -48,15 +48,20 @@ sketch** back — four parts plus the key:
 
 .. code-block:: python
 
+   from pytheory import Score, play_score
+
    score = Score.from_wav("song.wav", split=True, quantize=0.5)
 
    score.parts["melody"]    # the lead line
    score.parts["bass"]      # the bassline
-   score.parts["chords"]    # chord symbols (Am, F, C, G...)
+   score.parts["chords"]    # chord voicings (Am, F, C, G...)
    score.parts["drums"]     # kick / snare / hat hits
    score.detected_key       # e.g. <Key C major>
 
    play_score(score)        # an instant cover version
+
+The ``melody`` and ``bass`` parts always come back; ``chords`` and
+``drums`` show up only when there's harmony or percussion to find.
 
 Under the hood: harmonic-percussive separation splits sustained
 pitched material from drums (held notes are horizontal lines on a
@@ -82,6 +87,13 @@ one line.
 Tempo is estimated automatically when you don't pass ``bpm=`` — the
 onset pattern is autocorrelated to find the pulse (a rendered groove
 comes back exact; pulse-free rubato humming falls back to 120).
+
+Every stage of that pipeline is a public function, so you can wire
+up your own: :func:`~pytheory.audio.hpss` (the harmonic/percussive
+split), :func:`~pytheory.audio.detect_pitch` (the YIN tracker),
+:func:`~pytheory.audio.estimate_tempo`,
+:func:`~pytheory.audio.detect_chords`, and
+:func:`~pytheory.audio.detect_drums`.
 
 Tips for good transcriptions:
 
@@ -119,8 +131,9 @@ All of the above, without writing any code::
 
    $ pytheory studio
 
-opens a local web app: **drop in a recording** (.wav, voice memo,
-.mp3) and the transcription renders as sheet music right on the page
+opens a local web app at ``http://localhost:8124``: **drop in a
+recording** (.wav, voice memo, .mp3) and the transcription renders
+as sheet music right on the page
 (via abcjs). Press play to hear it through PyTheory's synths,
 download the MIDI for your DAW, and there's a tuner at the bottom.
 Check "full mix" for the four-part bass/melody/chords/drums split.
@@ -181,7 +194,8 @@ directly, no client library required:
 Build your own tuner page, drive a game, pitch-train an ear-training
 app — the stream doesn't care what's listening.
 
-Orchestras tuning high? ``pytheory tune --ref 442``. Python access is
+Orchestras tuning high? ``pytheory tune --ref 442``. More than one
+microphone? ``--device N`` picks the input by index. Python access is
 :class:`pytheory.tuner.Tuner` (``tuner.reading`` holds the latest
 analysis; pass ``instrument="cello"`` for string targets) and
 :func:`pytheory.tuner.analyze_frame` for one-shot use.
@@ -217,7 +231,7 @@ twelve roots. You can call it yourself on any buffer:
 
    samples, sr = load_wav("strum.wav")
    identify_chord(samples, sr)
-   # {'symbol': 'Am', 'confidence': 0.93, 'notes': ['A', 'C', 'E']}
+   # {'symbol': 'Am', 'confidence': 0.98, 'notes': ['A', 'C', 'E']}
 
 One honest physics note: an instrument's low single notes carry
 their harmonics' pitch classes, so an open low E string played alone
@@ -229,5 +243,6 @@ What Next
 
 A transcription is an ordinary :class:`~pytheory.rhythm.Score` — so
 everything in :doc:`sequencing` applies: change synths, add parts,
-layer drums. Export options are in :doc:`playback`, and if you play
-the result live, that's :doc:`live`.
+layer drums. Reharmonize or analyze what came back with the tools in
+:doc:`chords`, export it via :doc:`playback`, and if you play the
+result live, that's :doc:`live`.

@@ -14,9 +14,10 @@ The distortion on a Hendrix guitar. The chorus on an 80s synth pad.
 These aren't decorations added after the fact; they're fundamental to
 the sound itself.
 
-Each part in a Score can have its own effects chain. Effects are set at
-part creation and applied per-part before mixing, so every voice gets
-independent processing.
+Every :doc:`part <sequencing>` in a score can have its own effects chain.
+Effects are set at part creation and applied per-part before mixing, so
+every voice gets independent processing. Once a score sounds the way you
+want, see :doc:`playback` to play it live or render it to WAV.
 
 This page walks the chain in signal order — each effect documented in
 the position it actually runs — then covers the `Per-Note Shaping`_
@@ -564,7 +565,7 @@ that's sidechain compression. It's the pumping effect that defines
 modern electronic music. The kick drum triggers a compressor on
 another part, ducking its volume in rhythm with the beat.
 
-In PyTheory, the drum hits are the trigger. Any part with
+In PyTheory, the :doc:`drum <drums>` hits are the trigger. Any part with
 ``sidechain > 0`` gets ducked whenever the kick (or any drum) hits:
 
 .. code-block:: python
@@ -697,8 +698,8 @@ bow rosin for strings, and attack transients for percussion.
 
 .. code-block:: python
 
-   # Breathy flute
-   flute = score.part("flute", instrument="flute")  # noise_mix=0.08
+   # Breathy flute -- the air is baked into the flute_synth voice
+   flute = score.part("flute", instrument="flute")
 
    # Add air to any synth
    pad = score.part("pad", synth="supersaw", noise_mix=0.05)
@@ -713,14 +714,14 @@ of why vintage analog synths sound so appealing -- the subtle pitch
 wandering gives each note a unique, living quality that static digital
 oscillators lack.
 
-The ``analog_drift`` parameter adds slow, random pitch variation to
-each oscillator, modeling this vintage behavior. (For a waveform with
-the instability built in — plus jitter, noise floor, and rounded
-edges — see the Drift Oscillator in :doc:`synths`.)
+The ``analog`` parameter adds slow, random pitch variation to each
+oscillator, modeling this vintage behavior. (For a waveform with the
+instability built in — plus jitter, noise floor, and rounded edges —
+see the Drift Oscillator in :doc:`synths`.)
 
 Parameters:
 
-- ``analog_drift``: Drift amount, 0.0--1.0 (default 0, off).
+- ``analog``: Drift amount, 0.0--1.0 (default 0, off).
 
   - 0.05--0.1 = subtle warmth (studio-grade analog)
   - 0.15--0.25 = noticeable drift (vintage gear warming up)
@@ -733,7 +734,7 @@ Parameters:
        "pad",
        synth="supersaw",
        envelope="pad",
-       analog_drift=0.1,
+       analog=0.1,
        chorus=0.3,
    )
 
@@ -742,7 +743,7 @@ Parameters:
        "lead",
        synth="saw",
        envelope="pluck",
-       analog_drift=0.25,
+       analog=0.25,
    )
 
 Combining Effects
@@ -859,12 +860,51 @@ processes each section independently:
    lead.set(lowpass=4000, distortion=0.7, reverb=0.3)
    lead.arpeggio("Gm", bars=4, pattern="updown", octaves=2)
 
-Any parameter can be automated: ``lowpass``, ``lowpass_q``, ``highpass``,
-``reverb``, ``reverb_decay``, ``reverb_type``, ``delay``, ``delay_time``,
-``delay_feedback``, ``distortion``, ``distortion_drive``, ``chorus``,
-``phaser``, ``phaser_rate``, ``saturation``, ``tremolo_depth``,
-``tremolo_rate``, ``cabinet``, ``cabinet_brightness``, ``analog_drift``,
-``volume``.
+The bus and filter parameters can be automated: ``volume``, ``lowpass``,
+``lowpass_q``, ``highpass``, ``highpass_q``, ``reverb``, ``reverb_decay``,
+``reverb_type``, ``delay``, ``delay_time``, ``delay_feedback``,
+``distortion``, ``distortion_drive``, ``chorus``, ``chorus_rate``,
+``chorus_depth``, ``phaser``, ``phaser_rate``, ``saturation``,
+``tremolo_depth``, ``tremolo_rate``, ``cabinet``, and ``cabinet_brightness``.
+
+The `Per-Note Shaping`_ parameters (filter envelope, ``sub_osc``,
+``noise_mix``, ``vel_to_filter``, ``analog``) are baked in at the
+oscillator and fixed at part creation -- ``set()`` and ``lfo()`` won't
+move them.
+
+Smooth Ramps
+~~~~~~~~~~~~
+
+``Part.set()`` jumps a parameter to a new value instantly. ``Part.ramp()``
+*glides* there over a span of beats -- like turning a knob by hand instead
+of flipping a switch. It starts from the parameter's current value and
+interpolates to the target, inserting automation points along the way:
+
+.. code-block:: python
+
+   lead = score.part("lead", synth="saw", lowpass=200)
+
+   # Open the filter over four bars, easing in slowly
+   lead.ramp(over=Duration.WHOLE * 4, curve="ease_in", lowpass=8000)
+   lead.arpeggio("Cm", bars=4, pattern="up", octaves=2)
+
+The ``curve`` argument shapes the motion: ``"linear"`` (default),
+``"ease_in"`` (slow start), ``"ease_out"`` (slow finish), or
+``"ease_in_out"`` (slow at both ends). ``resolution`` (default ``0.25``,
+a 16th note) controls how finely the ramp is sampled.
+
+Fades
+~~~~~
+
+``Part.fade_in()`` and ``Part.fade_out()`` are shortcuts that ramp
+``volume`` from silence up to the part's level, or back down to zero, over
+a number of bars -- the classic intro swell and outro fade:
+
+.. code-block:: python
+
+   pad = score.part("pad", synth="supersaw", envelope="pad", volume=0.6)
+   pad.arpeggio("Am", bars=4, pattern="up", octaves=2)
+   pad.fade_out(bars=4)   # ride off into the sunset
 
 LFO Automation
 --------------

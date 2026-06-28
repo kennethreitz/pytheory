@@ -65,23 +65,35 @@ The skills
      - What it does
    * - ``composing-with-pytheory``
      - Full arrangements — progressions, melodies, basslines, drums, layering —
-       rendered to audio or MIDI, with PyTheory's house style baked in.
+       rendered to audio or MIDI, with PyTheory's house style baked in. Also the
+       metronome and tempo trainer (``pytheory metronome``).
    * - ``playing-guitar-with-pytheory``
      - Fingerings, chord shapes and tab, chord identification, scale diagrams,
-       alternate tunings and capo, ~20 stringed instruments, Nashville charts,
-       and the real-time tuner.
+       embeddable SVG/PNG chord, scale, and arpeggio images, alternate tunings
+       and capo, 25 stringed instruments, Nashville charts, and the real-time
+       tuner.
    * - ``chord-lab-with-pytheory``
      - A single chord's notes, voicings (inversions, drop-2/3, open), tension,
-       tritone substitution, and voice leading.
+       the tritone substitution, Forte number / pitch-class set, figured bass,
+       and voice leading.
    * - ``keys-and-harmony-with-pytheory``
-     - Keys and progressions — diatonic chords, Roman-numeral analysis, key
-       detection, secondary dominants, borrowed chords, and modulation.
+     - Keys and progressions — diatonic chords (grouped by function),
+       Roman-numeral analysis, key detection, secondary dominants, borrowed
+       chords, negative harmony, and modulation.
    * - ``scales-modes-and-tunings-with-pytheory``
      - Scales and modes, "what scale fits these notes?", intervals, overtones,
-       the circle of fifths, and 16 tuning systems.
+       the circle of fifths, 16 tuning systems, Hindustani and Carnatic ragas
+       (shruti just intonation), and Arabic quarter-tone maqamat.
    * - ``transcription-and-notation-with-pytheory``
      - Audio → notes/MIDI, chord recognition, MIDI import, and export to
-       MusicXML / LilyPond lead sheets / ABC / tab.
+       MusicXML / LilyPond lead sheets / ABC / tab — with lyrics carried
+       through to all three notation formats.
+
+Prefer to drive PyTheory yourself? Every skill mirrors a hands-on guide:
+:doc:`composing <sequencing>`, :doc:`guitar and tab <fretboard>`,
+:doc:`chords <chords>`, :doc:`keys and harmony <theory>`,
+:doc:`scales and tunings <scales>`, and
+:doc:`transcription and export <playback>`.
 
 How it works
 ------------

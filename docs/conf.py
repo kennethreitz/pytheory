@@ -20,7 +20,14 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "myst_parser",
+    "sphinx_design",
+    "sphinx_copybutton",
 ]
+
+# Copybutton: strip REPL / shell prompts so copied code is runnable.
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
+copybutton_remove_prompts = True
 
 autodoc_member_order = "bysource"
 autodoc_default_options = {
@@ -38,6 +45,8 @@ exclude_patterns = ["_build"]
 
 html_theme = "alabaster"
 html_theme_options = {
+    "logo": "logo.png",
+    "logo_name": False,  # the logo image already contains the wordmark
     "github_user": "kennethreitz",
     "github_repo": "pytheory",
     "github_banner": True,

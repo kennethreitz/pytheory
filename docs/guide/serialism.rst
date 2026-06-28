@@ -47,7 +47,8 @@ the twelve transpositions. Every operation is just list arithmetic:
 - **Retrograde-Inversion (RI)** — the inversion, backwards.
 
 The number you pass is the **pitch class the form begins on**, so ``P(0)``
-starts on C and ``P(7)`` starts on G:
+starts on C and ``P(7)`` starts on G. It defaults to ``0``, so a bare
+``row.P()`` is shorthand for the prime form on C:
 
 .. code-block:: pycon
 
@@ -90,6 +91,9 @@ by addition. To read it:
      P2    D  D#  F#   E   G   F  G#   B  A#   A  C#   C   R2
          RI0 RI1 RI4 RI2 RI5 RI3 RI6 RI9 RI8 RI7RI11RI10
 
+Prefer integers to note names? Pass ``names=False`` to print the same grid
+as pitch-class numbers (0–11): ``print(row.matrix_str(names=False))``.
+
 Why you can trust it
 --------------------
 
@@ -125,6 +129,36 @@ prized bit of craftsmanship. ``row.is_all_interval`` checks for it, and
    [11, 2, 9, 4, 7, 6, 5, 8, 3, 10, 1]
    >>> wedge.is_all_interval
    True
+
+From row to a piece
+-------------------
+
+A ``ToneRow`` deals only in pitch — it hands back pitch classes and note
+names, with no rhythm, octave, or sound of its own. To actually *hear* a
+row, feed its note names into a :doc:`Score <sequencing>`. ``note_names()``
+returns octave-less names like ``"C"`` and ``"C#"``, so tack on an octave
+to pin down each pitch:
+
+.. code-block:: python
+
+   from pytheory import ToneRow, Score, Duration
+   from pytheory.play import play_score   # for live playback
+
+   row = ToneRow.from_names("C", "C#", "E", "D", "F", "D#",
+                            "F#", "A", "G#", "G", "B", "A#")
+
+   score = Score("4/4", bpm=120)
+   part = score.part("row", synth="sine", envelope="pluck")
+   for name in row.note_names("P0"):
+       part.add(f"{name}4", Duration.QUARTER)   # the prime in octave 4
+
+   score.save_midi("row.mid")        # write a Standard MIDI File
+   # play_score(score)               # ...or hear it live
+
+From there the whole toolkit opens up: layer P, I, R, and RI forms across
+separate parts, give each its own rhythm, and render the result. See
+:doc:`sequencing` for arranging multi-part scores, and :doc:`playback` for
+live playback, MIDI, and notation export (ABC, LilyPond, MusicXML).
 
 That's the whole technique. Pick twelve notes, agree never to favour one,
 and let these four operations spin the material into a piece.
