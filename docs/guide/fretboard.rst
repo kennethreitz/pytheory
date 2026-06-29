@@ -273,18 +273,21 @@ A value of ``x`` (``None``) means the string is muted (not played).
 ASCII Tablature
 ~~~~~~~~~~~~~~~
 
-For a more visual representation, use ``tab()``:
+For a more visual representation, use ``tab()``. Tablature follows the
+standard convention — the highest-pitched string (high ``e``) is drawn on
+top and the low ``E`` on the bottom, regardless of the board's data
+orientation:
 
 .. code-block:: pycon
 
    >>> print(fb.tab("C"))
    C major
-   E|--x--
-   A|--3--
-   D|--2--
-   G|--0--
-   B|--1--
    e|--0--
+   B|--1--
+   G|--0--
+   D|--2--
+   A|--3--
+   E|--x--
 
 Generating Full Charts
 ----------------------

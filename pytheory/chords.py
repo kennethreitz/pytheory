@@ -2475,12 +2475,12 @@ class Fretboard:
             >>> fb = Fretboard.guitar()
             >>> print(fb.tab("Am"))
             A minor
-            E|--x--
-            A|--0--
-            D|--2--
-            G|--2--
-            B|--1--
             e|--0--
+            B|--1--
+            G|--2--
+            D|--2--
+            A|--0--
+            E|--x--
         """
         return self.chord(name, system=system).tab()
 

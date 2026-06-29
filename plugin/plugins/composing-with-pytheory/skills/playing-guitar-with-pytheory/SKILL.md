@@ -30,19 +30,19 @@ from pytheory import Fretboard, Chord
 
 fb = Fretboard.guitar()
 
-print(fb.tab("Am"))          # ASCII tablature for a chord
+print(fb.tab("Am"))          # ASCII tablature for a chord (high e on top)
 # A minor
-# E|--x--
-# A|--0--
-# D|--2--
-# G|--2--
-# B|--1--
 # e|--0--
+# B|--1--
+# G|--2--
+# D|--2--
+# A|--0--
+# E|--x--
 
 shape = fb.chord("Am")       # a Fingering object
 shape.positions              # (None, 0, 2, 2, 1, 0)  — None = muted string
-shape.string_names           # ('E', 'A', 'D', 'G', 'B', 'e')
-print(shape.tab())           # same ASCII tab
+shape.string_names           # ('E', 'A', 'D', 'G', 'B', 'e')  — data model, low-to-high
+print(shape.tab())           # same ASCII tab (always high-to-low display)
 ```
 
 - `Fretboard.guitar()` and friends build a fretboard; `.chord("Cmaj7")` returns

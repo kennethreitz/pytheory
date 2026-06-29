@@ -93,12 +93,12 @@ stringed instruments:
 
 >>> print(Fretboard.guitar().tab("Am"))
 A minor
-E|--x--
-A|--0--
-D|--2--
-G|--2--
-B|--1--
 e|--0--
+B|--1--
+G|--2--
+D|--2--
+A|--0--
+E|--x--
 
 >>> Fretboard.guitar().chord("G")
 Fingering(E=3, A=2, D=0, G=0, B=0, e=3)

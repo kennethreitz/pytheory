@@ -257,30 +257,30 @@ Get the tab for any chord on any instrument:
    >>> fb = Fretboard.guitar()
    >>> print(fb.tab("C"))
    C major
-   E|--x--
-   A|--3--
-   D|--2--
-   G|--0--
-   B|--1--
    e|--0--
+   B|--1--
+   G|--0--
+   D|--2--
+   A|--3--
+   E|--x--
 
    >>> print(fb.tab("Am"))
    A minor
-   E|--x--
-   A|--0--
-   D|--2--
-   G|--2--
-   B|--1--
    e|--0--
+   B|--1--
+   G|--2--
+   D|--2--
+   A|--0--
+   E|--x--
 
    >>> print(fb.tab("E7"))
    E dominant 7th
-   E|--0--
-   A|--2--
-   D|--0--
-   G|--1--
-   B|--0--
    e|--0--
+   B|--0--
+   G|--1--
+   D|--0--
+   A|--2--
+   E|--0--
 
 Works with any instrument:
 
@@ -289,10 +289,10 @@ Works with any instrument:
    >>> uke = Fretboard.ukulele()
    >>> print(uke.tab("C"))
    C major
-   G|--0--
-   C|--0--
-   E|--0--
    A|--3--
+   E|--0--
+   C|--0--
+   G|--0--
 
 ``fb.tab`` accepts any chord symbol PyTheory can parse — see :doc:`chords`
 for the full vocabulary, and :doc:`fretboard` for chord charts, voicings,
@@ -303,17 +303,17 @@ Reading Tab Notation
 
 ::
 
-    E|--x--    ← muted (don't play this string)
-    A|--3--    ← press fret 3
-    D|--2--    ← press fret 2
-    G|--0--    ← open string
-    B|--1--    ← press fret 1
     e|--0--    ← open string (don't fret, just pluck)
+    B|--1--    ← press fret 1
+    G|--0--    ← open string
+    D|--2--    ← press fret 2
+    A|--3--    ← press fret 3
+    E|--x--    ← muted (don't play this string)
 
-- Each line is a string. Chord tab from ``fb.tab()`` lists strings
-  low-to-high (lowest pitch at top) by default since v0.43.0; pass
-  ``high_to_low=True`` to the fretboard for the traditional
-  highest-pitch-on-top layout.
+- Each line is a string. Chord tab from ``fb.tab()`` uses the standard
+  tab orientation — the highest-pitched string (high ``e``) on top and the
+  low ``E`` on the bottom. This layout is fixed regardless of the
+  fretboard's ``high_to_low`` data orientation.
 - Numbers are fret positions (0 = open, 1-24 = fretted)
 - ``x`` means the string is muted / not played
 - ``|`` marks measure boundaries in sequence tabs

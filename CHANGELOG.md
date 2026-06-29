@@ -2,6 +2,19 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.9
+
+- **ASCII tab now prints in the standard orientation.** `Fingering.tab()`,
+  `Fretboard.tab()`, and the `pytheory fingering` CLI rendered tablature
+  upside down — the low `E` string on top and the high `e` on the bottom —
+  because they followed the fretboard's low-to-high *data* orientation
+  instead of the fixed tab convention. Tab is a display format with one
+  universal rule: the highest-pitched string goes on top. All three now
+  render high-`e`-on-top regardless of the board's `high_to_low` setting,
+  matching `Part.to_tab()`, which was already correct. The data model
+  (`positions`, `string_names`, `repr`) is unchanged — only the rendered
+  tab flips. The SVG chord diagrams were already correct.
+
 ## 0.57.8
 
 Audio/live-engine holes of the same "a setting or path handles only part

@@ -138,12 +138,12 @@ Guitar::
 
    pytheory> fingering Am
      Am
-     E|--x--
-     A|--0--
-     D|--2--
-     G|--2--
-     B|--1--
      e|--0--
+     B|--1--
+     G|--2--
+     D|--2--
+     A|--0--
+     E|--x--
 
    pytheory> diagram minor 5
        0   1   2   3   4   5

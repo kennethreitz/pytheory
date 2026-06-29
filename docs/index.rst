@@ -146,12 +146,12 @@ for guitar and 24 other fretted and stringed instruments, in any tuning:
 
    >>> print(Fretboard.guitar().tab("Am"))
    A minor
-   E|--x--
-   A|--0--
-   D|--2--
-   G|--2--
-   B|--1--
    e|--0--
+   B|--1--
+   G|--2--
+   D|--2--
+   A|--0--
+   E|--x--
 
    >>> Chord.from_symbol("F#m7b5").identify()
    'F# half-diminished 7th'

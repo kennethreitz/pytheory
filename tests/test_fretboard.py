@@ -578,6 +578,37 @@ def test_fingering_tab_method():
     assert "e|" in tab
 
 
+def _tab_string_order(tab):
+    """The string labels of a tab block, top line to bottom line."""
+    return [line.split("|", 1)[0] for line in tab.strip().splitlines()[1:]]
+
+
+def test_tab_high_string_on_top():
+    """ASCII tab must put the highest-pitched string (high e) on top and
+    the lowest (low E) on the bottom — the standard tab convention."""
+    fb = Fretboard.guitar()
+    order = _tab_string_order(fb.chord("C").tab())
+    assert order == ["e", "B", "G", "D", "A", "E"]
+
+
+def test_tab_orientation_independent_of_board():
+    """Tab orientation is a fixed display convention: a high_to_low board
+    and the default board render the same chord identically."""
+    lo = Fretboard.guitar().chord("G").tab()
+    hi = Fretboard.guitar(high_to_low=True).chord("G").tab()
+    assert lo == hi
+    assert _tab_string_order(lo)[0] == "e"  # high e on top either way
+
+
+def test_fretboard_tab_method_orientation():
+    """Fretboard.tab() and NamedChord.tab() share the high-e-on-top order."""
+    from pytheory.charts import CHARTS
+    fb = Fretboard.guitar()
+    assert _tab_string_order(fb.tab("Am")) == ["e", "B", "G", "D", "A", "E"]
+    named = CHARTS["western"]["Am"].tab(fretboard=fb)
+    assert _tab_string_order(named) == ["e", "B", "G", "D", "A", "E"]
+
+
 def test_cli_fingering(capsys):
     from pytheory.cli import cmd_fingering
     import argparse

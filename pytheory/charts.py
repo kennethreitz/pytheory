@@ -166,24 +166,32 @@ class Fingering:
 
         Requires that the Fingering was created with a fretboard reference.
 
+        ASCII tablature follows a fixed convention: the highest-pitched
+        string is always drawn on top, regardless of the board's data
+        orientation (``high_to_low``). That flag governs the data model
+        (``positions``, ``string_names``, ``repr``); tab is always rendered
+        from the canonical high-to-low order.
+
         Example::
 
             >>> fb = Fretboard.guitar()
             >>> print(fb.chord("C").tab())
             C
-            E|--x--
-            A|--3--
-            D|--2--
-            G|--0--
-            B|--1--
             e|--0--
+            B|--1--
+            G|--0--
+            D|--2--
+            A|--3--
+            E|--x--
         """
         if self._fretboard is None:
             raise ValueError("Cannot render tab without a fretboard reference.")
         name = self.identify() or "?"
         lines = [name]
-        max_name = max(len(n) for n in self.string_names)
-        for sname, fret in zip(self.string_names, self.positions):
+        # Canonical order is high-to-low (highest string first); render it
+        # directly so the high E sits on top, the standard tab orientation.
+        max_name = max(len(n) for n in self._string_names)
+        for sname, fret in zip(self._string_names, self._positions):
             fret_str = "x" if fret is None else str(fret)
             lines.append(f"{sname:>{max_name}}|--{fret_str}--")
         return "\n".join(lines)
@@ -538,18 +546,19 @@ class NamedChord:
 
             >>> print(CHARTS["western"]["C"].tab(fretboard=Fretboard.guitar()))
             C
-            E|--x--
-            A|--3--
-            D|--2--
-            G|--0--
-            B|--1--
             e|--0--
+            B|--1--
+            G|--0--
+            D|--2--
+            A|--3--
+            E|--x--
         """
         fingering = self.fingering(fretboard=fretboard)
-        # Use the fingering's oriented, disambiguated string names/positions
-        # so the tab honors the fretboard's orientation.
-        string_names = fingering.string_names
-        positions = fingering.positions
+        # ASCII tab always reads high-to-low (highest string on top), the
+        # standard convention, independent of the board's orientation. Use
+        # the fingering's canonical (high-to-low) names/positions.
+        string_names = fingering._string_names
+        positions = fingering._positions
         lines = [self.name]
         max_name = max(len(n) for n in string_names)
         for name, fret in zip(string_names, positions):
