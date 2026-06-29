@@ -10,9 +10,12 @@ guitar fingerings, or transcribing a recording.
 Install
 -------
 
-In Claude Code, add the marketplace and install the plugin::
+In Claude Code, add the marketplace::
 
    /plugin marketplace add kennethreitz/pytheory-skill
+
+Then install the plugin::
+
    /plugin install composing-with-pytheory@pytheory
 
 That one plugin bundles six skills (below) — installing it gives Claude all of
