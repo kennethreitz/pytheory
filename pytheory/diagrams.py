@@ -26,6 +26,8 @@ Example::
 """
 from __future__ import annotations
 
+from html import escape as _xml_escape
+
 # ── palette ──────────────────────────────────────────────────────────
 _INK = "#222222"
 _DOT = "#222222"
@@ -51,6 +53,7 @@ def _line(x1, y1, x2, y2, w=1.5, color=_INK):
 
 
 def _text(x, y, s, size=13, color=_INK, weight="normal", anchor="middle"):
+    s = _xml_escape(str(s), quote=False)
     return (f'<text x="{x:g}" y="{y:g}" font-size="{size:g}" {_FONT} '
             f'fill="{color}" font-weight="{weight}" '
             f'text-anchor="{anchor}" dominant-baseline="middle">{s}</text>')

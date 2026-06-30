@@ -5664,6 +5664,11 @@ class Score:
         # at the same tick (no stuck notes on back-to-back pitches).
         timed = []
 
+        for beat, bpm in sorted(self._tempo_changes):
+            change_us_per_beat = int(60_000_000 / bpm)
+            payload = b"\xFF\x51\x03" + struct.pack(">I", change_us_per_beat)[1:]
+            timed.append((int(beat * ticks_per_beat), -1, None, payload, 0))
+
         def _emit_sequence(notes, channel):
             on_status, off_status = 0x90 | channel, 0x80 | channel
             cursor = 0
@@ -5709,7 +5714,10 @@ class Score:
         current_tick = 0
         for abs_tick, _order, status, d1, d2 in timed:
             events += _vlq(max(0, abs_tick - current_tick))
-            events += bytes([status, d1, d2])
+            if status is None:
+                events += d1
+            else:
+                events += bytes([status, d1, d2])
             current_tick = abs_tick
 
         # End of track.

@@ -172,10 +172,10 @@ when you're flat, and freezes when you're dead on — the same logic
 as a Peterson strobe), plus a needle, and your instrument's strings
 highlighted as you hit them with ``--instrument``.
 
-The page is fed by a **Server-Sent Events stream at** ``/stream``
-(CORS open) and the same stream over **WebSocket at** ``/ws`` —
-which means any JavaScript app can tap PyTheory's pitch detection
-directly, no client library required:
+The page is fed by a same-origin **Server-Sent Events stream at**
+``/stream`` and the same stream over **WebSocket at** ``/ws``. By
+default it binds to localhost; use ``--host`` only when you explicitly
+want another app or device to reach it:
 
 .. code-block:: javascript
 

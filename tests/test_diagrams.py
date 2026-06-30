@@ -21,6 +21,12 @@ def test_chord_image_is_valid_svg():
     assert "Am" in svg
 
 
+def test_chord_image_escapes_custom_text():
+    svg = chord_svg(Fretboard.guitar().chord("C"), name="A&B <C>")
+    _valid(svg)
+    assert "A&amp;B &lt;C&gt;" in svg
+
+
 def test_chord_image_marks_root_in_red():
     # C major has two C roots (A string fret 3, B string fret 1).
     svg = Fretboard.guitar().tab_image("C")

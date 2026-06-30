@@ -1020,7 +1020,9 @@ def test_studio_server_endpoints():
     time.sleep(0.6)
     base = f"http://localhost:{port}"
 
-    page = urllib.request.urlopen(base + "/", timeout=10).read().decode()
+    page_res = urllib.request.urlopen(base + "/", timeout=10)
+    assert page_res.headers.get("Access-Control-Allow-Origin") is None
+    page = page_res.read().decode()
     assert "PyTheory Studio" in page and "abcjs" in page
 
     s = Score(bpm=100)
@@ -1049,3 +1051,11 @@ def test_studio_server_endpoints():
     mid = urllib.request.urlopen(
         f"{base}/midi?id={res['id']}", timeout=30).read()
     assert mid[:4] == b"MThd"
+
+
+def test_local_web_servers_default_to_loopback():
+    import inspect
+    from pytheory import studio, tuner
+
+    assert inspect.signature(studio.serve).parameters["host"].default == "127.0.0.1"
+    assert inspect.signature(tuner.serve).parameters["host"].default == "127.0.0.1"

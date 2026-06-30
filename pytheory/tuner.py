@@ -33,8 +33,9 @@ library needed::
     const ws = new WebSocket("ws://localhost:8123/ws");
     ws.onmessage = (e) => { const reading = JSON.parse(e.data); };
 
-CORS is wide open on the stream, so a page served from anywhere
-(your dev server, a file:// page, CodePen) can connect.
+The built-in page is served from the same local server as the stream.
+By default the server binds to localhost; pass a wider host explicitly
+when you want to share it on a LAN.
 
 With an instrument preset, readings lock to the nearest string —
 the ``target`` field says which one — so "tune the D string" never
@@ -369,10 +370,10 @@ def _ws_frame(payload):
     return header + payload
 
 
-def serve(tuner, port=8123, open_browser=True):
+def serve(tuner, port=8123, open_browser=True, host="127.0.0.1"):
     """Serve the tuner over HTTP: a live strobe page at ``/``, a
-    Server-Sent Events pitch stream at ``/stream`` (CORS: any
-    origin), and the same stream over WebSocket at ``/ws``.
+    Server-Sent Events pitch stream at ``/stream``, and the same stream
+    over WebSocket at ``/ws``.
 
     Blocks until Ctrl-C.
     """
@@ -417,7 +418,6 @@ def serve(tuner, port=8123, open_browser=True):
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
                 self.send_header("Connection", "close")
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.close_connection = True
                 try:
@@ -462,8 +462,9 @@ def serve(tuner, port=8123, open_browser=True):
             except (BrokenPipeError, ConnectionResetError, OSError):
                 pass
 
-    server = ThreadingHTTPServer(("", port), Handler)
-    url = f"http://localhost:{port}"
+    server = ThreadingHTTPServer((host, port), Handler)
+    display_host = "localhost" if host in ("127.0.0.1", "::1") else host
+    url = f"http://{display_host}:{port}"
     print(f"  PyTheory Tuner — {url}")
     if tuner.instrument:
         strings = " ".join(name for name, _ in tuner.targets)

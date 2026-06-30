@@ -2,6 +2,21 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.10
+
+- **Local web tools are localhost-only by default.** `pytheory studio`
+  and `pytheory tune --serve` now bind to `127.0.0.1` unless `--host`
+  is passed explicitly, and the local HTTP responses no longer advertise
+  wildcard CORS. This keeps uploaded/transcribed audio, generated MIDI/WAV
+  files, and live tuner readings private on shared networks by default.
+- **MIDI export now preserves tempo changes.** Scores that use
+  `score.set_tempo()` now write additional MIDI tempo meta events at the
+  correct beat positions, so DAW playback matches PyTheory's rendered
+  audio tempo map.
+- **SVG diagram labels are escaped.** Custom chord/diagram text containing
+  XML-sensitive characters such as `&`, `<`, or `>` now produces valid SVG
+  instead of malformed markup.
+
 ## 0.57.9
 
 - **ASCII tab now prints in the standard orientation.** `Fingering.tab()`,

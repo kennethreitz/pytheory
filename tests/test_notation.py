@@ -183,6 +183,22 @@ def test_score_save_midi(tmp_path):
     assert len(data) > 30
 
 
+def test_score_save_midi_writes_tempo_changes(tmp_path):
+    """Tempo changes survive export as MIDI tempo meta events."""
+    score = Score("4/4", bpm=90)
+    score.add(Tone.from_string("C4"), Duration.WHOLE)
+    score.set_tempo(180)
+    score.add(Tone.from_string("D4"), Duration.WHOLE)
+
+    midi_path = tmp_path / "tempo_changes.mid"
+    score.save_midi(str(midi_path))
+
+    data = midi_path.read_bytes()
+    assert data.count(b"\xFF\x51\x03") == 2
+    assert b"\x0A\x2C\x2A" in data  # 666666 us/beat = 90 BPM
+    assert b"\x05\x16\x15" in data  # 333333 us/beat = 180 BPM
+
+
 def test_pattern_midi_export(tmp_path):
     from pytheory import Pattern
     p = Pattern.preset("bossa nova")
