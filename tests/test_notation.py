@@ -199,6 +199,22 @@ def test_score_save_midi_writes_tempo_changes(tmp_path):
     assert b"\x05\x16\x15" in data  # 333333 us/beat = 180 BPM
 
 
+def test_from_midi_preserves_tempo_changes(tmp_path):
+    """Tempo changes written by save_midi() come back on import."""
+    score = Score("4/4", bpm=60)
+    score.add(Tone.from_string("C4"), Duration.WHOLE)
+    score.set_tempo(120)
+    score.add(Tone.from_string("D4"), Duration.WHOLE)
+
+    midi_path = tmp_path / "tempo_map.mid"
+    score.save_midi(str(midi_path))
+
+    imported = Score.from_midi(str(midi_path))
+    assert imported.bpm == 60
+    assert imported._tempo_changes == [(4.0, 120)]
+    assert imported.duration_ms == 6000.0
+
+
 def test_pattern_midi_export(tmp_path):
     from pytheory import Pattern
     p = Pattern.preset("bossa nova")

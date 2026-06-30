@@ -1059,3 +1059,31 @@ def test_local_web_servers_default_to_loopback():
 
     assert inspect.signature(studio.serve).parameters["host"].default == "127.0.0.1"
     assert inspect.signature(tuner.serve).parameters["host"].default == "127.0.0.1"
+
+
+def test_tuner_serve_prints_custom_host_for_websocket(monkeypatch, capsys):
+    import http.server
+    from pytheory.tuner import serve
+
+    class FakeServer:
+        def __init__(self, address, handler):
+            self.address = address
+
+        def serve_forever(self):
+            raise KeyboardInterrupt
+
+        def shutdown(self):
+            pass
+
+    fake_tuner = type("FakeTuner", (), {
+        "instrument": None,
+        "targets": [],
+        "reference_pitch": 440.0,
+    })()
+
+    monkeypatch.setattr(http.server, "ThreadingHTTPServer", FakeServer)
+    serve(fake_tuner, port=8123, open_browser=False, host="0.0.0.0")
+
+    out = capsys.readouterr().out
+    assert "http://0.0.0.0:8123" in out
+    assert "ws://0.0.0.0:8123/ws" in out

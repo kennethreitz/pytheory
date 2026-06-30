@@ -6132,10 +6132,33 @@ def _render_legato_to_buf(notes, buf, samples_per_beat, total_samples,
             amp_curve[start:end] = 0.0
             freq_curve[start:end] = prev_hz if prev_hz > 0 else 440
 
-    # Generate continuous waveform from frequency curve
-    # Use phase accumulation for smooth frequency changes
-    phase = numpy.cumsum(2 * numpy.pi * freq_curve / SAMPLE_RATE)
-    wave = numpy.sin(phase).astype(numpy.float32)
+    def _wave_from_phase(freq_curve):
+        """Continuous oscillator for synths that can follow a pitch curve."""
+        phase = numpy.cumsum(2 * numpy.pi * freq_curve / SAMPLE_RATE)
+        cycle = (phase / (2 * numpy.pi)) % 1.0
+        if synth_fn is sawtooth_wave:
+            return (2.0 * cycle - 1.0).astype(numpy.float32)
+        if synth_fn is triangle_wave:
+            return (1.0 - 4.0 * numpy.abs(cycle - 0.5)).astype(numpy.float32)
+        if synth_fn is square_wave:
+            return numpy.sign(numpy.sin(phase)).astype(numpy.float32)
+        if synth_fn is pulse_wave:
+            return numpy.where(cycle < 0.25, 1.0, -1.0).astype(numpy.float32)
+        if synth_fn is supersaw_wave:
+            mixed = numpy.zeros_like(freq_curve, dtype=numpy.float32)
+            for cents in numpy.linspace(-15, 15, 7):
+                ratio = 2 ** (cents / 1200)
+                ph = numpy.cumsum(2 * numpy.pi * freq_curve * ratio / SAMPLE_RATE)
+                cyc = (ph / (2 * numpy.pi)) % 1.0
+                mixed += (2.0 * cyc - 1.0).astype(numpy.float32)
+            return mixed / 7.0
+        # Complex sampled/physical-model synths do not have a cheap
+        # continuous pitch-curve form here, so fall back to the historical
+        # sine oscillator rather than retriggering envelopes.
+        return numpy.sin(phase).astype(numpy.float32)
+
+    # Generate continuous waveform from frequency curve.
+    wave = _wave_from_phase(freq_curve)
 
     # Apply amplitude (on/off for notes vs rests, scaled by velocity)
     wave *= amp_curve

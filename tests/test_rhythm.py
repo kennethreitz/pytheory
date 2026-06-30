@@ -116,6 +116,14 @@ def test_score_duration_ms():
     assert score.duration_ms == 1500.0
 
 
+def test_score_duration_ms_with_tempo_changes():
+    score = Score("4/4", bpm=60)
+    score.add(Tone.from_string("C4"), Duration.WHOLE)  # 4 beats = 4000 ms
+    score.set_tempo(120)
+    score.add(Tone.from_string("D4"), Duration.WHOLE)  # 4 beats = 2000 ms
+    assert score.duration_ms == 6000.0
+
+
 def test_score_iteration():
     score = Score("4/4", bpm=120)
     t = Tone.from_string("C4")

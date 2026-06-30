@@ -140,6 +140,22 @@ def test_cli_main_no_args(capsys):
     sys.argv = old_argv
 
 
+def test_cli_main_version(capsys):
+    import pytheory
+    from pytheory.cli import main
+    import sys
+    old_argv = sys.argv
+    sys.argv = ["pytheory", "--version"]
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+    finally:
+        sys.argv = old_argv
+    out = capsys.readouterr().out
+    assert pytheory.__version__ in out
+
+
 def test_cli_identify_cmaj7(capsys):
     from pytheory.cli import cmd_identify
     import argparse

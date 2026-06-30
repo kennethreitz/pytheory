@@ -4603,8 +4603,24 @@ class Score:
     @property
     def duration_ms(self) -> float:
         """Total duration in milliseconds."""
-        ms_per_beat = 60_000 / self.bpm
-        return self.total_beats * ms_per_beat
+        total = self.total_beats
+        if not self._tempo_changes:
+            return total * (60_000 / self.bpm)
+
+        ms = 0.0
+        prev_beat = 0.0
+        prev_bpm = self.bpm
+        for beat, bpm in sorted(self._tempo_changes):
+            if beat <= prev_beat:
+                prev_bpm = bpm
+                continue
+            if beat >= total:
+                break
+            ms += (beat - prev_beat) * (60_000 / prev_bpm)
+            prev_beat = beat
+            prev_bpm = bpm
+        ms += max(0.0, total - prev_beat) * (60_000 / prev_bpm)
+        return ms
 
     def __len__(self):
         return len(self.notes) + sum(len(p) for p in self.parts.values())
@@ -5808,14 +5824,20 @@ class Score:
 
         # Compute BPM from tempo (microseconds per beat). Guard against a
         # malformed file declaring a zero tempo (would divide-by-zero).
-        tempo_us = midi["tempo"] or 500000  # 500000 = 120 BPM, the MIDI default
-        bpm = round(60_000_000 / tempo_us)
+        def _tempo_us_to_bpm(tempo_us):
+            return round(60_000_000 / (tempo_us or 500000))
+
+        bpm = _tempo_us_to_bpm(midi["tempo"])
 
         # Build time signature string
         ts_num, ts_den = midi["time_sig"]
         ts_str = f"{ts_num}/{ts_den}"
 
         score = cls(time_signature=ts_str, bpm=bpm)
+        score._tempo_changes = [
+            (beat, _tempo_us_to_bpm(tempo_us))
+            for beat, tempo_us in midi.get("tempo_changes", [])
+        ]
         tpb = midi["ticks_per_beat"]
         if tpb <= 0:
             raise ValueError(
@@ -5949,7 +5971,8 @@ def _parse_midi(path):
 
     Returns a dict with:
         - ticks_per_beat: int
-        - tempo: int (microseconds per beat, default 500000 = 120 bpm)
+        - tempo: initial microseconds per beat (default 500000 = 120 bpm)
+        - tempo_changes: list of (beat, microseconds per beat) after beat 0
         - time_sig: (numerator, denominator)
         - tracks: list of lists of events
 
@@ -5974,7 +5997,7 @@ def _parse_midi(path):
     if fmt > 1:
         raise ValueError(f"MIDI format {fmt} not supported (only 0 and 1)")
 
-    tempo = 500000  # default 120 BPM
+    tempo_events = []
     time_sig = (4, 4)  # default
     tracks = []
 
@@ -6010,7 +6033,10 @@ def _parse_midi(path):
 
                 if meta_type == 0x51 and meta_len == 3:
                     # Tempo: 3 bytes, microseconds per beat
-                    tempo = (meta_data[0] << 16) | (meta_data[1] << 8) | meta_data[2]
+                    tempo_events.append(
+                        (abs_tick,
+                         (meta_data[0] << 16) | (meta_data[1] << 8) | meta_data[2])
+                    )
                 elif meta_type == 0x58 and meta_len >= 2:
                     # Time signature: nn dd cc bb
                     ts_num = meta_data[0]
@@ -6095,9 +6121,19 @@ def _parse_midi(path):
 
         tracks.append(track_events)
 
+    tempo = 500000  # MIDI default: 120 BPM until a tempo event says otherwise
+    tempo_changes = []
+    if ticks_per_beat > 0:
+        for tick, tempo_us in sorted(tempo_events, key=lambda event: event[0]):
+            if tick == 0:
+                tempo = tempo_us
+            else:
+                tempo_changes.append((tick / ticks_per_beat, tempo_us))
+
     return {
         "ticks_per_beat": ticks_per_beat,
         "tempo": tempo,
+        "tempo_changes": tempo_changes,
         "time_sig": time_sig,
         "tracks": tracks,
     }

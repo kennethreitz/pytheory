@@ -472,7 +472,7 @@ def serve(tuner, port=8123, open_browser=True, host="127.0.0.1"):
     if getattr(tuner, "chords", False):
         print("  Chords:          strum and the page names the chord")
     print(f"  JS stream:       {url}/stream  (Server-Sent Events)")
-    print(f"  WebSocket:       ws://localhost:{port}/ws")
+    print(f"  WebSocket:       ws://{display_host}:{port}/ws")
     print("  Ctrl-C to stop.")
     if open_browser:
         import webbrowser

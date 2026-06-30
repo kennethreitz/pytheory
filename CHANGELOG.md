@@ -2,6 +2,22 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.11
+
+- **Tempo maps now round-trip through MIDI import.** `Score.from_midi()`
+  now keeps MIDI tempo-change events as `score._tempo_changes`, so a score
+  exported with `score.set_tempo()` comes back with the same tempo map.
+- **`Score.duration_ms` now respects tempo changes.** Duration reporting
+  uses the score's tempo map instead of multiplying every beat by the
+  initial BPM, so it matches rendered playback for accelerandos and
+  ritardandos.
+- **Legato playback honors core synth waveforms.** `legato=True` parts now
+  preserve continuous `saw`, `triangle`, `square`, `pulse`, and `supersaw`
+  oscillators instead of silently falling back to a sine wave.
+- **CLI/server polish.** `pytheory --version` now reports the installed
+  package version, and the tuner prints the correct WebSocket URL when
+  served with a custom `--host`.
+
 ## 0.57.10
 
 - **Local web tools are localhost-only by default.** `pytheory studio`

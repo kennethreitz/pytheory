@@ -981,10 +981,14 @@ def cmd_reharmonize(args):
 
 
 def main():
+    from . import __version__
+
     parser = argparse.ArgumentParser(
         prog="pytheory",
         description="Music Theory for Humans — from the command line",
     )
+    parser.add_argument("--version", action="version",
+                        version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command")
 
     # Shared flags for the theory/music commands.

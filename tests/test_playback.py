@@ -584,6 +584,21 @@ def test_articulations_render():
     assert len(buf) > 0
 
 
+def test_legato_honors_basic_synth_waveform():
+    from pytheory.play import render_score
+
+    def render(synth):
+        score = pytheory.Score("4/4", bpm=120)
+        part = score.part("lead", synth=synth, envelope="none",
+                          legato=True, volume=0.5)
+        part.add("C4", Duration.WHOLE)
+        return render_score(score)
+
+    sine = render("sine")
+    saw = render("saw")
+    assert numpy.max(numpy.abs(saw - sine)) > 0.05
+
+
 def test_render_score_exported():
     assert "render_score" in pytheory.__all__
 
