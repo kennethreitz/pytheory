@@ -136,6 +136,13 @@ def test_render_pattern_different_tempos():
     assert len(slow) > len(fast)  # slower = more samples
 
 
+def test_render_pattern_bpm_must_be_positive():
+    from pytheory.play import _render_pattern
+    from pytheory import Pattern
+    with pytest.raises(ValueError, match="bpm must be positive"):
+        _render_pattern(Pattern.preset("rock"), bpm=0)
+
+
 def test_part_total_beats_in_score():
     from pytheory import Score, Duration
     score = Score("4/4", bpm=120)

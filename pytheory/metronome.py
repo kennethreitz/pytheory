@@ -84,6 +84,10 @@ class Metronome:
             raise ValueError("beats must be at least 1")
         if subdivide < 1:
             raise ValueError("subdivide must be at least 1")
+        if end_bpm is not None and end_bpm <= 0:
+            raise ValueError("end_bpm must be positive")
+        if end_bpm is not None and end_bpm != bpm and step == 0:
+            raise ValueError("step must be positive when end_bpm differs from bpm")
         self.bpm = float(bpm)
         self.beats = beats
         self.accent = accent

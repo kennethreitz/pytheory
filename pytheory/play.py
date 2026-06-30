@@ -4524,6 +4524,8 @@ def _render_pattern(pattern, bpm=120):
     Returns:
         Float32 numpy array of mixed audio.
     """
+    if bpm <= 0:
+        raise ValueError("bpm must be positive")
     samples_per_beat = int(SAMPLE_RATE * 60.0 / bpm)
     total_samples = int(pattern.beats * samples_per_beat)
     buf = numpy.zeros(total_samples, dtype=numpy.float32)
@@ -6743,6 +6745,9 @@ def save_midi(tone_or_chords, path, *, t=500, velocity=100, bpm=120, gap=0):
         >>> save_midi(Tone.from_string("C4"), "middle_c.mid", t=1000)
     """
     import struct
+
+    if bpm <= 0:
+        raise ValueError("bpm must be positive")
 
     ticks_per_beat = 480
     us_per_beat = int(60_000_000 / bpm)

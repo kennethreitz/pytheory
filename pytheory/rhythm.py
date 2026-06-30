@@ -4080,6 +4080,16 @@ class Score:
         # ring_out().
         self._tail_beats: float = 0.0
 
+    @property
+    def bpm(self):
+        return self._bpm
+
+    @bpm.setter
+    def bpm(self, value):
+        if value <= 0:
+            raise ValueError("bpm must be positive")
+        self._bpm = value
+
     def _ensure_drums_part(self) -> Part:
         """Get or create the drums Part."""
         if "drums" not in self.parts:
@@ -4511,6 +4521,8 @@ class Score:
         Returns:
             Self for chaining.
         """
+        if bpm <= 0:
+            raise ValueError("bpm must be positive")
         self._tempo_changes.append((self.total_beats, bpm))
         return self
 

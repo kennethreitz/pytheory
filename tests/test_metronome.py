@@ -86,6 +86,10 @@ def test_invalid_args():
         Metronome(bpm=120, beats=0)
     with pytest.raises(ValueError):
         Metronome(bpm=120, subdivide=0)
+    with pytest.raises(ValueError, match="end_bpm must be positive"):
+        Metronome(bpm=120, end_bpm=0)
+    with pytest.raises(ValueError, match="step must be positive"):
+        Metronome(bpm=120, end_bpm=140, step=0)
 
 
 def test_tempo_trainer_ramps_up_and_stops(fake_sd):

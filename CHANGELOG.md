@@ -2,6 +2,20 @@
 
 All notable changes to PyTheory are documented here.
 
+## 0.57.12
+
+- **Score tempo validation is consistent now.** `Score(bpm=...)`,
+  direct `score.bpm = ...` assignment, and `score.set_tempo(...)` now
+  reject zero or negative BPM values with a clear `ValueError` instead of
+  letting invalid tempos reach duration math, rendering, or MIDI export.
+- **Tempo trainer settings fail fast.** `Metronome` now rejects invalid
+  `end_bpm` values and impossible active ramps such as `step=0`, avoiding
+  configurations that could stall indefinitely.
+- **Standalone tempo-based helpers report clean errors.** Drum-pattern
+  rendering and simple MIDI export now validate BPM before doing timing
+  arithmetic, so invalid inputs raise a useful exception instead of a
+  divide-by-zero error.
+
 ## 0.57.11
 
 - **Tempo maps now round-trip through MIDI import.** `Score.from_midi()`

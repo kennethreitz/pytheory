@@ -108,6 +108,14 @@ def test_save_midi_with_gap(tmp_path):
     assert path.exists()
 
 
+def test_save_midi_bpm_must_be_positive(tmp_path):
+    from pytheory.play import save_midi
+    path = tmp_path / "invalid_bpm.mid"
+    with pytest.raises(ValueError, match="bpm must be positive"):
+        save_midi(Tone.from_string("C4"), str(path), bpm=0)
+    assert not path.exists()
+
+
 def test_cli_midi_basic(capsys, tmp_path):
     from pytheory.cli import cmd_midi
     import argparse
