@@ -197,11 +197,6 @@ INSTRUMENTS = {
         "synth": "harp_synth", "envelope": "none",
         "reverb": 0.3, "reverb_type": "plate",
     },
-    "sitar": {
-        "synth": "saw", "envelope": "pluck",
-        "detune": 12, "lowpass": 3000, "lowpass_q": 1.5,
-        "humanize": 0.2,
-    },
     "pedal_steel": {
         "synth": "pedal_steel_synth", "envelope": "strings",
         "reverb": 0.3, "reverb_type": "spring",
