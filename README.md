@@ -191,9 +191,14 @@ PyTheory ships an [official Claude Code plugin](https://github.com/kennethreitz/
 
 Then just ask — *"write me a bossa nova in G minor"*, *"what's the fingering for F#m7b5?"*, *"turn this hum into a lead sheet"*. See the [guide](https://pytheory.org/guide/claude.html). For a real album made entirely in PyTheory, hear [Interpretations](https://interpretations.kennethreitz.org).
 
+## PyTheory VST
+
+Want PyTheory inside your DAW? [PyTheory VST](https://github.com/kennethreitz/pytheory-vst) is a set of AU/VST3 plugins for macOS 13+ on Apple silicon: a scale and chord MIDI effect, an instrument with PyTheory's 84 presets, a drum kit with its 74 sounds, and an effects chain. Each plugin ships with Python bundled inside, so you drop it in and play. Grab the [latest release](https://github.com/kennethreitz/pytheory-vst/releases/latest).
+
 ## Learn More
 
 - **[playground.pytheory.org](https://playground.pytheory.org)** — try PyTheory in your browser, nothing to install.
 - **[pytheory.org](https://pytheory.org)** — guides, API reference, and audio examples.
 - **[pytheory-skill](https://github.com/kennethreitz/pytheory-skill)** — the official Claude Code plugin (six skills) to make music by talking to Claude.
+- **[pytheory-vst](https://github.com/kennethreitz/pytheory-vst)** - AU/VST3 plugins for your DAW (MIDI, instrument, drums, effects). [Latest release](https://github.com/kennethreitz/pytheory-vst/releases/latest).
 - **[ableton-pytheory](https://github.com/kennethreitz/ableton-pytheory)** — drive Ableton Live from PyTheory, for those interested.

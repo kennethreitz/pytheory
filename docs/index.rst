@@ -89,6 +89,13 @@ that sounds like you:
       A MIDI keyboard and a synth rig in the terminal, with recording
       — or a session to join over Ableton Link.
 
+   .. grid-item-card:: In your DAW
+      :link: guide/vst
+      :link-type: doc
+
+      AU and VST3 plugins that bring PyTheory into Ableton and friends:
+      scales, chords, an instrument, drums, and effects.
+
    .. grid-item-card:: Capturing ideas
       :link: guide/listening
       :link-type: doc
@@ -259,6 +266,7 @@ every time:
    guide/repl
    guide/cli
    guide/claude
+   guide/vst
    guide/cookbook
 
 .. toctree::
