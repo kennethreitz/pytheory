@@ -1844,6 +1844,8 @@ class Fretboard:
         "open a": ("E4", "C#4", "A3", "E3", "A2", "E2"),
         "dadgad": ("D4", "A3", "G3", "D3", "A2", "D2"),
         "half step down": ("D#4", "A#3", "F#3", "C#3", "G#2", "D#2"),
+        "p4": ("F4", "C4", "G3", "D3", "A2", "E2"),
+        "all fourths": ("F4", "C4", "G3", "D3", "A2", "E2"),
     }
 
     @classmethod
@@ -1856,7 +1858,8 @@ class Fretboard:
                 tuple is read **low to high** by default (pass
                 ``high_to_low=True`` to give it high to low instead).
                 Built-in tunings: standard, drop d, open g, open d,
-                open e, open a, dadgad, half step down.
+                open e, open a, dadgad, half step down, p4 (alias
+                all fourths, EADGCF).
             capo: Fret number for the capo (0 = no capo). Raises all
                 strings by this many semitones.
             high_to_low: When ``True``, the resulting board reads high to

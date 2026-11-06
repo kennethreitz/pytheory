@@ -84,7 +84,7 @@ Fretboard.guitar().capo(2)            # capo at the 2nd fret
 ```
 
 Named guitar tunings: `standard`, `drop d`, `open g`, `open d`, `open e`,
-`open a`, `dadgad`, `half step down`. For anything else, pass a tuple of open-string
+`open a`, `dadgad`, `half step down`, `p4` (or `all fourths`). For anything else, pass a tuple of open-string
 notes (low-to-high), e.g. `Fretboard.guitar(tuning=("C2","G2","C3","G3","C4","E4"))`.
 
 ## Identify a chord

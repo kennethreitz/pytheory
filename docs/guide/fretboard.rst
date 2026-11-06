@@ -60,6 +60,7 @@ strings, except between G and B which is a major 3rd (4 semitones).
    >>> Fretboard.guitar("open a")          # EAEAC#E — slide
    >>> Fretboard.guitar("dadgad")          # DADGAD — Celtic, fingerstyle
    >>> Fretboard.guitar("half step down")  # Eb standard — Hendrix, SRV
+   >>> Fretboard.guitar("p4")              # EADGCF all fourths, same shapes everywhere
 
    >>> # Custom tuning with any notes
    >>> Fretboard.guitar(("C4", "G3", "C3", "G2", "C2", "G1"))
