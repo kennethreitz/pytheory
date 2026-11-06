@@ -96,6 +96,13 @@ that sounds like you:
       AU and VST3 plugins that bring PyTheory into Ableton and friends:
       scales, chords, an instrument, drums, and effects.
 
+   .. grid-item-card:: Inside Ableton Live
+      :link: guide/ableton
+      :link-type: doc
+
+      An Ableton Live Extension that runs PyTheory inside Live: detect
+      keys and chords, generate clips, transform MIDI, all offline.
+
    .. grid-item-card:: Capturing ideas
       :link: guide/listening
       :link-type: doc
@@ -267,6 +274,7 @@ every time:
    guide/cli
    guide/claude
    guide/vst
+   guide/ableton
    guide/cookbook
 
 .. toctree::

@@ -195,10 +195,14 @@ Then just ask — *"write me a bossa nova in G minor"*, *"what's the fingering f
 
 Want PyTheory inside your DAW? [PyTheory VST](https://github.com/kennethreitz/pytheory-vst) is a set of AU/VST3 plugins for macOS 13+ on Apple silicon: a scale and chord MIDI effect, an instrument with PyTheory's 84 presets, a drum kit with its 74 sounds, and an effects chain. Each plugin ships with Python bundled inside, so you drop it in and play. Grab the [latest release](https://github.com/kennethreitz/pytheory-vst/releases/latest).
 
+## Ableton Live Extension
+
+Prefer working inside Ableton? [ableton-pytheory](https://github.com/kennethreitz/ableton-pytheory) is an Ableton Live Extension that runs the real PyTheory package inside Live via WebAssembly. Right-click a MIDI clip to detect keys and chords, generate progressions and melodies, harmonize, arpeggiate, print sheet music, and more. No plugins, no system Python, fully offline. Needs a Live build with Extensions support (currently the Live beta).
+
 ## Learn More
 
 - **[playground.pytheory.org](https://playground.pytheory.org)** — try PyTheory in your browser, nothing to install.
 - **[pytheory.org](https://pytheory.org)** — guides, API reference, and audio examples.
 - **[pytheory-skill](https://github.com/kennethreitz/pytheory-skill)** — the official Claude Code plugin (six skills) to make music by talking to Claude.
 - **[pytheory-vst](https://github.com/kennethreitz/pytheory-vst)** - AU/VST3 plugins for your DAW (MIDI, instrument, drums, effects). [Latest release](https://github.com/kennethreitz/pytheory-vst/releases/latest).
-- **[ableton-pytheory](https://github.com/kennethreitz/ableton-pytheory)** — drive Ableton Live from PyTheory, for those interested.
+- **[ableton-pytheory](https://github.com/kennethreitz/ableton-pytheory)** - Ableton Live Extension that runs PyTheory inside Live (key/chord detect, generate, transform). Fully offline.
