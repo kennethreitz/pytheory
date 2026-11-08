@@ -34,31 +34,17 @@ class Chord:
     def from_name(cls, name: str, octave: int = 4) -> Chord:
         """Create a Chord from a chord name like ``"Cmaj7"`` or ``"Am"``.
 
-        Uses the built-in chord chart to find the correct tones,
-        then builds the chord at the given octave.
-
-        Example::
-
-            >>> Chord.from_name("C")
-            <Chord C major>
-            >>> Chord.from_name("Am7")
-            <Chord A minor 7th>
-            >>> Chord.from_name("G7", octave=3)
-            <Chord G dominant 7th>
+        Shares the general parser and letter-based spelling of
+        ``from_symbol``. For compatibility, all notes use the requested
+        written octave; use ``from_symbol`` for an ascending root-position
+        voicing with upper extensions in their proper register.
         """
-        from .charts import CHARTS
         from .tones import Tone
-
-        chart = CHARTS.get("western", {})
-        if name not in chart:
-            raise ValueError(f"Unknown chord: {name!r}")
-
-        named = chart[name]
-        tones = []
-        for t in named.acceptable_tones:
-            tones.append(Tone.from_string(
-                f"{t.name}{octave}", system="western"))
-        return cls(tones=tones)
+        chord = cls.from_symbol(name, octave=octave)
+        if "/" in name:
+            return chord  # explicit slash voicings retain their bass register
+        return cls(tones=[Tone(t.name, octave=octave, system="western")
+                          for t in chord.tones])
 
     @classmethod
     def from_intervals(cls, root: str, *intervals: int, octave: int = 4) -> Chord:
@@ -111,6 +97,9 @@ class Chord:
         "7": (4, 7, 10),
         "dom7": (4, 7, 10),
         "dim7": (3, 6, 9),
+        "°7": (3, 6, 9),
+        "ø": (3, 6, 10),
+        "ø7": (3, 6, 10),
         "m7b5": (3, 6, 10),
         "mMaj7": (3, 7, 11),
         "aug7": (4, 8, 10),
@@ -135,21 +124,15 @@ class Chord:
         "13": (4, 7, 10, 14, 21),
     }
 
-    # Root note names — try longest match first (e.g. "C#" before "C").
-    _ROOT_NAMES = [
-        "A#", "Ab", "A", "Bb", "B", "C#", "Cb", "C",
-        "D#", "Db", "D", "Eb", "E", "F#", "Fb", "F",
-        "G#", "Gb", "G",
-    ]
-
     @classmethod
     def from_symbol(cls, symbol: str, octave: int = 4) -> Chord:
         """Create a Chord by parsing a standard chord symbol.
 
         Parses symbols like ``"Cmaj7"``, ``"F#m7b5"``, ``"Bbdim"``,
         ``"Gsus4"``, ``"Dadd9"`` — any root note followed by a quality
-        suffix. Unlike ``from_name()``, this doesn't rely on a lookup
-        table and can handle any combination.
+        suffix. ``from_name`` uses the same parser. Both preserve the root
+        spelling and derive chord tones by letter, including double flats
+        in diminished sevenths and sharps in augmented fifths.
 
         Slash chords are voiced with the named bass note lowest:
         ``"C/E"`` gives the first inversion (E4 G4 C5), and a bass
@@ -175,8 +158,10 @@ class Chord:
             >>> Chord.from_symbol("Bbmaj7").symbol
             'Bbmaj7'
         """
+        import re
         from .tones import Tone
 
+        symbol = symbol.replace("♯", "#").replace("♭", "b")
         # Slash chord: parse the main symbol, then re-voice so the
         # named bass note is lowest.
         if "/" in symbol:
@@ -194,17 +179,12 @@ class Chord:
                 bass = bass.subtract(12)
             return cls(tones=[bass] + list(chord.tones))
 
-        # Parse root note
-        root_name = None
-        suffix = symbol
-        for name in cls._ROOT_NAMES:
-            if symbol.startswith(name):
-                root_name = name
-                suffix = symbol[len(name):]
-                break
-
-        if root_name is None:
+        # Consume the entire root, including accidentals, before parsing
+        # an exact quality suffix. Do not silently accept trailing garbage.
+        match = re.fullmatch(r"([A-G](?:#+|b+)?)(.*)", symbol)
+        if match is None:
             raise ValueError(f"Cannot parse root note from: {symbol!r}")
+        root_name, suffix = match.groups()
 
         # Empty suffix or just "maj" = major triad
         if suffix == "" or suffix == "M":
@@ -229,7 +209,26 @@ class Chord:
                     f"Unknown chord quality: {suffix!r} in {symbol!r}")
 
         root = Tone.from_string(f"{root_name}{octave}", system="western")
-        tones = [root] + [root.add(i) for i in intervals]
+        # Diatonic degrees distinguish enharmonic chord members: a
+        # diminished seventh is the seventh letter (Bbb in C), not A.
+        if suffix.startswith("sus2") or suffix == "7sus2":
+            degrees = (2, 5, 7)
+        elif suffix.startswith("sus4") or suffix == "7sus4":
+            degrees = (4, 5, 7)
+        elif suffix == "5":
+            degrees = (5,)
+        elif suffix in ("6", "m6"):
+            degrees = (3, 5, 6)
+        elif suffix == "add9":
+            degrees = (3, 5, 9)
+        elif suffix == "add11":
+            degrees = (3, 5, 11)
+        elif suffix == "13":
+            degrees = (3, 5, 7, 9, 13)
+        else:
+            degrees = (3, 5, 7, 9, 11)
+        tones = [root] + [root._spell_interval(i, d - 1)
+                          for i, d in zip(intervals, degrees)]
         return cls(tones=tones)
 
     def __repr__(self) -> str:

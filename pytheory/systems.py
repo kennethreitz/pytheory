@@ -79,6 +79,18 @@ class System:
             if name in names:
                 return names[0]
 
+        # Arbitrarily altered Western notes are needed for theoretical chord
+        # spellings too (for example B#aug contains F###). Do not interpret
+        # letter accidentals in numbered or non-Western tuning systems.
+        import re
+        if self is globals().get("SYSTEMS", {}).get("western"):
+            match = re.fullmatch(r"([A-G])(#+|b+)", name)
+            if match:
+                base, accidental = match.groups()
+                base_idx = self._name_to_index(base)
+                offset = len(accidental) * (1 if accidental[0] == "#" else -1)
+                return self.tone_names[(base_idx + offset) % len(self.tone_names)][0]
+
         # Handle double sharps (e.g. C## → D, F## → G)
         if name.endswith('##') and len(name) >= 3:
             base = name[:-2]

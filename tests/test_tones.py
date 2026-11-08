@@ -1087,13 +1087,13 @@ def test_int_tone_negative():
 
 def test_b_sharp_octave():
     t = Tone("B#4")
-    assert t.octave == 5
+    assert t.octave == 4
     assert t.frequency == pytest.approx(Tone("C5").frequency, rel=1e-3)
 
 
 def test_c_flat_octave():
     t = Tone("Cb4")
-    assert t.octave == 3
+    assert t.octave == 4
     assert t.frequency == pytest.approx(Tone("B3").frequency, rel=1e-3)
 
 

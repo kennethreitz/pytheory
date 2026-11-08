@@ -1434,14 +1434,6 @@ class TonedScale:
         start = cls._LETTERS.index(tonic.name[0])
         tonic_pc = cls._name_pc(tonic.name)
         base_oct = tonic.octave if tonic.octave is not None else 0
-        # The constructor stores Cb/B# at the boundary-adjusted octave (Cb4
-        # is kept as octave 3). Recover the *notated* octave so the degrees
-        # above it are placed in the right register.
-        if tonic.octave is not None and len(tonic.name) > 1:
-            if tonic.name[0] == "C" and "b" in tonic.name[1:]:
-                base_oct += 1
-            elif tonic.name[0] == "B" and "#" in tonic.name[1:]:
-                base_oct -= 1
         cum, semis = 0, [0]
         for iv in reference_scale:
             cum += iv

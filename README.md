@@ -83,6 +83,51 @@ score.save_midi("sketch.mid")  # open in your DAW
 [('C', 'blues', 1.0), ...]
 ```
 
+### Spelling and intervals
+
+`Chord.from_name()` and `Chord.from_symbol()` share a general chord parser:
+roots keep their written accidentals, and chord members are spelled by letter.
+For example, `Ebm` is Eb Gb Bb, `F#7` is F# A# C# E, and `Cdim7` is
+C Eb Gb Bbb. Common triads, sevenths, ninths, sixths, suspended chords,
+`add9`, `m7b5`/`ø`, and `dim7`/`°7` are supported for sharp and flat roots.
+`from_name()` retains its historical same-written-octave voicing;
+`from_symbol()` builds an ascending root-position voicing instead.
+
+```pycon
+>>> c = Tone("C4")
+>>> c.transpose_interval("m3")
+<Tone Eb4>
+>>> c.transpose("A2")
+<Tone D#4>
+>>> c.transpose("M10")
+<Tone E5>
+>>> c.interval_name_to(Tone("D#4"))
+'augmented second'
+>>> c.interval_name_to(Tone("Eb4"))
+'minor third'
+>>> c.interval_name_to(Tone("E5"))
+'major tenth'
+>>> Tone("Db4").add(2, prefer_flats=None)
+<Tone Eb4>
+```
+
+Spelled transposition accepts `P`, `M`, `m`, `A`, `d`, compound numbers and
+an optional minus sign, such as `-m3`. `interval_name_to()` uses both letter
+distance and pitch; descending intervals have no direction prefix.
+These letter-based APIs require Western tones.
+
+For backward compatibility, integer arithmetic is still chromatic:
+`Tone("C4") + 3` remains D#4, `Tone - Tone` returns a signed integer, and
+`interval_to()` keeps its existing chromatic string names (`"major 3rd"`,
+`"tritone"`, `"major 3rd + 1 octave"`). Semitones alone cannot tell m3 from
+A2, and a tone does not carry an implicit key. Use a spelled interval for
+exact musical intent, `add(..., prefer_flats=None)` to follow the source
+accidental, or `prefer_flats=True`/`False` to explicitly choose flats/sharps.
+
+Scientific octave labels follow the written letter: Cb4 stays octave 4
+(MIDI 59, about 246.94 Hz), and B#3 stays octave 3 (MIDI 60, about 261.63 Hz).
+Pitch arithmetic handles the enharmonic octave boundary separately.
+
 ## Guitar
 
 Chord fingerings, tabs, and scale diagrams for guitar and 24 other

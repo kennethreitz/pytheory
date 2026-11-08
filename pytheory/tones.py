@@ -89,35 +89,8 @@ class Tone:
                     if octave is None:
                         octave = parsed_octave
 
-        # Octave boundary fix: B#→C should increment octave,
-        # Cb→B should decrement octave (scientific pitch changes at C).
-        # Only applies to Western-style systems with letter names.
-        if octave is not None and name and name[0].isalpha():
-            if isinstance(system, str):
-                from .systems import SYSTEMS
-                _sys_check = SYSTEMS.get(system)
-            else:
-                _sys_check = system
-            if _sys_check is not None:
-                resolved = _sys_check.resolve_name(name)
-                if resolved is not None and resolved != name:
-                    orig_letter = name[0].upper()
-                    res_letter = resolved[0].upper()
-                    # Sharp crossing B→C: B# resolves to C, octave up
-                    if orig_letter == 'B' and res_letter == 'C' and '#' in name:
-                        octave += 1
-                    # Double sharp: A## resolves to B — no boundary cross
-                    # But B## resolves to C# — boundary cross
-                    if orig_letter == 'B' and res_letter not in ('B', 'A') and '##' in name:
-                        octave += 1
-                    # Flat crossing C→B: Cb resolves to B, octave down
-                    if orig_letter == 'C' and res_letter == 'B' and 'b' in name and name != 'C':
-                        octave -= 1
-                    # Double flat: D♭♭ resolves to C — no boundary cross
-                    # But C♭♭ resolves to Bb — boundary cross
-                    if orig_letter == 'C' and res_letter not in ('C', 'D') and 'bb' in name:
-                        octave -= 1
-
+        # Keep the written octave. Enharmonic boundary crossings belong in
+        # pitch arithmetic, not in the public scientific-notation label.
         self.name = name
         self.octave = octave
         self.alt_names = alt_names
@@ -362,13 +335,7 @@ class Tone:
             return self.subtract(other)
         # Tone - Tone: semitone distance
         if isinstance(other, Tone):
-            try:
-                mod = len(self.system.tones)
-            except AttributeError:
-                raise ValueError("Tone math can only be computed with an associated system!")
-            self_from_c0 = ((self._index - C_INDEX) % mod) + ((self.octave or 0) * mod)
-            other_from_c0 = ((other._index - C_INDEX) % mod) + ((other.octave or 0) * mod)
-            return self_from_c0 - other_from_c0
+            return self._absolute_steps() - other._absolute_steps()
         return NotImplemented
 
     def __lt__(self, other: Tone) -> bool:
@@ -587,6 +554,48 @@ class Tone:
                 return i
         raise ValueError(f"Tone {self.name!r} not found in system")
 
+    _LETTERS = "CDEFGAB"
+    _LETTER_PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+    def _require_western_spelling(self) -> None:
+        """Reject letter-based interval operations on non-Western systems."""
+        import re
+        from .systems import SYSTEMS
+        if (self.system is not SYSTEMS["western"]
+                or not re.fullmatch(r"[A-G](?:#+|b+)?", self.name)):
+            raise ValueError("Spelled intervals require Western letter-name tones")
+
+    def _absolute_steps(self, *, octave: Optional[int] = None) -> int:
+        """Absolute pitch steps from C0, including written accidentals.
+
+        Cb4 has the written octave 4 but sounds one step below C4;
+        B#3 sounds at C4. Other systems retain their indexed arithmetic.
+        """
+        import re
+        from .systems import SYSTEMS
+        system = self._require_system("Tone pitch arithmetic")
+        if octave is None:
+            octave = self.octave if self.octave is not None else 0
+        if (system is SYSTEMS["western"]
+                and re.fullmatch(r"[A-G](?:#+|b+)?", self.name)):
+            return (octave * 12 + self._LETTER_PC[self.name[0]]
+                    + self.name.count("#") - self.name.count("b"))
+        n = len(system.tone_names)
+        c_idx = getattr(system, "c_index", C_INDEX)
+        return ((self._index - c_idx) % n) + octave * n
+
+    def _spell_interval(self, semitones: int, letter_steps: int) -> Tone:
+        """Spell a directed interval using its chromatic and diatonic sizes."""
+        self._require_western_spelling()
+        position = (self.octave or 0) * 7 + self._LETTERS.index(self.letter)
+        octave, letter_index = divmod(position + letter_steps, 7)
+        letter = self._LETTERS[letter_index]
+        target = self._absolute_steps() + semitones
+        accidental = target - (octave * 12 + self._LETTER_PC[letter])
+        name = letter + ("#" * accidental if accidental > 0 else "b" * -accidental)
+        return Tone(name, octave=octave if self.octave is not None else None,
+                    system=self.system)
+
     def _math(self, interval: int) -> tuple[int, int]:
         """Returns (new index, new octave).
 
@@ -594,14 +603,12 @@ class Tone:
         octave number increments at C (index 3 in the Western system).
         """
 
-        octave = self.octave or 0
-
         system = self._require_system("Tone interval math")
         mod = len(system.tone_names)
         c_idx = getattr(system, 'c_index', C_INDEX)
 
         # Convert to absolute steps from C0
-        note_from_c0 = ((self._index - c_idx) % mod) + (octave * mod)
+        note_from_c0 = self._absolute_steps()
         note_from_c0 += interval
 
         new_octave = note_from_c0 // mod
@@ -610,17 +617,22 @@ class Tone:
 
         return (new_index, new_octave)
 
-    def add(self, interval: int, *, prefer_flats: bool = False) -> Tone:
+    def add(self, interval: int, *, prefer_flats: Optional[bool] = False) -> Tone:
         """Return a new Tone that is *interval* semitones above this one.
 
         Args:
             interval: Number of semitones to add (positive = up).
-            prefer_flats: If True, use flat spellings (Bb, Eb) instead
-                of sharp spellings (A#, D#) for accidentals.
+            prefer_flats: False (the backward-compatible default) uses
+                sharps, True uses flats, and None follows the source tone's
+                accidental. Semitones alone cannot distinguish a minor third
+                from an augmented second: use ``transpose_interval("m3")``
+                for an exact diatonic spelling.
 
         Returns:
             A new ``Tone`` instance.
         """
+        if prefer_flats is None:
+            prefer_flats = self.is_flat
         index, octave = self._math(interval)
         return self.from_index(index, octave=octave, system=self.system, prefer_flats=prefer_flats)
 
@@ -644,6 +656,10 @@ class Tone:
 
     def interval_to(self, other: Tone) -> str:
         """Name the interval between this tone and another.
+
+        This legacy chromatic API intentionally keeps its existing output;
+        use ``interval_name_to`` to distinguish enharmonic spellings.
+        Subtracting two tones still returns a signed integer step count.
 
         Returns a string like ``"perfect 5th"``, ``"major 3rd"``, or
         ``"octave"``. For intervals larger than an octave, returns
@@ -689,16 +705,89 @@ class Tone:
             import math
             hz = self.pitch()
             return round(69 + 12 * math.log2(hz / REFERENCE_A))
-        semitones_from_c0 = ((self._index - C_INDEX) % 12) + (self.octave * 12)
+        semitones_from_c0 = self._absolute_steps()
         return semitones_from_c0 + 12  # MIDI C0 = 12 (C-1 = 0)
 
-    def transpose(self, semitones: int) -> Tone:
-        """Return a new Tone transposed by the given number of semitones.
+    def transpose(self, semitones: Union[int, str]) -> Tone:
+        """Transpose by semitones (int) or a spelled interval (e.g. ``"m3"``).
 
-        Alias for ``tone + semitones`` / ``tone - semitones``. Positive
-        values transpose up, negative values transpose down.
+        Integer input is equivalent to ``add``; string input delegates to
+        ``transpose_interval`` so enharmonic intent is preserved.
         """
+        if isinstance(semitones, str):
+            return self.transpose_interval(semitones)
         return self.add(semitones)
+
+    def transpose_interval(self, interval: str) -> Tone:
+        """Transpose by a Western interval such as m3, A2, P8, M10 or -m3.
+
+        P = perfect, M = major, m = minor, A = augmented, d = diminished.
+        Repeated A/d support multiply altered intervals. The written letter
+        and octave are derived from the interval number, not a sharp/flat
+        heuristic. An octave-less source remains octave-less.
+        """
+        import re
+        self._require_western_spelling()
+        match = re.fullmatch(r"([+-]?)(P|M|m|A+|d+)([1-9]\d*)", interval)
+        if not match:
+            raise ValueError(f"Invalid interval: {interval!r}")
+        sign, quality, number = match.groups()
+        steps = int(number) - 1
+        octaves, degree = divmod(steps, 7)
+        base = (0, 2, 4, 5, 7, 9, 11)[degree] + 12 * octaves
+        perfect = degree in (0, 3, 4)
+        if (quality == "P" and perfect) or (quality == "M" and not perfect):
+            alteration = 0
+        elif quality == "m" and not perfect:
+            alteration = -1
+        elif quality.startswith("A"):
+            alteration = len(quality)
+        elif quality.startswith("d"):
+            alteration = -len(quality) - (0 if perfect else 1)
+        else:
+            raise ValueError(f"Invalid quality for interval {interval!r}")
+        direction = -1 if sign == "-" else 1
+        return self._spell_interval(direction * (base + alteration), direction * steps)
+
+    def interval_name_to(self, other: Tone) -> str:
+        """Return a spelling-aware interval name, e.g. ``"augmented second"``.
+
+        Uses letter distance AND pitch, unlike the legacy chromatic
+        ``interval_to``. Names compound intervals directly ("major tenth").
+        Descending intervals are named in their written direction without
+        a "descending" prefix. Both tones must use Western letter names;
+        missing octaves are treated as zero, as in subtraction.
+        """
+        self._require_western_spelling()
+        other._require_western_spelling()
+        start = (self.octave or 0) * 7 + self._LETTERS.index(self.letter)
+        end = (other.octave or 0) * 7 + self._LETTERS.index(other.letter)
+        distance = end - start
+        semitones = other - self
+        if distance < 0:
+            semitones = -semitones
+        octaves, degree = divmod(abs(distance), 7)
+        base = (0, 2, 4, 5, 7, 9, 11)[degree] + octaves * 12
+        alteration = semitones - base
+        perfect = degree in (0, 3, 4)
+        if alteration == 0:
+            quality = "perfect" if perfect else "major"
+        elif alteration == -1 and not perfect:
+            quality = "minor"
+        else:
+            count = alteration if alteration > 0 else -alteration - (0 if perfect else 1)
+            prefix = {1: "", 2: "doubly ", 3: "triply "}.get(count, f"{count}-times ")
+            quality = prefix + ("augmented" if alteration > 0 else "diminished")
+        number = abs(distance) + 1
+        ordinals = {1: "unison", 2: "second", 3: "third", 4: "fourth", 5: "fifth",
+                    6: "sixth", 7: "seventh", 8: "octave", 9: "ninth", 10: "tenth",
+                    11: "eleventh", 12: "twelfth", 13: "thirteenth",
+                    14: "fourteenth", 15: "fifteenth"}
+        if 10 <= number % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+        return f"{quality} {ordinals.get(number, str(number) + suffix)}"
 
     def cents_difference(self, other: Tone, *, temperament: str = "equal") -> float:
         """Difference in cents between this tone and another.
@@ -870,7 +959,7 @@ class Tone:
             pitch_scale = TEMPERAMENTS[temperament](tones)
         octave = self.octave if self.octave is not None else 4
 
-        note_from_c0 = ((self._index - c_idx) % tones) + (octave * tones)
+        note_from_c0 = self._absolute_steps(octave=octave)
         a4_from_c0 = ((0 - c_idx) % tones) + (4 * tones)  # A4
 
         diff = note_from_c0 - a4_from_c0
