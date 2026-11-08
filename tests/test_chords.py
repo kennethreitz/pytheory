@@ -1482,7 +1482,8 @@ def test_tonnetz_path_is_shortest_and_correct():
     # Whatever the path, applying it must reach the target.
     for target in ("E", "Gm", "Db", "Ab"):
         path = c.tonnetz_path(Chord.from_name(target))
-        assert c.transform(path).identify() == Chord.from_name(target).identify()
+        # Tonnetz paths operate on pitch classes, not enharmonic spelling.
+        assert c.transform(path).pitch_classes == Chord.from_name(target).pitch_classes
 
 
 def test_neo_riemannian_requires_a_triad():

@@ -2,6 +2,21 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- Chord names now use the general symbol parser and preserve conventional
+  letter spellings, including flat roots and diminished-seventh double flats.
+  Common qualities work for sharp/flat roots, with `ø` and `°7` aliases.
+- Scientific octave labels no longer change at enharmonic B/C boundaries;
+  MIDI, frequency and arithmetic still reflect the sounding pitch. Also fixes
+  a double octave adjustment for B double sharp.
+- Added `Tone.transpose_interval()` and string input to `Tone.transpose()`
+  for spelling-aware intervals, plus `Tone.interval_name_to()` for full
+  diatonic interval names including compound and altered intervals.
+- Added opt-in source-accidental preference with `Tone.add(...,
+  prefer_flats=None)`. Integer arithmetic and the legacy chromatic
+  `interval_to()` output remain backward compatible.
+
 ## 0.57.13
 
 - **`Maqam.play()` and `.render()` no longer crash.** Both default to
