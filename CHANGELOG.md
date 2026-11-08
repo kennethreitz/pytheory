@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.58.0
 
 - Chord names now use the general symbol parser and preserve conventional
   letter spellings, including flat roots and diminished-seventh double flats.
