@@ -524,13 +524,15 @@ uses case and tick marks instead of numbers:
 
 .. code-block:: pycon
 
-   >>> Tone.from_string("C3").helmholtz    # Great octave
+   >>> Tone.from_string("C2").helmholtz    # Great octave
    'C'
-   >>> Tone.from_string("C4").helmholtz    # Middle C
+   >>> Tone.from_string("C3").helmholtz    # Small octave
    'c'
-   >>> Tone.from_string("C5").helmholtz    # One-line octave
+   >>> Tone.from_string("C4").helmholtz    # Middle C, one-line octave
    "c'"
-   >>> Tone.from_string("C2").helmholtz    # Contra octave
+   >>> Tone.from_string("C5").helmholtz    # Two-line octave
+   "c''"
+   >>> Tone.from_string("C1").helmholtz    # Contra octave
    'CC'
 
 Cents

@@ -32,6 +32,69 @@ def _pitch_classes(names):
     return out
 
 
+# Chord members above a root, as (semitones, diatonic letter steps).
+# Letter steps are what keep Gb a fifth above Cb, and E# a third above C#.
+_CHORD_SPELLINGS = {
+    "M": ((4, 2), (7, 4)),
+    "m": ((3, 2), (7, 4)),
+    "M7": ((4, 2), (7, 4), (11, 6)),
+    "7": ((4, 2), (7, 4), (10, 6)),
+    "m7": ((3, 2), (7, 4), (10, 6)),
+    "dim": ((3, 2), (6, 4)),
+    "dim7": ((3, 2), (6, 4), (9, 6)),
+    "halfdim": ((3, 2), (6, 4), (10, 6)),
+    "aug": ((4, 2), (8, 4)),
+    "aug7": ((4, 2), (8, 4), (10, 6)),
+    "aug9": ((4, 2), (8, 4), (10, 6), (14, 8)),
+    "M9": ((4, 2), (7, 4), (11, 6), (14, 8)),
+    "9": ((4, 2), (7, 4), (10, 6), (14, 8)),
+    "m9": ((3, 2), (7, 4), (10, 6), (14, 8)),
+    "mmaj7": ((3, 2), (7, 4), (11, 6)),
+}
+
+
+def _spelled_chord(root, kind):
+    """Build a chord on *root* using diatonic spellings for *kind*."""
+    from .chords import Chord
+    tones = [root]
+    try:
+        root._require_western_spelling()
+        western = True
+    except ValueError:
+        western = False
+    for semi, letters in _CHORD_SPELLINGS[kind]:
+        if western:
+            tones.append(root._spell_interval(semi, letters))
+        else:
+            tones.append(root.add(semi))
+    return Chord(tones=tones)
+
+
+def _numeral_kind(quality: str, is_major: bool, extension: Optional[str]) -> str:
+    """Map a parsed Roman numeral's quality onto a spelling key."""
+    if quality == "dim":
+        return "dim7" if extension == "7" else "dim"
+    if quality == "halfdim":
+        return "halfdim"
+    if quality == "aug":
+        if extension == "9":
+            return "aug9"
+        return "aug7" if extension == "7" else "aug"
+    if extension == "mmaj7":
+        return "mmaj7"
+    if extension == "maj7" or (quality == "maj" and extension == "7"):
+        return "M7"
+    if extension == "maj9" or (quality == "maj" and extension == "9"):
+        return "M9"
+    if extension == "9":
+        return "9" if is_major else "m9"
+    if extension == "7":
+        return "7" if is_major else "m7"
+    if quality == "maj" or is_major:
+        return "M"
+    return "m"
+
+
 class Scale:
     def __init__(self, *, tones: tuple[Tone, ...], degrees: Optional[tuple[str, ...]] = None, system: Union[str, System] = 'western') -> None:
         """Initialize a Scale from a sequence of Tones.
@@ -178,17 +241,19 @@ class Scale:
             octaves_up = d // unique
             tone = self.tones[idx]
             if octaves_up > 0:
-                # Keep the scale tone's spelling across the octave jump —
-                # plain .add(12) would re-spell Eb as D#.
-                tone = tone.add(12 * octaves_up, prefer_flats="b" in tone.name)
+                # Whole-octave shifts keep the written spelling (Eb stays Eb).
+                tone = tone.add(12 * octaves_up)
             result.append(tone)
         return Chord(tones=result)
 
     def transpose(self, semitones: int) -> Scale:
         """Return a new Scale transposed by the given number of semitones.
 
-        Every tone is shifted by the same interval, preserving the
-        scale's interval pattern.
+        The interval pattern is preserved. A Western heptatonic scale is
+        re-spelled with one letter per degree, and the enharmonic tonic
+        with fewer accidentals is preferred (C major up a semitone is
+        Db major; a tie keeps the source scale's sharp or flat direction).
+        ``transpose(0)`` is the identity, including flat spellings.
 
         Example::
 
@@ -197,9 +262,43 @@ class Scale:
             >>> d_major.note_names
             ['D', 'E', 'F#', 'G', 'A', 'B', 'C#', 'D']
         """
-        from .chords import Chord
-        new_tones = tuple(t.add(semitones) for t in self.tones)
-        return Scale(tones=new_tones)
+        if not self.tones or semitones == 0:
+            return Scale(tones=tuple(self.tones))
+
+        steps = [self.tones[i + 1] - self.tones[i]
+                 for i in range(len(self.tones) - 1)]
+        tonic = self.tones[0]
+        if len(steps) == 7:
+            spelled = self._transposed_heptatonic(tonic, semitones, steps)
+            if spelled is not None:
+                return Scale(tones=tuple(spelled))
+
+        prefer = (sum(t.is_flat for t in self.tones)
+                  > sum(t.is_sharp for t in self.tones))
+        return Scale(tones=tuple(
+            t.add(semitones, prefer_flats=prefer) for t in self.tones))
+
+    def _transposed_heptatonic(self, tonic, semitones: int, steps: list):
+        """Spell *tonic* shifted by *semitones* as a one-letter-per-degree scale."""
+        source_flats = (sum(t.is_flat for t in self.tones)
+                        > sum(t.is_sharp for t in self.tones))
+        best = None
+        seen = set()
+        for prefer in (False, True):
+            candidate = tonic.add(semitones, prefer_flats=prefer)
+            if candidate.name in seen:
+                continue
+            seen.add(candidate.name)
+            spelled = TonedScale._spell_heptatonic(candidate, steps, tonic.system)
+            if spelled is None:
+                continue
+            cost = sum(n.name.count("#") + n.name.count("b")
+                       for n in spelled[:-1])
+            bias = 0 if prefer == source_flats else 1
+            rank = (cost, bias)
+            if best is None or rank < best[0]:
+                best = (rank, spelled)
+        return None if best is None else best[1]
 
     def triad(self, root: int = 0) -> Chord:
         """Build a triad starting from the given scale degree (0-indexed).
@@ -231,7 +330,9 @@ class Scale:
           ``"bVII"`` is a major triad on the lowered 7th degree (the
           Mixolydian/​rock ♭VII), ``"bII"`` the Neapolitan, and so on;
         - a trailing **``"7"``** makes it a seventh chord (dominant for an
-          uppercase numeral, minor for lowercase);
+          uppercase numeral, minor for lowercase). **``"maj7"``** /
+          **``"maj9"``** are the major 7th and 9th, a bare **``"9"``** is
+          the dominant or minor 9th, and **``"mMaj7"``** is minor-major;
         - a **slash** marks a secondary/applied chord — ``"V7/V"`` is the
           dominant of the dominant, ``"vii°/ii"`` the leading-tone chord of
           ``ii`` (the part before the slash is read in a major key rooted on
@@ -252,7 +353,6 @@ class Scale:
         """Resolve a single Roman-numeral string to a Chord (see
         :meth:`progression`)."""
         from ._statics import roman2int
-        from .chords import Chord
 
         s = numeral.strip()
 
@@ -264,17 +364,28 @@ class Scale:
             target_root = self._chord_from_numeral(target).tones[0]
             return TonedScale(tonic=target_root)["major"]._chord_from_numeral(applied)
 
-        # Accidental prefix — borrow from outside the key.
+        # Accidental prefix — borrow from outside the key. A run of
+        # flats or sharps is one alteration each ("bbII", "##IV").
         offset = 0
-        if s[:1] in ("b", "♭"):
-            offset, s = -1, s[1:]
-        elif s[:1] in ("#", "♯"):
-            offset, s = 1, s[1:]
+        while s[:1] in ("b", "♭"):
+            offset, s = offset - 1, s[1:]
+        while s[:1] in ("#", "♯"):
+            offset, s = offset + 1, s[1:]
 
-        # Trailing seventh.
-        is_seventh = s.endswith("7")
-        if is_seventh:
-            s = s[:-1]
+        # Extension before quality markers, so "Imaj7" is a major 7th
+        # and "imMaj7" is minor-major, not a dominant built on "Imaj".
+        low = s.lower()
+        extension = None
+        if low.endswith("mmaj7"):
+            s, extension = s[:-5], "mmaj7"
+        elif low.endswith("maj9"):
+            s, extension = s[:-4], "maj9"
+        elif low.endswith("maj7"):
+            s, extension = s[:-4], "maj7"
+        elif s.endswith("9"):
+            s, extension = s[:-1], "9"
+        elif s.endswith("7"):
+            s, extension = s[:-1], "7"
 
         # Quality markers (stripped to leave the bare roman numeral).
         quality = "case"
@@ -315,21 +426,8 @@ class Scale:
             if degree >= unique:
                 root = root.add(12 * (degree // unique))
 
-        # Intervals above the root for the requested quality.
-        if quality == "dim":
-            intervals = [3, 6, 9] if is_seventh else [3, 6]
-        elif quality == "halfdim":
-            intervals = [3, 6, 10]
-        elif quality == "aug":
-            intervals = [4, 8, 10] if is_seventh else [4, 8]
-        elif quality == "maj":
-            intervals = [4, 7, 11] if is_seventh else [4, 7]
-        elif is_major:
-            intervals = [4, 7, 10] if is_seventh else [4, 7]   # dominant 7th
-        else:
-            intervals = [3, 7, 10] if is_seventh else [3, 7]   # minor 7th
-
-        return Chord(tones=[root] + [root.add(i) for i in intervals])
+        kind = _numeral_kind(quality, is_major, extension)
+        return _spelled_chord(root, kind)
 
     def nashville(self, *numbers: Union[int, str]) -> list[Chord]:
         """Build a chord progression using Nashville number system.
@@ -346,7 +444,6 @@ class Scale:
             >>> scale.nashville(1, 4, 5, 1)
             [<Chord C major>, <Chord F major>, <Chord G major>, <Chord C major>]
         """
-        from .chords import Chord
         chords = []
         for num in numbers:
             s = str(num).strip()
@@ -369,23 +466,16 @@ class Scale:
                 # (b7 = Bb major), minor with the "m" modifier.
                 root = self.triad(degree).tones[0].add(
                     offset, prefer_flats=(offset < 0))
-                ivs = ([3, 7, 10] if is_seventh else [3, 7]) if force_minor \
-                    else ([4, 7, 10] if is_seventh else [4, 7])
-                chords.append(Chord(tones=[root] + [root.add(i) for i in ivs]))
+                if force_minor:
+                    kind = "m7" if is_seventh else "m"
+                else:
+                    kind = "7" if is_seventh else "M"
+                chords.append(_spelled_chord(root, kind))
             elif force_minor:
                 # Borrow a minor chord on this degree (4m = F minor in C).
-                # Start from the correctly-spelled diatonic triad and flatten
-                # the third by letter (A→Ab, not G#) so the spelling reads.
-                base = self.triad(degree).tones
-                root, third, fifth = base[0], base[1], base[2]
-                if (third._index - root._index) % 12 == 4:   # major 3rd
-                    third = third.add(-1, prefer_flats=True)
-                if (fifth._index - root._index) % 12 == 6:   # dim 5th (vii°)
-                    fifth = fifth.add(1)
-                tones = [root, third, fifth]
-                if is_seventh:
-                    tones.append(root.add(10, prefer_flats=True))  # minor 7th
-                chords.append(Chord(tones=tones))
+                # Spell the third and fifth by letter (Ab, not G#).
+                root = self.triad(degree).tones[0]
+                chords.append(_spelled_chord(root, "m7" if is_seventh else "m"))
             elif is_seventh:
                 chords.append(self.seventh(degree))
             else:
@@ -721,10 +811,8 @@ class Key:
         # Conventional key spellings — Bb major, not the theoretical
         # A# major; C# minor, not Db minor.
         tonics = {
-            "major": ["C", "Db", "D", "Eb", "E", "F",
-                      "F#", "G", "Ab", "A", "Bb", "B"],
-            "minor": ["C", "C#", "D", "Eb", "E", "F",
-                      "F#", "G", "G#", "A", "Bb", "B"],
+            "major": cls._CONVENTIONAL_MAJOR,
+            "minor": cls._CONVENTIONAL_MINOR,
         }
         for mode in ("major", "minor"):
             for tonic_pc, tonic in enumerate(tonics[mode]):
@@ -838,10 +926,14 @@ class Key:
         # distinct degrees (len - 1) to treat degree 8 as degree 1.
         n_degrees = len(self._scale.tones) - 1
         target = self._scale.tones[(degree - 1) % n_degrees]
-        # Build a dominant 7th a perfect 5th above the target
-        from .chords import Chord
-        root = target.add(7)
-        return Chord(tones=[root, root.add(4), root.add(7), root.add(10)])
+        # Dominant 7th a perfect fifth above the target, spelled by letter
+        # so V/IV in Bb is Bb7 (Bb D F Ab), not A#7.
+        try:
+            target._require_western_spelling()
+            root = target.transpose_interval("P5")
+        except ValueError:
+            root = target.add(7)
+        return _spelled_chord(root, "7")
 
     def common_progressions(self) -> dict[str, list]:
         """Named chord progressions realized in this key.
@@ -867,9 +959,21 @@ class Key:
                 continue
         return result
 
+    # Conventional spellings, chromatic order. Major prefers the flat
+    # side of the enharmonic pairs (Db, Eb, Ab, Bb); minor keeps the
+    # sharp minors that are actually used (C#, G#).
+    _CONVENTIONAL_MAJOR = ["C", "Db", "D", "Eb", "E", "F",
+                           "F#", "G", "Ab", "A", "Bb", "B"]
+    _CONVENTIONAL_MINOR = ["C", "C#", "D", "Eb", "E", "F",
+                           "F#", "G", "G#", "A", "Bb", "B"]
+
     @classmethod
     def all_keys(cls) -> list[Key]:
         """Return all 24 major and minor keys.
+
+        Spellings are the conventional ones (Bb major, not A# major;
+        Eb minor, not D# minor), in chromatic order, major then minor
+        at each pitch class.
 
         Returns:
             A list of Key objects for all 12 major and 12 minor keys.
@@ -879,12 +983,10 @@ class Key:
             >>> for k in Key.all_keys():
             ...     print(k)
         """
-        chromatic = ["C", "C#", "D", "D#", "E", "F",
-                     "F#", "G", "G#", "A", "A#", "B"]
         keys = []
-        for tonic in chromatic:
-            keys.append(cls(tonic, "major"))
-            keys.append(cls(tonic, "minor"))
+        for major, minor in zip(cls._CONVENTIONAL_MAJOR, cls._CONVENTIONAL_MINOR):
+            keys.append(cls(major, "major"))
+            keys.append(cls(minor, "minor"))
         return keys
 
     @property
@@ -909,26 +1011,55 @@ class Key:
             >>> Key("C", "major").signature
             {'sharps': 0, 'flats': 0, 'accidentals': []}
         """
-        # Compare scale notes against the natural notes C D E F G A B
-        naturals = {"C", "D", "E", "F", "G", "A", "B"}
-        scale_notes = set(self.note_names[:-1])  # exclude octave
+        # A real key signature is a prefix of the circle of fifths, which
+        # is the only way double sharps count (D# major is 9 sharps, not
+        # the five single sharps that happen to appear in the scale).
+        notes = [n for n in self.note_names[:-1] if n and n[0] in "CDEFGAB"]
+        alt = {}
+        for note in notes:
+            alt[note[0]] = note.count("#") - note.count("b")
 
-        sharps = [n for n in scale_notes if "#" in n]
-        flats = [n for n in scale_notes if "b" in n[1:]]  # skip first char for B
+        def prefix(order, sign):
+            accidentals = []
+            for i in range(14):
+                letter = order[i % 7]
+                needed = (i // 7) + 1
+                have = alt.get(letter, 0)
+                if (sign == "#" and have >= needed) or (sign == "b" and have <= -needed):
+                    accidentals.append(letter + (sign * needed))
+                else:
+                    break
+            return accidentals
 
-        # Order sharps: F C G D A E B
+        def explains(accidentals, sign):
+            expected = {letter: 0 for letter in "CDEFGAB"}
+            for i, name in enumerate(accidentals):
+                expected[name[0]] += 1 if sign == "#" else -1
+            for letter in "CDEFGAB":
+                if alt.get(letter, 0) != expected[letter]:
+                    return False
+            return True
+
+        sharps = prefix("FCGDAEB", "#")
+        flats = prefix("BEADGCF", "b")
+        if sharps and explains(sharps, "#") and not flats:
+            return {"sharps": len(sharps), "flats": 0, "accidentals": sharps}
+        if flats and explains(flats, "b") and not sharps:
+            return {"sharps": 0, "flats": len(flats), "accidentals": flats}
+        if not any(alt.values()):
+            return {"sharps": 0, "flats": 0, "accidentals": []}
+
+        # Not a signature (harmonic minor's raised 7th, for example).
+        # List the altered notes in circle order, as before.
         sharp_order = ["F#", "C#", "G#", "D#", "A#", "E#", "B#"]
         flat_order = ["Bb", "Eb", "Ab", "Db", "Gb", "Cb", "Fb"]
-
-        sharps_sorted = [s for s in sharp_order if s in sharps]
-        flats_sorted = [f for f in flat_order if f in flats]
-
-        if sharps_sorted:
-            return {"sharps": len(sharps_sorted), "flats": 0, "accidentals": sharps_sorted}
-        elif flats_sorted:
-            return {"sharps": 0, "flats": len(flats_sorted), "accidentals": flats_sorted}
-        else:
-            return {"sharps": 0, "flats": 0, "accidentals": []}
+        found_sharps = [s for s in sharp_order if s in notes]
+        found_flats = [f for f in flat_order if f in notes]
+        if found_sharps:
+            return {"sharps": len(found_sharps), "flats": 0, "accidentals": found_sharps}
+        if found_flats:
+            return {"sharps": 0, "flats": len(found_flats), "accidentals": found_flats}
+        return {"sharps": 0, "flats": 0, "accidentals": []}
 
     @property
     def borrowed_chords(self) -> list[str]:
@@ -946,7 +1077,7 @@ class Key:
         Example::
 
             >>> Key("C", "major").borrowed_chords
-            ['C minor', 'D diminished', 'D# major', ...]
+            ['C minor', 'D diminished', 'Eb major', ...]
         """
         par = self.parallel
         if par is None:
@@ -1490,6 +1621,19 @@ class TonedScale:
                     for interval in reference_scale:
                         current_tone = current_tone.add(interval, prefer_flats=True)
                         working_scale.append(current_tone)
+
+                # The octave repeat is the tonic again. A flat-preference
+                # walk can land on the enharmonic (F# ... Gb); write the
+                # tonic's own spelling.
+                last = working_scale[-1]
+                tonic = self.tonic
+                if (last.name != tonic.name and last.midi is not None
+                        and tonic.midi is not None
+                        and last.midi % 12 == tonic.midi % 12):
+                    try:
+                        working_scale[-1] = tonic.spelled_at(last._absolute_steps())
+                    except ValueError:
+                        pass
 
                 scales[scale] = Scale(tones=tuple(working_scale))
 

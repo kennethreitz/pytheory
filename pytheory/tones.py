@@ -156,7 +156,14 @@ class Tone:
 
     def names(self) -> list[str]:
         """Return a list containing the primary name and all alternate names."""
-        return [self.name] + self.alt_names
+        alts = self.alt_names
+        if isinstance(alts, str):
+            alts = [alts] if alts else []
+        elif not alts:
+            alts = []
+        else:
+            alts = list(alts)
+        return [self.name] + alts
 
     @property
     def scientific(self) -> str:
@@ -172,45 +179,43 @@ class Tone:
     def helmholtz(self) -> str:
         """Helmholtz pitch notation.
 
-        The older European convention still used in some contexts:
+        Middle C (C4) is the one-line octave ``c'``, matching the
+        scientific-pitch alignment used by LilyPond and standard
+        references. Lower octaves use repeated uppercase letters
+        (the comma-less form of the same system):
 
-        - C2 → ``CC``  (sub-contra)
-        - C3 → ``C``   (great octave)
-        - C4 → ``c``   (small octave / middle C)
-        - C5 → ``c'``  (one-line)
-        - C6 → ``c''`` (two-line)
-        - C7 → ``c'''``
+        - C0 → ``CCC`` (sub-contra)
+        - C1 → ``CC``  (contra)
+        - C2 → ``C``   (great)
+        - C3 → ``c``   (small)
+        - C4 → ``c'``  (one-line, middle C)
+        - C5 → ``c''`` (two-line)
+        - C6 → ``c'''``
 
-        Accidentals are preserved as-is (e.g. ``c#'``).
+        Accidentals stay ASCII and follow the letter (``c#'``).
 
         Example::
 
             >>> Tone.from_string("C4").helmholtz
-            'c'
-            >>> Tone.from_string("C3").helmholtz
-            'C'
-            >>> Tone.from_string("C5").helmholtz
             "c'"
+            >>> Tone.from_string("C3").helmholtz
+            'c'
+            >>> Tone.from_string("C5").helmholtz
+            "c''"
             >>> Tone.from_string("A2").helmholtz
-            'AA'
+            'A'
         """
         if self.octave is None:
             return self.name
         letter = self.name[0]
         accidental = self.name[1:]
-        if self.octave <= 2:
-            # Contra and sub-contra: uppercase repeated
-            # Octave 2 = contra (CC), 1 = sub-contra (CCC), 0 = (CCCC)
-            repeats = 4 - self.octave
-            return (letter.upper() * repeats) + accidental
-        elif self.octave == 3:
-            # Great octave: single uppercase
-            return letter.upper() + accidental
-        else:
-            # Octave 4+: lowercase with tick marks
-            ticks = self.octave - 4
-            tick_str = "'" * ticks if ticks > 0 else ""
-            return letter.lower() + accidental + tick_str
+        if self.octave >= 3:
+            # C3 = c, C4 = c' (middle C), C5 = c'', ...
+            ticks = self.octave - 3
+            return letter.lower() + accidental + ("'" * ticks)
+        # C2 = C, C1 = CC, C0 = CCC, C-1 = CCCC, ...
+        repeats = 3 - self.octave
+        return (letter.upper() * max(repeats, 1)) + accidental
 
     @property
     def is_natural(self) -> bool:
@@ -246,52 +251,63 @@ class Tone:
     def enharmonic(self) -> Optional[str]:
         """The enharmonic equivalent of this tone, or None if there isn't one.
 
-        Returns the alternate spelling: C# → Db, Db → C#, etc.
-        Natural notes (C, D, E, F, G, A, B) have no enharmonic.
+        Returns the other common spelling: C# → Db, Db → C#, E# → F,
+        Cb → B. Natural notes (C, D, E, F, G, A, B) have no enharmonic.
+        An explicit ``alt_names`` entry wins over the system table.
 
         Example::
 
             >>> Tone.from_string("C#4").enharmonic
             'Db'
+            >>> Tone.from_string("Db4").enharmonic
+            'C#'
         """
-        if self.alt_names:
-            return self.alt_names[0] if isinstance(self.alt_names, (list, tuple)) else self.alt_names
-        # Check the system for alt names
+        if isinstance(self.alt_names, str) and self.alt_names and self.alt_names != self.name:
+            return self.alt_names
+        if isinstance(self.alt_names, (list, tuple)):
+            for alt in self.alt_names:
+                if alt and alt != self.name:
+                    return alt
         try:
-            for tone in self.system.tones:
-                if tone.name == self.name and tone.alt_names:
-                    return tone.alt_names[0]
-        except (AttributeError, TypeError):
+            system = self.system
+            canonical = system.resolve_name(self.name) if system is not None else None
+            if system is not None and canonical is not None:
+                for names in system.tone_names:
+                    if canonical in names or self.name in names:
+                        others = [n for n in names if n != self.name]
+                        if others:
+                            return others[0]
+                        if canonical != self.name:
+                            return canonical
+                        return None
+        except (AttributeError, TypeError, ValueError):
             pass
         return None
 
-    _SOLFEGE_MAP = {
-        "C": "Do", "D": "Re", "E": "Mi", "F": "Fa",
-        "G": "Sol", "A": "La", "B": "Ti",
-    }
-
-    _SOLFEGE_SHARP_MAP = {
-        "C#": "Di", "D#": "Ri", "F#": "Fi", "G#": "Si", "A#": "Li",
-        "E#": "Mi", "B#": "Do",
-    }
-
-    _SOLFEGE_FLAT_MAP = {
-        "Db": "Ra", "Eb": "Me", "Gb": "Se", "Ab": "Le", "Bb": "Te",
-        "Fb": "Mi", "Cb": "Ti",
+    # Fixed-do chromatic syllables by pitch class: (sharp-side, flat-side).
+    # White-key enharmonics (E#, B#, Fb, Cb, double alterations) share the
+    # natural syllable of the pitch they sound.
+    _PC_SOLFEGE = {
+        0: ("Do", "Do"), 1: ("Di", "Ra"), 2: ("Re", "Re"),
+        3: ("Ri", "Me"), 4: ("Mi", "Mi"), 5: ("Fa", "Fa"),
+        6: ("Fi", "Se"), 7: ("Sol", "Sol"), 8: ("Si", "Le"),
+        9: ("La", "La"), 10: ("Li", "Te"), 11: ("Ti", "Ti"),
     }
 
     @property
     def solfege(self) -> str:
         """Map Western note names to fixed-Do solfege syllables.
 
-        Uses fixed Do system where C is always Do regardless of key.
+        Uses fixed Do, where C is always Do regardless of key. Black keys
+        follow the written accidental (C# is Di, Db is Ra). White-key
+        enharmonics follow the pitch: E# and Fb are Fa and Mi.
 
         - C->Do, D->Re, E->Mi, F->Fa, G->Sol, A->La, B->Ti
         - Sharps: C#->Di, D#->Ri, F#->Fi, G#->Si, A#->Li
         - Flats: Db->Ra, Eb->Me, Gb->Se, Ab->Le, Bb->Te
 
         Returns the note name unchanged if the system isn't western
-        or the name isn't recognized.
+        or the name isn't a letter with accidentals.
 
         Example::
 
@@ -299,7 +315,10 @@ class Tone:
             'Do'
             >>> Tone.from_string("F#4").solfege
             'Fi'
+            >>> Tone.from_string("E#4").solfege
+            'Fa'
         """
+        import re
         # Check system
         sys_name = self.system_name
         if sys_name is not None and sys_name != "western":
@@ -312,13 +331,13 @@ class Tone:
                 pass
 
         name = self.name
-        if name in self._SOLFEGE_MAP:
-            return self._SOLFEGE_MAP[name]
-        if name in self._SOLFEGE_SHARP_MAP:
-            return self._SOLFEGE_SHARP_MAP[name]
-        if name in self._SOLFEGE_FLAT_MAP:
-            return self._SOLFEGE_FLAT_MAP[name]
-        return name
+        if not re.fullmatch(r"[A-G](?:#+|b+)?", name):
+            return name
+        pc = (self._LETTER_PC[name[0]] + name.count("#") - name.count("b")) % 12
+        sharp_syl, flat_syl = self._PC_SOLFEGE[pc]
+        if "b" in name[1:]:
+            return flat_syl
+        return sharp_syl
 
     def __repr__(self) -> str:
         return f"<Tone {self.full_name}>"
@@ -364,17 +383,28 @@ class Tone:
         if isinstance(other, str):
             return self.name == other
 
-        # Comparing against other Tones.
-        try:
-            if (self.name in other.names()) and (self.octave == other.octave):
+        # Comparing against other Tones. Enharmonic spellings compare
+        # equal when either tone lists the other as an alternate name,
+        # in both directions.
+        if isinstance(other, Tone):
+            if self.octave != other.octave:
+                return False
+            if self.name == other.name:
                 return True
-        except AttributeError:
-            pass
+            try:
+                return (self.name in other.names()) or (other.name in self.names())
+            except (AttributeError, TypeError):
+                return False
 
-        return False
+        return NotImplemented
 
     def __hash__(self) -> int:
-        return hash((self.name, self.octave))
+        # Enharmonic spellings can compare equal, so the hash follows the
+        # sounding pitch rather than the written name.
+        try:
+            return hash(self._absolute_steps())
+        except (AttributeError, TypeError, ValueError):
+            return hash((self.name, self.octave))
 
     @classmethod
     def from_string(klass, s: str, system: Optional[Union[str, object]] = None) -> Tone:
@@ -516,11 +546,13 @@ class Tone:
                     break
         else:
             tone = tone_names[0]  # primary spelling
-        # Bypass parsing and validation — name comes from a known system index
+        # Bypass parsing and validation — name comes from a known system index.
+        # Keep every spelling that was not chosen, so a flat note still
+        # reports its sharp enharmonic (and the two compare equal).
         obj = klass.__new__(klass)
         obj.name = tone
         obj.octave = octave
-        obj.alt_names = list(tone_names[1:]) if len(tone_names) > 1 else []
+        obj.alt_names = [n for n in tone_names if n != tone]
         obj._frequency = None
         if isinstance(system, str):
             obj.system_name = system
@@ -617,6 +649,23 @@ class Tone:
 
         return (new_index, new_octave)
 
+    def spelled_at(self, steps: int) -> Tone:
+        """Return this written note in the octave that sounds at *steps*.
+
+        *steps* uses the same absolute scale as :meth:`_absolute_steps`
+        (semitones from C0 in 12-tone Western spelling). The letter and
+        accidentals are kept, so moving Eb up to a new register stays Eb.
+        """
+        self._require_western_spelling()
+        base = (self._LETTER_PC[self.name[0]] + self.name.count("#")
+                - self.name.count("b"))
+        if (steps - base) % 12 != 0:
+            raise ValueError(
+                f"Spelling {self.name!r} does not sound at step {steps}"
+            )
+        return Tone(self.name, octave=(steps - base) // 12, system=self.system,
+                    alt_names=list(self.names()[1:]))
+
     def add(self, interval: int, *, prefer_flats: Optional[bool] = False) -> Tone:
         """Return a new Tone that is *interval* semitones above this one.
 
@@ -628,13 +677,28 @@ class Tone:
                 from an augmented second: use ``transpose_interval("m3")``
                 for an exact diatonic spelling.
 
+                A whole number of octaves, including zero, keeps the written
+                spelling instead. ``Eb4 + 12`` is Eb5, and ``Db4 + 0`` stays
+                Db4.
+
         Returns:
             A new ``Tone`` instance.
         """
+        system = self._require_system("Tone interval math")
+        n = len(system.tone_names)
+        if n and interval % n == 0:
+            # Missing octaves count as 0, matching pitch arithmetic, except
+            # a zero shift of an octave-less note stays octave-less.
+            if self.octave is None and interval == 0:
+                octave = None
+            else:
+                octave = (self.octave or 0) + interval // n
+            return Tone(self.name, octave=octave, system=system,
+                        alt_names=list(self.names()[1:]))
         if prefer_flats is None:
             prefer_flats = self.is_flat
         index, octave = self._math(interval)
-        return self.from_index(index, octave=octave, system=self.system, prefer_flats=prefer_flats)
+        return self.from_index(index, octave=octave, system=system, prefer_flats=prefer_flats)
 
     def subtract(self, interval: int) -> Tone:
         """Return a new Tone that is *interval* semitones below this one.
