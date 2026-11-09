@@ -911,35 +911,40 @@ def test_cents_fifth():
 
 
 def test_helmholtz_middle_c():
-    assert Tone.from_string("C4", system="western").helmholtz == "c"
+    # Middle C is the one-line octave, c'.
+    assert Tone.from_string("C4", system="western").helmholtz == "c'"
 
 
 def test_helmholtz_c3():
-    assert Tone.from_string("C3", system="western").helmholtz == "C"
+    assert Tone.from_string("C3", system="western").helmholtz == "c"
 
 
 def test_helmholtz_c5():
-    assert Tone.from_string("C5", system="western").helmholtz == "c'"
+    assert Tone.from_string("C5", system="western").helmholtz == "c''"
 
 
 def test_helmholtz_c6():
-    assert Tone.from_string("C6", system="western").helmholtz == "c''"
+    assert Tone.from_string("C6", system="western").helmholtz == "c'''"
 
 
 def test_helmholtz_c2():
-    assert Tone.from_string("C2", system="western").helmholtz == "CC"
+    assert Tone.from_string("C2", system="western").helmholtz == "C"
 
 
 def test_helmholtz_a2():
-    assert Tone.from_string("A2", system="western").helmholtz == "AA"
+    assert Tone.from_string("A2", system="western").helmholtz == "A"
+
+
+def test_helmholtz_c1_contra():
+    assert Tone.from_string("C1", system="western").helmholtz == "CC"
 
 
 def test_helmholtz_sharp():
-    assert Tone.from_string("C#4", system="western").helmholtz == "c#"
+    assert Tone.from_string("C#4", system="western").helmholtz == "c#'"
 
 
 def test_helmholtz_sharp_high():
-    assert Tone.from_string("F#5", system="western").helmholtz == "f#'"
+    assert Tone.from_string("F#5", system="western").helmholtz == "f#''"
 
 
 def test_degree_name_leading_tone():

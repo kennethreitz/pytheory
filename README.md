@@ -126,7 +126,10 @@ accidental, or `prefer_flats=True`/`False` to explicitly choose flats/sharps.
 
 Scientific octave labels follow the written letter: Cb4 stays octave 4
 (MIDI 59, about 246.94 Hz), and B#3 stays octave 3 (MIDI 60, about 261.63 Hz).
-Pitch arithmetic handles the enharmonic octave boundary separately.
+Adding a whole number of octaves keeps that spelling: ``Eb4 + 12`` is Eb5,
+and ``Db4 + 0`` stays Db4. Other integer intervals stay chromatic.
+Roman-numeral chords use the same letter spelling: ``Key("C#").progression("I")``
+is C# E# G#, and ``Key("F").progression("ii")`` is G Bb D.
 
 ## Guitar
 

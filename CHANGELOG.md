@@ -2,6 +2,29 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- Whole-octave arithmetic keeps the written note. ``Eb4 + 12`` is Eb5,
+  ``Db4 + 0`` stays Db4, and inversions, drop voicings, and
+  ``transpose(0)`` no longer rename flats to sharps.
+- Roman numerals, Nashville numbers, and secondary dominants spell
+  chord tones by letter, so C# major is C# E# G# and F major's ii is
+  G Bb D.
+- Heptatonic ``Scale.transpose`` re-spells one letter per degree and
+  prefers the enharmonic key with fewer accidentals.
+- ``analyze()`` round-trips major 7ths (``Imaj7``), half-diminished
+  7ths (``iiø7``), ninths (``V9``, ``Imaj9``), and minor-major 7ths,
+  and labels a sharp root by its letter (``#IV``, not enharmonic ``bV``).
+- ``Key.signature`` counts a real circle-of-fifths prefix, including
+  double sharps. ``Key.all_keys()`` uses conventional names (Bb, not A#).
+- ``Tone.enharmonic`` works for flats and white-key enharmonics.
+  Flat ``from_index`` / ``from_midi`` notes keep the sharp spelling as
+  an alternate, and enharmonic equality is symmetric.
+- Helmholtz notation matches the standard alignment: middle C is ``c'``.
+- Fixed-do solfege follows pitch for E#, B#, Fb, Cb, and double accidentals.
+- ``C6/9`` is a sixth-ninth chord, not a slash chord with bass ``"9"``.
+  ``sus``, ``-``, ``-7``, ``°``, and ``Δ7`` are accepted as aliases.
+
 ## 0.58.0
 
 - Chord names now use the general symbol parser and preserve conventional

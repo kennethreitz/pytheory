@@ -100,15 +100,14 @@ def test_analyze_V7():
 
 
 def test_analyze_not_in_key():
-    """F# major in C major is now recognized as a borrowed chord (bV)."""
+    """F# major in C major is #IV — the written letter, not the enharmonic bV."""
     chord = Chord(tones=[
         Tone.from_string("F#4", system="western"),
         Tone.from_string("A#4", system="western"),
         Tone.from_string("C#5", system="western"),
     ])
-    result = chord.analyze("C")
-    assert result is not None
-    assert "b" in result  # borrowed chord with flat prefix
+    assert chord.analyze("C") == "#IV"
+    assert Chord.from_symbol("Gb").analyze("C") == "bV"
 
 
 def test_progression_I_IV_V():

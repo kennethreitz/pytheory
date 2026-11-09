@@ -83,17 +83,23 @@ class Chord:
         "maj": (4, 7),
         "m": (3, 7),
         "min": (3, 7),
+        "-": (3, 7),
         "dim": (3, 6),
+        "°": (3, 6),
         "aug": (4, 8),
         "+": (4, 8),
+        "sus": (5, 7),
         "sus2": (2, 7),
         "sus4": (5, 7),
         "5": (7,),
         # Seventh chords
         "maj7": (4, 7, 11),
         "M7": (4, 7, 11),
+        "Δ7": (4, 7, 11),
+        "Δ": (4, 7, 11),
         "m7": (3, 7, 10),
         "min7": (3, 7, 10),
+        "-7": (3, 7, 10),
         "7": (4, 7, 10),
         "dom7": (4, 7, 10),
         "dim7": (3, 6, 9),
@@ -114,6 +120,10 @@ class Chord:
         # Sixth chords
         "6": (4, 7, 9),
         "m6": (3, 7, 9),
+        "6/9": (4, 7, 9, 14),
+        "69": (4, 7, 9, 14),
+        "m6/9": (3, 7, 9, 14),
+        "m69": (3, 7, 9, 14),
         # Add chords
         "add9": (4, 7, 14),
         "add11": (4, 7, 17),
@@ -163,21 +173,23 @@ class Chord:
 
         symbol = symbol.replace("♯", "#").replace("♭", "b")
         # Slash chord: parse the main symbol, then re-voice so the
-        # named bass note is lowest.
+        # named bass note is lowest. A slash that is not a note name
+        # (C6/9) is a chord quality, not a bass note.
         if "/" in symbol:
             main_sym, bass_name = symbol.split("/", 1)
-            chord = cls.from_symbol(main_sym, octave=octave)
-            bass_ref = Tone.from_string(f"{bass_name}{octave}",
-                                        system="western")
-            bass_pc = bass_ref.midi % 12
-            for n, tone in enumerate(chord.tones):
-                if tone.midi is not None and tone.midi % 12 == bass_pc:
-                    return chord.inversion(n)
-            bass = bass_ref
-            while (chord.tones and chord.tones[0].midi is not None
-                   and bass.midi >= chord.tones[0].midi):
-                bass = bass.subtract(12)
-            return cls(tones=[bass] + list(chord.tones))
+            if re.fullmatch(r"[A-G](?:#+|b+)?", bass_name):
+                chord = cls.from_symbol(main_sym, octave=octave)
+                bass_ref = Tone.from_string(f"{bass_name}{octave}",
+                                            system="western")
+                bass_pc = bass_ref.midi % 12
+                for n, tone in enumerate(chord.tones):
+                    if tone.midi is not None and tone.midi % 12 == bass_pc:
+                        return chord.inversion(n)
+                bass = bass_ref
+                while (chord.tones and chord.tones[0].midi is not None
+                       and bass.midi >= chord.tones[0].midi):
+                    bass = bass.subtract(12)
+                return cls(tones=[bass] + list(chord.tones))
 
         # Consume the entire root, including accidentals, before parsing
         # an exact quality suffix. Do not silently accept trailing garbage.
@@ -213,12 +225,14 @@ class Chord:
         # diminished seventh is the seventh letter (Bbb in C), not A.
         if suffix.startswith("sus2") or suffix == "7sus2":
             degrees = (2, 5, 7)
-        elif suffix.startswith("sus4") or suffix == "7sus4":
+        elif suffix.startswith("sus4") or suffix in ("7sus4", "sus"):
             degrees = (4, 5, 7)
         elif suffix == "5":
             degrees = (5,)
         elif suffix in ("6", "m6"):
             degrees = (3, 5, 6)
+        elif suffix in ("6/9", "69", "m6/9", "m69"):
+            degrees = (3, 5, 6, 9)
         elif suffix == "add9":
             degrees = (3, 5, 9)
         elif suffix == "add11":
@@ -553,14 +567,17 @@ class Chord:
         if not self.tones:
             return Chord(tones=[])
         root = self.tones[0]
-        root_octave = root.octave or 4
         result = [root]
+        root_steps = root._absolute_steps()
         for t in self.tones[1:]:
-            # Bring into root octave, above root
+            # Bring into root octave, above root, keeping the written name.
             interval = (t - root) % 12
             if interval == 0:
                 interval = 12
-            new_tone = root.add(interval)
+            try:
+                new_tone = t.spelled_at(root_steps + interval)
+            except ValueError:
+                new_tone = root.add(interval)
             result.append(new_tone)
         # Sort by interval from root (skip root itself)
         result = [result[0]] + sorted(result[1:], key=lambda t: (t - root) % 12)
@@ -928,6 +945,8 @@ class Chord:
         # first, naming a C-rooted {0,4,7,9} "C major 6th" not "A minor 7th".
         "major 6th": {0, 4, 7, 9},
         "minor 6th": {0, 3, 7, 9},
+        "major 6/9": {0, 2, 4, 7, 9},
+        "minor 6/9": {0, 2, 3, 7, 9},
     }
 
     def identify(self) -> Optional[str]:
@@ -991,6 +1010,8 @@ class Chord:
         "minor 9th": "m9",
         "major 6th": "6",
         "minor 6th": "m6",
+        "major 6/9": "6/9",
+        "minor 6/9": "m6/9",
     }
 
     @property
@@ -1136,40 +1157,60 @@ class Chord:
 
         scale_names = [t.name for t in scale.tones[:-1]]
 
-        def _build_numeral(root, quality, degree_idx, prefix=""):
-            numeral_str = int2roman(degree_idx + 1)
-            suffix = ""
-            if "minor" in quality:
-                numeral_str = numeral_str.lower()
-            if "diminished" in quality:
-                numeral_str = numeral_str.lower()
+        def _build_numeral(quality, degree_idx, prefix=""):
+            numeral = int2roman(degree_idx + 1)
+            if any(token in quality for token in ("minor", "diminished")):
+                numeral = numeral.lower()
+            # These suffixes are the ones progression() parses back into
+            # the same chord. "I7" is a dominant 7th, so a major 7th has
+            # to say "maj"; a half-diminished 7th is "ø7", not "dim7".
+            if quality == "half-diminished 7th":
+                suffix = "ø7"
+            elif quality == "minor-major 7th":
+                suffix = "mMaj7"
+            elif quality == "major 7th":
+                suffix = "maj7"
+                numeral = int2roman(degree_idx + 1)
+            elif quality == "major 9th":
+                suffix = "maj9"
+                numeral = int2roman(degree_idx + 1)
+            elif quality == "diminished 7th":
+                suffix = "dim7"
+            elif "diminished" in quality:
                 suffix = "dim"
-            if "augmented" in quality:
+            elif "augmented" in quality and "7th" in quality:
+                suffix = "+7"
+            elif "augmented" in quality:
                 suffix = "+"
-            if "7th" in quality:
-                suffix += "7"
-            if "9th" in quality:
-                suffix += "9"
-            return prefix + numeral_str + suffix
+            elif "9th" in quality:
+                suffix = "9"
+            elif "7th" in quality:
+                suffix = "7"
+            else:
+                suffix = ""
+            return prefix + numeral + suffix
 
         # Diatonic match
         if root_name in scale_names:
             degree_idx = scale_names.index(root_name)
-            return _build_numeral(root_name, quality, degree_idx)
+            return _build_numeral(quality, degree_idx)
 
-        # Chromatic / borrowed chord — find by semitone distance from tonic
+        # Chromatic / borrowed chord. The written letter chooses the
+        # degree: F# is #IV, Gb is bV. Pitch class alone can't.
         tonic_tone = scale.tones[0]
         root_tone = Tone.from_string(root_name + "4", system="western")
         semitones = (root_tone - tonic_tone) % 12
-
-        # Map semitone distances to flat-degree labels
-        chromatic_degrees = {
-            1: ("b", 1), 3: ("b", 2), 6: ("b", 4),
-            8: ("b", 5), 10: ("b", 6),
-        }
-        if semitones in chromatic_degrees:
-            prefix, deg_idx = chromatic_degrees[semitones]
-            return _build_numeral(root_name, quality, deg_idx, prefix=prefix)
+        letters = "CDEFGAB"
+        major_steps = (0, 2, 4, 5, 7, 9, 11)
+        if (root_name[:1] in letters and tonic_tone.name[:1] in letters):
+            letter_diff = ((letters.index(root_name[0])
+                            - letters.index(tonic_tone.name[0])) % 7)
+            expected = major_steps[letter_diff]
+            alteration = (semitones - expected + 6) % 12 - 6
+            if alteration != 0 and abs(alteration) <= 2:
+                mark = "b" if alteration < 0 else "#"
+                prefix = mark * abs(alteration)
+                return _build_numeral(quality, letter_diff, prefix=prefix)
 
         return None
 
