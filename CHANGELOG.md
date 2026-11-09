@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.58.1
 
 - Whole-octave arithmetic keeps the written note. ``Eb4 + 12`` is Eb5,
   ``Db4 + 0`` stays Db4, and inversions, drop voicings, and
