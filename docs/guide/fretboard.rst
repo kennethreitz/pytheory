@@ -190,14 +190,18 @@ Getting Fingerings
 ------------------
 
 Common chords come from a library of curated voicings, so ``fb.chord("C")``
-returns the open shape a guitarist actually plays. Anything not in that
-library — any symbol :func:`~pytheory.Chord.from_symbol` can parse, such
-as ``"F#m7b5"`` or ``"Csus2"`` — is voiced automatically: PyTheory searches
-the neck for its notes and scores each candidate hand position by
+returns one shape — in standard tuning, the open or barre grip a
+guitarist actually plays. That single-fingering default is unchanged.
+Anything not in the library — any symbol
+:func:`~pytheory.Chord.from_symbol` can parse, such as ``"F#m7b5"`` or
+``"Csus2"`` — still gets one computed voicing.
 
-1. Preferring **open strings** (fret 0) — they ring freely
-2. Preferring **ascending** fret patterns — easier hand position
-3. Minimizing the number of **fingers needed**
+``fb.chord(name, multiple=True)`` (or
+``NamedChord.fingering(..., multiple=True)``) returns several genuinely
+different grips for that chord on *this* board: open position and the
+movable shapes up the neck, in any tuning or with a capo. ``limit``
+caps the list (default 8). Fret numbers are semitones above the nut,
+or above the capo when the board was built with one.
 
 .. code-block:: pycon
 
@@ -226,6 +230,68 @@ Subscripting the fretboard itself is shorthand for :meth:`~pytheory.Fretboard.ch
 
    >>> fb["G"]
    Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
+
+Several voicings
+~~~~~~~~~~~~~~~~
+
+The list is best grip first. Two barres of the same shape are kept
+once, at the easier fret, and muting one doubled string at the edge
+does not count as a new shape. A perfect fifth may be left out of a
+seventh or an extension; triads keep every tone.
+
+.. code-block:: pycon
+
+   >>> fb = Fretboard.guitar()
+   >>> for shape in fb.chord("C", multiple=True, limit=3):
+   ...     print(shape)
+   Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
+   Fingering(E=x, A=3, D=5, G=0, B=5, e=0)
+   Fingering(E=x, A=3, D=5, G=5, B=5, e=0)
+
+   >>> Fretboard.guitar("drop d").chord("D", multiple=True)[0]
+   Fingering(D=0, A=0, d=0, G=2, B=3, E=2)
+
+   >>> # Capo 2: fret 0 is the capo, so a G shape sounds as A
+   >>> Fretboard.guitar(capo=2).chord("A", multiple=True)[0]
+   Fingering(F#=3, B=2, E=0, A=0, C#=0, f#=3)
+
+Ranking
+~~~~~~~
+
+Lower cost comes first. The weights live in :mod:`pytheory.voicings`
+(the search follows the fretboard enumerator dxjqgc published while
+working on this, in `rhythm-template-library`_). A grip is discarded
+before it is scored when a hand cannot play it:
+
+* fretted notes span at most four frets
+* at most four fretting fingers — an index barre, or a short barre
+  with another finger, counts as one
+* how far two fingers reach grows as the frets get narrower
+* muted strings sit only at the edges
+* a bass note isolated high on the neck is dropped when the rest of
+  the shape already has that pitch (the thumb-wrap ``502220`` A)
+* every required chord tone is present
+
+What remains is scored, lowest cost first:
+
+* **stretch** — each fret between the lowest and highest fretted note
+* **fret height** — the same grip lower on the neck is easier, and
+  stretch costs a little more on the wide frets near the nut
+* **fingers** — each finger, plus a bit more for a barre
+* **open strings** — they ring and cost no finger, so they lower the cost
+* **root in the bass** — an inversion pays a flat penalty
+* **edge mutes** — a muted bass string is cheap (the open D chord);
+  muting the top string costs more, and each extra mute costs more
+  than the last
+* **completeness** — each omitted chord tone (usually the fifth of a
+  seventh) adds a penalty
+
+In standard tuning the single call ``fb.chord("C")`` still returns the
+curated shape, which is also the first result of ``multiple=True``.
+In any other tuning, including a capo, that one shape *is* the first
+result of the ranking.
+
+.. _rhythm-template-library: https://github.com/dxjqgc/rhythm-template-library
 
 Because uncharted symbols are voiced on the fly, you are not limited to
 the common chords — any symbol that parses gets a computed shape:

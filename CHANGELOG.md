@@ -2,6 +2,26 @@
 
 All notable changes to PyTheory are documented here.
 
+## Unreleased
+
+- **Several fingerings per chord.** `Fretboard.chord(name, multiple=True)`
+  and `NamedChord.fingering(..., multiple=True)` return distinct playable
+  grips — open position and movable shapes up the neck — for any tuning
+  or capo. `limit` caps the list (default 8). A grip is kept only when a
+  hand can play it: at most a four-fret stretch, at most four fretting
+  fingers with barres counted once, every chord tone present (a perfect
+  fifth may be omitted from a seventh or extension), root in the bass
+  preferred, and muted strings only at the edges. The same barre at two
+  frets is kept once. Ranking is a single cost: stretch, fret height,
+  finger count, open strings, root in the bass, edge mutes, and
+  completeness (`pytheory.voicings`).
+- The default single fingering is unchanged in standard tuning, including
+  the curated open and barre shapes. In every other tuning, and with a
+  capo, that one shape is the first result of the same ranking.
+- The search follows the fretboard enumerator dxjqgc published while
+  working on #64 (`dxjqgc/rhythm-template-library`, `chord_fingering`).
+  The pytheory fork itself had no divergent commits.
+
 ## 0.58.1
 
 - Whole-octave arithmetic keeps the written note. ``Eb4 + 12`` is Eb5,

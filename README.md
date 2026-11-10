@@ -150,7 +150,23 @@ E|--x--
 
 >>> Fretboard.guitar().chord("G")
 Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
+
+>>> for shape in Fretboard.guitar().chord("C", multiple=True, limit=3):
+...     print(shape)
+Fingering(E=x, A=3, D=2, G=0, B=1, e=0)
+Fingering(E=x, A=3, D=5, G=0, B=5, e=0)
+Fingering(E=x, A=3, D=5, G=5, B=5, e=0)
+
+>>> Fretboard.guitar("drop d").chord("D")
+Fingering(D=0, A=0, d=0, G=2, B=3, E=2)
 ```
+
+`chord(name)` is still one shape. `chord(name, multiple=True)` returns
+several distinct playable grips — open position and movable shapes up
+the neck — for any tuning or capo, best first. `limit` caps the list.
+The ranking (stretch, fret height, fingers with barres counted once,
+open strings, root in the bass, edge mutes, completeness) is documented
+in the [fretboard guide](https://pytheory.org/guide/fretboard.html).
 
 Melodies and basslines render to ASCII tablature with `part.to_tab()`,
 and chord charts work in Nashville numbers too.
