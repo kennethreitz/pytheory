@@ -2,7 +2,7 @@
 
 All notable changes to PyTheory are documented here.
 
-## Unreleased
+## 0.59.0
 
 - **Several fingerings per chord.** `Fretboard.chord(name, multiple=True)`
   and `NamedChord.fingering(..., multiple=True)` return distinct playable
