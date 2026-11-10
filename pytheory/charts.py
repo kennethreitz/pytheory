@@ -40,6 +40,7 @@ GUITAR_OVERRIDES = {
 _CACHE_MAX_SIZE = 1024
 _fingering_cache: dict[tuple, "Fingering"] = {}
 _fingering_multi_cache: dict[tuple, tuple] = {}
+_ranked_cache: dict[tuple, tuple] = {}
 _possible_cache: dict[tuple, tuple] = {}
 
 
@@ -387,7 +388,42 @@ class NamedChord:
         return (self.name, tuple(t.full_name for t in fretboard._tones),
                 fretboard.high_to_low)
 
-    def fingering(self, *, fretboard, multiple=False):
+    def fingering(self, *, fretboard, multiple=False, limit=None):
+        """Return a fingering for this chord on *fretboard*.
+
+        With ``multiple=False`` (the default) this returns one
+        :class:`Fingering`. In standard tuning that is the curated
+        open or barre shape when one is on file, otherwise the
+        historical best-scoring grip, so existing callers keep the
+        shapes they already had.
+
+        With ``multiple=True`` this returns a tuple of distinct
+        playable grips, best first: open position and the movable
+        shapes up the neck. ``limit`` caps that tuple (default 8).
+        It is ignored when ``multiple`` is false. In any tuning other
+        than standard — drop D, open G, DADGAD, a capo — the single
+        fingering is the first of those ranked grips.
+
+        Ranking is the cost in :mod:`pytheory.voicings`: stretch, fret
+        height, finger count (a barre is one finger), open strings,
+        root in the bass, edge mutes, and whether every chord tone is
+        present. A perfect fifth may be omitted from a seventh or
+        extension; that omission is charged rather than forbidden.
+        """
+        if limit is not None and (type(limit) is not int or limit < 1):
+            raise ValueError("limit must be a positive integer")
+
+        tuning = tuple(t.full_name for t in fretboard._tones)
+        # Standard-tuning single fingerings stay on the historical
+        # path (curated shapes included). Everything else — several
+        # voicings, or any non-standard tuning / capo — is searched.
+        if multiple or tuning != STANDARD_GUITAR_TUNING:
+            ranked = self._ranked_fingerings(
+                fretboard, multiple=multiple, limit=limit,
+            )
+            if ranked is not None:
+                return ranked
+
         # Check cache first
         key = self._cache_key(fretboard)
         if multiple:
@@ -538,6 +574,37 @@ class NamedChord:
                 _fingering_multi_cache.clear()
             _fingering_multi_cache[key] = result
             return result
+
+    def _ranked_fingerings(self, fretboard, *, multiple, limit):
+        """Distinct playable grips, best first. ``None`` if none exist.
+
+        The full list is cached; ``limit`` only slices what is returned.
+        """
+        from .voicings import DEFAULT_VOICING_LIMIT, pitch_class, search_fingerings
+
+        key = self._cache_key(fretboard)
+        if key not in _ranked_cache:
+            positions = search_fingerings(
+                fretboard._tones,
+                {pitch_class(t) for t in self.acceptable_tones},
+                root_pc=pitch_class(self.tone),
+            )
+            if not positions:
+                return None
+            string_names = tuple(t.name for t in fretboard._tones)
+            fingerings = tuple(
+                Fingering(p, string_names, fretboard=fretboard,
+                          high_to_low=fretboard.high_to_low)
+                for p in positions
+            )
+            if len(_ranked_cache) >= _CACHE_MAX_SIZE:
+                _ranked_cache.clear()
+            _ranked_cache[key] = fingerings
+        ranked = _ranked_cache[key]
+        if not multiple:
+            return ranked[0]
+        n = DEFAULT_VOICING_LIMIT if limit is None else limit
+        return ranked[:n]
 
     def tab(self, *, fretboard):
         """Render this chord as ASCII guitar tablature.

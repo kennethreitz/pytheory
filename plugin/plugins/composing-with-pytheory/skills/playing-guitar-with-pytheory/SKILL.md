@@ -51,14 +51,18 @@ print(shape.tab())           # same ASCII tab (always high-to-low display)
   (low-to-high), e.g. to check a shape you have in mind.
 - A `Fingering` has `.positions`, `.string_names`, `.tones`, `.tab()`,
   `.identify()`, and `.to_chord()`.
+- `.chord(name)` is one shape. `.chord(name, multiple=True)` is several
+  distinct playable grips for that tuning or capo, best first (open
+  position and movable shapes). `limit` caps the list (default 8).
+  In standard tuning the single shape is unchanged and is also first in
+  the list. Same API on a chart entry:
+  `CHARTS["western"]["C"].fingering(fretboard=fb, multiple=True)`.
 
 > **Charted-chord coverage:** `.chord()`/`.tab()` look the name up in a library of
 > ~144 common voicings — every root in major, minor, `5`, `6`, `7`, `m7`,
 > `maj7`, `9`, `m9`, `maj9`, and `dim`. Names *outside* that set (e.g. `sus4`,
-> `m7b5`, `aug`, `add9`) raise `KeyError`. For those, either build the shape
-> yourself with `.fingering(...)`, or work from the chord's notes via
-> `Chord.from_symbol("F#m7b5")` (see "Identify a chord"). `CHARTS["western"].keys()`
-> lists everything charted.
+> `m7b5`, `aug`, `add9`) are voiced from the chord's notes instead of raising.
+> `CHARTS["western"].keys()` lists everything charted.
 
 ## Other instruments
 

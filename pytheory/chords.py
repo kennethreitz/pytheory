@@ -2329,32 +2329,45 @@ class Fretboard:
 
         return "\n".join(lines)
 
-    def chord(self, name: str, *, system: str = "western") -> "Fingering":
+    def chord(self, name: str, *, system: str = "western",
+              multiple: bool = False, limit: Optional[int] = None):
         """Look up a chord by name and return its best fingering.
 
         Charted chords (the ~144 curated voicings) use the curated
-        shape; any other parseable symbol (``"F#m7b5"``, ``"Csus2"``,
-        ``"Gadd9"``, ``"Aaug"``) gets a voicing computed from its notes
-        by searching the neck for the most playable shape.
+        shape in standard tuning; any other parseable symbol
+        (``"F#m7b5"``, ``"Csus2"``, ``"Gadd9"``, ``"Aaug"``) gets one
+        voicing computed from its notes. Pass ``multiple=True`` for
+        several distinct grips — open position and movable shapes —
+        ranked for this tuning and capo. ``limit`` caps that list
+        (default 8) and is ignored unless ``multiple`` is true.
 
         Args:
             name: Chord name like ``"G"``, ``"Am7"``, ``"Bb"``, ``"Dm"``,
                 ``"F#m7b5"``.
             system: Tonal system to use (default ``"western"``).
+            multiple: When true, return a tuple of fingerings, best first.
+            limit: How many fingerings ``multiple=True`` returns.
 
         Returns:
-            A :class:`Fingering` for that chord on this fretboard.
+            A :class:`Fingering`, or a tuple of them when ``multiple``
+            is true.
 
         Example::
 
             >>> fb = Fretboard.guitar()
             >>> fb.chord("G")
             Fingering(E=3, A=2, D=0, G=0, B=0, e=3)
+            >>> len(fb.chord("G", multiple=True)) > 1
+            True
         """
-        from .charts import CHARTS
+        if limit is not None and (type(limit) is not int or limit < 1):
+            raise ValueError("limit must be a positive integer")
+        from .charts import CHARTS, Fingering
         chart = CHARTS.get(system, {})
         if name in chart:
-            return chart[name].fingering(fretboard=self)
+            return chart[name].fingering(
+                fretboard=self, multiple=multiple, limit=limit,
+            )
         # Not charted — voice the parsed chord's notes on the neck.
         try:
             chord = Chord.from_symbol(name)
@@ -2363,13 +2376,33 @@ class Fretboard:
                 f"Could not parse {name!r} as a chord symbol "
                 f"(e.g. 'Am', 'G7', 'F#m7b5')."
             )
+        if multiple:
+            from .tones import Tone
+            from .voicings import DEFAULT_VOICING_LIMIT, search_fingerings
+            ident = chord.identify()
+            if ident:
+                root_pc = Tone.from_string(
+                    f"{ident.split()[0]}4", system="western").midi % 12
+            else:
+                root_pc = chord.tones[0].midi % 12
+            positions = search_fingerings(
+                self._tones, {t.midi % 12 for t in chord.tones}, root_pc=root_pc,
+            )
+            if positions:
+                n = DEFAULT_VOICING_LIMIT if limit is None else limit
+                string_names = tuple(t.name for t in self._tones)
+                return tuple(
+                    Fingering(p, string_names, fretboard=self,
+                              high_to_low=self.high_to_low)
+                    for p in positions[:n]
+                )
         fingering = self._voice_chord(chord)
         if fingering is None:
             raise ValueError(
                 f"Could not voice {name!r} on this {len(self._tones)}-string "
                 f"fretboard within reach."
             )
-        return fingering
+        return (fingering,) if multiple else fingering
 
     def _voice_chord(self, chord, *, max_fret: int = 12) -> "Fingering":
         """Compute a playable fingering for an arbitrary chord by search.
